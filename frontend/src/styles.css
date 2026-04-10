@@ -545,6 +545,19 @@ p {
   flex: 1 1 260px;
 }
 
+.preset-card-title-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.active-preset-card {
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  background: rgba(37, 99, 235, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(191, 219, 254, 0.12);
+}
+
 .preset-card-meta {
   margin: 6px 0 0;
 }

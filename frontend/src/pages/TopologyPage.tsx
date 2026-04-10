@@ -102,6 +102,7 @@ const UI_TEXT = {
   loadPreset: 'Load',
   renamePreset: 'Rename',
   deletePreset: 'Delete',
+  activePresetBadge: 'Active',
   savedPresetPrefix: 'Saved preset:',
   loadedPresetPrefix: 'Loaded preset:',
   renamedPresetPrefix: 'Renamed preset:',
@@ -222,6 +223,21 @@ function persistSavedTopologyPresets(presets: SavedTopologyPreset[]) {
   }
 
   window.localStorage.setItem(TOPOLOGY_PRESET_STORAGE_KEY, JSON.stringify(presets))
+}
+
+function arePresetStatesEqual(left: TopologyPresetState, right: TopologyPresetState) {
+  const normalizedLeft = sanitizePresetState(left)
+  const normalizedRight = sanitizePresetState(right)
+
+  return (
+    normalizedLeft.workspaceId === normalizedRight.workspaceId &&
+    normalizedLeft.clusterChildren === normalizedRight.clusterChildren &&
+    normalizedLeft.scope === normalizedRight.scope &&
+    normalizedLeft.query === normalizedRight.query &&
+    normalizedLeft.resourceGroupName === normalizedRight.resourceGroupName &&
+    normalizedLeft.compareRefs.length === normalizedRight.compareRefs.length &&
+    normalizedLeft.compareRefs.every((ref, index) => ref === normalizedRight.compareRefs[index])
+  )
 }
 
 function createPresetId() {
@@ -1743,6 +1759,11 @@ export function TopologyPage() {
       selectedWorkspaceId,
     ],
   )
+  const activeSavedPresetId = useMemo(
+    () =>
+      savedPresets.find((preset) => arePresetStatesEqual(preset, currentPresetState))?.id ?? null,
+    [currentPresetState, savedPresets],
+  )
   const compareMetaByRef = useMemo(
     () =>
       new Map(
@@ -2242,10 +2263,18 @@ export function TopologyPage() {
           </div>
           {savedPresets.length ? (
             <div className="compare-chip-grid preset-list-grid">
-              {savedPresets.map((preset) => (
-                <div key={preset.id} className="compare-chip-card preset-card">
+              {savedPresets.map((preset) => {
+                const isActivePreset = preset.id === activeSavedPresetId
+                return (
+                  <div
+                    key={preset.id}
+                    className={`compare-chip-card preset-card ${isActivePreset ? 'active-preset-card' : ''}`}
+                  >
                   <div className="preset-card-copy">
-                    <strong>{preset.name}</strong>
+                    <div className="preset-card-title-row">
+                      <strong>{preset.name}</strong>
+                      {isActivePreset ? <span className="mini-chip">{UI_TEXT.activePresetBadge}</span> : null}
+                    </div>
                     <p className="hint preset-card-meta">
                       {UI_TEXT.presetMeta(
                         getSearchScopeMeta(preset.scope).label,
@@ -2266,8 +2295,9 @@ export function TopologyPage() {
                       {UI_TEXT.deletePreset}
                     </button>
                   </div>
-                </div>
-              ))}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <p className="hint">{UI_TEXT.noSavedPresets}</p>
