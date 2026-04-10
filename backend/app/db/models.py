@@ -123,6 +123,31 @@ DDL_STATEMENTS = [
         confidence REAL NOT NULL DEFAULT 1.0
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS snapshots (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        preset_version INTEGER NOT NULL DEFAULT 1,
+        name TEXT NOT NULL,
+        note TEXT,
+        compare_refs_json TEXT NOT NULL,
+        cluster_children INTEGER NOT NULL DEFAULT 1,
+        scope TEXT NOT NULL,
+        query_text TEXT NOT NULL DEFAULT '',
+        resource_group_name TEXT NOT NULL DEFAULT '',
+        topology_generated_at TEXT,
+        visible_node_count INTEGER NOT NULL DEFAULT 0,
+        loaded_node_count INTEGER NOT NULL DEFAULT 0,
+        edge_count INTEGER NOT NULL DEFAULT 0,
+        thumbnail_data_url TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_snapshots_workspace_updated_at
+    ON snapshots (workspace_id, updated_at DESC, created_at DESC)
+    """,
 ]
 
 

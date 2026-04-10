@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import type { Core, ElementDefinition } from 'cytoscape'
+import type { Core } from 'cytoscape'
 
 import {
   createPngExport,
@@ -8,547 +8,73 @@ import {
   getTopologyNodeDetail,
   getWorkspaces,
   type ExportItem,
-  type TopologyChildSummary,
-  type TopologyEdge,
   type TopologyNode,
   type TopologyNodeDetail,
   type TopologyResponse,
   type Workspace,
 } from '../lib/api'
-
-let cytoscapeRuntimePromise: Promise<any> | null = null
-
-async function loadCytoscapeRuntime(): Promise<any> {
-  if (!cytoscapeRuntimePromise) {
-    cytoscapeRuntimePromise = Promise.all([import('cytoscape'), import('cytoscape-dagre')]).then(
-      ([cytoscapeModule, dagreModule]) => {
-        const cytoscapeFactory = cytoscapeModule.default
-        cytoscapeFactory.use(dagreModule.default)
-        return cytoscapeFactory
-      },
-    )
-  }
-
-  return cytoscapeRuntimePromise
-}
-
-type CountItem = {
-  key: string
-  count: number
-}
-
-type SearchResult = {
-  node: TopologyNode
-  score: number
-  matchedFields: string[]
-  matchedPreviewNames?: string[]
-}
-
-type SearchResultGroup = {
-  key: ResourceCategory
-  label: string
-  results: SearchResult[]
-}
-
-type SearchScope = 'visible' | 'child-only' | 'collapsed-preview'
-
-type ResourceCategory = 'compute' | 'data' | 'network' | 'web' | 'other' | 'scope'
-type RelationCategory = 'structural' | 'network' | 'other'
-
-type ResourceFilterState = Record<ResourceCategory, boolean>
-type RelationFilterState = Record<RelationCategory, boolean>
-type RelationTypeFilterState = Record<string, boolean>
-
-const DEFAULT_RESOURCE_FILTERS: ResourceFilterState = {
-  scope: true,
-  compute: true,
-  data: true,
-  network: true,
-  web: true,
-  other: true,
-}
-
-const DEFAULT_RELATION_FILTERS: RelationFilterState = {
-  structural: true,
-  network: true,
-  other: true,
-}
-
-const DEFAULT_RELATION_TYPE_FILTERS: RelationTypeFilterState = {
-  contains: true,
-  manages: true,
-  connects_to: true,
-  secures: true,
-  routes: true,
-}
-
-const SEARCH_GROUP_ORDER: ResourceCategory[] = ['data', 'network', 'web', 'compute', 'scope', 'other']
-const COMPARE_COLOR_PALETTE = ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#f472b6', '#f87171']
-const TOPOLOGY_PRESET_VERSION = 1
-const TOPOLOGY_PRESET_STORAGE_KEY = 'azvision.topology.presets.v1'
-const TOPOLOGY_SNAPSHOT_STORAGE_KEY = 'azvision.topology.snapshots.v1'
-
-const UI_TEXT = {
-  heroSubtext:
-    'Dagre layout, network inference toggle, resource filters, managed instance child collapse, and on-demand expand are currently supported.',
-  apiErrorPrefix: 'API connection error:',
-  topologyErrorPrefix: 'Topology error:',
-  loading: 'Loading...',
-  exportSavedPrefix: 'Saved:',
-  networkInferenceToggle: 'Load network inference',
-  noCompareTargets: 'No compare targets selected',
-  compareHint: 'You can expand and compare multiple managed instances from collapsed preview results or the detail panel.',
-  resourceFilterHint: 'Subscription, resource group, and manual nodes always stay visible.',
-  searchTip:
-    'Tip: press Esc to clear selection, double-click a node to focus it, and expand child databases from the SQL Managed Instance detail panel.',
-  resourceGroupFocusedHint: (name: string) => `Only resources in ${name} are currently being loaded from the server`,
-  resourceGroupLoadHint: 'You can load only this resource group from the server.',
-  parentManagedInstanceHint: 'Jump back to the parent managed instance while exploring child nodes.',
-  managedInstanceExpandedHint: 'Keep focus centered around the selected node after expansion.',
-  managedInstanceCollapsedHint: 'Expand to render child database nodes directly on the canvas.',
-  noProjectedDetails: 'No projected details available',
-  noSelectedNode: 'No node selected',
-  savedPresetsTitle: 'Saved Presets',
-  presetNamePlaceholder: 'Preset name (optional)',
-  defaultPresetName: 'Preset',
-  saveCurrentPreset: 'Save current preset',
-  noSavedPresets: 'No saved presets yet',
-  loadPreset: 'Load',
-  renamePreset: 'Rename',
-  deletePreset: 'Delete',
-  activePresetBadge: 'Active',
-  exportPresets: 'Export JSON',
-  importPresets: 'Import JSON',
-  savedPresetPrefix: 'Saved preset:',
-  loadedPresetPrefix: 'Loaded preset:',
-  renamedPresetPrefix: 'Renamed preset:',
-  deletedPresetPrefix: 'Deleted preset:',
-  exportedPresetsPrefix: 'Exported presets:',
-  importedPresetsPrefix: 'Imported presets:',
-  importInvalidJson: 'Invalid preset JSON file',
-  importUnsupportedVersion: 'Unsupported preset payload version',
-  importNoValidPresets: 'No valid presets found in the imported file',
-  presetNamePrompt: 'Preset name',
-  presetRenamePrompt: 'Rename preset',
-  presetDeleteConfirm: (name: string) => `Delete preset "${name}"?`,
-  presetMeta: (scope: string, compareCount: number, workspace: string) =>
-    `${workspace} • ${scope} • ${compareCount} compare target${compareCount === 1 ? '' : 's'}`,
-  savedSnapshotsTitle: 'Saved Snapshots',
-  snapshotNamePlaceholder: 'Snapshot name (optional)',
-  snapshotNotePlaceholder: 'Snapshot note (optional)',
-  defaultSnapshotName: 'Snapshot',
-  saveCurrentSnapshot: 'Save current snapshot',
-  noSavedSnapshots: 'No snapshots saved yet',
-  loadSnapshot: 'Restore',
-  renameSnapshot: 'Rename',
-  deleteSnapshot: 'Delete',
-  activeSnapshotBadge: 'Active view',
-  snapshotHint: 'Snapshots capture the current live topology view, compare lane, search scope, and RG focus metadata.',
-  savedSnapshotPrefix: 'Saved snapshot:',
-  loadedSnapshotPrefix: 'Loaded snapshot:',
-  renamedSnapshotPrefix: 'Renamed snapshot:',
-  deletedSnapshotPrefix: 'Deleted snapshot:',
-  exportedSnapshotsPrefix: 'Exported snapshots:',
-  importedSnapshotsPrefix: 'Imported snapshots:',
-  importInvalidSnapshotJson: 'Invalid snapshot JSON file',
-  importNoValidSnapshots: 'No valid snapshots found in the imported file',
-  snapshotRenamePrompt: 'Rename snapshot',
-  snapshotDeleteConfirm: (name: string) => `Delete snapshot "${name}"?`,
-  snapshotMeta: (scope: string, compareCount: number, workspace: string) =>
-    `${workspace} • ${scope} • ${compareCount} compare target${compareCount === 1 ? '' : 's'}`,
-  snapshotCounts: (visibleCount: number, loadedCount: number, edgeCount: number) =>
-    `${visibleCount} visible • ${loadedCount} loaded • ${edgeCount} edges`,
-  snapshotResourceGroupMeta: (resourceGroupName: string) =>
-    resourceGroupName ? `RG focus • ${resourceGroupName}` : 'All resource groups',
-  exportSnapshots: 'Export JSON',
-  importSnapshots: 'Import JSON',
-  searchScopes: {
-    childOnly: {
-      hint: 'Search only expanded child nodes currently visible on the canvas.',
-      empty: 'No matches found in expanded child nodes.',
-    },
-    collapsedPreview: {
-      hint: 'Search parent managed instances by collapsed child sample names.',
-      empty: 'No matches found in collapsed child previews.',
-    },
-    visible: {
-      hint: 'Search across all visible topology nodes.',
-      empty: 'No matches found in visible nodes.',
-    },
-  },
-} as const
-
-type TopologyPresetState = {
-  presetVersion: number
-  workspaceId: string
-  compareRefs: string[]
-  clusterChildren: boolean
-  scope: SearchScope
-  query: string
-  resourceGroupName: string
-}
-
-type SavedTopologyPreset = TopologyPresetState & {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-}
-
-type TopologySnapshotState = TopologyPresetState & {
-  note: string
-  topologyGeneratedAt: string
-  visibleNodeCount: number
-  loadedNodeCount: number
-  edgeCount: number
-  thumbnailDataUrl: string
-}
-
-type SavedTopologySnapshot = TopologySnapshotState & {
-  id: string
-  name: string
-  createdAt: string
-  updatedAt: string
-}
-
-type ImportedPresetPayload = {
-  presetVersion: number
-  exportedAt: string
-  presets: SavedTopologyPreset[]
-}
-
-type ImportedSnapshotPayload = {
-  presetVersion: number
-  exportedAt: string
-  snapshots: SavedTopologySnapshot[]
-}
-
-function createEmptyTopologyPresetState(): TopologyPresetState {
-  return {
-    presetVersion: TOPOLOGY_PRESET_VERSION,
-    workspaceId: '',
-    compareRefs: [],
-    clusterChildren: true,
-    scope: 'visible',
-    query: '',
-    resourceGroupName: '',
-  }
-}
-
-function normalizeSearchScope(value?: string | null): SearchScope {
-  return value === 'child-only' || value === 'collapsed-preview' || value === 'visible'
-    ? value
-    : 'visible'
-}
-
-function sanitizePresetState(state: Partial<TopologyPresetState>): TopologyPresetState {
-  return {
-    presetVersion: TOPOLOGY_PRESET_VERSION,
-    workspaceId: String(state.workspaceId ?? '').trim(),
-    compareRefs: Array.from(
-      new Set((state.compareRefs ?? []).filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))),
-    ),
-    clusterChildren: state.clusterChildren !== false,
-    scope: normalizeSearchScope(state.scope),
-    query: String(state.query ?? ''),
-    resourceGroupName: String(state.resourceGroupName ?? '').trim(),
-  }
-}
-
-function loadSavedTopologyPresets(): SavedTopologyPreset[] {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
-  try {
-    const raw = window.localStorage.getItem(TOPOLOGY_PRESET_STORAGE_KEY)
-    if (!raw) {
-      return []
-    }
-
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-
-    return parsed
-      .map((item) => {
-        if (typeof item !== 'object' || item === null) {
-          return null
-        }
-
-        const base = sanitizePresetState(item as Partial<TopologyPresetState>)
-        return {
-          id: String((item as { id?: unknown }).id ?? ''),
-          name: String((item as { name?: unknown }).name ?? '').trim(),
-          createdAt: String((item as { createdAt?: unknown }).createdAt ?? ''),
-          updatedAt: String((item as { updatedAt?: unknown }).updatedAt ?? ''),
-          ...base,
-        } satisfies SavedTopologyPreset
-      })
-      .filter(
-        (item): item is SavedTopologyPreset =>
-          Boolean(item?.id) && Boolean(item?.name),
-      )
-  } catch {
-    return []
-  }
-}
-
-function persistSavedTopologyPresets(presets: SavedTopologyPreset[]) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.setItem(TOPOLOGY_PRESET_STORAGE_KEY, JSON.stringify(presets))
-}
-
-function sanitizeSnapshotCount(value: unknown) {
-  const numericValue = Number(value ?? 0)
-  if (!Number.isFinite(numericValue) || numericValue <= 0) {
-    return 0
-  }
-
-  return Math.floor(numericValue)
-}
-
-function sanitizeSnapshotState(state: Partial<TopologySnapshotState>): TopologySnapshotState {
-  const base = sanitizePresetState(state)
-
-  return {
-    ...base,
-    note: String(state.note ?? '').trim(),
-    topologyGeneratedAt: String(state.topologyGeneratedAt ?? ''),
-    visibleNodeCount: sanitizeSnapshotCount(state.visibleNodeCount),
-    loadedNodeCount: sanitizeSnapshotCount(state.loadedNodeCount),
-    edgeCount: sanitizeSnapshotCount(state.edgeCount),
-    thumbnailDataUrl: String(state.thumbnailDataUrl ?? ''),
-  }
-}
-
-function buildSnapshotThumbnailDataUrl(cy: Core | null) {
-  if (!cy) {
-    return ''
-  }
-
-  try {
-    return cy.jpg({
-      full: false,
-      scale: 0.5,
-      quality: 0.6,
-      bg: '#0b1220',
-    })
-  } catch {
-    return ''
-  }
-}
-
-function loadSavedTopologySnapshots(): SavedTopologySnapshot[] {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
-  try {
-    const raw = window.localStorage.getItem(TOPOLOGY_SNAPSHOT_STORAGE_KEY)
-    if (!raw) {
-      return []
-    }
-
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-
-    return parsed
-      .map((item) => {
-        if (typeof item !== 'object' || item === null) {
-          return null
-        }
-
-        const base = sanitizeSnapshotState(item as Partial<TopologySnapshotState>)
-        return {
-          id: String((item as { id?: unknown }).id ?? ''),
-          name: String((item as { name?: unknown }).name ?? '').trim(),
-          createdAt: String((item as { createdAt?: unknown }).createdAt ?? ''),
-          updatedAt: String((item as { updatedAt?: unknown }).updatedAt ?? ''),
-          ...base,
-        } satisfies SavedTopologySnapshot
-      })
-      .filter(
-        (item): item is SavedTopologySnapshot =>
-          Boolean(item?.id) && Boolean(item?.name),
-      )
-  } catch {
-    return []
-  }
-}
-
-function persistSavedTopologySnapshots(snapshots: SavedTopologySnapshot[]) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.setItem(TOPOLOGY_SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshots))
-}
-
-function arePresetStatesEqual(left: TopologyPresetState, right: TopologyPresetState) {
-  const normalizedLeft = sanitizePresetState(left)
-  const normalizedRight = sanitizePresetState(right)
-
-  return (
-    normalizedLeft.workspaceId === normalizedRight.workspaceId &&
-    normalizedLeft.clusterChildren === normalizedRight.clusterChildren &&
-    normalizedLeft.scope === normalizedRight.scope &&
-    normalizedLeft.query === normalizedRight.query &&
-    normalizedLeft.resourceGroupName === normalizedRight.resourceGroupName &&
-    normalizedLeft.compareRefs.length === normalizedRight.compareRefs.length &&
-    normalizedLeft.compareRefs.every((ref, index) => ref === normalizedRight.compareRefs[index])
-  )
-}
-
-function createPresetId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID()
-  }
-
-  return `preset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-function createUniquePresetName(baseName: string, existingNames: Set<string>) {
-  const normalizedBaseName = baseName.trim() || UI_TEXT.defaultPresetName
-  if (!existingNames.has(normalizedBaseName)) {
-    existingNames.add(normalizedBaseName)
-    return normalizedBaseName
-  }
-
-  let index = 2
-  while (existingNames.has(`${normalizedBaseName} (${index})`)) {
-    index += 1
-  }
-
-  const nextName = `${normalizedBaseName} (${index})`
-  existingNames.add(nextName)
-  return nextName
-}
-
-function normalizeImportedPresetPayload(raw: unknown) {
-  if (typeof raw !== 'object' || raw === null) {
-    throw new Error(UI_TEXT.importInvalidJson)
-  }
-
-  const payload = raw as { presetVersion?: unknown; presets?: unknown }
-  if (payload.presetVersion !== undefined && Number(payload.presetVersion) > TOPOLOGY_PRESET_VERSION) {
-    throw new Error(UI_TEXT.importUnsupportedVersion)
-  }
-
-  if (!Array.isArray(payload.presets)) {
-    throw new Error(UI_TEXT.importInvalidJson)
-  }
-
-  return payload.presets
-    .map((item) => {
-      if (typeof item !== 'object' || item === null) {
-        return null
-      }
-
-      const preset = item as Partial<SavedTopologyPreset>
-      const base = sanitizePresetState(preset)
-      return {
-        id: createPresetId(),
-        name: String(preset.name ?? '').trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ...base,
-      } satisfies SavedTopologyPreset
-    })
-    .filter((item): item is SavedTopologyPreset => Boolean(item?.name) && Boolean(item?.workspaceId))
-}
-
-function normalizeImportedSnapshotPayload(raw: unknown) {
-  if (typeof raw !== 'object' || raw === null) {
-    throw new Error(UI_TEXT.importInvalidSnapshotJson)
-  }
-
-  const payload = raw as { presetVersion?: unknown; snapshots?: unknown }
-  if (payload.presetVersion !== undefined && Number(payload.presetVersion) > TOPOLOGY_PRESET_VERSION) {
-    throw new Error(UI_TEXT.importUnsupportedVersion)
-  }
-
-  if (!Array.isArray(payload.snapshots)) {
-    throw new Error(UI_TEXT.importInvalidSnapshotJson)
-  }
-
-  return payload.snapshots
-    .map((item) => {
-      if (typeof item !== 'object' || item === null) {
-        return null
-      }
-
-      const snapshot = item as Partial<SavedTopologySnapshot>
-      const base = sanitizeSnapshotState(snapshot)
-      return {
-        id: createPresetId(),
-        name: String(snapshot.name ?? '').trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ...base,
-      } satisfies SavedTopologySnapshot
-    })
-    .filter((item): item is SavedTopologySnapshot => Boolean(item?.name) && Boolean(item?.workspaceId))
-}
-
-function getCompareColor(groupIndex: number) {
-  return COMPARE_COLOR_PALETTE[(Math.max(groupIndex, 1) - 1) % COMPARE_COLOR_PALETTE.length]
-}
-
-function readTopologyPresetFromUrl(): TopologyPresetState {
-  if (typeof window === 'undefined') {
-    return createEmptyTopologyPresetState()
-  }
-
-  const search = new URLSearchParams(window.location.search)
-
-  return sanitizePresetState({
-    presetVersion: Number(search.get('pv') ?? TOPOLOGY_PRESET_VERSION),
-    workspaceId: search.get('workspace') ?? '',
-    compareRefs: search.getAll('mi').filter(Boolean),
-    clusterChildren: search.get('cluster') !== '0',
-    scope: normalizeSearchScope(search.get('scope')),
-    query: search.get('q') ?? '',
-    resourceGroupName: search.get('rg') ?? '',
-  })
-}
-
-function writeTopologyPresetToUrl(state: TopologyPresetState) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  const search = new URLSearchParams()
-  search.set('pv', String(TOPOLOGY_PRESET_VERSION))
-
-  if (state.workspaceId) {
-    search.set('workspace', state.workspaceId)
-  }
-  if (state.query) {
-    search.set('q', state.query)
-  }
-  if (state.scope !== 'visible') {
-    search.set('scope', state.scope)
-  }
-  if (!state.clusterChildren) {
-    search.set('cluster', '0')
-  }
-  if (state.resourceGroupName) {
-    search.set('rg', state.resourceGroupName)
-  }
-  for (const ref of state.compareRefs) {
-    search.append('mi', ref)
-  }
-
-  const nextUrl = `${window.location.pathname}${search.toString() ? `?${search.toString()}` : ''}`
-  window.history.replaceState(null, '', nextUrl)
-}
+import { loadCytoscapeRuntime } from './topology/cytoscape'
+import {
+  DEFAULT_RELATION_FILTERS,
+  DEFAULT_RELATION_TYPE_FILTERS,
+  DEFAULT_RESOURCE_FILTERS,
+  SNAPSHOT_STORAGE_WARN_BYTES,
+  TOPOLOGY_PRESET_VERSION,
+  UI_TEXT,
+  type CountItem,
+  type ImportedPresetPayload,
+  type ImportedSnapshotPayload,
+  type RelationCategory,
+  type RelationFilterState,
+  type RelationTypeFilterState,
+  type ResourceCategory,
+  type ResourceFilterState,
+  type SavedTopologyPreset,
+  type SavedTopologySnapshot,
+  type SearchScope,
+  type TopologyPresetState,
+} from './topology/model'
+import { buildSearchResultGroups, getSearchScopeMeta, searchTopologyNodes } from './topology/search'
+import {
+  arePresetStatesEqual,
+  buildSnapshotThumbnailDataUrl,
+  consumeTopologySnapshotStorageWarning,
+  createSnapshotNoticeFingerprint,
+  createSnapshotStorageProvider,
+  createPresetId,
+  createUniquePresetName,
+  estimateSerializedBytes,
+  getSnapshotNoticeAcknowledgedFingerprint,
+  getSnapshotStorageMode,
+  importSnapshotsToStorage,
+  loadLocalSnapshotsForWorkspace,
+  loadSavedTopologyPresets,
+  normalizeImportedPresetPayload,
+  normalizeImportedSnapshotPayload,
+  persistSavedTopologyPresets,
+  readTopologyPresetFromUrl,
+  sanitizePresetState,
+  sanitizeSnapshotState,
+  setSnapshotNoticeAcknowledgedFingerprint,
+  type SnapshotStorageMode,
+  writeTopologyPresetToUrl,
+} from './topology/storage'
+import {
+  buildFilteredTopology,
+  buildGraphElements,
+  formatChildSummary,
+  getCompareColor,
+  getManagedInstanceChildSampleNames,
+  getNodeMetaLine,
+  getParentNode,
+  getRelationCategory,
+  getRelationLegendClassName,
+  getLayoutOptions,
+  getResourceCategory,
+  isManagedInstanceNode,
+  isResourceGroupNode,
+  mergeTopologyResponses,
+} from './topology/topology-helpers'
 
 function formatDateTime(value?: string) {
   if (!value) {
@@ -567,591 +93,6 @@ function prettifyKey(value: string) {
   return value
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function normalizeSearchValue(value?: string | null) {
-  return String(value ?? '').trim().toLowerCase()
-}
-
-function searchTopologyNodes(nodes: TopologyNode[], query: string, scope: SearchScope): SearchResult[] {
-  const normalizedQuery = normalizeSearchValue(query)
-  if (!normalizedQuery) {
-    return []
-  }
-
-  const tokens = normalizedQuery.split(/\s+/).filter(Boolean)
-  if (!tokens.length) {
-    return []
-  }
-
-  const results: SearchResult[] = []
-
-  for (const node of nodes) {
-    const childSampleNames = (node.child_summary?.sample_names ?? []).filter(
-      (item): item is string => typeof item === 'string' && Boolean(item.trim()),
-    )
-
-    if (scope === 'child-only' && !node.parent_resource_id) {
-      continue
-    }
-
-    if (scope === 'collapsed-preview') {
-      if (!node.child_summary?.collapsed || !childSampleNames.length) {
-        continue
-      }
-
-      let score = 0
-      let matchedAllTokens = true
-      const matchedPreviewNames = new Set<string>()
-
-      for (const token of tokens) {
-        let matchedThisToken = false
-
-        for (const sampleName of childSampleNames) {
-          const normalizedSampleName = normalizeSearchValue(sampleName)
-          if (!normalizedSampleName) {
-            continue
-          }
-
-          if (normalizedSampleName.startsWith(token)) {
-            score += 34
-            matchedPreviewNames.add(sampleName)
-            matchedThisToken = true
-            continue
-          }
-
-          if (normalizedSampleName.includes(token)) {
-            score += 22
-            matchedPreviewNames.add(sampleName)
-            matchedThisToken = true
-          }
-        }
-
-        if (!matchedThisToken) {
-          matchedAllTokens = false
-          break
-        }
-      }
-
-      if (!matchedAllTokens) {
-        continue
-      }
-
-      if (childSampleNames.some((sampleName) => normalizeSearchValue(sampleName) === normalizedQuery)) {
-        score += 18
-      }
-
-      if (isManagedInstanceNode(node)) {
-        score += 8
-      }
-
-      results.push({
-        node,
-        score,
-        matchedFields: ['child preview'],
-        matchedPreviewNames: [...matchedPreviewNames].slice(0, 3),
-      })
-
-      continue
-    }
-
-    const displayName = normalizeSearchValue(node.display_name)
-    const nodeKey = normalizeSearchValue(node.node_key)
-    const nodeType = normalizeSearchValue(node.node_type)
-    const nodeRef = normalizeSearchValue(node.node_ref)
-    const resourceType = normalizeSearchValue(node.resource_type)
-    const resourceGroup = normalizeSearchValue(node.resource_group)
-    const location = normalizeSearchValue(node.location)
-
-    let score = 0
-    const matchedFields = new Set<string>()
-    let matchedAllTokens = true
-
-    for (const token of tokens) {
-      let matchedThisToken = false
-
-      if (displayName.startsWith(token)) {
-        score += 36
-        matchedFields.add('name')
-        matchedThisToken = true
-      } else if (displayName.includes(token)) {
-        score += 24
-        matchedFields.add('name')
-        matchedThisToken = true
-      }
-
-      if (resourceGroup && resourceGroup.includes(token)) {
-        score += 16
-        matchedFields.add('resource group')
-        matchedThisToken = true
-      }
-
-      if (resourceType && resourceType.includes(token)) {
-        score += 14
-        matchedFields.add('resource type')
-        matchedThisToken = true
-      }
-
-      if (location && location.includes(token)) {
-        score += 10
-        matchedFields.add('location')
-        matchedThisToken = true
-      }
-
-      if (nodeType && nodeType.includes(token)) {
-        score += 8
-        matchedFields.add('node type')
-        matchedThisToken = true
-      }
-
-      if (nodeKey.includes(token)) {
-        score += 7
-        matchedFields.add('node key')
-        matchedThisToken = true
-      }
-
-      if (nodeRef.includes(token)) {
-        score += 6
-        matchedFields.add('node ref')
-        matchedThisToken = true
-      }
-
-      if (!matchedThisToken) {
-        matchedAllTokens = false
-        break
-      }
-    }
-
-    if (!matchedAllTokens) {
-      continue
-    }
-
-    if (displayName === normalizedQuery) {
-      score += 18
-    }
-
-    if (isManagedInstanceNode(node)) {
-      score += 12
-    }
-
-    if (String(node.resource_type ?? '').toLowerCase().includes('managedinstance')) {
-      score += 6
-    }
-
-    if (node.node_type === 'resourcegroup') {
-      score += 4
-    }
-
-    results.push({
-      node,
-      score,
-      matchedFields: [...matchedFields],
-    })
-  }
-
-  return results.sort((left, right) => {
-    if (right.score !== left.score) {
-      return right.score - left.score
-    }
-    return left.node.display_name.localeCompare(right.node.display_name)
-  })
-}
-
-function getSearchGroupLabel(category: ResourceCategory) {
-  if (category === 'data') {
-    return 'Data'
-  }
-  if (category === 'network') {
-    return 'Network'
-  }
-  if (category === 'web') {
-    return 'Web'
-  }
-  if (category === 'compute') {
-    return 'Compute'
-  }
-  if (category === 'scope') {
-    return 'Scope'
-  }
-  return 'Other'
-}
-
-function buildSearchResultGroups(results: SearchResult[]): SearchResultGroup[] {
-  const grouped = new Map<ResourceCategory, SearchResult[]>()
-
-  for (const result of results) {
-    const category = getResourceCategory(result.node)
-    grouped.set(category, [...(grouped.get(category) ?? []), result])
-  }
-
-  return SEARCH_GROUP_ORDER.map((category) => ({
-    key: category,
-    label: getSearchGroupLabel(category),
-    results: grouped.get(category) ?? [],
-  })).filter((group) => group.results.length > 0)
-}
-
-function getManagedInstanceChildSampleNames(node?: TopologyNode | null, nodeDetail?: TopologyNodeDetail | null) {
-  const nodeLevelSamples = node?.child_summary?.sample_names ?? []
-  if (nodeLevelSamples.length) {
-    return nodeLevelSamples
-  }
-
-  const rawSummary = nodeDetail?.details?.child_summary
-  if (typeof rawSummary !== 'object' || rawSummary === null) {
-    return []
-  }
-
-  const sampleNames = (rawSummary as { sample_names?: unknown }).sample_names
-  if (!Array.isArray(sampleNames)) {
-    return []
-  }
-
-  return sampleNames.filter((item): item is string => typeof item === 'string')
-}
-
-function isManagedInstanceNode(node?: TopologyNode | null) {
-  return String(node?.resource_type ?? '').toLowerCase() === 'microsoft.sql/managedinstances'
-}
-
-function getParentNode(node: TopologyNode | null | undefined, nodesByRef: Map<string, TopologyNode>) {
-  if (!node?.parent_resource_id) {
-    return null
-  }
-
-  return nodesByRef.get(node.parent_resource_id) ?? null
-}
-
-function mergeTopologyResponses(topologies: TopologyResponse[]): TopologyResponse | null {
-  const validTopologies = topologies.filter(Boolean)
-  if (!validTopologies.length) {
-    return null
-  }
-
-  const base = validTopologies[0]
-  const nodeMap = new Map<string, TopologyNode>()
-  const edgeMap = new Map<string, TopologyEdge>()
-
-  for (const topology of validTopologies) {
-    for (const node of topology.nodes ?? []) {
-      const existing = nodeMap.get(node.node_key)
-      nodeMap.set(node.node_key, {
-        ...existing,
-        ...node,
-        child_summary: node.child_summary ?? existing?.child_summary,
-        is_expanded: Boolean(existing?.is_expanded || node.is_expanded),
-      })
-    }
-
-    for (const edge of topology.edges ?? []) {
-      const edgeKey = `${edge.source_node_key}::${edge.relation_type}::${edge.target_node_key}`
-      edgeMap.set(edgeKey, edge)
-    }
-  }
-
-  const nodes = [...nodeMap.values()]
-  const edges = [...edgeMap.values()]
-
-  return {
-    ...base,
-    nodes,
-    edges,
-    options: {
-      ...base.options,
-      expanded_node_ref: null,
-    },
-    summary: {
-      subscription_count: nodes.filter((node) => node.node_type === 'subscription').length,
-      resource_group_count: nodes.filter((node) => node.node_type === 'resourcegroup').length,
-      resource_count: nodes.filter((node) => node.node_type === 'resource').length,
-      hidden_resource_count: nodes.reduce(
-        (total, node) => total + (node.child_summary?.collapsed ? node.child_summary.total : 0),
-        0,
-      ),
-      node_count: nodes.length,
-      edge_count: edges.length,
-      relation_counts: edges.reduce<Record<string, number>>((accumulator, edge) => {
-        accumulator[edge.relation_type] = (accumulator[edge.relation_type] ?? 0) + 1
-        return accumulator
-      }, {}),
-    },
-  }
-}
-
-function getSearchScopeMeta(scope: SearchScope) {
-  if (scope === 'child-only') {
-    return {
-      label: 'Expanded child nodes',
-      placeholder: 'child database name, type, location, node key...',
-      hint: UI_TEXT.searchScopes.childOnly.hint,
-      empty: UI_TEXT.searchScopes.childOnly.empty,
-    }
-  }
-
-  if (scope === 'collapsed-preview') {
-    return {
-      label: 'Collapsed child previews',
-      placeholder: 'collapsed child sample name...',
-      hint: UI_TEXT.searchScopes.collapsedPreview.hint,
-      empty: UI_TEXT.searchScopes.collapsedPreview.empty,
-    }
-  }
-
-  return {
-    label: 'Visible nodes',
-    placeholder: 'name, resource group, type, location, node key...',
-    hint: UI_TEXT.searchScopes.visible.hint,
-    empty: UI_TEXT.searchScopes.visible.empty,
-  }
-}
-
-function isResourceGroupNode(node?: TopologyNode | null) {
-  return node?.node_type === 'resourcegroup'
-}
-
-function formatChildSummary(childSummary?: TopologyChildSummary | null) {
-  if (!childSummary?.total) {
-    return null
-  }
-
-  const typeSummary = Object.entries(childSummary.type_counts)
-    .map(([key, count]) => `${key} ${count}`)
-    .join(', ')
-
-  return `${childSummary.total} children${typeSummary ? ` • ${typeSummary}` : ''}`
-}
-
-function getNodeMetaLine(node?: TopologyNode | null) {
-  if (!node) {
-    return '-'
-  }
-
-  const parts = [node.node_type]
-
-  if (node.resource_type) {
-    parts.push(node.resource_type)
-  }
-
-  if (node.location) {
-    parts.push(node.location)
-  }
-
-  const childSummaryLine = formatChildSummary(node.child_summary)
-  if (childSummaryLine) {
-    parts.push(childSummaryLine)
-  }
-
-  return parts.join(' • ')
-}
-
-function getResourceCategory(node: TopologyNode): ResourceCategory {
-  if (node.node_type !== 'resource') {
-    return 'scope'
-  }
-
-  const resourceType = String(node.resource_type ?? '').toLowerCase()
-
-  if (resourceType.startsWith('microsoft.compute')) {
-    return 'compute'
-  }
-  if (
-    resourceType.startsWith('microsoft.sql') ||
-    resourceType.startsWith('microsoft.storage') ||
-    resourceType.startsWith('microsoft.documentdb') ||
-    resourceType.startsWith('microsoft.synapse') ||
-    resourceType.startsWith('microsoft.dbfor')
-  ) {
-    return 'data'
-  }
-  if (resourceType.startsWith('microsoft.network')) {
-    return 'network'
-  }
-  if (
-    resourceType.startsWith('microsoft.web') ||
-    resourceType.startsWith('microsoft.cdn') ||
-    resourceType.startsWith('microsoft.apimanagement')
-  ) {
-    return 'web'
-  }
-
-  return 'other'
-}
-
-function getRelationCategory(edge: TopologyEdge): RelationCategory {
-  const raw = String(edge.relation_category ?? '').toLowerCase()
-  if (raw === 'structural' || raw === 'network' || raw === 'other') {
-    return raw
-  }
-
-  if (edge.relation_type === 'contains' || edge.relation_type === 'manages') {
-    return 'structural'
-  }
-  if (
-    edge.relation_type === 'connects_to' ||
-    edge.relation_type === 'secures' ||
-    edge.relation_type === 'routes'
-  ) {
-    return 'network'
-  }
-
-  return 'other'
-}
-
-function getRelationLegendClassName(relationType: string) {
-  if (relationType === 'contains') {
-    return 'relation-contains'
-  }
-  if (relationType === 'manages') {
-    return 'relation-manages'
-  }
-  if (relationType === 'connects_to') {
-    return 'relation-connects'
-  }
-  if (relationType === 'secures') {
-    return 'relation-secures'
-  }
-  if (relationType === 'routes') {
-    return 'relation-routes'
-  }
-  return 'relation-other'
-}
-
-function getLayoutOptions(options?: { compareGroupCount?: number; clusterManagedInstanceChildren?: boolean }) {
-  const compareGroupCount = Math.max(options?.compareGroupCount ?? 0, 0)
-  const compareLaneMode = compareGroupCount >= 2
-  const compareSpread = Math.min(compareGroupCount, 4)
-  const clusterPadding = options?.clusterManagedInstanceChildren ? 12 : 0
-
-  return {
-    name: 'dagre',
-    rankDir: compareLaneMode ? 'LR' : 'TB',
-    nodeSep: compareLaneMode ? 92 + compareSpread * 14 : 52 + compareSpread * 4,
-    rankSep: compareLaneMode ? 148 + compareSpread * 24 : 90 + compareSpread * 8,
-    edgeSep: compareLaneMode ? 34 : 18,
-    padding: (compareLaneMode ? 52 : 36) + clusterPadding,
-    animate: false,
-  } as const
-}
-
-function buildFilteredTopology(
-  topology: TopologyResponse | null,
-  resourceFilters: ResourceFilterState,
-  relationFilters: RelationFilterState,
-  relationTypeFilters: RelationTypeFilterState,
-) {
-  if (!topology) {
-    return {
-      nodes: [] as TopologyNode[],
-      edges: [] as TopologyEdge[],
-    }
-  }
-
-  const visibleNodes = topology.nodes.filter((node) => resourceFilters[getResourceCategory(node)])
-  const visibleNodeKeys = new Set(visibleNodes.map((node) => node.node_key))
-  const visibleEdges = topology.edges.filter((edge) => {
-    const category = getRelationCategory(edge)
-    return (
-      relationFilters[category] &&
-      (relationTypeFilters[edge.relation_type] ?? true) &&
-      visibleNodeKeys.has(edge.source_node_key) &&
-      visibleNodeKeys.has(edge.target_node_key)
-    )
-  })
-
-  return {
-    nodes: visibleNodes,
-    edges: visibleEdges,
-  }
-}
-
-function buildGraphElements(
-  nodes: TopologyNode[],
-  edges: TopologyEdge[],
-  options?: { clusterManagedInstanceChildren?: boolean; expandedManagedInstanceRefs?: string[] },
-): ElementDefinition[] {
-  const nodeKeyByRef = new Map(nodes.map((node) => [node.node_ref, node.node_key]))
-  const nodeByKey = new Map(nodes.map((node) => [node.node_key, node]))
-  const compareGroupByRef = new Map(
-    (options?.expandedManagedInstanceRefs ?? []).map((ref, index) => [ref, index + 1]),
-  )
-  const compoundParentNodeKeys = new Set(
-    options?.clusterManagedInstanceChildren
-      ? nodes
-          .filter(
-            (node) =>
-              isManagedInstanceNode(node) &&
-              nodes.some((candidate) => candidate.parent_resource_id === node.node_ref),
-          )
-          .map((node) => node.node_key)
-      : [],
-  )
-  const compareGroupByNodeKey = new Map<string, number>()
-
-  for (const node of nodes) {
-    if (compareGroupByRef.has(node.node_ref)) {
-      compareGroupByNodeKey.set(node.node_key, compareGroupByRef.get(node.node_ref) ?? 0)
-      continue
-    }
-
-    if (node.parent_resource_id && compareGroupByRef.has(node.parent_resource_id)) {
-      compareGroupByNodeKey.set(node.node_key, compareGroupByRef.get(node.parent_resource_id) ?? 0)
-    }
-  }
-
-  const nodeElements: ElementDefinition[] = nodes.map((node) => ({
-    data: {
-      compareGroup: compareGroupByNodeKey.get(node.node_key) ?? 0,
-      compareColor: getCompareColor(compareGroupByNodeKey.get(node.node_key) ?? 1),
-      id: node.node_key,
-      parent:
-        options?.clusterManagedInstanceChildren && node.parent_resource_id
-          ? (() => {
-              const parentNodeKey = nodeKeyByRef.get(node.parent_resource_id)
-              return parentNodeKey && compoundParentNodeKeys.has(parentNodeKey)
-                ? parentNodeKey
-                : undefined
-            })()
-          : undefined,
-      label: node.display_name,
-      nodeRef: node.node_ref,
-      parentResourceId: node.parent_resource_id ?? '',
-      nodeType: node.node_type,
-      source: node.source,
-      resourceType: node.resource_type ?? '',
-      resourceCategory: getResourceCategory(node),
-      location: node.location ?? '',
-      collapsedChildren: node.child_summary?.collapsed ? node.child_summary.total : 0,
-      expandedNode: node.is_expanded ? 'true' : 'false',
-      compoundParent: compoundParentNodeKeys.has(node.node_key) ? 'true' : 'false',
-    },
-  }))
-
-  const edgeElements: ElementDefinition[] = edges.map((edge) => ({
-    data: {
-      compareGroup:
-        compareGroupByNodeKey.get(edge.source_node_key) ?? compareGroupByNodeKey.get(edge.target_node_key) ?? 0,
-      compareColor: getCompareColor(
-        compareGroupByNodeKey.get(edge.source_node_key) ??
-          compareGroupByNodeKey.get(edge.target_node_key) ??
-          1,
-      ),
-      id: `${edge.source_node_key}::${edge.relation_type}::${edge.target_node_key}`,
-      source: edge.source_node_key,
-      target: edge.target_node_key,
-      relationType: edge.relation_type,
-      pathLabel:
-        edge.relation_type === 'contains' &&
-        isManagedInstanceNode(nodeByKey.get(edge.source_node_key)) &&
-        nodeByKey.get(edge.target_node_key)?.parent_resource_id === nodeByKey.get(edge.source_node_key)?.node_ref
-          ? 'contains • parent-child'
-          : edge.relation_type,
-      relationCategory: getRelationCategory(edge),
-      sourceKind: edge.source,
-      confidence: edge.confidence,
-    },
-  }))
-
-  return [...nodeElements, ...edgeElements]
 }
 
 export function TopologyPage() {
@@ -1186,14 +127,63 @@ export function TopologyPage() {
   const [managedInstanceTransition, setManagedInstanceTransition] = useState<'expand' | 'collapse' | ''>('')
   const [savedPresets, setSavedPresets] = useState<SavedTopologyPreset[]>(() => loadSavedTopologyPresets())
   const [presetNameInput, setPresetNameInput] = useState('')
-  const [savedSnapshots, setSavedSnapshots] = useState<SavedTopologySnapshot[]>(() => loadSavedTopologySnapshots())
+  const [savedSnapshots, setSavedSnapshots] = useState<SavedTopologySnapshot[]>([])
+  const [snapshotStorageMode] = useState<SnapshotStorageMode>(() => getSnapshotStorageMode())
+  const snapshotStorageProvider = useMemo(
+    () => createSnapshotStorageProvider(snapshotStorageMode),
+    [snapshotStorageMode],
+  )
+  const [localWorkspaceSnapshots, setLocalWorkspaceSnapshots] = useState<SavedTopologySnapshot[]>([])
+  const [localSnapshotNoticeDismissed, setLocalSnapshotNoticeDismissed] = useState(false)
+  const [localSnapshotImporting, setLocalSnapshotImporting] = useState(false)
+  const [snapshotsLoading, setSnapshotsLoading] = useState(false)
   const [snapshotNameInput, setSnapshotNameInput] = useState('')
   const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
+  const localSnapshotNoticeFingerprint = useMemo(
+    () => createSnapshotNoticeFingerprint(localWorkspaceSnapshots),
+    [localWorkspaceSnapshots],
+  )
 
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
   const cyRef = useRef<Core | null>(null)
   const presetImportInputRef = useRef<HTMLInputElement | null>(null)
   const snapshotImportInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const storageWarning = consumeTopologySnapshotStorageWarning()
+    if (!storageWarning) {
+      return
+    }
+
+    setExportMessage(storageWarning)
+  }, [])
+
+  async function refreshSavedSnapshots(workspaceId = selectedWorkspaceId) {
+    if (!workspaceId) {
+      setSavedSnapshots([])
+      return
+    }
+
+    try {
+      setSnapshotsLoading(true)
+      const nextSnapshots = await snapshotStorageProvider.list(workspaceId)
+      setSavedSnapshots(nextSnapshots)
+    } catch (error) {
+      setSavedSnapshots([])
+      setExportMessage(error instanceof Error ? error.message : 'Snapshot load failed')
+    } finally {
+      setSnapshotsLoading(false)
+    }
+  }
+
+  function refreshLocalWorkspaceSnapshots(workspaceId = selectedWorkspaceId) {
+    if (snapshotStorageMode !== 'server' || !workspaceId) {
+      setLocalWorkspaceSnapshots([])
+      return
+    }
+
+    setLocalWorkspaceSnapshots(loadLocalSnapshotsForWorkspace(workspaceId))
+  }
 
   useEffect(() => {
     async function loadInitial() {
@@ -1219,6 +209,24 @@ export function TopologyPage() {
 
     void loadInitial()
   }, [])
+
+  useEffect(() => {
+    void refreshSavedSnapshots(selectedWorkspaceId)
+  }, [selectedWorkspaceId, snapshotStorageProvider])
+
+  useEffect(() => {
+    refreshLocalWorkspaceSnapshots(selectedWorkspaceId)
+  }, [selectedWorkspaceId, snapshotStorageMode])
+
+  useEffect(() => {
+    if (snapshotStorageMode !== 'server' || !selectedWorkspaceId || !localWorkspaceSnapshots.length) {
+      setLocalSnapshotNoticeDismissed(false)
+      return
+    }
+
+    const acknowledgedFingerprint = getSnapshotNoticeAcknowledgedFingerprint(selectedWorkspaceId)
+    setLocalSnapshotNoticeDismissed(acknowledgedFingerprint === localSnapshotNoticeFingerprint)
+  }, [localSnapshotNoticeFingerprint, localWorkspaceSnapshots.length, selectedWorkspaceId, snapshotStorageMode])
 
   useEffect(() => {
     async function loadTopology() {
@@ -2212,18 +1220,19 @@ export function TopologyPage() {
     setExportMessage(`${UI_TEXT.savedPresetPrefix} ${nextPreset.name}`)
   }
 
-  function handleSaveCurrentSnapshot() {
+  async function handleSaveCurrentSnapshot() {
     if (!selectedWorkspaceId) {
       return
     }
 
     const now = new Date().toISOString()
     const thumbnailDataUrl = buildSnapshotThumbnailDataUrl(cyRef.current)
-    const nextSnapshot: SavedTopologySnapshot = {
+    let nextSnapshot: SavedTopologySnapshot = {
       id: createPresetId(),
       name: snapshotNameInput.trim() || `${UI_TEXT.defaultSnapshotName} ${savedSnapshots.length + 1}`,
       createdAt: now,
       updatedAt: now,
+      storageKind: snapshotStorageMode,
       note: snapshotNoteInput.trim(),
       topologyGeneratedAt: topology?.generated_at ?? '',
       visibleNodeCount: filteredTopology.nodes.length,
@@ -2233,12 +1242,32 @@ export function TopologyPage() {
       ...sanitizePresetState(currentPresetState),
     }
 
-    const nextSnapshots = [nextSnapshot, ...savedSnapshots]
-    setSavedSnapshots(nextSnapshots)
-    persistSavedTopologySnapshots(nextSnapshots)
+    let savedWithoutThumbnail = false
+    let nextSnapshots = [nextSnapshot, ...savedSnapshots]
+    if (estimateSerializedBytes(nextSnapshots) >= SNAPSHOT_STORAGE_WARN_BYTES && nextSnapshot.thumbnailDataUrl) {
+      savedWithoutThumbnail = true
+      nextSnapshot = {
+        ...nextSnapshot,
+        thumbnailDataUrl: '',
+      }
+      nextSnapshots = [nextSnapshot, ...savedSnapshots]
+    }
+
+    const successMessage = savedWithoutThumbnail
+      ? `${UI_TEXT.savedSnapshotPrefix} ${nextSnapshot.name} — ${UI_TEXT.snapshotSavedWithoutThumbnailSuffix}`
+      : `${UI_TEXT.savedSnapshotPrefix} ${nextSnapshot.name}`
+
+    try {
+      const result = await snapshotStorageProvider.create(selectedWorkspaceId, nextSnapshot)
+      await refreshSavedSnapshots(selectedWorkspaceId)
+      setExportMessage(result.warning ? `${successMessage} — ${result.warning}` : successMessage)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+      return
+    }
+
     setSnapshotNameInput('')
     setSnapshotNoteInput('')
-    setExportMessage(`${UI_TEXT.savedSnapshotPrefix} ${nextSnapshot.name}`)
   }
 
   function handleLoadSavedPreset(preset: SavedTopologyPreset) {
@@ -2272,10 +1301,10 @@ export function TopologyPage() {
     setPendingFocusNodeKey('')
     setSnapshotNameInput('')
     setSnapshotNoteInput(normalizedSnapshot.note)
-    setExportMessage(`${UI_TEXT.loadedSnapshotPrefix} ${snapshot.name}`)
+    setExportMessage(`${UI_TEXT.loadedSnapshotPrefix} ${snapshot.name} — ${UI_TEXT.snapshotRestoreNotice}`)
   }
 
-  function handleRenameSavedSnapshot(snapshot: SavedTopologySnapshot) {
+  async function handleRenameSavedSnapshot(snapshot: SavedTopologySnapshot) {
     if (typeof window === 'undefined') {
       return
     }
@@ -2285,19 +1314,13 @@ export function TopologyPage() {
       return
     }
 
-    const nextSnapshots = savedSnapshots.map((item) =>
-      item.id === snapshot.id
-        ? {
-            ...item,
-            name: nextName,
-            updatedAt: new Date().toISOString(),
-          }
-        : item,
-    )
-
-    setSavedSnapshots(nextSnapshots)
-    persistSavedTopologySnapshots(nextSnapshots)
-    setExportMessage(`${UI_TEXT.renamedSnapshotPrefix} ${nextName}`)
+    try {
+      await snapshotStorageProvider.update(selectedWorkspaceId, snapshot.id, { name: nextName })
+      await refreshSavedSnapshots(selectedWorkspaceId)
+      setExportMessage(`${UI_TEXT.renamedSnapshotPrefix} ${nextName}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+    }
   }
 
   function handleRenameSavedPreset(preset: SavedTopologyPreset) {
@@ -2336,15 +1359,54 @@ export function TopologyPage() {
     setExportMessage(`${UI_TEXT.deletedPresetPrefix} ${preset.name}`)
   }
 
-  function handleDeleteSavedSnapshot(snapshot: SavedTopologySnapshot) {
+  async function handleDeleteSavedSnapshot(snapshot: SavedTopologySnapshot) {
     if (typeof window !== 'undefined' && !window.confirm(UI_TEXT.snapshotDeleteConfirm(snapshot.name))) {
       return
     }
 
-    const nextSnapshots = savedSnapshots.filter((item) => item.id !== snapshot.id)
-    setSavedSnapshots(nextSnapshots)
-    persistSavedTopologySnapshots(nextSnapshots)
-    setExportMessage(`${UI_TEXT.deletedSnapshotPrefix} ${snapshot.name}`)
+    try {
+      await snapshotStorageProvider.remove(selectedWorkspaceId, snapshot.id)
+      await refreshSavedSnapshots(selectedWorkspaceId)
+      setExportMessage(`${UI_TEXT.deletedSnapshotPrefix} ${snapshot.name}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+    }
+  }
+
+  async function handleImportLocalSnapshots() {
+    if (!selectedWorkspaceId || snapshotStorageMode !== 'server' || !localWorkspaceSnapshots.length) {
+      return
+    }
+
+    try {
+      setLocalSnapshotImporting(true)
+
+      const summary = await importSnapshotsToStorage(
+        selectedWorkspaceId,
+        localWorkspaceSnapshots,
+        snapshotStorageProvider,
+        savedSnapshots,
+      )
+
+      await refreshSavedSnapshots(selectedWorkspaceId)
+      refreshLocalWorkspaceSnapshots(selectedWorkspaceId)
+
+      if (summary.failedCount === 0 && (summary.importedCount > 0 || summary.skippedCount > 0)) {
+        setSnapshotNoticeAcknowledgedFingerprint(selectedWorkspaceId, localSnapshotNoticeFingerprint)
+        setLocalSnapshotNoticeDismissed(true)
+      }
+
+      const summaryMessage = UI_TEXT.snapshotImportSummary(
+        summary.importedCount,
+        summary.skippedCount,
+        summary.failedCount,
+      )
+      setExportMessage(summary.warning ? `${summaryMessage} — ${summary.warning}` : summaryMessage)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+    } finally {
+      setLocalSnapshotImporting(false)
+    }
   }
 
   function handleExportSavedPresets() {
@@ -2434,7 +1496,7 @@ export function TopologyPage() {
     const file = event.target.files?.[0]
     event.target.value = ''
 
-    if (!file) {
+    if (!file || !selectedWorkspaceId) {
       return
     }
 
@@ -2448,16 +1510,29 @@ export function TopologyPage() {
         return
       }
 
-      const existingNames = new Set(savedSnapshots.map((snapshot) => snapshot.name))
-      const mergedSnapshots = importedSnapshots.map((snapshot) => ({
+      const nextSnapshots: SavedTopologySnapshot[] = importedSnapshots.map((snapshot) => ({
         ...snapshot,
-        name: createUniquePresetName(snapshot.name, existingNames),
+        workspaceId: selectedWorkspaceId,
       }))
 
-      const nextSnapshots = [...mergedSnapshots, ...savedSnapshots]
-      setSavedSnapshots(nextSnapshots)
-      persistSavedTopologySnapshots(nextSnapshots)
-      setExportMessage(`${UI_TEXT.importedSnapshotsPrefix} ${mergedSnapshots.length}`)
+      const summary = await importSnapshotsToStorage(
+        selectedWorkspaceId,
+        nextSnapshots,
+        snapshotStorageProvider,
+        savedSnapshots,
+      )
+
+      await refreshSavedSnapshots(selectedWorkspaceId)
+      refreshLocalWorkspaceSnapshots(selectedWorkspaceId)
+
+      const summaryMessage = UI_TEXT.snapshotImportSummary(
+        summary.importedCount,
+        summary.skippedCount,
+        summary.failedCount,
+      )
+      setExportMessage(
+        summary.warning ? `${summaryMessage} — ${summary.warning}` : summaryMessage,
+      )
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : UI_TEXT.importInvalidSnapshotJson)
     }
@@ -2736,7 +1811,38 @@ export function TopologyPage() {
           )}
 
           <h3 className="section-spacer">{UI_TEXT.savedSnapshotsTitle}</h3>
-          <p className="hint">{UI_TEXT.snapshotHint}</p>
+          <div className="storage-guide-card snapshot-guide-card">
+            <strong>{UI_TEXT.snapshotGuideTitle}</strong>
+            <p className="hint">{UI_TEXT.snapshotHint}</p>
+            <p className="hint storage-guide-copy">{UI_TEXT.snapshotGuideBody}</p>
+          </div>
+          {snapshotStorageMode === 'server' && localWorkspaceSnapshots.length > 0 && !localSnapshotNoticeDismissed ? (
+            <div className="info-banner snapshot-import-banner">
+              <strong>{UI_TEXT.localSnapshotNoticeTitle(localWorkspaceSnapshots.length)}</strong>
+              <p className="hint snapshot-import-banner-copy">{UI_TEXT.localSnapshotNoticeBody}</p>
+              <div className="button-row preset-toolbar-row snapshot-import-banner-actions">
+                <button
+                  type="button"
+                  className="toolbar-button primary"
+                  onClick={handleImportLocalSnapshots}
+                  disabled={localSnapshotImporting || !selectedWorkspaceId}
+                >
+                  {localSnapshotImporting ? UI_TEXT.importingLocalSnapshots : UI_TEXT.importLocalSnapshots}
+                </button>
+                <button
+                  type="button"
+                  className="toolbar-button"
+                  onClick={() => {
+                    setSnapshotNoticeAcknowledgedFingerprint(selectedWorkspaceId, localSnapshotNoticeFingerprint)
+                    setLocalSnapshotNoticeDismissed(true)
+                  }}
+                  disabled={localSnapshotImporting}
+                >
+                  {UI_TEXT.dismissLocalSnapshotNotice}
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div className="preset-save-row snapshot-save-row">
             <input
               type="text"
@@ -2803,6 +1909,9 @@ export function TopologyPage() {
                     <div className="preset-card-copy">
                       <div className="preset-card-title-row">
                         <strong>{snapshot.name}</strong>
+                        <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
+                          {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
+                        </span>
                         {isActiveSnapshot ? <span className="mini-chip">{UI_TEXT.activeSnapshotBadge}</span> : null}
                       </div>
                       <p className="hint preset-card-meta">
@@ -2812,6 +1921,7 @@ export function TopologyPage() {
                           workspacesById.get(snapshot.workspaceId)?.name ?? snapshot.workspaceId,
                         )}
                       </p>
+                      <p className="hint preset-card-meta">{UI_TEXT.snapshotStorageMeta(snapshot.storageKind)}</p>
                       <p className="hint preset-card-meta">{UI_TEXT.snapshotResourceGroupMeta(snapshot.resourceGroupName)}</p>
                       <p className="hint preset-card-meta">
                         {UI_TEXT.snapshotCounts(snapshot.visibleNodeCount, snapshot.loadedNodeCount, snapshot.edgeCount)}
@@ -2820,6 +1930,7 @@ export function TopologyPage() {
                       <p className="hint preset-card-meta">
                         Generated {formatDateTime(snapshot.topologyGeneratedAt)} • Saved {formatDateTime(snapshot.updatedAt || snapshot.createdAt)}
                       </p>
+                      <p className="hint storage-restore-meta">{UI_TEXT.snapshotRestoreMetaHint}</p>
                     </div>
                     <div className="button-row preset-card-actions">
                       <button
@@ -2849,10 +1960,15 @@ export function TopologyPage() {
               })}
             </div>
           ) : (
-            <p className="hint">{UI_TEXT.noSavedSnapshots}</p>
+            <p className="hint">{snapshotsLoading ? UI_TEXT.loading : UI_TEXT.noSavedSnapshots}</p>
           )}
 
           <h3 className="section-spacer">{UI_TEXT.savedPresetsTitle}</h3>
+          <div className="storage-guide-card preset-guide-card">
+            <strong>{UI_TEXT.presetGuideTitle}</strong>
+            <p className="hint">{UI_TEXT.presetHint}</p>
+            <p className="hint storage-guide-copy">{UI_TEXT.presetGuideBody}</p>
+          </div>
           <div className="preset-save-row">
             <input
               type="text"

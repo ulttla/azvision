@@ -93,6 +93,33 @@ export type ExportItem = {
   size_bytes?: number
 }
 
+export type SnapshotApiRecord = {
+  id: string
+  workspace_id: string
+  preset_version: number
+  name: string
+  note: string
+  compare_refs: string[]
+  cluster_children: boolean
+  scope: 'visible' | 'child-only' | 'collapsed-preview'
+  query: string
+  resource_group_name: string
+  topology_generated_at: string
+  visible_node_count: number
+  loaded_node_count: number
+  edge_count: number
+  thumbnail_data_url: string
+  created_at: string
+  updated_at: string
+}
+
+export type SnapshotApiCreateRequest = Omit<SnapshotApiRecord, 'id' | 'workspace_id' | 'created_at' | 'updated_at'>
+
+export type SnapshotApiUpdateRequest = {
+  name?: string
+  note?: string
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -192,4 +219,42 @@ export async function getAuthConfigCheck(): Promise<{
   note: string
 }> {
   return fetchJson('/auth/config-check')
+}
+
+export async function getTopologySnapshots(workspaceId: string): Promise<SnapshotApiRecord[]> {
+  const data = await fetchJson<{ items: SnapshotApiRecord[] }>(`/workspaces/${workspaceId}/snapshots`)
+  return data.items
+}
+
+export async function createTopologySnapshot(
+  workspaceId: string,
+  payload: SnapshotApiCreateRequest,
+): Promise<SnapshotApiRecord> {
+  return fetchJson<SnapshotApiRecord>(`/workspaces/${workspaceId}/snapshots`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateTopologySnapshot(
+  workspaceId: string,
+  snapshotId: string,
+  payload: SnapshotApiUpdateRequest,
+): Promise<SnapshotApiRecord> {
+  return fetchJson<SnapshotApiRecord>(`/workspaces/${workspaceId}/snapshots/${snapshotId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteTopologySnapshot(workspaceId: string, snapshotId: string): Promise<void> {
+  await fetchJson(`/workspaces/${workspaceId}/snapshots/${snapshotId}`, {
+    method: 'DELETE',
+  })
 }
