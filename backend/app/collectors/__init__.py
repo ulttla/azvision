@@ -1,0 +1,1 @@
+# AzVision collectors package
