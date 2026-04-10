@@ -71,6 +71,8 @@ const DEFAULT_RELATION_TYPE_FILTERS: RelationTypeFilterState = {
 
 const SEARCH_GROUP_ORDER: ResourceCategory[] = ['data', 'network', 'web', 'compute', 'scope', 'other']
 const COMPARE_COLOR_PALETTE = ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#f472b6', '#f87171']
+const TOPOLOGY_PRESET_VERSION = 1
+const TOPOLOGY_PRESET_STORAGE_KEY = 'azvision.topology.presets.v1'
 
 const UI_TEXT = {
   heroSubtext:
@@ -92,6 +94,23 @@ const UI_TEXT = {
   managedInstanceCollapsedHint: 'Expand to render child database nodes directly on the canvas.',
   noProjectedDetails: 'No projected details available',
   noSelectedNode: 'No node selected',
+  savedPresetsTitle: 'Saved Presets',
+  presetNamePlaceholder: 'Preset name (optional)',
+  defaultPresetName: 'Preset',
+  saveCurrentPreset: 'Save current preset',
+  noSavedPresets: 'No saved presets yet',
+  loadPreset: 'Load',
+  renamePreset: 'Rename',
+  deletePreset: 'Delete',
+  savedPresetPrefix: 'Saved preset:',
+  loadedPresetPrefix: 'Loaded preset:',
+  renamedPresetPrefix: 'Renamed preset:',
+  deletedPresetPrefix: 'Deleted preset:',
+  presetNamePrompt: 'Preset name',
+  presetRenamePrompt: 'Rename preset',
+  presetDeleteConfirm: (name: string) => `Delete preset "${name}"?`,
+  presetMeta: (scope: string, compareCount: number, workspace: string) =>
+    `${workspace} • ${scope} • ${compareCount} compare target${compareCount === 1 ? '' : 's'}`,
   searchScopes: {
     childOnly: {
       hint: 'Search only expanded child nodes currently visible on the canvas.',
@@ -109,11 +128,108 @@ const UI_TEXT = {
 } as const
 
 type TopologyPresetState = {
+  presetVersion: number
   workspaceId: string
   compareRefs: string[]
   clusterChildren: boolean
   scope: SearchScope
   query: string
+  resourceGroupName: string
+}
+
+type SavedTopologyPreset = TopologyPresetState & {
+  id: string
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
+function createEmptyTopologyPresetState(): TopologyPresetState {
+  return {
+    presetVersion: TOPOLOGY_PRESET_VERSION,
+    workspaceId: '',
+    compareRefs: [],
+    clusterChildren: true,
+    scope: 'visible',
+    query: '',
+    resourceGroupName: '',
+  }
+}
+
+function normalizeSearchScope(value?: string | null): SearchScope {
+  return value === 'child-only' || value === 'collapsed-preview' || value === 'visible'
+    ? value
+    : 'visible'
+}
+
+function sanitizePresetState(state: Partial<TopologyPresetState>): TopologyPresetState {
+  return {
+    presetVersion: TOPOLOGY_PRESET_VERSION,
+    workspaceId: String(state.workspaceId ?? '').trim(),
+    compareRefs: Array.from(
+      new Set((state.compareRefs ?? []).filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))),
+    ),
+    clusterChildren: state.clusterChildren !== false,
+    scope: normalizeSearchScope(state.scope),
+    query: String(state.query ?? ''),
+    resourceGroupName: String(state.resourceGroupName ?? '').trim(),
+  }
+}
+
+function loadSavedTopologyPresets(): SavedTopologyPreset[] {
+  if (typeof window === 'undefined') {
+    return []
+  }
+
+  try {
+    const raw = window.localStorage.getItem(TOPOLOGY_PRESET_STORAGE_KEY)
+    if (!raw) {
+      return []
+    }
+
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed
+      .map((item) => {
+        if (typeof item !== 'object' || item === null) {
+          return null
+        }
+
+        const base = sanitizePresetState(item as Partial<TopologyPresetState>)
+        return {
+          id: String((item as { id?: unknown }).id ?? ''),
+          name: String((item as { name?: unknown }).name ?? '').trim(),
+          createdAt: String((item as { createdAt?: unknown }).createdAt ?? ''),
+          updatedAt: String((item as { updatedAt?: unknown }).updatedAt ?? ''),
+          ...base,
+        } satisfies SavedTopologyPreset
+      })
+      .filter(
+        (item): item is SavedTopologyPreset =>
+          Boolean(item?.id) && Boolean(item?.name),
+      )
+  } catch {
+    return []
+  }
+}
+
+function persistSavedTopologyPresets(presets: SavedTopologyPreset[]) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(TOPOLOGY_PRESET_STORAGE_KEY, JSON.stringify(presets))
+}
+
+function createPresetId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+
+  return `preset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 function getCompareColor(groupIndex: number) {
@@ -122,28 +238,20 @@ function getCompareColor(groupIndex: number) {
 
 function readTopologyPresetFromUrl(): TopologyPresetState {
   if (typeof window === 'undefined') {
-    return {
-      workspaceId: '',
-      compareRefs: [],
-      clusterChildren: true,
-      scope: 'visible',
-      query: '',
-    }
+    return createEmptyTopologyPresetState()
   }
 
   const search = new URLSearchParams(window.location.search)
-  const scope = search.get('scope')
 
-  return {
+  return sanitizePresetState({
+    presetVersion: Number(search.get('pv') ?? TOPOLOGY_PRESET_VERSION),
     workspaceId: search.get('workspace') ?? '',
     compareRefs: search.getAll('mi').filter(Boolean),
     clusterChildren: search.get('cluster') !== '0',
-    scope:
-      scope === 'child-only' || scope === 'collapsed-preview' || scope === 'visible'
-        ? scope
-        : 'visible',
+    scope: normalizeSearchScope(search.get('scope')),
     query: search.get('q') ?? '',
-  }
+    resourceGroupName: search.get('rg') ?? '',
+  })
 }
 
 function writeTopologyPresetToUrl(state: TopologyPresetState) {
@@ -152,6 +260,7 @@ function writeTopologyPresetToUrl(state: TopologyPresetState) {
   }
 
   const search = new URLSearchParams()
+  search.set('pv', String(TOPOLOGY_PRESET_VERSION))
 
   if (state.workspaceId) {
     search.set('workspace', state.workspaceId)
@@ -164,6 +273,9 @@ function writeTopologyPresetToUrl(state: TopologyPresetState) {
   }
   if (!state.clusterChildren) {
     search.set('cluster', '0')
+  }
+  if (state.resourceGroupName) {
+    search.set('rg', state.resourceGroupName)
   }
   for (const ref of state.compareRefs) {
     search.append('mi', ref)
@@ -806,6 +918,8 @@ export function TopologyPage() {
   const [searchResultIndex, setSearchResultIndex] = useState(0)
   const [pendingFocusNodeKey, setPendingFocusNodeKey] = useState('')
   const [managedInstanceTransition, setManagedInstanceTransition] = useState<'expand' | 'collapse' | ''>('')
+  const [savedPresets, setSavedPresets] = useState<SavedTopologyPreset[]>(() => loadSavedTopologyPresets())
+  const [presetNameInput, setPresetNameInput] = useState('')
 
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
   const cyRef = useRef<Core | null>(null)
@@ -907,6 +1021,10 @@ export function TopologyPage() {
 
     return map
   }, [topology])
+  const workspacesById = useMemo(
+    () => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
+    [workspaces],
+  )
 
   useEffect(() => {
     const visibleKeys = new Set(filteredTopology.nodes.map((node) => node.node_key))
@@ -1024,13 +1142,22 @@ export function TopologyPage() {
 
   useEffect(() => {
     writeTopologyPresetToUrl({
+      presetVersion: TOPOLOGY_PRESET_VERSION,
       workspaceId: selectedWorkspaceId,
       compareRefs: expandedManagedInstanceRefs,
       clusterChildren: clusterManagedInstanceChildren,
       scope: searchScope,
       query: searchQuery,
+      resourceGroupName: focusedResourceGroupName,
     })
-  }, [clusterManagedInstanceChildren, expandedManagedInstanceRefs, searchQuery, searchScope, selectedWorkspaceId])
+  }, [
+    clusterManagedInstanceChildren,
+    expandedManagedInstanceRefs,
+    focusedResourceGroupName,
+    searchQuery,
+    searchScope,
+    selectedWorkspaceId,
+  ])
 
   useEffect(() => {
     if (!graphContainerRef.current) {
@@ -1597,6 +1724,25 @@ export function TopologyPage() {
   const edgePreview = useMemo(() => filteredTopology.edges.slice(0, 16), [filteredTopology.edges])
   const detailEntries = useMemo(() => Object.entries(nodeDetail?.details ?? {}), [nodeDetail])
   const searchScopeMeta = useMemo(() => getSearchScopeMeta(searchScope), [searchScope])
+  const currentPresetState = useMemo<TopologyPresetState>(
+    () => ({
+      presetVersion: TOPOLOGY_PRESET_VERSION,
+      workspaceId: selectedWorkspaceId,
+      compareRefs: expandedManagedInstanceRefs,
+      clusterChildren: clusterManagedInstanceChildren,
+      scope: searchScope,
+      query: searchQuery,
+      resourceGroupName: focusedResourceGroupName,
+    }),
+    [
+      clusterManagedInstanceChildren,
+      expandedManagedInstanceRefs,
+      focusedResourceGroupName,
+      searchQuery,
+      searchScope,
+      selectedWorkspaceId,
+    ],
+  )
   const compareMetaByRef = useMemo(
     () =>
       new Map(
@@ -1729,6 +1875,79 @@ export function TopologyPage() {
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : 'Preset link copy failed')
     }
+  }
+
+  function handleSaveCurrentPreset() {
+    if (!selectedWorkspaceId) {
+      return
+    }
+
+    const now = new Date().toISOString()
+    const nextPreset: SavedTopologyPreset = {
+      id: createPresetId(),
+      name: presetNameInput.trim() || `${UI_TEXT.defaultPresetName} ${savedPresets.length + 1}`,
+      createdAt: now,
+      updatedAt: now,
+      ...sanitizePresetState(currentPresetState),
+    }
+
+    const nextPresets = [nextPreset, ...savedPresets]
+    setSavedPresets(nextPresets)
+    persistSavedTopologyPresets(nextPresets)
+    setPresetNameInput('')
+    setExportMessage(`${UI_TEXT.savedPresetPrefix} ${nextPreset.name}`)
+  }
+
+  function handleLoadSavedPreset(preset: SavedTopologyPreset) {
+    const normalizedPreset = sanitizePresetState(preset)
+
+    setSelectedWorkspaceId(normalizedPreset.workspaceId)
+    setExpandedManagedInstanceRefs(normalizedPreset.compareRefs)
+    setClusterManagedInstanceChildren(normalizedPreset.clusterChildren)
+    setFocusedResourceGroupName(normalizedPreset.resourceGroupName)
+    setSearchQuery(normalizedPreset.query)
+    setSearchScope(normalizedPreset.scope)
+    setSelectedNodeKey('')
+    setNodeDetail(null)
+    setSearchResultIndex(0)
+    setPendingFocusNodeKey('')
+    setExportMessage(`${UI_TEXT.loadedPresetPrefix} ${preset.name}`)
+  }
+
+  function handleRenameSavedPreset(preset: SavedTopologyPreset) {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const nextName = window.prompt(UI_TEXT.presetRenamePrompt, preset.name)?.trim()
+    if (!nextName || nextName === preset.name) {
+      return
+    }
+
+    const nextPresets = savedPresets.map((item) =>
+      item.id === preset.id
+        ? {
+            ...item,
+            name: nextName,
+            updatedAt: new Date().toISOString(),
+          }
+        : item,
+    )
+
+    setSavedPresets(nextPresets)
+    persistSavedTopologyPresets(nextPresets)
+    setExportMessage(`${UI_TEXT.renamedPresetPrefix} ${nextName}`)
+  }
+
+  function handleDeleteSavedPreset(preset: SavedTopologyPreset) {
+    if (typeof window !== 'undefined' && !window.confirm(UI_TEXT.presetDeleteConfirm(preset.name))) {
+      return
+    }
+
+    const nextPresets = savedPresets.filter((item) => item.id !== preset.id)
+    setSavedPresets(nextPresets)
+    persistSavedTopologyPresets(nextPresets)
+    setExportMessage(`${UI_TEXT.deletedPresetPrefix} ${preset.name}`)
   }
 
   function jumpToSearchResult(index: number) {
@@ -2001,6 +2220,57 @@ export function TopologyPage() {
             </div>
           ) : (
             <p className="hint">{UI_TEXT.compareHint}</p>
+          )}
+
+          <h3 className="section-spacer">{UI_TEXT.savedPresetsTitle}</h3>
+          <div className="preset-save-row">
+            <input
+              type="text"
+              className="search-input"
+              value={presetNameInput}
+              onChange={(event) => setPresetNameInput(event.target.value)}
+              placeholder={UI_TEXT.presetNamePlaceholder}
+            />
+            <button
+              type="button"
+              className="toolbar-button primary"
+              onClick={handleSaveCurrentPreset}
+              disabled={!selectedWorkspaceId}
+            >
+              {UI_TEXT.saveCurrentPreset}
+            </button>
+          </div>
+          {savedPresets.length ? (
+            <div className="compare-chip-grid preset-list-grid">
+              {savedPresets.map((preset) => (
+                <div key={preset.id} className="compare-chip-card preset-card">
+                  <div className="preset-card-copy">
+                    <strong>{preset.name}</strong>
+                    <p className="hint preset-card-meta">
+                      {UI_TEXT.presetMeta(
+                        getSearchScopeMeta(preset.scope).label,
+                        preset.compareRefs.length,
+                        workspacesById.get(preset.workspaceId)?.name ?? preset.workspaceId,
+                      )}
+                    </p>
+                    <p className="hint preset-card-meta">Updated {formatDateTime(preset.updatedAt || preset.createdAt)}</p>
+                  </div>
+                  <div className="button-row preset-card-actions">
+                    <button type="button" className="toolbar-button search-inline-button" onClick={() => handleLoadSavedPreset(preset)}>
+                      {UI_TEXT.loadPreset}
+                    </button>
+                    <button type="button" className="toolbar-button search-inline-button" onClick={() => handleRenameSavedPreset(preset)}>
+                      {UI_TEXT.renamePreset}
+                    </button>
+                    <button type="button" className="toolbar-button search-inline-button" onClick={() => handleDeleteSavedPreset(preset)}>
+                      {UI_TEXT.deletePreset}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="hint">{UI_TEXT.noSavedPresets}</p>
           )}
 
           <h3 className="section-spacer">Relation Categories</h3>

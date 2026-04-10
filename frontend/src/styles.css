@@ -515,6 +515,16 @@ p {
   gap: 10px;
 }
 
+.preset-list-grid {
+  margin-top: 10px;
+}
+
+.preset-save-row {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .compare-chip-card {
   display: flex;
   gap: 8px;
@@ -523,6 +533,24 @@ p {
   padding: 8px 10px;
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.55);
+}
+
+.preset-card {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.preset-card-copy {
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.preset-card-meta {
+  margin: 6px 0 0;
+}
+
+.preset-card-actions {
+  justify-content: flex-end;
 }
 
 .compare-color-dot {
