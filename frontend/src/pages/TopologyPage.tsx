@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
-import dagre from 'cytoscape-dagre'
+import type { Core, ElementDefinition } from 'cytoscape'
 
 import {
   createPngExport,
@@ -17,7 +16,21 @@ import {
   type Workspace,
 } from '../lib/api'
 
-cytoscape.use(dagre)
+let cytoscapeRuntimePromise: Promise<any> | null = null
+
+async function loadCytoscapeRuntime(): Promise<any> {
+  if (!cytoscapeRuntimePromise) {
+    cytoscapeRuntimePromise = Promise.all([import('cytoscape'), import('cytoscape-dagre')]).then(
+      ([cytoscapeModule, dagreModule]) => {
+        const cytoscapeFactory = cytoscapeModule.default
+        cytoscapeFactory.use(dagreModule.default)
+        return cytoscapeFactory
+      },
+    )
+  }
+
+  return cytoscapeRuntimePromise
+}
 
 type CountItem = {
   key: string
@@ -73,6 +86,7 @@ const SEARCH_GROUP_ORDER: ResourceCategory[] = ['data', 'network', 'web', 'compu
 const COMPARE_COLOR_PALETTE = ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#f472b6', '#f87171']
 const TOPOLOGY_PRESET_VERSION = 1
 const TOPOLOGY_PRESET_STORAGE_KEY = 'azvision.topology.presets.v1'
+const TOPOLOGY_SNAPSHOT_STORAGE_KEY = 'azvision.topology.snapshots.v1'
 
 const UI_TEXT = {
   heroSubtext:
@@ -119,6 +133,35 @@ const UI_TEXT = {
   presetDeleteConfirm: (name: string) => `Delete preset "${name}"?`,
   presetMeta: (scope: string, compareCount: number, workspace: string) =>
     `${workspace} • ${scope} • ${compareCount} compare target${compareCount === 1 ? '' : 's'}`,
+  savedSnapshotsTitle: 'Saved Snapshots',
+  snapshotNamePlaceholder: 'Snapshot name (optional)',
+  snapshotNotePlaceholder: 'Snapshot note (optional)',
+  defaultSnapshotName: 'Snapshot',
+  saveCurrentSnapshot: 'Save current snapshot',
+  noSavedSnapshots: 'No snapshots saved yet',
+  loadSnapshot: 'Restore',
+  renameSnapshot: 'Rename',
+  deleteSnapshot: 'Delete',
+  activeSnapshotBadge: 'Active view',
+  snapshotHint: 'Snapshots capture the current live topology view, compare lane, search scope, and RG focus metadata.',
+  savedSnapshotPrefix: 'Saved snapshot:',
+  loadedSnapshotPrefix: 'Loaded snapshot:',
+  renamedSnapshotPrefix: 'Renamed snapshot:',
+  deletedSnapshotPrefix: 'Deleted snapshot:',
+  exportedSnapshotsPrefix: 'Exported snapshots:',
+  importedSnapshotsPrefix: 'Imported snapshots:',
+  importInvalidSnapshotJson: 'Invalid snapshot JSON file',
+  importNoValidSnapshots: 'No valid snapshots found in the imported file',
+  snapshotRenamePrompt: 'Rename snapshot',
+  snapshotDeleteConfirm: (name: string) => `Delete snapshot "${name}"?`,
+  snapshotMeta: (scope: string, compareCount: number, workspace: string) =>
+    `${workspace} • ${scope} • ${compareCount} compare target${compareCount === 1 ? '' : 's'}`,
+  snapshotCounts: (visibleCount: number, loadedCount: number, edgeCount: number) =>
+    `${visibleCount} visible • ${loadedCount} loaded • ${edgeCount} edges`,
+  snapshotResourceGroupMeta: (resourceGroupName: string) =>
+    resourceGroupName ? `RG focus • ${resourceGroupName}` : 'All resource groups',
+  exportSnapshots: 'Export JSON',
+  importSnapshots: 'Import JSON',
   searchScopes: {
     childOnly: {
       hint: 'Search only expanded child nodes currently visible on the canvas.',
@@ -152,10 +195,32 @@ type SavedTopologyPreset = TopologyPresetState & {
   updatedAt: string
 }
 
+type TopologySnapshotState = TopologyPresetState & {
+  note: string
+  topologyGeneratedAt: string
+  visibleNodeCount: number
+  loadedNodeCount: number
+  edgeCount: number
+  thumbnailDataUrl: string
+}
+
+type SavedTopologySnapshot = TopologySnapshotState & {
+  id: string
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
 type ImportedPresetPayload = {
   presetVersion: number
   exportedAt: string
   presets: SavedTopologyPreset[]
+}
+
+type ImportedSnapshotPayload = {
+  presetVersion: number
+  exportedAt: string
+  snapshots: SavedTopologySnapshot[]
 }
 
 function createEmptyTopologyPresetState(): TopologyPresetState {
@@ -238,6 +303,94 @@ function persistSavedTopologyPresets(presets: SavedTopologyPreset[]) {
   window.localStorage.setItem(TOPOLOGY_PRESET_STORAGE_KEY, JSON.stringify(presets))
 }
 
+function sanitizeSnapshotCount(value: unknown) {
+  const numericValue = Number(value ?? 0)
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return 0
+  }
+
+  return Math.floor(numericValue)
+}
+
+function sanitizeSnapshotState(state: Partial<TopologySnapshotState>): TopologySnapshotState {
+  const base = sanitizePresetState(state)
+
+  return {
+    ...base,
+    note: String(state.note ?? '').trim(),
+    topologyGeneratedAt: String(state.topologyGeneratedAt ?? ''),
+    visibleNodeCount: sanitizeSnapshotCount(state.visibleNodeCount),
+    loadedNodeCount: sanitizeSnapshotCount(state.loadedNodeCount),
+    edgeCount: sanitizeSnapshotCount(state.edgeCount),
+    thumbnailDataUrl: String(state.thumbnailDataUrl ?? ''),
+  }
+}
+
+function buildSnapshotThumbnailDataUrl(cy: Core | null) {
+  if (!cy) {
+    return ''
+  }
+
+  try {
+    return cy.jpg({
+      full: false,
+      scale: 0.5,
+      quality: 0.6,
+      bg: '#0b1220',
+    })
+  } catch {
+    return ''
+  }
+}
+
+function loadSavedTopologySnapshots(): SavedTopologySnapshot[] {
+  if (typeof window === 'undefined') {
+    return []
+  }
+
+  try {
+    const raw = window.localStorage.getItem(TOPOLOGY_SNAPSHOT_STORAGE_KEY)
+    if (!raw) {
+      return []
+    }
+
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    return parsed
+      .map((item) => {
+        if (typeof item !== 'object' || item === null) {
+          return null
+        }
+
+        const base = sanitizeSnapshotState(item as Partial<TopologySnapshotState>)
+        return {
+          id: String((item as { id?: unknown }).id ?? ''),
+          name: String((item as { name?: unknown }).name ?? '').trim(),
+          createdAt: String((item as { createdAt?: unknown }).createdAt ?? ''),
+          updatedAt: String((item as { updatedAt?: unknown }).updatedAt ?? ''),
+          ...base,
+        } satisfies SavedTopologySnapshot
+      })
+      .filter(
+        (item): item is SavedTopologySnapshot =>
+          Boolean(item?.id) && Boolean(item?.name),
+      )
+  } catch {
+    return []
+  }
+}
+
+function persistSavedTopologySnapshots(snapshots: SavedTopologySnapshot[]) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.localStorage.setItem(TOPOLOGY_SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshots))
+}
+
 function arePresetStatesEqual(left: TopologyPresetState, right: TopologyPresetState) {
   const normalizedLeft = sanitizePresetState(left)
   const normalizedRight = sanitizePresetState(right)
@@ -309,6 +462,39 @@ function normalizeImportedPresetPayload(raw: unknown) {
       } satisfies SavedTopologyPreset
     })
     .filter((item): item is SavedTopologyPreset => Boolean(item?.name) && Boolean(item?.workspaceId))
+}
+
+function normalizeImportedSnapshotPayload(raw: unknown) {
+  if (typeof raw !== 'object' || raw === null) {
+    throw new Error(UI_TEXT.importInvalidSnapshotJson)
+  }
+
+  const payload = raw as { presetVersion?: unknown; snapshots?: unknown }
+  if (payload.presetVersion !== undefined && Number(payload.presetVersion) > TOPOLOGY_PRESET_VERSION) {
+    throw new Error(UI_TEXT.importUnsupportedVersion)
+  }
+
+  if (!Array.isArray(payload.snapshots)) {
+    throw new Error(UI_TEXT.importInvalidSnapshotJson)
+  }
+
+  return payload.snapshots
+    .map((item) => {
+      if (typeof item !== 'object' || item === null) {
+        return null
+      }
+
+      const snapshot = item as Partial<SavedTopologySnapshot>
+      const base = sanitizeSnapshotState(snapshot)
+      return {
+        id: createPresetId(),
+        name: String(snapshot.name ?? '').trim(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ...base,
+      } satisfies SavedTopologySnapshot
+    })
+    .filter((item): item is SavedTopologySnapshot => Boolean(item?.name) && Boolean(item?.workspaceId))
 }
 
 function getCompareColor(groupIndex: number) {
@@ -980,6 +1166,7 @@ export function TopologyPage() {
   const [loading, setLoading] = useState(true)
   const [topologyLoading, setTopologyLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [graphRuntimeLoading, setGraphRuntimeLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
   const [lastExport, setLastExport] = useState<ExportItem | null>(null)
   const [exportMessage, setExportMessage] = useState<string>('')
@@ -999,10 +1186,14 @@ export function TopologyPage() {
   const [managedInstanceTransition, setManagedInstanceTransition] = useState<'expand' | 'collapse' | ''>('')
   const [savedPresets, setSavedPresets] = useState<SavedTopologyPreset[]>(() => loadSavedTopologyPresets())
   const [presetNameInput, setPresetNameInput] = useState('')
+  const [savedSnapshots, setSavedSnapshots] = useState<SavedTopologySnapshot[]>(() => loadSavedTopologySnapshots())
+  const [snapshotNameInput, setSnapshotNameInput] = useState('')
+  const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
 
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
   const cyRef = useRef<Core | null>(null)
   const presetImportInputRef = useRef<HTMLInputElement | null>(null)
+  const snapshotImportInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     async function loadInitial() {
@@ -1240,24 +1431,36 @@ export function TopologyPage() {
   ])
 
   useEffect(() => {
-    if (!graphContainerRef.current) {
-      return
-    }
+    let activeCy: Core | null = null
+    let cancelled = false
 
-    if (!graphElements.length) {
-      cyRef.current?.destroy()
-      cyRef.current = null
-      return
-    }
+    async function mountGraph() {
+      if (!graphContainerRef.current) {
+        return
+      }
 
-    const cy = cytoscape({
-      container: graphContainerRef.current,
-      elements: graphElements,
-      layout: layoutOptions,
-      wheelSensitivity: 0.18,
-      minZoom: 0.2,
-      maxZoom: 2.2,
-      style: [
+      if (!graphElements.length) {
+        cyRef.current?.destroy()
+        cyRef.current = null
+        setGraphRuntimeLoading(false)
+        return
+      }
+
+      try {
+        setGraphRuntimeLoading(true)
+        const cytoscape = await loadCytoscapeRuntime()
+        if (cancelled || !graphContainerRef.current) {
+          return
+        }
+
+        const cy = cytoscape({
+          container: graphContainerRef.current,
+          elements: graphElements,
+          layout: layoutOptions,
+          wheelSensitivity: 0.18,
+          minZoom: 0.2,
+          maxZoom: 2.2,
+          style: [
         {
           selector: 'node',
           style: {
@@ -1574,49 +1777,70 @@ export function TopologyPage() {
             opacity: 0.22,
           },
         },
-      ] as any,
-    })
+          ] as any,
+        })
 
-    const clearHoverState = () => {
-      cy.elements().removeClass('hovered-node hovered-neighbor hovered-edge')
+        activeCy = cy
+
+        const clearHoverState = () => {
+          cy.elements().removeClass('hovered-node hovered-neighbor hovered-edge')
+        }
+
+        cy.on('tap', 'node', (event: any) => {
+          setSelectedNodeKey(event.target.id())
+        })
+
+        cy.on('dbltap', 'node', (event: any) => {
+          cy.animate({ fit: { eles: event.target.closedNeighborhood(), padding: 56 } }, { duration: 260 })
+        })
+
+        cy.on('mouseover', 'node', (event: any) => {
+          clearHoverState()
+          const node = event.target
+          node.addClass('hovered-node')
+          node.neighborhood('node').addClass('hovered-neighbor')
+          node.connectedEdges().addClass('hovered-edge')
+        })
+
+        cy.on('mouseout', 'node', clearHoverState)
+
+        cy.on('mouseover', 'edge', (event: any) => {
+          clearHoverState()
+          const edge = event.target
+          edge.addClass('hovered-edge')
+          edge.connectedNodes().addClass('hovered-neighbor')
+        })
+
+        cy.on('mouseout', 'edge', clearHoverState)
+
+        cy.ready(() => {
+          cy.fit(undefined, 36)
+        })
+
+        if (cancelled) {
+          cy.destroy()
+          return
+        }
+
+        cyRef.current = cy
+      } catch {
+        if (!cancelled) {
+          cyRef.current?.destroy()
+          cyRef.current = null
+        }
+      } finally {
+        if (!cancelled) {
+          setGraphRuntimeLoading(false)
+        }
+      }
     }
 
-    cy.on('tap', 'node', (event) => {
-      setSelectedNodeKey(event.target.id())
-    })
-
-    cy.on('dbltap', 'node', (event) => {
-      cy.animate({ fit: { eles: event.target.closedNeighborhood(), padding: 56 } }, { duration: 260 })
-    })
-
-    cy.on('mouseover', 'node', (event) => {
-      clearHoverState()
-      const node = event.target
-      node.addClass('hovered-node')
-      node.neighborhood('node').addClass('hovered-neighbor')
-      node.connectedEdges().addClass('hovered-edge')
-    })
-
-    cy.on('mouseout', 'node', clearHoverState)
-
-    cy.on('mouseover', 'edge', (event) => {
-      clearHoverState()
-      const edge = event.target
-      edge.addClass('hovered-edge')
-      edge.connectedNodes().addClass('hovered-neighbor')
-    })
-
-    cy.on('mouseout', 'edge', clearHoverState)
-
-    cy.ready(() => {
-      cy.fit(undefined, 36)
-    })
-
-    cyRef.current = cy
+    void mountGraph()
 
     return () => {
-      cy.destroy()
-      if (cyRef.current === cy) {
+      cancelled = true
+      activeCy?.destroy()
+      if (cyRef.current === activeCy) {
         cyRef.current = null
       }
     }
@@ -1828,6 +2052,11 @@ export function TopologyPage() {
       savedPresets.find((preset) => arePresetStatesEqual(preset, currentPresetState))?.id ?? null,
     [currentPresetState, savedPresets],
   )
+  const activeSavedSnapshotId = useMemo(
+    () =>
+      savedSnapshots.find((snapshot) => arePresetStatesEqual(snapshot, currentPresetState))?.id ?? null,
+    [currentPresetState, savedSnapshots],
+  )
   const compareMetaByRef = useMemo(
     () =>
       new Map(
@@ -1983,6 +2212,35 @@ export function TopologyPage() {
     setExportMessage(`${UI_TEXT.savedPresetPrefix} ${nextPreset.name}`)
   }
 
+  function handleSaveCurrentSnapshot() {
+    if (!selectedWorkspaceId) {
+      return
+    }
+
+    const now = new Date().toISOString()
+    const thumbnailDataUrl = buildSnapshotThumbnailDataUrl(cyRef.current)
+    const nextSnapshot: SavedTopologySnapshot = {
+      id: createPresetId(),
+      name: snapshotNameInput.trim() || `${UI_TEXT.defaultSnapshotName} ${savedSnapshots.length + 1}`,
+      createdAt: now,
+      updatedAt: now,
+      note: snapshotNoteInput.trim(),
+      topologyGeneratedAt: topology?.generated_at ?? '',
+      visibleNodeCount: filteredTopology.nodes.length,
+      loadedNodeCount: topology?.nodes.length ?? 0,
+      edgeCount: filteredTopology.edges.length,
+      thumbnailDataUrl,
+      ...sanitizePresetState(currentPresetState),
+    }
+
+    const nextSnapshots = [nextSnapshot, ...savedSnapshots]
+    setSavedSnapshots(nextSnapshots)
+    persistSavedTopologySnapshots(nextSnapshots)
+    setSnapshotNameInput('')
+    setSnapshotNoteInput('')
+    setExportMessage(`${UI_TEXT.savedSnapshotPrefix} ${nextSnapshot.name}`)
+  }
+
   function handleLoadSavedPreset(preset: SavedTopologyPreset) {
     const normalizedPreset = sanitizePresetState(preset)
 
@@ -1997,6 +2255,49 @@ export function TopologyPage() {
     setSearchResultIndex(0)
     setPendingFocusNodeKey('')
     setExportMessage(`${UI_TEXT.loadedPresetPrefix} ${preset.name}`)
+  }
+
+  function handleLoadSavedSnapshot(snapshot: SavedTopologySnapshot) {
+    const normalizedSnapshot = sanitizeSnapshotState(snapshot)
+
+    setSelectedWorkspaceId(normalizedSnapshot.workspaceId)
+    setExpandedManagedInstanceRefs(normalizedSnapshot.compareRefs)
+    setClusterManagedInstanceChildren(normalizedSnapshot.clusterChildren)
+    setFocusedResourceGroupName(normalizedSnapshot.resourceGroupName)
+    setSearchQuery(normalizedSnapshot.query)
+    setSearchScope(normalizedSnapshot.scope)
+    setSelectedNodeKey('')
+    setNodeDetail(null)
+    setSearchResultIndex(0)
+    setPendingFocusNodeKey('')
+    setSnapshotNameInput('')
+    setSnapshotNoteInput(normalizedSnapshot.note)
+    setExportMessage(`${UI_TEXT.loadedSnapshotPrefix} ${snapshot.name}`)
+  }
+
+  function handleRenameSavedSnapshot(snapshot: SavedTopologySnapshot) {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const nextName = window.prompt(UI_TEXT.snapshotRenamePrompt, snapshot.name)?.trim()
+    if (!nextName || nextName === snapshot.name) {
+      return
+    }
+
+    const nextSnapshots = savedSnapshots.map((item) =>
+      item.id === snapshot.id
+        ? {
+            ...item,
+            name: nextName,
+            updatedAt: new Date().toISOString(),
+          }
+        : item,
+    )
+
+    setSavedSnapshots(nextSnapshots)
+    persistSavedTopologySnapshots(nextSnapshots)
+    setExportMessage(`${UI_TEXT.renamedSnapshotPrefix} ${nextName}`)
   }
 
   function handleRenameSavedPreset(preset: SavedTopologyPreset) {
@@ -2035,6 +2336,17 @@ export function TopologyPage() {
     setExportMessage(`${UI_TEXT.deletedPresetPrefix} ${preset.name}`)
   }
 
+  function handleDeleteSavedSnapshot(snapshot: SavedTopologySnapshot) {
+    if (typeof window !== 'undefined' && !window.confirm(UI_TEXT.snapshotDeleteConfirm(snapshot.name))) {
+      return
+    }
+
+    const nextSnapshots = savedSnapshots.filter((item) => item.id !== snapshot.id)
+    setSavedSnapshots(nextSnapshots)
+    persistSavedTopologySnapshots(nextSnapshots)
+    setExportMessage(`${UI_TEXT.deletedSnapshotPrefix} ${snapshot.name}`)
+  }
+
   function handleExportSavedPresets() {
     if (typeof window === 'undefined' || !savedPresets.length) {
       return
@@ -2056,8 +2368,33 @@ export function TopologyPage() {
     setExportMessage(`${UI_TEXT.exportedPresetsPrefix} ${savedPresets.length}`)
   }
 
+  function handleExportSavedSnapshots() {
+    if (typeof window === 'undefined' || !savedSnapshots.length) {
+      return
+    }
+
+    const payload: ImportedSnapshotPayload = {
+      presetVersion: TOPOLOGY_PRESET_VERSION,
+      exportedAt: new Date().toISOString(),
+      snapshots: savedSnapshots,
+    }
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const anchor = window.document.createElement('a')
+    anchor.href = url
+    anchor.download = `azvision-topology-snapshots-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`
+    anchor.click()
+    window.URL.revokeObjectURL(url)
+    setExportMessage(`${UI_TEXT.exportedSnapshotsPrefix} ${savedSnapshots.length}`)
+  }
+
   function handleImportPresetClick() {
     presetImportInputRef.current?.click()
+  }
+
+  function handleImportSnapshotClick() {
+    snapshotImportInputRef.current?.click()
   }
 
   async function handleImportPresetFile(event: ChangeEvent<HTMLInputElement>) {
@@ -2090,6 +2427,39 @@ export function TopologyPage() {
       setExportMessage(`${UI_TEXT.importedPresetsPrefix} ${mergedPresets.length}`)
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : UI_TEXT.importInvalidJson)
+    }
+  }
+
+  async function handleImportSnapshotFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text) as unknown
+      const importedSnapshots = normalizeImportedSnapshotPayload(parsed)
+
+      if (!importedSnapshots.length) {
+        setExportMessage(UI_TEXT.importNoValidSnapshots)
+        return
+      }
+
+      const existingNames = new Set(savedSnapshots.map((snapshot) => snapshot.name))
+      const mergedSnapshots = importedSnapshots.map((snapshot) => ({
+        ...snapshot,
+        name: createUniquePresetName(snapshot.name, existingNames),
+      }))
+
+      const nextSnapshots = [...mergedSnapshots, ...savedSnapshots]
+      setSavedSnapshots(nextSnapshots)
+      persistSavedTopologySnapshots(nextSnapshots)
+      setExportMessage(`${UI_TEXT.importedSnapshotsPrefix} ${mergedSnapshots.length}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.importInvalidSnapshotJson)
     }
   }
 
@@ -2365,6 +2735,123 @@ export function TopologyPage() {
             <p className="hint">{UI_TEXT.compareHint}</p>
           )}
 
+          <h3 className="section-spacer">{UI_TEXT.savedSnapshotsTitle}</h3>
+          <p className="hint">{UI_TEXT.snapshotHint}</p>
+          <div className="preset-save-row snapshot-save-row">
+            <input
+              type="text"
+              className="search-input"
+              value={snapshotNameInput}
+              onChange={(event) => setSnapshotNameInput(event.target.value)}
+              placeholder={UI_TEXT.snapshotNamePlaceholder}
+            />
+            <textarea
+              className="search-input snapshot-note-input"
+              value={snapshotNoteInput}
+              onChange={(event) => setSnapshotNoteInput(event.target.value)}
+              placeholder={UI_TEXT.snapshotNotePlaceholder}
+              rows={3}
+            />
+            <div className="button-row preset-toolbar-row">
+              <button
+                type="button"
+                className="toolbar-button primary"
+                onClick={handleSaveCurrentSnapshot}
+                disabled={!selectedWorkspaceId}
+              >
+                {UI_TEXT.saveCurrentSnapshot}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={handleExportSavedSnapshots}
+                disabled={!savedSnapshots.length}
+              >
+                {UI_TEXT.exportSnapshots}
+              </button>
+              <button type="button" className="toolbar-button" onClick={handleImportSnapshotClick}>
+                {UI_TEXT.importSnapshots}
+              </button>
+              <input
+                ref={snapshotImportInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="visually-hidden"
+                onChange={handleImportSnapshotFile}
+              />
+            </div>
+          </div>
+          {savedSnapshots.length ? (
+            <div className="compare-chip-grid preset-list-grid">
+              {savedSnapshots.map((snapshot) => {
+                const isActiveSnapshot = snapshot.id === activeSavedSnapshotId
+                return (
+                  <div
+                    key={snapshot.id}
+                    className={`compare-chip-card preset-card snapshot-card ${isActiveSnapshot ? 'active-preset-card active-snapshot-card' : ''}`}
+                  >
+                    {snapshot.thumbnailDataUrl ? (
+                      <div className="snapshot-thumb-shell">
+                        <img
+                          src={snapshot.thumbnailDataUrl}
+                          alt={`${snapshot.name} topology preview`}
+                          className="snapshot-thumb"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : null}
+                    <div className="preset-card-copy">
+                      <div className="preset-card-title-row">
+                        <strong>{snapshot.name}</strong>
+                        {isActiveSnapshot ? <span className="mini-chip">{UI_TEXT.activeSnapshotBadge}</span> : null}
+                      </div>
+                      <p className="hint preset-card-meta">
+                        {UI_TEXT.snapshotMeta(
+                          getSearchScopeMeta(snapshot.scope).label,
+                          snapshot.compareRefs.length,
+                          workspacesById.get(snapshot.workspaceId)?.name ?? snapshot.workspaceId,
+                        )}
+                      </p>
+                      <p className="hint preset-card-meta">{UI_TEXT.snapshotResourceGroupMeta(snapshot.resourceGroupName)}</p>
+                      <p className="hint preset-card-meta">
+                        {UI_TEXT.snapshotCounts(snapshot.visibleNodeCount, snapshot.loadedNodeCount, snapshot.edgeCount)}
+                      </p>
+                      {snapshot.note ? <p className="hint snapshot-note">{snapshot.note}</p> : null}
+                      <p className="hint preset-card-meta">
+                        Generated {formatDateTime(snapshot.topologyGeneratedAt)} • Saved {formatDateTime(snapshot.updatedAt || snapshot.createdAt)}
+                      </p>
+                    </div>
+                    <div className="button-row preset-card-actions">
+                      <button
+                        type="button"
+                        className="toolbar-button search-inline-button"
+                        onClick={() => handleLoadSavedSnapshot(snapshot)}
+                      >
+                        {UI_TEXT.loadSnapshot}
+                      </button>
+                      <button
+                        type="button"
+                        className="toolbar-button search-inline-button"
+                        onClick={() => handleRenameSavedSnapshot(snapshot)}
+                      >
+                        {UI_TEXT.renameSnapshot}
+                      </button>
+                      <button
+                        type="button"
+                        className="toolbar-button search-inline-button"
+                        onClick={() => handleDeleteSavedSnapshot(snapshot)}
+                      >
+                        {UI_TEXT.deleteSnapshot}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="hint">{UI_TEXT.noSavedSnapshots}</p>
+          )}
+
           <h3 className="section-spacer">{UI_TEXT.savedPresetsTitle}</h3>
           <div className="preset-save-row">
             <input
@@ -2513,6 +3000,7 @@ export function TopologyPage() {
 
           <p className="hint compare-layout-hint">Layout: {compareLayoutStatus}</p>
           <p className="hint compare-layout-hint compare-path-hint">Selection: {selectedPathStatus}</p>
+          {graphRuntimeLoading ? <p className="hint compare-layout-hint">Graph engine loading...</p> : null}
 
           <div className="graph-toolbar">
             <div className="button-row">

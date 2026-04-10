@@ -20,7 +20,8 @@ body {
 
 button,
 select,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -541,6 +542,15 @@ p {
   align-items: center;
 }
 
+.snapshot-save-row {
+  margin-top: 10px;
+}
+
+.snapshot-note-input {
+  min-height: 88px;
+  resize: vertical;
+}
+
 .compare-chip-card {
   display: flex;
   gap: 8px;
@@ -554,6 +564,26 @@ p {
 .preset-card {
   justify-content: space-between;
   align-items: flex-start;
+}
+
+.snapshot-card {
+  gap: 12px;
+}
+
+.snapshot-thumb-shell {
+  width: 180px;
+  min-width: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(2, 6, 23, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.snapshot-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
 }
 
 .preset-card-copy {
@@ -574,8 +604,20 @@ p {
   box-shadow: inset 0 0 0 1px rgba(191, 219, 254, 0.12);
 }
 
+.active-snapshot-card {
+  border-color: rgba(34, 211, 238, 0.42);
+  background: rgba(8, 145, 178, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(165, 243, 252, 0.12);
+}
+
 .preset-card-meta {
   margin: 6px 0 0;
+}
+
+.snapshot-note {
+  margin: 8px 0 0;
+  color: #e0f2fe;
+  white-space: pre-wrap;
 }
 
 .preset-card-actions {
@@ -919,5 +961,10 @@ select {
 
   .graph-canvas {
     height: 460px;
+  }
+
+  .snapshot-thumb-shell {
+    width: 100%;
+    min-width: 0;
   }
 }
