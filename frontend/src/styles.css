@@ -24,6 +24,18 @@ input {
   font: inherit;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 #root {
   min-height: 100vh;
 }
@@ -523,6 +535,10 @@ p {
   display: grid;
   gap: 10px;
   margin-top: 10px;
+}
+
+.preset-toolbar-row {
+  align-items: center;
 }
 
 .compare-chip-card {

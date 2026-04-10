@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import cytoscape, { type Core, type ElementDefinition } from 'cytoscape'
 import dagre from 'cytoscape-dagre'
 
@@ -103,10 +103,17 @@ const UI_TEXT = {
   renamePreset: 'Rename',
   deletePreset: 'Delete',
   activePresetBadge: 'Active',
+  exportPresets: 'Export JSON',
+  importPresets: 'Import JSON',
   savedPresetPrefix: 'Saved preset:',
   loadedPresetPrefix: 'Loaded preset:',
   renamedPresetPrefix: 'Renamed preset:',
   deletedPresetPrefix: 'Deleted preset:',
+  exportedPresetsPrefix: 'Exported presets:',
+  importedPresetsPrefix: 'Imported presets:',
+  importInvalidJson: 'Invalid preset JSON file',
+  importUnsupportedVersion: 'Unsupported preset payload version',
+  importNoValidPresets: 'No valid presets found in the imported file',
   presetNamePrompt: 'Preset name',
   presetRenamePrompt: 'Rename preset',
   presetDeleteConfirm: (name: string) => `Delete preset "${name}"?`,
@@ -143,6 +150,12 @@ type SavedTopologyPreset = TopologyPresetState & {
   name: string
   createdAt: string
   updatedAt: string
+}
+
+type ImportedPresetPayload = {
+  presetVersion: number
+  exportedAt: string
+  presets: SavedTopologyPreset[]
 }
 
 function createEmptyTopologyPresetState(): TopologyPresetState {
@@ -246,6 +259,56 @@ function createPresetId() {
   }
 
   return `preset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function createUniquePresetName(baseName: string, existingNames: Set<string>) {
+  const normalizedBaseName = baseName.trim() || UI_TEXT.defaultPresetName
+  if (!existingNames.has(normalizedBaseName)) {
+    existingNames.add(normalizedBaseName)
+    return normalizedBaseName
+  }
+
+  let index = 2
+  while (existingNames.has(`${normalizedBaseName} (${index})`)) {
+    index += 1
+  }
+
+  const nextName = `${normalizedBaseName} (${index})`
+  existingNames.add(nextName)
+  return nextName
+}
+
+function normalizeImportedPresetPayload(raw: unknown) {
+  if (typeof raw !== 'object' || raw === null) {
+    throw new Error(UI_TEXT.importInvalidJson)
+  }
+
+  const payload = raw as { presetVersion?: unknown; presets?: unknown }
+  if (payload.presetVersion !== undefined && Number(payload.presetVersion) > TOPOLOGY_PRESET_VERSION) {
+    throw new Error(UI_TEXT.importUnsupportedVersion)
+  }
+
+  if (!Array.isArray(payload.presets)) {
+    throw new Error(UI_TEXT.importInvalidJson)
+  }
+
+  return payload.presets
+    .map((item) => {
+      if (typeof item !== 'object' || item === null) {
+        return null
+      }
+
+      const preset = item as Partial<SavedTopologyPreset>
+      const base = sanitizePresetState(preset)
+      return {
+        id: createPresetId(),
+        name: String(preset.name ?? '').trim(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ...base,
+      } satisfies SavedTopologyPreset
+    })
+    .filter((item): item is SavedTopologyPreset => Boolean(item?.name) && Boolean(item?.workspaceId))
 }
 
 function getCompareColor(groupIndex: number) {
@@ -939,6 +1002,7 @@ export function TopologyPage() {
 
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
   const cyRef = useRef<Core | null>(null)
+  const presetImportInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     async function loadInitial() {
@@ -1971,6 +2035,64 @@ export function TopologyPage() {
     setExportMessage(`${UI_TEXT.deletedPresetPrefix} ${preset.name}`)
   }
 
+  function handleExportSavedPresets() {
+    if (typeof window === 'undefined' || !savedPresets.length) {
+      return
+    }
+
+    const payload: ImportedPresetPayload = {
+      presetVersion: TOPOLOGY_PRESET_VERSION,
+      exportedAt: new Date().toISOString(),
+      presets: savedPresets,
+    }
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const anchor = window.document.createElement('a')
+    anchor.href = url
+    anchor.download = `azvision-topology-presets-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`
+    anchor.click()
+    window.URL.revokeObjectURL(url)
+    setExportMessage(`${UI_TEXT.exportedPresetsPrefix} ${savedPresets.length}`)
+  }
+
+  function handleImportPresetClick() {
+    presetImportInputRef.current?.click()
+  }
+
+  async function handleImportPresetFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text) as unknown
+      const importedPresets = normalizeImportedPresetPayload(parsed)
+
+      if (!importedPresets.length) {
+        setExportMessage(UI_TEXT.importNoValidPresets)
+        return
+      }
+
+      const existingNames = new Set(savedPresets.map((preset) => preset.name))
+      const mergedPresets = importedPresets.map((preset) => ({
+        ...preset,
+        name: createUniquePresetName(preset.name, existingNames),
+      }))
+
+      const nextPresets = [...mergedPresets, ...savedPresets]
+      setSavedPresets(nextPresets)
+      persistSavedTopologyPresets(nextPresets)
+      setExportMessage(`${UI_TEXT.importedPresetsPrefix} ${mergedPresets.length}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.importInvalidJson)
+    }
+  }
+
   function jumpToSearchResult(index: number) {
     if (!searchResults.length) {
       return
@@ -2252,14 +2374,34 @@ export function TopologyPage() {
               onChange={(event) => setPresetNameInput(event.target.value)}
               placeholder={UI_TEXT.presetNamePlaceholder}
             />
-            <button
-              type="button"
-              className="toolbar-button primary"
-              onClick={handleSaveCurrentPreset}
-              disabled={!selectedWorkspaceId}
-            >
-              {UI_TEXT.saveCurrentPreset}
-            </button>
+            <div className="button-row preset-toolbar-row">
+              <button
+                type="button"
+                className="toolbar-button primary"
+                onClick={handleSaveCurrentPreset}
+                disabled={!selectedWorkspaceId}
+              >
+                {UI_TEXT.saveCurrentPreset}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={handleExportSavedPresets}
+                disabled={!savedPresets.length}
+              >
+                {UI_TEXT.exportPresets}
+              </button>
+              <button type="button" className="toolbar-button" onClick={handleImportPresetClick}>
+                {UI_TEXT.importPresets}
+              </button>
+              <input
+                ref={presetImportInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="visually-hidden"
+                onChange={handleImportPresetFile}
+              />
+            </div>
           </div>
           {savedPresets.length ? (
             <div className="compare-chip-grid preset-list-grid">
