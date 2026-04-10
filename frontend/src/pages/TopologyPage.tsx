@@ -72,6 +72,42 @@ const DEFAULT_RELATION_TYPE_FILTERS: RelationTypeFilterState = {
 const SEARCH_GROUP_ORDER: ResourceCategory[] = ['data', 'network', 'web', 'compute', 'scope', 'other']
 const COMPARE_COLOR_PALETTE = ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#f472b6', '#f87171']
 
+const UI_TEXT = {
+  heroSubtext:
+    'Dagre layout, network inference toggle, resource filters, managed instance child collapse, and on-demand expand are currently supported.',
+  apiErrorPrefix: 'API connection error:',
+  topologyErrorPrefix: 'Topology error:',
+  loading: 'Loading...',
+  exportSavedPrefix: 'Saved:',
+  networkInferenceToggle: 'Load network inference',
+  noCompareTargets: 'No compare targets selected',
+  compareHint: 'You can expand and compare multiple managed instances from collapsed preview results or the detail panel.',
+  resourceFilterHint: 'Subscription, resource group, and manual nodes always stay visible.',
+  searchTip:
+    'Tip: press Esc to clear selection, double-click a node to focus it, and expand child databases from the SQL Managed Instance detail panel.',
+  resourceGroupFocusedHint: (name: string) => `Only resources in ${name} are currently being loaded from the server`,
+  resourceGroupLoadHint: 'You can load only this resource group from the server.',
+  parentManagedInstanceHint: 'Jump back to the parent managed instance while exploring child nodes.',
+  managedInstanceExpandedHint: 'Keep focus centered around the selected node after expansion.',
+  managedInstanceCollapsedHint: 'Expand to render child database nodes directly on the canvas.',
+  noProjectedDetails: 'No projected details available',
+  noSelectedNode: 'No node selected',
+  searchScopes: {
+    childOnly: {
+      hint: 'Search only expanded child nodes currently visible on the canvas.',
+      empty: 'No matches found in expanded child nodes.',
+    },
+    collapsedPreview: {
+      hint: 'Search parent managed instances by collapsed child sample names.',
+      empty: 'No matches found in collapsed child previews.',
+    },
+    visible: {
+      hint: 'Search across all visible topology nodes.',
+      empty: 'No matches found in visible nodes.',
+    },
+  },
+} as const
+
 type TopologyPresetState = {
   workspaceId: string
   compareRefs: string[]
@@ -470,8 +506,8 @@ function getSearchScopeMeta(scope: SearchScope) {
     return {
       label: 'Expanded child nodes',
       placeholder: 'child database name, type, location, node key...',
-      hint: '현재 canvas에 펼쳐진 child node만 검색',
-      empty: '현재 expanded child node 기준 일치 결과 없음',
+      hint: UI_TEXT.searchScopes.childOnly.hint,
+      empty: UI_TEXT.searchScopes.childOnly.empty,
     }
   }
 
@@ -479,16 +515,16 @@ function getSearchScopeMeta(scope: SearchScope) {
     return {
       label: 'Collapsed child previews',
       placeholder: 'collapsed child sample name...',
-      hint: 'collapse 상태의 child sample name으로 부모 managed instance 검색',
-      empty: '현재 collapsed child preview 기준 일치 결과 없음',
+      hint: UI_TEXT.searchScopes.collapsedPreview.hint,
+      empty: UI_TEXT.searchScopes.collapsedPreview.empty,
     }
   }
 
   return {
     label: 'Visible nodes',
     placeholder: 'name, resource group, type, location, node key...',
-    hint: '현재 visible topology node 전체 검색',
-    empty: '현재 visible node 기준 일치 결과 없음',
+    hint: UI_TEXT.searchScopes.visible.hint,
+    empty: UI_TEXT.searchScopes.visible.empty,
   }
 }
 
@@ -1729,7 +1765,7 @@ export function TopologyPage() {
 
       const exportRecord = await createPngExport(selectedWorkspaceId, imageDataUrl)
       setLastExport(exportRecord)
-      setExportMessage(`저장 완료: ${exportRecord.output_path}`)
+      setExportMessage(`${UI_TEXT.exportSavedPrefix} ${exportRecord.output_path}`)
     } catch (err) {
       setExportMessage(err instanceof Error ? err.message : 'PNG export failed')
     } finally {
@@ -1800,18 +1836,16 @@ export function TopologyPage() {
         <div>
           <p className="eyebrow">AzVision</p>
           <h1>Phase 1A Readability + MI Collapse</h1>
-          <p className="subtext">
-            dagre layout, network inference 토글, resource filter, managed instance child collapse, on-demand expand까지 반영한 상태.
-          </p>
+          <p className="subtext">{UI_TEXT.heroSubtext}</p>
         </div>
         <div className={`status-pill ${authReady ? 'ready' : 'pending'}`}>
           Auth readiness: {authReady ? 'live inventory ready' : 'diagnostic only'}
         </div>
       </header>
 
-      {error ? <div className="error-banner">API 연결 오류: {error}</div> : null}
+      {error ? <div className="error-banner">{UI_TEXT.apiErrorPrefix} {error}</div> : null}
       {topology?.status === 'error' ? (
-        <div className="error-banner">Topology 오류: {topology.message ?? 'Unknown error'}</div>
+        <div className="error-banner">{UI_TEXT.topologyErrorPrefix} {topology.message ?? 'Unknown error'}</div>
       ) : null}
       {exportMessage ? <div className="info-banner">{exportMessage}</div> : null}
 
@@ -1819,7 +1853,7 @@ export function TopologyPage() {
         <article className="panel-card">
           <h2>Workspace</h2>
           {loading ? (
-            <p>불러오는 중...</p>
+            <p>{UI_TEXT.loading}</p>
           ) : (
             <>
               <select
@@ -1899,7 +1933,7 @@ export function TopologyPage() {
                 checked={includeNetworkInference}
                 onChange={(event) => setIncludeNetworkInference(event.target.checked)}
               />
-              <span>Network inference 불러오기</span>
+              <span>{UI_TEXT.networkInferenceToggle}</span>
             </label>
             <label className="toggle-row">
               <input
@@ -1916,7 +1950,7 @@ export function TopologyPage() {
             <span className="mini-status">
               {expandedManagedInstances.length
                 ? `${expandedManagedInstances.length} MI expanded for compare`
-                : 'compare 대상 없음'}
+                : UI_TEXT.noCompareTargets}
             </span>
             <div className="button-row">
               <button type="button" className="toolbar-button" onClick={handleCopyPresetLink}>
@@ -1966,7 +2000,7 @@ export function TopologyPage() {
               ))}
             </div>
           ) : (
-            <p className="hint">collapsed preview 결과나 detail panel에서 여러 MI를 동시에 expand해 비교 가능</p>
+            <p className="hint">{UI_TEXT.compareHint}</p>
           )}
 
           <h3 className="section-spacer">Relation Categories</h3>
@@ -2017,7 +2051,7 @@ export function TopologyPage() {
               </button>
             ))}
           </div>
-          <p className="hint">subscription / resource group / manual node는 항상 유지.</p>
+          <p className="hint">{UI_TEXT.resourceFilterHint}</p>
           <p className="hint">
             RG lazy load: {focusedResourceGroupName ? focusedResourceGroupName : 'all resource groups'}
           </p>
@@ -2284,9 +2318,7 @@ export function TopologyPage() {
 
           <div ref={graphContainerRef} className="graph-canvas" />
 
-          <p className="hint export-hint">
-            Tip: `Esc`로 선택 해제, node double-click으로 focus 가능, SQL Managed Instance는 detail panel에서 child expand 가능
-          </p>
+          <p className="hint export-hint">{UI_TEXT.searchTip}</p>
           {lastExport ? (
             <p className="hint export-hint">
               Last export: {formatDateTime(lastExport.created_at)} • {lastExport.output_path}
@@ -2338,8 +2370,8 @@ export function TopologyPage() {
                   <strong>{resourceGroupFocused ? 'Focused' : 'All resource groups loaded'}</strong>
                   <p className="hint detail-inline-hint">
                     {resourceGroupFocused
-                      ? `${selectedNode.display_name} 리소스만 서버에서 로드 중`
-                      : '이 Resource Group만 서버에서 따로 로드 가능'}
+                      ? UI_TEXT.resourceGroupFocusedHint(selectedNode.display_name)
+                      : UI_TEXT.resourceGroupLoadHint}
                   </p>
                   <div className="button-row detail-button-row">
                     <button type="button" className="toolbar-button" onClick={toggleResourceGroupFocus}>
@@ -2353,9 +2385,7 @@ export function TopologyPage() {
                 <div className="detail-item">
                   <span>Parent Managed Instance</span>
                   <strong>{selectedParentNode.display_name}</strong>
-                  <p className="hint detail-inline-hint">
-                    child node 탐색 중에도 부모 MI로 바로 복귀 가능
-                  </p>
+                  <p className="hint detail-inline-hint">{UI_TEXT.parentManagedInstanceHint}</p>
                   <div className="button-row detail-button-row">
                     <button
                       type="button"
@@ -2407,8 +2437,8 @@ export function TopologyPage() {
                   </div>
                   <p className="hint detail-inline-hint">
                     {managedInstanceExpanded
-                      ? '확장 후 selected node 주변으로 다시 focus 유지'
-                      : 'expand 시 child DB node를 canvas에 펼쳐서 확인 가능'}
+                      ? UI_TEXT.managedInstanceExpandedHint
+                      : UI_TEXT.managedInstanceCollapsedHint}
                   </p>
                 </div>
               ) : null}
@@ -2431,12 +2461,12 @@ export function TopologyPage() {
                     ))}
                   </dl>
                 ) : (
-                  <p className="hint">세부 정보 없음</p>
+                  <p className="hint">{UI_TEXT.noProjectedDetails}</p>
                 )}
               </div>
             </div>
           ) : (
-            <p className="hint">선택된 node 없음</p>
+            <p className="hint">{UI_TEXT.noSelectedNode}</p>
           )}
         </article>
       </section>
