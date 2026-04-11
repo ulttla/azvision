@@ -4,10 +4,18 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Query
 
-from app.collectors.azure_inventory import AzureInventoryCollection, AzureInventoryError, collect_inventory
+from app.collectors.azure_inventory import (
+    AzureInventoryCollection,
+    AzureInventoryError,
+    resolve_inventory_collection,
+)
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/topology", tags=["topology"])
+
+
+def _projection_mode_label(source_mode: str) -> str:
+    return "mock-inventory-projection" if source_mode == "mock" else "live-inventory-projection"
 
 
 def _canonical(value: str | None) -> str | None:
@@ -320,6 +328,7 @@ def _project_live_topology(
     workspace_id: str,
     collection: AzureInventoryCollection,
     *,
+    projection_mode: str = "live-inventory-projection",
     include_network_inference: bool = False,
     collapse_managed_instance_children: bool = True,
     expanded_node_ref: str | None = None,
@@ -537,7 +546,7 @@ def _project_live_topology(
     return {
         "workspace_id": workspace_id,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "mode": "live-inventory-projection",
+        "mode": projection_mode,
         "options": {
             "include_network_inference": include_network_inference,
             "collapse_managed_instance_children": collapse_managed_instance_children,
@@ -574,7 +583,7 @@ def _manual_node_detail(workspace_id: str, node_ref: str) -> dict[str, Any]:
     }
 
 
-def _subscription_detail(workspace_id: str, item: dict[str, Any]) -> dict[str, Any]:
+def _subscription_detail(workspace_id: str, item: dict[str, Any], *, projection_mode: str) -> dict[str, Any]:
     subscription_id = item.get("subscription_id")
     return {
         "workspace_id": workspace_id,
@@ -585,7 +594,7 @@ def _subscription_detail(workspace_id: str, item: dict[str, Any]) -> dict[str, A
         "source": item.get("source", "azure"),
         "confidence": 1.0,
         "details": {
-            "mode": "live-inventory-projection",
+            "mode": projection_mode,
             "subscription_id": subscription_id,
             "display_name": item.get("display_name"),
             "state": item.get("state"),
@@ -594,7 +603,7 @@ def _subscription_detail(workspace_id: str, item: dict[str, Any]) -> dict[str, A
     }
 
 
-def _resource_group_detail(workspace_id: str, item: dict[str, Any]) -> dict[str, Any]:
+def _resource_group_detail(workspace_id: str, item: dict[str, Any], *, projection_mode: str) -> dict[str, Any]:
     resource_group_id = item.get("id") or _build_resource_group_id(
         item.get("subscription_id"),
         item.get("name"),
@@ -608,7 +617,7 @@ def _resource_group_detail(workspace_id: str, item: dict[str, Any]) -> dict[str,
         "source": item.get("source", "azure"),
         "confidence": 1.0,
         "details": {
-            "mode": "live-inventory-projection",
+            "mode": projection_mode,
             "subscription_id": item.get("subscription_id"),
             "resource_group_name": item.get("name"),
             "location": item.get("location"),
@@ -622,6 +631,7 @@ def _resource_detail(
     workspace_id: str,
     item: dict[str, Any],
     *,
+    projection_mode: str,
     child_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     resource_id = item.get("id")
@@ -634,7 +644,7 @@ def _resource_detail(
         "source": item.get("source", "azure"),
         "confidence": 1.0,
         "details": {
-            "mode": "live-inventory-projection",
+            "mode": projection_mode,
             "subscription_id": item.get("subscription_id") or _extract_subscription_id_from_resource_id(resource_id),
             "resource_group": item.get("resource_group"),
             "resource_type": item.get("type"),
@@ -660,7 +670,7 @@ def get_topology(
 ) -> dict[str, Any]:
     settings = get_settings()
     try:
-        collection = collect_inventory(
+        resolution = resolve_inventory_collection(
             settings,
             subscription_id=subscription_id,
             resource_group_name=resource_group_name,
@@ -669,7 +679,8 @@ def get_topology(
         )
         return _project_live_topology(
             workspace_id,
-            collection,
+            resolution.collection,
+            projection_mode=_projection_mode_label(resolution.mode),
             include_network_inference=include_network_inference,
             collapse_managed_instance_children=collapse_managed_instance_children,
             expanded_node_ref=expanded_node_ref,
@@ -715,12 +726,14 @@ def get_node_detail(
 
     settings = get_settings()
     try:
-        collection = collect_inventory(
+        resolution = resolve_inventory_collection(
             settings,
             subscription_id=subscription_id,
             resource_group_limit=resource_group_limit,
             resource_limit=resource_limit,
         )
+        collection = resolution.collection
+        projection_mode = _projection_mode_label(resolution.mode)
     except AzureInventoryError as exc:
         return {
             "workspace_id": workspace_id,
@@ -743,7 +756,7 @@ def get_node_detail(
             None,
         )
         if item:
-            return _subscription_detail(workspace_id, item)
+            return _subscription_detail(workspace_id, item, projection_mode=projection_mode)
 
     if node_type == "resourcegroup":
         item = next(
@@ -755,7 +768,7 @@ def get_node_detail(
             None,
         )
         if item:
-            return _resource_group_detail(workspace_id, item)
+            return _resource_group_detail(workspace_id, item, projection_mode=projection_mode)
 
     if node_type == "resource":
         item = next(
@@ -777,7 +790,12 @@ def get_node_detail(
                 ]
                 child_summary = _build_child_summary(child_resources)
 
-            return _resource_detail(workspace_id, item, child_summary=child_summary)
+            return _resource_detail(
+                workspace_id,
+                item,
+                projection_mode=projection_mode,
+                child_summary=child_summary,
+            )
 
     return {
         "workspace_id": workspace_id,
@@ -789,7 +807,7 @@ def get_node_detail(
         "confidence": 0.0,
         "status": "not-found",
         "details": {
-            "mode": "live-inventory-projection",
+            "mode": projection_mode,
             "note": "Requested node was not found within the current live inventory window.",
         },
     }

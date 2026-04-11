@@ -59,6 +59,10 @@ class Settings(BaseSettings):
         default="public",
         validation_alias=AliasChoices("AZURE_CLOUD", "AZVISION_AZURE_CLOUD"),
     )
+    topology_mode: str = Field(
+        default="auto",
+        validation_alias=AliasChoices("TOPOLOGY_MODE", "AZVISION_TOPOLOGY_MODE"),
+    )
 
     workspace_default_id: str = "local-demo"
     workspace_default_name: str = "AzVision Demo Workspace"
@@ -101,6 +105,11 @@ class Settings(BaseSettings):
     @property
     def auth_runtime_ready(self) -> bool:
         return self.auth_ready and self.certificate_path_exists
+
+    @property
+    def topology_mode_resolved(self) -> str:
+        value = self.topology_mode.strip().lower()
+        return value if value in {"live", "mock", "auto"} else "auto"
 
 
 @lru_cache

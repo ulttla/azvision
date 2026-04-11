@@ -19,8 +19,220 @@ class AzureInventoryCollection:
     resources: list[dict]
 
 
+@dataclass
+class InventoryResolution:
+    collection: AzureInventoryCollection
+    mode: str
+    warning: str | None = None
+
+
 def _truncate(items: list[dict], limit: int) -> list[dict]:
     return items[: max(limit, 0)]
+
+
+def _mock_resource_id(subscription_id: str, resource_group_name: str, provider_path: str) -> str:
+    return f"/subscriptions/{subscription_id}/resourceGroups/{resource_group_name}/providers/{provider_path}"
+
+
+def _mock_inventory_collection(
+    *,
+    subscription_id: str | None = None,
+    resource_group_name: str | None = None,
+    resource_group_limit: int = 200,
+    resource_limit: int = 200,
+) -> AzureInventoryCollection:
+    mock_subscription_id = "00000000-0000-0000-0000-000000000001"
+
+    subscriptions = [
+        {
+            "subscription_id": mock_subscription_id,
+            "display_name": "AzVision Mock Subscription",
+            "state": "Enabled",
+            "tenant_id": "mock-tenant",
+            "source": "mock",
+        }
+    ]
+
+    resource_groups = [
+        {
+            "subscription_id": mock_subscription_id,
+            "name": "rg-data-platform",
+            "location": "canadacentral",
+            "id": f"/subscriptions/{mock_subscription_id}/resourceGroups/rg-data-platform",
+            "managed_by": None,
+            "tags": {"environment": "mock", "domain": "data"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "name": "rg-web-platform",
+            "location": "canadacentral",
+            "id": f"/subscriptions/{mock_subscription_id}/resourceGroups/rg-web-platform",
+            "managed_by": None,
+            "tags": {"environment": "mock", "domain": "web"},
+            "source": "mock",
+        },
+    ]
+
+    resources = [
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-data-platform",
+            "name": "vnet-data-platform",
+            "type": "Microsoft.Network/virtualNetworks",
+            "kind": None,
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-data-platform",
+                "Microsoft.Network/virtualNetworks/vnet-data-platform",
+            ),
+            "tags": {"environment": "mock"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-data-platform",
+            "name": "nsg-mi-ops",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "kind": None,
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-data-platform",
+                "Microsoft.Network/networkSecurityGroups/nsg-mi-ops",
+            ),
+            "tags": {"environment": "mock"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-data-platform",
+            "name": "mi-ops",
+            "type": "Microsoft.Sql/managedInstances",
+            "kind": None,
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-data-platform",
+                "Microsoft.Sql/managedInstances/mi-ops",
+            ),
+            "tags": {"environment": "mock", "role": "operations"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-data-platform",
+            "name": "mi-ops/appdb",
+            "type": "Microsoft.Sql/managedInstances/databases",
+            "kind": None,
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-data-platform",
+                "Microsoft.Sql/managedInstances/mi-ops/databases/appdb",
+            ),
+            "tags": {"environment": "mock"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-data-platform",
+            "name": "mi-ops/auditdb",
+            "type": "Microsoft.Sql/managedInstances/databases",
+            "kind": None,
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-data-platform",
+                "Microsoft.Sql/managedInstances/mi-ops/databases/auditdb",
+            ),
+            "tags": {"environment": "mock"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-data-platform",
+            "name": "mi-analytics",
+            "type": "Microsoft.Sql/managedInstances",
+            "kind": None,
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-data-platform",
+                "Microsoft.Sql/managedInstances/mi-analytics",
+            ),
+            "tags": {"environment": "mock", "role": "analytics"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-data-platform",
+            "name": "mi-analytics/warehouse",
+            "type": "Microsoft.Sql/managedInstances/databases",
+            "kind": None,
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-data-platform",
+                "Microsoft.Sql/managedInstances/mi-analytics/databases/warehouse",
+            ),
+            "tags": {"environment": "mock"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-web-platform",
+            "name": "web-portal",
+            "type": "Microsoft.Web/sites",
+            "kind": "app",
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-web-platform",
+                "Microsoft.Web/sites/web-portal",
+            ),
+            "tags": {"environment": "mock", "tier": "frontend"},
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-web-platform",
+            "name": "stazvisiondiag",
+            "type": "Microsoft.Storage/storageAccounts",
+            "kind": "StorageV2",
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-web-platform",
+                "Microsoft.Storage/storageAccounts/stazvisiondiag",
+            ),
+            "tags": {"environment": "mock", "tier": "diagnostics"},
+            "source": "mock",
+        },
+    ]
+
+    filtered_subscriptions = [
+        item for item in subscriptions if not subscription_id or item.get("subscription_id") == subscription_id
+    ]
+    filtered_resource_groups = [
+        item
+        for item in resource_groups
+        if (not subscription_id or item.get("subscription_id") == subscription_id)
+        and (not resource_group_name or item.get("name") == resource_group_name)
+    ]
+    filtered_resources = [
+        item
+        for item in resources
+        if (not subscription_id or item.get("subscription_id") == subscription_id)
+        and (not resource_group_name or item.get("resource_group") == resource_group_name)
+    ]
+
+    return AzureInventoryCollection(
+        subscriptions=filtered_subscriptions,
+        resource_groups=_truncate(filtered_resource_groups, resource_group_limit),
+        resources=_truncate(filtered_resources, resource_limit),
+    )
 
 
 def _get_paginated_items(url: str, token: str, *, max_pages: int = 20) -> list[dict]:
@@ -198,3 +410,51 @@ def collect_inventory(
         resource_groups=resource_groups,
         resources=resources,
     )
+
+
+def resolve_inventory_collection(
+    settings: Settings,
+    *,
+    subscription_id: str | None = None,
+    resource_group_name: str | None = None,
+    resource_group_limit: int = 200,
+    resource_limit: int = 200,
+) -> InventoryResolution:
+    mode = settings.topology_mode_resolved
+
+    if mode == "mock":
+        return InventoryResolution(
+            collection=_mock_inventory_collection(
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+                resource_group_limit=resource_group_limit,
+                resource_limit=resource_limit,
+            ),
+            mode="mock",
+        )
+
+    try:
+        return InventoryResolution(
+            collection=collect_inventory(
+                settings,
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+                resource_group_limit=resource_group_limit,
+                resource_limit=resource_limit,
+            ),
+            mode="live",
+        )
+    except AzureInventoryError as exc:
+        if mode != "auto":
+            raise
+
+        return InventoryResolution(
+            collection=_mock_inventory_collection(
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+                resource_group_limit=resource_group_limit,
+                resource_limit=resource_limit,
+            ),
+            mode="mock",
+            warning=str(exc),
+        )

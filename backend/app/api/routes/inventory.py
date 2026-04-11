@@ -1,13 +1,7 @@
 import requests
 from fastapi import APIRouter, Query
 
-from app.collectors.azure_inventory import (
-    AzureInventoryError,
-    collect_inventory,
-    list_accessible_subscriptions,
-    list_resource_groups,
-    list_resources,
-)
+from app.collectors.azure_inventory import AzureInventoryError, resolve_inventory_collection
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["inventory"])
@@ -17,9 +11,11 @@ router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["inventory"])
 def get_subscriptions(workspace_id: str) -> dict:
     settings = get_settings()
     try:
+        resolution = resolve_inventory_collection(settings, resource_group_limit=1, resource_limit=1)
         return {
             "workspace_id": workspace_id,
-            "items": list_accessible_subscriptions(settings),
+            "mode": resolution.mode,
+            "items": resolution.collection.subscriptions,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
         return {
@@ -38,15 +34,17 @@ def get_resource_groups(
 ) -> dict:
     settings = get_settings()
     try:
-        items = list_resource_groups(
+        resolution = resolve_inventory_collection(
             settings,
             subscription_id=subscription_id,
-            limit=limit,
+            resource_group_limit=limit,
+            resource_limit=1,
         )
         return {
             "workspace_id": workspace_id,
             "subscription_id": subscription_id,
-            "items": items,
+            "mode": resolution.mode,
+            "items": resolution.collection.resource_groups,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
         return {
@@ -66,15 +64,17 @@ def get_resources(
 ) -> dict:
     settings = get_settings()
     try:
-        items = list_resources(
+        resolution = resolve_inventory_collection(
             settings,
             subscription_id=subscription_id,
-            limit=limit,
+            resource_group_limit=1,
+            resource_limit=limit,
         )
         return {
             "workspace_id": workspace_id,
             "subscription_id": subscription_id,
-            "items": items,
+            "mode": resolution.mode,
+            "items": resolution.collection.resources,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
         return {
@@ -95,15 +95,17 @@ def get_inventory_summary(
 ) -> dict:
     settings = get_settings()
     try:
-        collection = collect_inventory(
+        resolution = resolve_inventory_collection(
             settings,
             subscription_id=subscription_id,
             resource_group_limit=resource_group_limit,
             resource_limit=resource_limit,
         )
+        collection = resolution.collection
         return {
             "workspace_id": workspace_id,
             "subscription_id": subscription_id,
+            "mode": resolution.mode,
             "summary": {
                 "subscription_count": len(collection.subscriptions),
                 "resource_group_count": len(collection.resource_groups),
