@@ -12,6 +12,9 @@ from app.core.config import get_settings
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/exports", tags=["exports"])
 
+SUPPORTED_EXPORT_FORMATS = {"png", "pdf"}
+SUPPORTED_EXPORT_MIME_TYPES = {"image/png", "application/pdf", "application/octet-stream"}
+
 
 class ExportError(RuntimeError):
     pass
@@ -55,8 +58,11 @@ def _decode_data_url(data_url: str) -> tuple[str, bytes]:
 @router.post("")
 def create_export(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     export_format = str(payload.get("format") or "png").lower()
-    if export_format != "png":
-        raise HTTPException(status_code=400, detail="Only png export is supported in Phase 1A")
+    if export_format not in SUPPORTED_EXPORT_FORMATS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported export format. Supported: {', '.join(sorted(SUPPORTED_EXPORT_FORMATS))}",
+        )
 
     image_data_url = payload.get("image_data_url")
     if not image_data_url:
@@ -67,16 +73,17 @@ def create_export(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     except ExportError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    if mime_type not in {"image/png", "application/octet-stream"}:
+    if mime_type not in SUPPORTED_EXPORT_MIME_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported export MIME type")
 
     export_id = payload.get("export_id") or f"export_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{uuid4().hex[:6]}"
     export_dir = _workspace_export_dir(workspace_id)
-    export_path = export_dir / f"{export_id}.png"
+    extension = export_format
+    export_path = export_dir / f"{export_id}.{extension}"
     export_path.write_bytes(raw_bytes)
 
     record = _export_record_from_path(workspace_id, export_path)
-    record["format"] = "png"
+    record["format"] = export_format
     return record
 
 
@@ -85,7 +92,8 @@ def list_exports(workspace_id: str) -> dict[str, list[dict[str, Any]]]:
     export_dir = _workspace_export_dir(workspace_id)
     items = [
         _export_record_from_path(workspace_id, path)
-        for path in sorted(export_dir.glob("*.png"), key=lambda item: item.stat().st_mtime, reverse=True)
+        for path in sorted(export_dir.iterdir(), key=lambda item: item.stat().st_mtime, reverse=True)
+        if path.is_file() and path.suffix.lstrip(".") in SUPPORTED_EXPORT_FORMATS
     ]
     return {"items": items}
 
@@ -93,7 +101,9 @@ def list_exports(workspace_id: str) -> dict[str, list[dict[str, Any]]]:
 @router.get("/{export_id}")
 def get_export(workspace_id: str, export_id: str) -> dict[str, Any]:
     export_dir = _workspace_export_dir(workspace_id)
-    export_path = export_dir / f"{export_id}.png"
-    if not export_path.exists():
-        raise HTTPException(status_code=404, detail="Export not found")
-    return _export_record_from_path(workspace_id, export_path)
+    for supported_ext in SUPPORTED_EXPORT_FORMATS:
+        candidate = export_dir / f"{export_id}.{supported_ext}"
+        if candidate.exists():
+            return _export_record_from_path(workspace_id, candidate)
+
+    raise HTTPException(status_code=404, detail="Export not found")

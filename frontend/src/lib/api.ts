@@ -197,8 +197,9 @@ export async function getTopologyNodeDetail(
   )
 }
 
-export async function createPngExport(
+export async function createExport(
   workspaceId: string,
+  format: 'png' | 'pdf',
   imageDataUrl: string,
 ): Promise<ExportItem> {
   return fetchJson<ExportItem>(`/workspaces/${workspaceId}/exports`, {
@@ -207,11 +208,15 @@ export async function createPngExport(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      format: 'png',
+      format,
       image_data_url: imageDataUrl,
     }),
   })
 }
+
+/** @deprecated Use createExport instead */
+export const createPngExport = (workspaceId: string, imageDataUrl: string) =>
+  createExport(workspaceId, 'png', imageDataUrl)
 
 export async function getAuthConfigCheck(): Promise<{
   auth_ready: boolean

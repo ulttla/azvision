@@ -48,10 +48,13 @@
 
 ### Export
 - `POST /workspaces/{workspace_id}/exports`
-  - format: `png` (1A 기준 고정)
+  - format: `png` | `pdf`
+  - request body: `format`, `image_data_url` (base64 data URL; PNG image for `png`, PDF data URL for `pdf`)
   - 응답: `format`, `status`, `output_path`
 - `GET /workspaces/{workspace_id}/exports`
+  - 모든 형식(png, pdf)의 export 목록 반환
 - `GET /workspaces/{workspace_id}/exports/{export_id}`
+  - export_id에 해당하는 형식 자동 감지
 
 ### Snapshots (Phase 1B implemented)
 - `GET /workspaces/{workspace_id}/snapshots`

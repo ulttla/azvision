@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import type { Core } from 'cytoscape'
 
 import {
-  createPngExport,
+  createExport,
   getAuthConfigCheck,
   getTopology,
   getTopologyNodeDetail,
@@ -1570,11 +1570,50 @@ export function TopologyPage() {
         bg: '#0b1220',
       })
 
-      const exportRecord = await createPngExport(selectedWorkspaceId, imageDataUrl)
+      const exportRecord = await createExport(selectedWorkspaceId, 'png', imageDataUrl)
       setLastExport(exportRecord)
       setExportMessage(`${UI_TEXT.exportSavedPrefix} ${exportRecord.output_path}`)
     } catch (err) {
       setExportMessage(err instanceof Error ? err.message : 'PNG export failed')
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  async function handleExportPdf() {
+    const cy = cyRef.current
+    if (!cy || !selectedWorkspaceId) {
+      return
+    }
+
+    try {
+      setExportLoading(true)
+      setExportMessage('')
+
+      const imageDataUrl = cy.png({
+        full: true,
+        scale: 2,
+        bg: '#0b1220',
+      })
+
+      const { jsPDF } = await import('jspdf')
+      const img = new Image()
+      img.src = imageDataUrl
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = () => reject(new Error('Failed to load topology image for PDF'))
+      })
+
+      const orientation = img.width > img.height ? 'landscape' : 'portrait'
+      const pdf = new jsPDF({ orientation, unit: 'px', format: [img.width, img.height] })
+      pdf.addImage(imageDataUrl, 'PNG', 0, 0, img.width, img.height)
+      const pdfBase64 = pdf.output('datauristring')
+
+      const exportRecord = await createExport(selectedWorkspaceId, 'pdf', pdfBase64)
+      setLastExport(exportRecord)
+      setExportMessage(`${UI_TEXT.exportSavedPrefix} ${exportRecord.output_path}`)
+    } catch (err) {
+      setExportMessage(err instanceof Error ? err.message : 'PDF export failed')
     } finally {
       setExportLoading(false)
     }
@@ -2136,6 +2175,14 @@ export function TopologyPage() {
                 disabled={exportLoading}
               >
                 {exportLoading ? 'Exporting...' : 'Export PNG'}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={handleExportPdf}
+                disabled={exportLoading}
+              >
+                {exportLoading ? 'Exporting...' : 'Export PDF'}
               </button>
             </div>
 
