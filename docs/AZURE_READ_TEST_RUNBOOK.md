@@ -11,8 +11,8 @@ AzVision backend가 Azure에 정상적으로 app-only 인증하고, 최소한 su
 
 ## 1. 환경 변수 준비
 파일:
-- 권장: `/Users/gun/.openclaw/workspace/projects/azvision/.env`
-- 대안: `/Users/gun/.openclaw/workspace/projects/azvision/backend/.env`
+- 권장: `/Users/gun/dev/azvision/.env`
+- 대안: `/Users/gun/dev/azvision/backend/.env`
 
 예시:
 ```env
@@ -101,9 +101,31 @@ curl http://localhost:8000/api/v1/auth/read-test
 조치:
 - 개별 subscription role assignment와 상태 확인
 
+## 4. live topology probe
+backend가 실행 중이면 아래 스크립트로 config-check → read-test → topology inference까지 한 번에 점검할 수 있다.
+
+```bash
+cd /Users/gun/dev/azvision
+bash scripts/live_topology_probe.sh
+```
+
+옵션 예시:
+```bash
+cd /Users/gun/dev/azvision
+AZVISION_SUBSCRIPTION_ID=<subscription-id> \
+AZVISION_RESOURCE_GROUP_NAME=<resource-group> \
+bash scripts/live_topology_probe.sh
+```
+
+스크립트 동작:
+- `GET /api/v1/auth/config-check`
+- `GET /api/v1/auth/read-test`
+- `GET /api/v1/workspaces/local-demo/topology?include_network_inference=true`
+- 결과 JSON은 `/tmp/azvision_*` 파일로 저장
+
 ## 다음 단계
-read test 성공 후 진행 순서:
-1. Azure Resource Graph collector 추가
-2. resource inventory 질의
-3. topology node / edge 변환
-4. live data 기반 graph 렌더링
+read test / topology probe 성공 후 진행 순서:
+1. 실제 live inventory 기준 inferred edge precision 검토
+2. false positive / false negative 패턴 정리
+3. 필요 시 heuristic rule 또는 evidence threshold 보정
+4. live data 기반 graph 렌더링 품질 점검

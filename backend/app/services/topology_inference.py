@@ -26,6 +26,18 @@ _IGNORED_NAME_TOKENS = {
     "pep",
 }
 
+_NETWORK_NAME_PREFIX_TOKENS = {
+    "nsg",
+    "vnet",
+    "subnet",
+    "nic",
+    "pip",
+    "lb",
+    "agw",
+    "rt",
+    "pep",
+}
+
 _WORKLOAD_TYPE_PREFIXES = (
     "microsoft.compute/virtualmachines",
     "microsoft.sql/managedinstances",
@@ -90,6 +102,24 @@ def _name_tokens(value: str | None) -> set[str]:
     return tokens
 
 
+def _anchor_token(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    raw_tokens = [token for token in value.lower().split("-") if token]
+    if not raw_tokens:
+        return None
+
+    while raw_tokens and raw_tokens[0] in _NETWORK_NAME_PREFIX_TOKENS:
+        raw_tokens.pop(0)
+
+    if not raw_tokens:
+        return None
+
+    anchor = raw_tokens[0]
+    return anchor if len(anchor) >= 2 else None
+
+
 def _network_relation_role(item: dict[str, Any]) -> str | None:
     resource_type = _resource_type_lower(item)
     if resource_type.startswith("microsoft.network/networksecuritygroups"):
@@ -143,6 +173,12 @@ def _name_evidence(left: dict[str, Any], right: dict[str, Any]) -> tuple[float, 
             evidence.append("normalized-name-affinity")
             score += 0.28
 
+    left_anchor = _anchor_token(left_display_name)
+    right_anchor = _anchor_token(right_display_name)
+    if left_anchor and right_anchor and left_anchor == right_anchor:
+        evidence.append(f"anchor-prefix-match:{left_anchor}")
+        score += 0.24
+
     left_tokens = _name_tokens(left_display_name)
     right_tokens = _name_tokens(right_display_name)
     overlap = left_tokens & right_tokens
@@ -193,9 +229,12 @@ def _build_inference_result(
     score += name_score
     evidence.extend(name_evidence)
 
-    has_name_signal = name_score > 0
+    strong_name_signal = any(
+        item.startswith(("exact-name-match", "normalized-name-affinity", "anchor-prefix-match"))
+        for item in name_evidence
+    )
     threshold = 0.52 if relation_type in {"secures", "routes"} else 0.48
-    if not has_name_signal or score < threshold:
+    if not strong_name_signal or score < threshold:
         return None
 
     confidence = min(0.92, round(score, 2))

@@ -63,6 +63,7 @@ npm run dev
 - 현재는 **Phase 1B server-backed snapshot/history 1차 완료 + 새 repo baseline 정리 단계**
 - `GET /api/v1/auth/config-check` 는 env/cert 준비 상태를 확인
 - `GET /api/v1/auth/read-test` 는 실제 Azure subscription / resource group read를 검증
+- live topology/inference 점검은 `bash scripts/live_topology_probe.sh` 로 config-check → read-test → topology probe를 한 번에 수행 가능
 - `GET /api/v1/workspaces/{workspace_id}/subscriptions`
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
 - `GET /api/v1/workspaces/{workspace_id}/resources`
