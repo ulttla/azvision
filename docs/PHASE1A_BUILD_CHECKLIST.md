@@ -119,10 +119,10 @@
 - [ ] `VERA`: scope drift 의심 시에만 재호출
 
 ## Sprint 0 산출물
-- `projects/azvision/backend/` FastAPI scaffold
-- `projects/azvision/frontend/` React/Vite scaffold
-- `projects/azvision/docker-compose.yml`
-- `projects/azvision/.env.example`
+- `backend/` FastAPI scaffold
+- `frontend/` React/Vite scaffold
+- `docker-compose.yml`
+- `.env.example`
 - backend python compile smoke check 통과
 - backend local run + `/healthz`, `/api/v1/auth/config-check`, `/api/v1/auth/read-test`, `/api/v1/workspaces/local-demo/topology` 응답 확인
 - `azure-identity` 기반 certificate auth provider 추가

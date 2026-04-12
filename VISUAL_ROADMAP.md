@@ -2,7 +2,7 @@
 
 **작성일:** 2026-04-09  
 **대상:** Phase 1A Live Topology + Cytoscape  
-**작업 경로:** `/Users/gun/.openclaw/workspace/projects/azvision`
+**작업 경로:** `/Users/gun/dev/azvision`
 
 ---
 
