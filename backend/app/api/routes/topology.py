@@ -10,6 +10,7 @@ from app.collectors.azure_inventory import (
     resolve_inventory_collection,
 )
 from app.core.config import get_settings
+from app.services.topology_inference import infer_network_relationship_edges
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/topology", tags=["topology"])
 
@@ -152,69 +153,6 @@ def _resource_type_lower(item: dict[str, Any]) -> str:
     return str(item.get("type") or "").lower()
 
 
-def _normalized_name(value: str | None) -> str:
-    if not value:
-        return ""
-    return "".join(char for char in value.lower() if char.isalnum())
-
-
-def _network_relation_role(item: dict[str, Any]) -> str | None:
-    resource_type = _resource_type_lower(item)
-    if resource_type.startswith("microsoft.network/networksecuritygroups"):
-        return "secures"
-    if resource_type.startswith("microsoft.network/routetables"):
-        return "routes"
-    if resource_type.startswith(
-        (
-            "microsoft.network/virtualnetworks",
-            "microsoft.network/subnets",
-            "microsoft.network/networkinterfaces",
-            "microsoft.network/publicipaddresses",
-            "microsoft.network/loadbalancers",
-            "microsoft.network/applicationgateways",
-            "microsoft.network/privateendpoints",
-            "microsoft.network/serviceendpointpolicies",
-            "microsoft.network/networkintentpolicies",
-        )
-    ):
-        return "connects_to"
-    return None
-
-
-def _is_network_candidate(item: dict[str, Any]) -> bool:
-    return _network_relation_role(item) is not None
-
-
-def _is_workload_candidate(item: dict[str, Any]) -> bool:
-    resource_type = _resource_type_lower(item)
-    return resource_type.startswith(
-        (
-            "microsoft.compute/virtualmachines",
-            "microsoft.sql/managedinstances",
-            "microsoft.sql/servers",
-            "microsoft.web/sites",
-            "microsoft.synapse/workspaces",
-            "microsoft.storage/storageaccounts",
-        )
-    )
-
-
-def _looks_related_by_name(left: dict[str, Any], right: dict[str, Any]) -> bool:
-    left_name = _normalized_name(_resource_display_name(left))
-    right_name = _normalized_name(_resource_display_name(right))
-    if not left_name or not right_name:
-        return False
-
-    if left_name == right_name:
-        return True
-
-    shorter, longer = sorted((left_name, right_name), key=len)
-    if len(shorter) >= 8 and shorter in longer:
-        return True
-
-    return False
-
-
 def _is_managed_instance(item: dict[str, Any]) -> bool:
     return _resource_type_lower(item) == "microsoft.sql/managedinstances"
 
@@ -242,50 +180,6 @@ def _build_child_summary(children: list[dict[str, Any]], *, expanded: bool = Fal
         "collapsed": not expanded,
         "expanded": expanded,
     }
-
-
-def _infer_network_relationship_edges(
-    resources: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    resources_by_group: dict[tuple[str | None, str | None], list[dict[str, Any]]] = {}
-    for resource in resources:
-        key = (resource.get("subscription_id"), _canonical(resource.get("resource_group")))
-        resources_by_group.setdefault(key, []).append(resource)
-
-    inferred_edges: list[dict[str, Any]] = []
-    for grouped_resources in resources_by_group.values():
-        network_items = [item for item in grouped_resources if _is_network_candidate(item)]
-        related_candidates = [
-            item for item in grouped_resources if _is_network_candidate(item) or _is_workload_candidate(item)
-        ]
-
-        for network_item in network_items:
-            network_id = network_item.get("id")
-            relation_type = _network_relation_role(network_item)
-            if not network_id or not relation_type:
-                continue
-
-            for candidate in related_candidates:
-                candidate_id = candidate.get("id")
-                if not candidate_id or candidate_id == network_id:
-                    continue
-
-                if not _looks_related_by_name(network_item, candidate):
-                    continue
-
-                confidence = 0.72 if relation_type in {"secures", "routes"} else 0.62
-                inferred_edges.append(
-                    {
-                        "source_node_key": f"resource:{network_id}",
-                        "target_node_key": f"resource:{candidate_id}",
-                        "relation_type": relation_type,
-                        "source": "azure",
-                        "confidence": confidence,
-                        "resolver": "network-name-affinity",
-                    }
-                )
-
-    return inferred_edges
 
 
 def _relation_category(relation_type: str) -> str:
@@ -518,7 +412,7 @@ def _project_live_topology(
         )
 
     if include_network_inference:
-        for inferred_edge in _infer_network_relationship_edges(projected_resources):
+        for inferred_edge in infer_network_relationship_edges(projected_resources):
             _add_edge(edges_by_key, inferred_edge)
 
     nodes = sorted(
