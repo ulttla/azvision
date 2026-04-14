@@ -37,6 +37,7 @@ class SnapshotRepository:
             "cluster_children": bool(row["cluster_children"]),
             "scope": row["scope"] or "visible",
             "query": row["query_text"] or "",
+            "selected_subscription_id": row["selected_subscription_id"] or "",
             "resource_group_name": row["resource_group_name"] or "",
             "topology_generated_at": row["topology_generated_at"] or "",
             "visible_node_count": int(row["visible_node_count"] or 0),
@@ -91,6 +92,7 @@ class SnapshotRepository:
                     cluster_children,
                     scope,
                     query_text,
+                    selected_subscription_id,
                     resource_group_name,
                     topology_generated_at,
                     visible_node_count,
@@ -99,7 +101,7 @@ class SnapshotRepository:
                     thumbnail_data_url,
                     created_at,
                     updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["id"],
@@ -111,6 +113,7 @@ class SnapshotRepository:
                     1 if payload["cluster_children"] else 0,
                     payload["scope"],
                     payload["query"],
+                    payload["selected_subscription_id"],
                     payload["resource_group_name"],
                     payload["topology_generated_at"],
                     payload["visible_node_count"],

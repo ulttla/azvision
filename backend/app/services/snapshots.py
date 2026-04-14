@@ -37,6 +37,7 @@ class SnapshotService:
                 "cluster_children": payload.cluster_children,
                 "scope": payload.scope,
                 "query": payload.query,
+                "selected_subscription_id": payload.selected_subscription_id,
                 "resource_group_name": payload.resource_group_name,
                 "topology_generated_at": payload.topology_generated_at,
                 "visible_node_count": payload.visible_node_count,

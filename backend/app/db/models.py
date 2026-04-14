@@ -134,6 +134,7 @@ DDL_STATEMENTS = [
         cluster_children INTEGER NOT NULL DEFAULT 1,
         scope TEXT NOT NULL,
         query_text TEXT NOT NULL DEFAULT '',
+        selected_subscription_id TEXT NOT NULL DEFAULT '',
         resource_group_name TEXT NOT NULL DEFAULT '',
         topology_generated_at TEXT,
         visible_node_count INTEGER NOT NULL DEFAULT 0,
@@ -151,6 +152,20 @@ DDL_STATEMENTS = [
 ]
 
 
+def _ensure_column(
+    cursor: sqlite3.Cursor,
+    table_name: str,
+    column_name: str,
+    column_sql: str,
+) -> None:
+    rows = cursor.execute(f"PRAGMA table_info({table_name})").fetchall()
+    existing_columns = {row[1] for row in rows}
+    if column_name in existing_columns:
+        return
+
+    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_sql}")
+
+
 def create_db_and_tables() -> None:
     db_path = _resolve_sqlite_path(settings.database_url)
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,4 +174,11 @@ def create_db_and_tables() -> None:
         cursor = conn.cursor()
         for statement in DDL_STATEMENTS:
             cursor.execute(statement)
+
+        _ensure_column(
+            cursor,
+            "snapshots",
+            "selected_subscription_id",
+            "selected_subscription_id TEXT NOT NULL DEFAULT ''",
+        )
         conn.commit()

@@ -104,7 +104,7 @@ export function TopologyPage() {
   const initialPreset = readTopologyPresetFromUrl()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('')
-  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState('')
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(initialPreset.selectedSubscriptionId)
   const [availableSubscriptions, setAvailableSubscriptions] = useState<InventorySubscription[]>([])
   const [availableResourceGroups, setAvailableResourceGroups] = useState<InventoryResourceGroup[]>([])
   const [inventoryLoading, setInventoryLoading] = useState(false)
@@ -520,6 +520,7 @@ export function TopologyPage() {
       clusterChildren: clusterManagedInstanceChildren,
       scope: searchScope,
       query: searchQuery,
+      selectedSubscriptionId,
       resourceGroupName: focusedResourceGroupName,
     })
   }, [
@@ -528,6 +529,7 @@ export function TopologyPage() {
     focusedResourceGroupName,
     searchQuery,
     searchScope,
+    selectedSubscriptionId,
     selectedWorkspaceId,
   ])
 
@@ -820,6 +822,7 @@ export function TopologyPage() {
       clusterChildren: clusterManagedInstanceChildren,
       scope: searchScope,
       query: searchQuery,
+      selectedSubscriptionId,
       resourceGroupName: focusedResourceGroupName,
     }),
     [
@@ -828,6 +831,7 @@ export function TopologyPage() {
       focusedResourceGroupName,
       searchQuery,
       searchScope,
+      selectedSubscriptionId,
       selectedWorkspaceId,
     ],
   )
@@ -1058,6 +1062,7 @@ export function TopologyPage() {
     const normalizedPreset = sanitizePresetState(preset)
 
     setSelectedWorkspaceId(normalizedPreset.workspaceId)
+    setSelectedSubscriptionId(normalizedPreset.selectedSubscriptionId)
     setExpandedManagedInstanceRefs(normalizedPreset.compareRefs)
     setClusterManagedInstanceChildren(normalizedPreset.clusterChildren)
     setFocusedResourceGroupName(normalizedPreset.resourceGroupName)
@@ -1074,6 +1079,7 @@ export function TopologyPage() {
     const normalizedSnapshot = sanitizeSnapshotState(snapshot)
 
     setSelectedWorkspaceId(normalizedSnapshot.workspaceId)
+    setSelectedSubscriptionId(normalizedSnapshot.selectedSubscriptionId)
     setExpandedManagedInstanceRefs(normalizedSnapshot.compareRefs)
     setClusterManagedInstanceChildren(normalizedSnapshot.clusterChildren)
     setFocusedResourceGroupName(normalizedSnapshot.resourceGroupName)
@@ -1795,7 +1801,9 @@ export function TopologyPage() {
                         )}
                       </p>
                       <p className="hint preset-card-meta">{UI_TEXT.snapshotStorageMeta(snapshot.storageKind)}</p>
-                      <p className="hint preset-card-meta">{UI_TEXT.snapshotResourceGroupMeta(snapshot.resourceGroupName)}</p>
+                      <p className="hint preset-card-meta">
+                        {UI_TEXT.snapshotScopeMeta(snapshot.selectedSubscriptionId, snapshot.resourceGroupName)}
+                      </p>
                       <p className="hint preset-card-meta">
                         {UI_TEXT.snapshotCounts(snapshot.visibleNodeCount, snapshot.loadedNodeCount, snapshot.edgeCount)}
                       </p>
@@ -1899,6 +1907,9 @@ export function TopologyPage() {
                         preset.compareRefs.length,
                         workspacesById.get(preset.workspaceId)?.name ?? preset.workspaceId,
                       )}
+                    </p>
+                    <p className="hint preset-card-meta">
+                      {UI_TEXT.snapshotScopeMeta(preset.selectedSubscriptionId, preset.resourceGroupName)}
                     </p>
                     <p className="hint preset-card-meta">Updated {formatDateTime(preset.updatedAt || preset.createdAt)}</p>
                   </div>

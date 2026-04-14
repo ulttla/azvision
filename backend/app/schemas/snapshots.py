@@ -18,6 +18,7 @@ class SnapshotBase(BaseModel):
     cluster_children: bool = True
     scope: Literal["visible", "child-only", "collapsed-preview"] = "visible"
     query: str = ""
+    selected_subscription_id: str = ""
     resource_group_name: str = ""
     topology_generated_at: str = ""
     visible_node_count: int = Field(default=0, ge=0)
@@ -25,7 +26,15 @@ class SnapshotBase(BaseModel):
     edge_count: int = Field(default=0, ge=0)
     thumbnail_data_url: str = ""
 
-    @field_validator("name", "note", "query", "resource_group_name", "topology_generated_at", mode="before")
+    @field_validator(
+        "name",
+        "note",
+        "query",
+        "selected_subscription_id",
+        "resource_group_name",
+        "topology_generated_at",
+        mode="before",
+    )
     @classmethod
     def _normalize_strings(cls, value: object) -> str:
         return str(value or "").strip()

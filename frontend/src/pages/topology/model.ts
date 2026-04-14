@@ -52,7 +52,7 @@ export const DEFAULT_RELATION_TYPE_FILTERS: RelationTypeFilterState = {
 
 export const SEARCH_GROUP_ORDER: ResourceCategory[] = ['data', 'network', 'web', 'compute', 'scope', 'other']
 export const COMPARE_COLOR_PALETTE = ['#22d3ee', '#f59e0b', '#a78bfa', '#34d399', '#f472b6', '#f87171']
-export const TOPOLOGY_PRESET_VERSION = 1
+export const TOPOLOGY_PRESET_VERSION = 2
 export const TOPOLOGY_PRESET_STORAGE_KEY = 'azvision.topology.presets.v1'
 export const TOPOLOGY_SNAPSHOT_STORAGE_KEY = 'azvision.topology.snapshots.v1'
 export const SNAPSHOT_STORAGE_WARN_BYTES = 3 * 1024 * 1024
@@ -145,8 +145,14 @@ export const UI_TEXT = {
     `${workspace} • ${scope} • ${compareCount} compare target${compareCount === 1 ? '' : 's'}`,
   snapshotCounts: (visibleCount: number, loadedCount: number, edgeCount: number) =>
     `${visibleCount} visible • ${loadedCount} loaded • ${edgeCount} edges`,
-  snapshotResourceGroupMeta: (resourceGroupName: string) =>
-    resourceGroupName ? `RG focus • ${resourceGroupName}` : 'All resource groups',
+  snapshotScopeMeta: (selectedSubscriptionId: string, resourceGroupName: string) => {
+    const parts: string[] = []
+
+    parts.push(selectedSubscriptionId ? `Subscription scope • ${selectedSubscriptionId}` : 'All subscriptions')
+    parts.push(resourceGroupName ? `RG focus • ${resourceGroupName}` : 'All resource groups')
+
+    return parts.join(' • ')
+  },
   exportSnapshots: 'Export JSON',
   importSnapshots: 'Import JSON',
   importLocalSnapshots: 'Import local snapshots',
@@ -198,6 +204,7 @@ export type TopologyPresetState = {
   clusterChildren: boolean
   scope: SearchScope
   query: string
+  selectedSubscriptionId: string
   resourceGroupName: string
 }
 

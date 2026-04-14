@@ -132,6 +132,7 @@ export type SnapshotApiRecord = {
   cluster_children: boolean
   scope: 'visible' | 'child-only' | 'collapsed-preview'
   query: string
+  selected_subscription_id: string
   resource_group_name: string
   topology_generated_at: string
   visible_node_count: number

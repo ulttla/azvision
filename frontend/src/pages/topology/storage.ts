@@ -127,6 +127,7 @@ export function createEmptyTopologyPresetState(): TopologyPresetState {
     clusterChildren: true,
     scope: 'visible',
     query: '',
+    selectedSubscriptionId: '',
     resourceGroupName: '',
   }
 }
@@ -147,6 +148,7 @@ export function sanitizePresetState(state: Partial<TopologyPresetState>): Topolo
     clusterChildren: state.clusterChildren !== false,
     scope: normalizeSearchScope(state.scope),
     query: String(state.query ?? ''),
+    selectedSubscriptionId: String(state.selectedSubscriptionId ?? '').trim(),
     resourceGroupName: String(state.resourceGroupName ?? '').trim(),
   }
 }
@@ -337,6 +339,7 @@ export function arePresetStatesEqual(left: TopologyPresetState, right: TopologyP
     normalizedLeft.clusterChildren === normalizedRight.clusterChildren &&
     normalizedLeft.scope === normalizedRight.scope &&
     normalizedLeft.query === normalizedRight.query &&
+    normalizedLeft.selectedSubscriptionId === normalizedRight.selectedSubscriptionId &&
     normalizedLeft.resourceGroupName === normalizedRight.resourceGroupName &&
     normalizedLeft.compareRefs.length === normalizedRight.compareRefs.length &&
     normalizedLeft.compareRefs.every((ref, index) => ref === normalizedRight.compareRefs[index])
@@ -461,6 +464,7 @@ export function readTopologyPresetFromUrl(): TopologyPresetState {
     clusterChildren: search.get('cluster') !== '0',
     scope: normalizeSearchScope(search.get('scope')),
     query: search.get('q') ?? '',
+    selectedSubscriptionId: search.get('sub') ?? '',
     resourceGroupName: search.get('rg') ?? '',
   })
 }
@@ -485,6 +489,9 @@ export function writeTopologyPresetToUrl(state: TopologyPresetState) {
   if (!state.clusterChildren) {
     search.set('cluster', '0')
   }
+  if (state.selectedSubscriptionId) {
+    search.set('sub', state.selectedSubscriptionId)
+  }
   if (state.resourceGroupName) {
     search.set('rg', state.resourceGroupName)
   }
@@ -508,6 +515,7 @@ function mapSnapshotApiRecord(record: SnapshotApiRecord): SavedTopologySnapshot 
     clusterChildren: record.cluster_children,
     scope: record.scope,
     query: record.query,
+    selectedSubscriptionId: record.selected_subscription_id,
     resourceGroupName: record.resource_group_name,
     note: record.note,
     topologyGeneratedAt: record.topology_generated_at,
@@ -538,6 +546,7 @@ function toSnapshotApiCreateRequest(snapshot: SavedTopologySnapshot): SnapshotAp
     cluster_children: sanitizedSnapshot.clusterChildren,
     scope: sanitizedSnapshot.scope,
     query: sanitizedSnapshot.query,
+    selected_subscription_id: sanitizedSnapshot.selectedSubscriptionId,
     resource_group_name: sanitizedSnapshot.resourceGroupName,
     topology_generated_at: sanitizedSnapshot.topologyGeneratedAt,
     visible_node_count: sanitizedSnapshot.visibleNodeCount,
@@ -558,6 +567,7 @@ function buildSnapshotDedupKey(snapshot: SavedTopologySnapshot) {
     name: String(snapshot.name ?? '').trim(),
     scope: normalizedSnapshot.scope,
     query: normalizedSnapshot.query,
+    selectedSubscriptionId: normalizedSnapshot.selectedSubscriptionId,
     resourceGroupName: normalizedSnapshot.resourceGroupName,
     topologyGeneratedAt: normalizedSnapshot.topologyGeneratedAt,
     compareRefs: [...normalizedSnapshot.compareRefs].sort(),
