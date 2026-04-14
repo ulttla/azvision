@@ -27,6 +27,7 @@ import {
   DEFAULT_RELATION_FILTERS,
   DEFAULT_RELATION_TYPE_FILTERS,
   DEFAULT_RESOURCE_FILTERS,
+  RECENT_SNAPSHOT_LIMIT,
   SNAPSHOT_STORAGE_WARN_BYTES,
   TOPOLOGY_PRESET_VERSION,
   UI_TEXT,
@@ -41,6 +42,7 @@ import {
   type SavedTopologyPreset,
   type SavedTopologySnapshot,
   type SearchScope,
+  type SnapshotFilterTab,
   type TopologyPresetState,
 } from './topology/model'
 import { buildSearchResultGroups, getSearchScopeMeta, searchTopologyNodes } from './topology/search'
@@ -96,6 +98,30 @@ function formatDateTime(value?: string) {
   }
 
   return date.toLocaleString()
+}
+
+function formatRelativeTime(value?: string) {
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  const diffMs = Date.now() - date.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  if (diffSec < 60) return 'just now'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin}m ago`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `${diffHr}h ago`
+  const diffDay = Math.floor(diffHr / 24)
+  if (diffDay < 30) return `${diffDay}d ago`
+  const diffMo = Math.floor(diffDay / 30)
+  if (diffMo < 12) return `${diffMo}mo ago`
+  return `${Math.floor(diffMo / 12)}y ago`
 }
 
 function prettifyKey(value: string) {
@@ -176,6 +202,7 @@ export function TopologyPage() {
   const [localSnapshotNoticeDismissed, setLocalSnapshotNoticeDismissed] = useState(false)
   const [localSnapshotImporting, setLocalSnapshotImporting] = useState(false)
   const [snapshotsLoading, setSnapshotsLoading] = useState(false)
+  const [snapshotFilter, setSnapshotFilter] = useState<SnapshotFilterTab>('all')
   const [snapshotNameInput, setSnapshotNameInput] = useState('')
   const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
   const localSnapshotNoticeFingerprint = useMemo(
@@ -965,6 +992,44 @@ export function TopologyPage() {
       }),
     [savedSnapshots],
   )
+  const snapshotFilterCounts = useMemo(() => {
+    const nonArchived = savedSnapshots.filter((s) => !s.archivedAt)
+    const archived = savedSnapshots.filter((s) => Boolean(s.archivedAt))
+    const pinned = nonArchived.filter((s) => s.isPinned)
+    const recent = [...nonArchived]
+      .sort((a, b) => {
+        const aTime = a.lastRestoredAt || a.capturedAt || a.createdAt || ''
+        const bTime = b.lastRestoredAt || b.capturedAt || b.createdAt || ''
+        return bTime.localeCompare(aTime)
+      })
+      .slice(0, RECENT_SNAPSHOT_LIMIT)
+    return {
+      all: nonArchived.length,
+      pinned: pinned.length,
+      recent: recent.length,
+      archived: archived.length,
+    }
+  }, [savedSnapshots])
+  const displayedSavedSnapshots = useMemo(() => {
+    const nonArchived = orderedSavedSnapshots.filter((s) => !s.archivedAt)
+    if (snapshotFilter === 'all') {
+      return nonArchived
+    }
+    if (snapshotFilter === 'pinned') {
+      return nonArchived.filter((s) => s.isPinned)
+    }
+    if (snapshotFilter === 'recent') {
+      return [...nonArchived]
+        .sort((a, b) => {
+          const aTime = a.lastRestoredAt || a.capturedAt || a.createdAt || ''
+          const bTime = b.lastRestoredAt || b.capturedAt || b.createdAt || ''
+          return bTime.localeCompare(aTime)
+        })
+        .slice(0, RECENT_SNAPSHOT_LIMIT)
+    }
+    // archived
+    return orderedSavedSnapshots.filter((s) => Boolean(s.archivedAt))
+  }, [orderedSavedSnapshots, snapshotFilter])
   const compareMetaByRef = useMemo(
     () =>
       new Map(
@@ -1992,101 +2057,134 @@ export function TopologyPage() {
             </div>
           </div>
           {savedSnapshots.length ? (
-            <div className="compare-chip-grid preset-list-grid">
-              {orderedSavedSnapshots.map((snapshot) => {
-                const isActiveSnapshot = snapshot.id === activeSavedSnapshotId
-                const isArchivedSnapshot = Boolean(snapshot.archivedAt)
-                return (
-                  <div
-                    key={snapshot.id}
-                    className={`compare-chip-card preset-card snapshot-card ${isActiveSnapshot ? 'active-preset-card active-snapshot-card' : ''}`}
+            <>
+              <div className="snapshot-filter-tabs" role="tablist">
+                {(
+                  [
+                    { tab: 'all' as const, label: UI_TEXT.snapshotFilterAll, count: snapshotFilterCounts.all },
+                    { tab: 'pinned' as const, label: UI_TEXT.snapshotFilterPinned, count: snapshotFilterCounts.pinned },
+                    { tab: 'recent' as const, label: UI_TEXT.snapshotFilterRecent, count: snapshotFilterCounts.recent },
+                    { tab: 'archived' as const, label: UI_TEXT.snapshotFilterArchived, count: snapshotFilterCounts.archived },
+                  ] satisfies { tab: SnapshotFilterTab; label: string; count: number }[]
+                ).map(({ tab, label, count }) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={snapshotFilter === tab}
+                    className={`snapshot-filter-tab${snapshotFilter === tab ? ' snapshot-filter-tab-active' : ''}`}
+                    onClick={() => setSnapshotFilter(tab)}
                   >
-                    {snapshot.thumbnailDataUrl ? (
-                      <div className="snapshot-thumb-shell">
-                        <img
-                          src={snapshot.thumbnailDataUrl}
-                          alt={`${snapshot.name} topology preview`}
-                          className="snapshot-thumb"
-                          loading="lazy"
-                        />
+                    {label}
+                    {count > 0 ? <span className="snapshot-filter-tab-count">{count}</span> : null}
+                  </button>
+                ))}
+              </div>
+              {snapshotFilter !== 'archived' && snapshotFilterCounts.archived > 0 ? (
+                <p className="hint snapshot-archived-hint">{UI_TEXT.snapshotArchivedHint(snapshotFilterCounts.archived)}</p>
+              ) : null}
+              {displayedSavedSnapshots.length ? (
+                <div className="compare-chip-grid preset-list-grid">
+                  {displayedSavedSnapshots.map((snapshot) => {
+                    const isActiveSnapshot = snapshot.id === activeSavedSnapshotId
+                    const isArchivedSnapshot = Boolean(snapshot.archivedAt)
+                    return (
+                      <div
+                        key={snapshot.id}
+                        className={`compare-chip-card preset-card snapshot-card ${isActiveSnapshot ? 'active-preset-card active-snapshot-card' : ''}`}
+                      >
+                        {snapshot.thumbnailDataUrl ? (
+                          <div className="snapshot-thumb-shell">
+                            <img
+                              src={snapshot.thumbnailDataUrl}
+                              alt={`${snapshot.name} topology preview`}
+                              className="snapshot-thumb"
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : null}
+                        <div className="preset-card-copy">
+                          <div className="preset-card-title-row">
+                            <strong>{snapshot.name}</strong>
+                            <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
+                              {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
+                            </span>
+                            {snapshot.isPinned ? <span className="mini-chip">{UI_TEXT.pinnedSnapshotBadge}</span> : null}
+                            {isArchivedSnapshot ? <span className="mini-chip">{UI_TEXT.archivedSnapshotBadge}</span> : null}
+                            {!snapshot.lastRestoredAt ? <span className="mini-chip">{UI_TEXT.neverRestoredSnapshotBadge}</span> : null}
+                            {isActiveSnapshot ? <span className="mini-chip">{UI_TEXT.activeSnapshotBadge}</span> : null}
+                          </div>
+                          <p className="hint preset-card-meta">
+                            {UI_TEXT.snapshotMeta(
+                              getSearchScopeMeta(snapshot.scope).label,
+                              snapshot.compareRefs.length,
+                              workspacesById.get(snapshot.workspaceId)?.name ?? snapshot.workspaceId,
+                            )}
+                          </p>
+                          <p className="hint preset-card-meta">{UI_TEXT.snapshotStorageMeta(snapshot.storageKind)}</p>
+                          <p className="hint preset-card-meta">
+                            {UI_TEXT.snapshotScopeMeta(snapshot.selectedSubscriptionId, snapshot.resourceGroupName)}
+                          </p>
+                          <p className="hint preset-card-meta">
+                            {UI_TEXT.snapshotCounts(snapshot.visibleNodeCount, snapshot.loadedNodeCount, snapshot.edgeCount)}
+                          </p>
+                          {snapshot.note ? <p className="hint snapshot-note">{snapshot.note}</p> : null}
+                          <p className="hint preset-card-meta">
+                            Generated {formatDateTime(snapshot.topologyGeneratedAt)}
+                          </p>
+                          <p className="hint preset-card-meta">
+                            {UI_TEXT.snapshotCapturedMeta(snapshot.capturedAt, formatRelativeTime(snapshot.capturedAt))}
+                          </p>
+                          <p className="hint preset-card-meta">
+                            {UI_TEXT.snapshotRestoredMeta(snapshot.lastRestoredAt, snapshot.restoreCount, formatRelativeTime(snapshot.lastRestoredAt))}
+                          </p>
+                          <p className="hint storage-restore-meta">{UI_TEXT.snapshotRestoreMetaHint}</p>
+                        </div>
+                        <div className="button-row preset-card-actions">
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => handleLoadSavedSnapshot(snapshot)}
+                          >
+                            {UI_TEXT.loadSnapshot}
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => handleRenameSavedSnapshot(snapshot)}
+                          >
+                            {UI_TEXT.renameSnapshot}
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => handleToggleSnapshotPin(snapshot)}
+                          >
+                            {snapshot.isPinned ? UI_TEXT.unpinSnapshot : UI_TEXT.pinSnapshot}
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => handleToggleSnapshotArchive(snapshot)}
+                          >
+                            {isArchivedSnapshot ? UI_TEXT.unarchiveSnapshot : UI_TEXT.archiveSnapshot}
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => handleDeleteSavedSnapshot(snapshot)}
+                          >
+                            {UI_TEXT.deleteSnapshot}
+                          </button>
+                        </div>
                       </div>
-                    ) : null}
-                    <div className="preset-card-copy">
-                      <div className="preset-card-title-row">
-                        <strong>{snapshot.name}</strong>
-                        <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
-                          {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
-                        </span>
-                        {snapshot.isPinned ? <span className="mini-chip">{UI_TEXT.pinnedSnapshotBadge}</span> : null}
-                        {isArchivedSnapshot ? <span className="mini-chip">{UI_TEXT.archivedSnapshotBadge}</span> : null}
-                        {!snapshot.lastRestoredAt ? <span className="mini-chip">{UI_TEXT.neverRestoredSnapshotBadge}</span> : null}
-                        {isActiveSnapshot ? <span className="mini-chip">{UI_TEXT.activeSnapshotBadge}</span> : null}
-                      </div>
-                      <p className="hint preset-card-meta">
-                        {UI_TEXT.snapshotMeta(
-                          getSearchScopeMeta(snapshot.scope).label,
-                          snapshot.compareRefs.length,
-                          workspacesById.get(snapshot.workspaceId)?.name ?? snapshot.workspaceId,
-                        )}
-                      </p>
-                      <p className="hint preset-card-meta">{UI_TEXT.snapshotStorageMeta(snapshot.storageKind)}</p>
-                      <p className="hint preset-card-meta">
-                        {UI_TEXT.snapshotScopeMeta(snapshot.selectedSubscriptionId, snapshot.resourceGroupName)}
-                      </p>
-                      <p className="hint preset-card-meta">
-                        {UI_TEXT.snapshotCounts(snapshot.visibleNodeCount, snapshot.loadedNodeCount, snapshot.edgeCount)}
-                      </p>
-                      {snapshot.note ? <p className="hint snapshot-note">{snapshot.note}</p> : null}
-                      <p className="hint preset-card-meta">
-                        Generated {formatDateTime(snapshot.topologyGeneratedAt)} • Saved {formatDateTime(snapshot.updatedAt || snapshot.createdAt)}
-                      </p>
-                      <p className="hint preset-card-meta">{UI_TEXT.snapshotCapturedMeta(snapshot.capturedAt)}</p>
-                      <p className="hint preset-card-meta">
-                        {UI_TEXT.snapshotRestoredMeta(snapshot.lastRestoredAt, snapshot.restoreCount)}
-                      </p>
-                      <p className="hint storage-restore-meta">{UI_TEXT.snapshotRestoreMetaHint}</p>
-                    </div>
-                    <div className="button-row preset-card-actions">
-                      <button
-                        type="button"
-                        className="toolbar-button search-inline-button"
-                        onClick={() => handleLoadSavedSnapshot(snapshot)}
-                      >
-                        {UI_TEXT.loadSnapshot}
-                      </button>
-                      <button
-                        type="button"
-                        className="toolbar-button search-inline-button"
-                        onClick={() => handleRenameSavedSnapshot(snapshot)}
-                      >
-                        {UI_TEXT.renameSnapshot}
-                      </button>
-                      <button
-                        type="button"
-                        className="toolbar-button search-inline-button"
-                        onClick={() => handleToggleSnapshotPin(snapshot)}
-                      >
-                        {snapshot.isPinned ? UI_TEXT.unpinSnapshot : UI_TEXT.pinSnapshot}
-                      </button>
-                      <button
-                        type="button"
-                        className="toolbar-button search-inline-button"
-                        onClick={() => handleToggleSnapshotArchive(snapshot)}
-                      >
-                        {isArchivedSnapshot ? UI_TEXT.unarchiveSnapshot : UI_TEXT.archiveSnapshot}
-                      </button>
-                      <button
-                        type="button"
-                        className="toolbar-button search-inline-button"
-                        onClick={() => handleDeleteSavedSnapshot(snapshot)}
-                      >
-                        {UI_TEXT.deleteSnapshot}
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="hint">{snapshotsLoading ? UI_TEXT.loading : UI_TEXT.noSavedSnapshots}</p>
+              )}
+            </>
           ) : (
             <p className="hint">{snapshotsLoading ? UI_TEXT.loading : UI_TEXT.noSavedSnapshots}</p>
           )}

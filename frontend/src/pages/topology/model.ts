@@ -154,11 +154,14 @@ export const UI_TEXT = {
     `${workspace} • ${scope} • ${compareCount} compare target${compareCount === 1 ? '' : 's'}`,
   snapshotCounts: (visibleCount: number, loadedCount: number, edgeCount: number) =>
     `${visibleCount} visible • ${loadedCount} loaded • ${edgeCount} edges`,
-  snapshotCapturedMeta: (capturedAt: string) => `Captured ${capturedAt ? new Date(capturedAt).toLocaleString() : '-'}`,
-  snapshotRestoredMeta: (lastRestoredAt: string, restoreCount: number) =>
+  snapshotCapturedMeta: (capturedAt: string, relativeTime?: string) =>
+    capturedAt
+      ? `Captured: ${new Date(capturedAt).toLocaleString()}${relativeTime ? ` (${relativeTime})` : ''}`
+      : 'Captured: —',
+  snapshotRestoredMeta: (lastRestoredAt: string, restoreCount: number, relativeTime?: string) =>
     lastRestoredAt
-      ? `Restored ${new Date(lastRestoredAt).toLocaleString()} • ${restoreCount} total restore${restoreCount === 1 ? '' : 's'}`
-      : 'Never restored yet',
+      ? `Last restored: ${new Date(lastRestoredAt).toLocaleString()}${relativeTime ? ` (${relativeTime})` : ''} • ${restoreCount} restore${restoreCount === 1 ? '' : 's'}`
+      : 'Never restored',
   snapshotScopeMeta: (selectedSubscriptionId: string, resourceGroupName: string) => {
     const parts: string[] = []
 
@@ -167,6 +170,11 @@ export const UI_TEXT = {
 
     return parts.join(' • ')
   },
+  snapshotFilterAll: 'All',
+  snapshotFilterPinned: 'Pinned',
+  snapshotFilterRecent: 'Recent',
+  snapshotFilterArchived: 'Archived',
+  snapshotArchivedHint: (count: number) => `${count} archived snapshot${count === 1 ? '' : 's'} — switch to Archived to view`,
   exportSnapshots: 'Export JSON',
   importSnapshots: 'Import JSON',
   importLocalSnapshots: 'Import local snapshots',
@@ -239,6 +247,8 @@ export type TopologySnapshotState = TopologyPresetState & {
 }
 
 export type SnapshotStorageKind = 'local' | 'server'
+export type SnapshotFilterTab = 'all' | 'pinned' | 'recent' | 'archived'
+export const RECENT_SNAPSHOT_LIMIT = 8
 
 export type SavedTopologySnapshot = TopologySnapshotState & {
   id: string
