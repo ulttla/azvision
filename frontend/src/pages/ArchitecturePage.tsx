@@ -463,6 +463,8 @@ export function ArchitecturePage() {
     [visibleEdges, visibleStageBuckets],
   )
 
+  const isInitialTopologyLoad = topologyLoading && topology === null
+
   const stageCoverage = useMemo(
     () => visibleStageBuckets.filter((bucket) => bucket.nodes.length > 0).length,
     [visibleStageBuckets],
@@ -648,28 +650,32 @@ export function ArchitecturePage() {
             <h2>Architecture Summary</h2>
             <span className="mini-status">View-model only • original topology untouched</span>
           </div>
-          <div className="summary-grid architecture-summary-grid">
-            <div className="metric-box">
-              <span className="metric-label">Visible cards</span>
-              <strong>{visibleNodes.length}</strong>
-              <small>{groupedCards} grouped cards</small>
+          {isInitialTopologyLoad ? (
+            <p className="hint">Loading topology…</p>
+          ) : (
+            <div className="summary-grid architecture-summary-grid">
+              <div className="metric-box">
+                <span className="metric-label">Visible cards</span>
+                <strong>{visibleNodes.length}</strong>
+                <small>{groupedCards} grouped cards</small>
+              </div>
+              <div className="metric-box">
+                <span className="metric-label">Visible resources</span>
+                <strong>{architectureModel.groupedResourceCount}</strong>
+                <small>{architectureModel.sourceNodeCount} visible source nodes</small>
+              </div>
+              <div className="metric-box">
+                <span className="metric-label">Hidden resources</span>
+                <strong>{hiddenSourceNodeKeys.length}</strong>
+                <small>{hiddenNodes.length} hidden cards in delta</small>
+              </div>
+              <div className="metric-box">
+                <span className="metric-label">Active zones</span>
+                <strong>{stageCoverage}</strong>
+                <small>{ARCHITECTURE_STAGE_ORDER.length} total zones</small>
+              </div>
             </div>
-            <div className="metric-box">
-              <span className="metric-label">Visible resources</span>
-              <strong>{architectureModel.groupedResourceCount}</strong>
-              <small>{architectureModel.sourceNodeCount} visible source nodes</small>
-            </div>
-            <div className="metric-box">
-              <span className="metric-label">Hidden resources</span>
-              <strong>{hiddenSourceNodeKeys.length}</strong>
-              <small>{hiddenNodes.length} hidden cards in delta</small>
-            </div>
-            <div className="metric-box">
-              <span className="metric-label">Active zones</span>
-              <strong>{stageCoverage}</strong>
-              <small>{ARCHITECTURE_STAGE_ORDER.length} total zones</small>
-            </div>
-          </div>
+          )}
         </article>
       </section>
 
@@ -765,7 +771,7 @@ export function ArchitecturePage() {
               </div>
             </div>
           ) : (
-            <p className="hint">No visible architecture card is selected.</p>
+            <p className="hint">{isInitialTopologyLoad ? 'Loading…' : 'No visible architecture card is selected.'}</p>
           )}
         </article>
       </section>
@@ -794,7 +800,9 @@ export function ArchitecturePage() {
                 </div>
                 <p className="hint architecture-stage-copy">{bucket.description}</p>
                 <div className="architecture-stage-card-list">
-                  {bucket.nodes.length ? (
+                  {isInitialTopologyLoad && !bucket.nodes.length ? (
+                    <div className="architecture-stage-empty">Loading…</div>
+                  ) : bucket.nodes.length ? (
                     bucket.nodes.map((node) => (
                       <article
                         key={node.id}
@@ -863,7 +871,7 @@ export function ArchitecturePage() {
                 })}
               </ul>
             ) : (
-              <p className="hint">No visible simplified edges after current hide/show overrides.</p>
+              <p className="hint">{isInitialTopologyLoad ? 'Loading…' : 'No visible simplified edges after current hide/show overrides.'}</p>
             )}
           </div>
         </article>
