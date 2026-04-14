@@ -4,7 +4,11 @@ import {
   createExport,
   getAuthConfigCheck,
   getTopology,
+  getWorkspaceResourceGroups,
+  getWorkspaceSubscriptions,
   getWorkspaces,
+  type InventoryResourceGroup,
+  type InventorySubscription,
   type TopologyResponse,
   type Workspace,
 } from '../lib/api'
@@ -37,12 +41,24 @@ function formatDateTime(value?: string) {
   }
 }
 
-function parseInitialWorkspaceId(): string {
+function readInitialSearchParam(key: string): string {
   if (typeof window === 'undefined') {
     return ''
   }
 
-  return new URLSearchParams(window.location.search).get('workspace') ?? ''
+  return new URLSearchParams(window.location.search).get(key) ?? ''
+}
+
+function parseInitialWorkspaceId(): string {
+  return readInitialSearchParam('workspace')
+}
+
+function parseInitialSubscriptionId(): string {
+  return readInitialSearchParam('sub')
+}
+
+function parseInitialResourceGroupName(): string {
+  return readInitialSearchParam('rg')
 }
 
 function filterTopologyByVisibleSourceKeys(
@@ -132,6 +148,13 @@ async function rasterizeSvg(svg: string, width: number, height: number): Promise
 export function ArchitecturePage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>(() => parseInitialWorkspaceId())
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(() => parseInitialSubscriptionId())
+  const [focusedResourceGroupName, setFocusedResourceGroupName] = useState(() => parseInitialResourceGroupName())
+  const [availableSubscriptions, setAvailableSubscriptions] = useState<InventorySubscription[]>([])
+  const [availableResourceGroups, setAvailableResourceGroups] = useState<InventoryResourceGroup[]>([])
+  const [inventoryLoading, setInventoryLoading] = useState(false)
+  const [inventoryMode, setInventoryMode] = useState('')
+  const [inventoryWarning, setInventoryWarning] = useState('')
   const [topology, setTopology] = useState<TopologyResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [topologyLoading, setTopologyLoading] = useState(false)
@@ -178,29 +201,136 @@ export function ArchitecturePage() {
     }
   }, [])
 
+  const overrideScopeKey = useMemo(
+    () => [selectedWorkspaceId, selectedSubscriptionId || '*', focusedResourceGroupName || '*'].join('|'),
+    [focusedResourceGroupName, selectedSubscriptionId, selectedWorkspaceId],
+  )
+
   useEffect(() => {
     if (!selectedWorkspaceId) {
+      setAvailableSubscriptions([])
+      setAvailableResourceGroups([])
+      setSelectedSubscriptionId('')
+      setFocusedResourceGroupName('')
+      setInventoryMode('')
+      setInventoryWarning('')
+      return
+    }
+
+    let active = true
+
+    async function loadInventoryScope() {
+      try {
+        setInventoryLoading(true)
+
+        const subscriptionResult = await getWorkspaceSubscriptions(selectedWorkspaceId)
+        if (!active) {
+          return
+        }
+
+        setAvailableSubscriptions(subscriptionResult.items)
+        setInventoryMode(subscriptionResult.mode ?? '')
+        setInventoryWarning(subscriptionResult.warning ?? '')
+
+        const resourceGroupResult = await getWorkspaceResourceGroups(selectedWorkspaceId, {
+          subscriptionId: selectedSubscriptionId || undefined,
+          limit: 200,
+        })
+        if (!active) {
+          return
+        }
+
+        setAvailableResourceGroups(resourceGroupResult.items)
+        if (resourceGroupResult.warning && !subscriptionResult.warning) {
+          setInventoryWarning(resourceGroupResult.warning)
+        }
+        if (resourceGroupResult.mode) {
+          setInventoryMode(resourceGroupResult.mode)
+        }
+      } catch (err) {
+        if (!active) {
+          return
+        }
+        setAvailableSubscriptions([])
+        setAvailableResourceGroups([])
+        setInventoryWarning(err instanceof Error ? err.message : 'Failed to load architecture inventory scope')
+      } finally {
+        if (active) {
+          setInventoryLoading(false)
+        }
+      }
+    }
+
+    void loadInventoryScope()
+
+    return () => {
+      active = false
+    }
+  }, [selectedSubscriptionId, selectedWorkspaceId])
+
+  useEffect(() => {
+    if (!focusedResourceGroupName) {
+      return
+    }
+
+    const hasFocusedResourceGroup = availableResourceGroups.some(
+      (resourceGroup) => resourceGroup.name === focusedResourceGroupName,
+    )
+
+    if (!hasFocusedResourceGroup) {
+      setFocusedResourceGroupName('')
+    }
+  }, [availableResourceGroups, focusedResourceGroupName])
+
+  useEffect(() => {
+    if (!overrideScopeKey || !selectedWorkspaceId) {
       setHiddenSourceNodeKeys([])
       setOverridesReady(false)
       return
     }
 
     setOverridesReady(false)
-    const state = loadArchitectureOverrideState(selectedWorkspaceId)
+    const state = loadArchitectureOverrideState(overrideScopeKey)
     setHiddenSourceNodeKeys(state.hiddenSourceNodeKeys)
     setOverridesReady(true)
-  }, [selectedWorkspaceId])
+  }, [overrideScopeKey, selectedWorkspaceId])
 
   useEffect(() => {
-    if (!selectedWorkspaceId || !overridesReady) {
+    if (!overrideScopeKey || !selectedWorkspaceId || !overridesReady) {
       return
     }
 
-    saveArchitectureOverrideState(selectedWorkspaceId, {
+    saveArchitectureOverrideState(overrideScopeKey, {
       hiddenSourceNodeKeys,
       updatedAt: new Date().toISOString(),
     })
-  }, [hiddenSourceNodeKeys, overridesReady, selectedWorkspaceId])
+  }, [hiddenSourceNodeKeys, overrideScopeKey, overridesReady, selectedWorkspaceId])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const search = new URLSearchParams(window.location.search)
+    if (selectedWorkspaceId) {
+      search.set('workspace', selectedWorkspaceId)
+    } else {
+      search.delete('workspace')
+    }
+    if (selectedSubscriptionId) {
+      search.set('sub', selectedSubscriptionId)
+    } else {
+      search.delete('sub')
+    }
+    if (focusedResourceGroupName) {
+      search.set('rg', focusedResourceGroupName)
+    } else {
+      search.delete('rg')
+    }
+
+    const nextUrl = `${window.location.pathname}${search.toString() ? `?${search.toString()}` : ''}`
+    window.history.replaceState({}, '', nextUrl)
+  }, [focusedResourceGroupName, selectedSubscriptionId, selectedWorkspaceId])
 
   useEffect(() => {
     if (!selectedWorkspaceId) {
@@ -215,6 +345,8 @@ export function ArchitecturePage() {
         setTopologyLoading(true)
         setError('')
         const result = await getTopology(selectedWorkspaceId, {
+          subscriptionId: selectedSubscriptionId || undefined,
+          resourceGroupName: focusedResourceGroupName || undefined,
           includeNetworkInference,
           collapseManagedInstanceChildren: true,
         })
@@ -241,7 +373,7 @@ export function ArchitecturePage() {
     return () => {
       active = false
     }
-  }, [selectedWorkspaceId, includeNetworkInference])
+  }, [focusedResourceGroupName, includeNetworkInference, selectedSubscriptionId, selectedWorkspaceId])
 
   const hiddenSourceNodeKeySet = useMemo(
     () => new Set(hiddenSourceNodeKeys),
@@ -334,8 +466,8 @@ export function ArchitecturePage() {
 
   function resetHiddenNodes() {
     setHiddenSourceNodeKeys([])
-    if (selectedWorkspaceId) {
-      clearArchitectureOverrideState(selectedWorkspaceId)
+    if (overrideScopeKey) {
+      clearArchitectureOverrideState(overrideScopeKey)
     }
   }
 
@@ -410,17 +542,62 @@ export function ArchitecturePage() {
             <p>Loading workspaces…</p>
           ) : (
             <>
-              <select value={selectedWorkspaceId} onChange={(event) => setSelectedWorkspaceId(event.target.value)}>
+              <select
+                value={selectedWorkspaceId}
+                onChange={(event) => {
+                  setSelectedSubscriptionId('')
+                  setFocusedResourceGroupName('')
+                  setSelectedWorkspaceId(event.target.value)
+                }}
+              >
                 {workspaces.map((workspace) => (
                   <option key={workspace.id} value={workspace.id}>
                     {workspace.name}
                   </option>
                 ))}
               </select>
+              <select
+                value={selectedSubscriptionId}
+                onChange={(event) => {
+                  setFocusedResourceGroupName('')
+                  setSelectedSubscriptionId(event.target.value)
+                }}
+                disabled={!selectedWorkspaceId || inventoryLoading}
+              >
+                <option value="">All subscriptions</option>
+                {availableSubscriptions.map((subscription) => (
+                  <option
+                    key={subscription.subscription_id ?? subscription.display_name ?? 'subscription'}
+                    value={subscription.subscription_id ?? ''}
+                  >
+                    {subscription.display_name ?? subscription.subscription_id ?? 'Unnamed subscription'}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={focusedResourceGroupName}
+                onChange={(event) => setFocusedResourceGroupName(event.target.value)}
+                disabled={!selectedWorkspaceId || inventoryLoading}
+              >
+                <option value="">All resource groups</option>
+                {availableResourceGroups.map((resourceGroup) => (
+                  <option key={resourceGroup.id ?? resourceGroup.name ?? 'resource-group'} value={resourceGroup.name ?? ''}>
+                    {resourceGroup.name ?? 'Unnamed RG'}
+                    {resourceGroup.location ? ` • ${resourceGroup.location}` : ''}
+                  </option>
+                ))}
+              </select>
               <p className="hint">
                 Generated at: {formatDateTime(topology?.generated_at)}
                 {topology?.mode ? ` • ${topology.mode}` : ''}
+                {inventoryMode ? ` • inventory ${inventoryMode}` : ''}
               </p>
+              <p className="hint">
+                Scope: {selectedSubscriptionId ? 'single subscription' : 'all subscriptions'}
+                {' • '}
+                {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : 'all resource groups'}
+              </p>
+              {inventoryWarning ? <p className="hint">Inventory note: {inventoryWarning}</p> : null}
             </>
           )}
         </article>
@@ -490,8 +667,8 @@ export function ArchitecturePage() {
             </label>
           </div>
           <p className="hint architecture-hint-copy">
-            Override delta is stored separately by workspace and tracks hidden source topology node keys,
-            so the topology source remains intact even when grouping threshold changes.
+            Override delta is stored separately by workspace + subscription + RG scope and tracks hidden
+            source topology node keys, so the topology source remains intact even when grouping threshold changes.
           </p>
         </article>
 

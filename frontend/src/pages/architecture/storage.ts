@@ -39,12 +39,12 @@ function writeAllStates(states: Record<string, ArchitectureOverrideState>) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(states))
 }
 
-export function loadArchitectureOverrideState(workspaceId: string): ArchitectureOverrideState {
-  if (!workspaceId) {
+export function loadArchitectureOverrideState(scopeKey: string): ArchitectureOverrideState {
+  if (!scopeKey) {
     return { hiddenSourceNodeKeys: [] }
   }
 
-  const state = readAllStates()[workspaceId]
+  const state = readAllStates()[scopeKey]
   if (!state || !Array.isArray(state.hiddenSourceNodeKeys)) {
     return { hiddenSourceNodeKeys: [] }
   }
@@ -58,15 +58,15 @@ export function loadArchitectureOverrideState(workspaceId: string): Architecture
 }
 
 export function saveArchitectureOverrideState(
-  workspaceId: string,
+  scopeKey: string,
   state: ArchitectureOverrideState,
 ) {
-  if (!workspaceId) {
+  if (!scopeKey) {
     return
   }
 
   const states = readAllStates()
-  states[workspaceId] = {
+  states[scopeKey] = {
     hiddenSourceNodeKeys: Array.from(new Set(state.hiddenSourceNodeKeys)).sort((left, right) =>
       left.localeCompare(right),
     ),
@@ -75,12 +75,12 @@ export function saveArchitectureOverrideState(
   writeAllStates(states)
 }
 
-export function clearArchitectureOverrideState(workspaceId: string) {
-  if (!workspaceId) {
+export function clearArchitectureOverrideState(scopeKey: string) {
+  if (!scopeKey) {
     return
   }
 
   const states = readAllStates()
-  delete states[workspaceId]
+  delete states[scopeKey]
   writeAllStates(states)
 }
