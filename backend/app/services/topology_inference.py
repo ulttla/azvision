@@ -38,6 +38,19 @@ _NETWORK_NAME_PREFIX_TOKENS = {
     "pep",
 }
 
+_GENERIC_WORKLOAD_PREFIX_TOKENS = {
+    "sql",
+    "sqlmi",
+    "synapse",
+    "synw",
+    "web",
+    "app",
+    "api",
+    "func",
+    "function",
+    "vm",
+}
+
 _WORKLOAD_TYPE_PREFIXES = (
     "microsoft.compute/virtualmachines",
     "microsoft.sql/managedinstances",
@@ -61,6 +74,22 @@ _RELATION_COMPATIBILITY_PREFIXES: dict[str, tuple[str, ...]] = {
     ),
     "secures": _WORKLOAD_TYPE_PREFIXES,
     "routes": _WORKLOAD_TYPE_PREFIXES,
+}
+
+_WORKLOAD_FAMILY_RESOURCE_TYPE_PREFIXES: dict[str, tuple[str, ...]] = {
+    "sql-managed-instance": ("microsoft.sql/managedinstances",),
+    "synapse-workspace": ("microsoft.synapse/workspaces",),
+    "web-app": ("microsoft.web/sites", "microsoft.containerapp/containerapps"),
+    "virtual-machine": ("microsoft.compute/virtualmachines",),
+    "storage-account": ("microsoft.storage/storageaccounts",),
+}
+
+_WORKLOAD_FAMILY_NAME_HINTS: dict[str, tuple[str, ...]] = {
+    "sql-managed-instance": ("sqlmi",),
+    "synapse-workspace": ("synw", "synapse"),
+    "web-app": ("web", "app", "api"),
+    "virtual-machine": ("vm",),
+    "storage-account": ("st", "storage", "sa"),
 }
 
 
@@ -113,11 +142,53 @@ def _anchor_token(value: str | None) -> str | None:
     while raw_tokens and raw_tokens[0] in _NETWORK_NAME_PREFIX_TOKENS:
         raw_tokens.pop(0)
 
+    while raw_tokens and raw_tokens[0] in _GENERIC_WORKLOAD_PREFIX_TOKENS:
+        raw_tokens.pop(0)
+
     if not raw_tokens:
         return None
 
     anchor = raw_tokens[0]
     return anchor if len(anchor) >= 2 else None
+
+
+def _resource_type_matches_prefixes(item: dict[str, Any], prefixes: tuple[str, ...]) -> bool:
+    resource_type = _resource_type_lower(item)
+    return any(resource_type.startswith(prefix) for prefix in prefixes)
+
+
+def _workload_family_from_name(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    raw_tokens = [token for token in value.lower().split("-") if token]
+    while raw_tokens and raw_tokens[0] in _NETWORK_NAME_PREFIX_TOKENS:
+        raw_tokens.pop(0)
+
+    if not raw_tokens:
+        return None
+
+    primary_token = raw_tokens[0]
+    for family, hints in _WORKLOAD_FAMILY_NAME_HINTS.items():
+        if primary_token in hints:
+            return family
+
+    return None
+
+
+def _family_matches_candidate(network_item: dict[str, Any], candidate: dict[str, Any]) -> tuple[bool, str | None]:
+    family = _workload_family_from_name(_resource_display_name(network_item))
+    if not family:
+        return True, None
+
+    prefixes = _WORKLOAD_FAMILY_RESOURCE_TYPE_PREFIXES.get(family)
+    if not prefixes:
+        return True, None
+
+    if _resource_type_matches_prefixes(candidate, prefixes):
+        return True, family
+
+    return False, family
 
 
 def _network_relation_role(item: dict[str, Any]) -> str | None:
@@ -218,12 +289,19 @@ def _build_inference_result(
     if not _is_compatible_target(candidate, relation_type):
         return None
 
+    family_ok, workload_family = _family_matches_candidate(network_item, candidate)
+    if not family_ok:
+        return None
+
     if _canonical(network_item.get("resource_group")) == _canonical(candidate.get("resource_group")):
         evidence.append("same-resource-group")
         score += 0.12
 
     evidence.append("compatible-resource-type")
     score += 0.18
+    if workload_family:
+        evidence.append(f"workload-family:{workload_family}")
+        score += 0.08
 
     name_score, name_evidence = _name_evidence(network_item, candidate)
     score += name_score
@@ -244,7 +322,7 @@ def _build_inference_result(
         "relation_type": relation_type,
         "source": "azure",
         "confidence": confidence,
-        "resolver": "network-heuristic-v2",
+        "resolver": "network-heuristic-v3",
         "evidence": evidence,
     }
 
@@ -261,9 +339,7 @@ def infer_network_relationship_edges(resources: list[dict[str, Any]]) -> list[di
         related_candidates = [
             item
             for item in grouped_resources
-            if _is_network_candidate(item) or any(
-                _resource_type_lower(item).startswith(prefix) for prefix in _WORKLOAD_TYPE_PREFIXES
-            )
+            if _is_network_candidate(item) or _resource_type_matches_prefixes(item, _WORKLOAD_TYPE_PREFIXES)
         ]
 
         for network_item in network_items:

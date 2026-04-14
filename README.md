@@ -7,6 +7,11 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - FastAPI backend + SQLite persistence + snapshot CRUD 반영 완료
 - React + Vite frontend에서 local/server dual-mode snapshot provider 지원
 - import CTA / dedup / source badge / notice persistence / responsive polish 1차 반영 완료
+- Architecture View MVP 1차 usable 상태
+  - `Topology View / Architecture View` 전환
+  - compact stage pipeline / simplified edge / SVG export
+  - browser-local hide/show override delta
+  - label readability + short alias pass 반영
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
@@ -60,7 +65,7 @@ npm run dev
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
 
 ## 메모
-- 현재는 **Phase 1B server-backed snapshot/history 1차 완료 + 새 repo baseline 정리 단계**
+- 현재는 **Phase 1B server-backed snapshot/history 1차 완료 + Architecture View MVP usable baseline 확보 단계**
 - `GET /api/v1/auth/config-check` 는 env/cert 준비 상태를 확인
 - `GET /api/v1/auth/read-test` 는 실제 Azure subscription / resource group read를 검증
 - live topology/inference 점검은 `bash scripts/live_topology_probe.sh` 로 config-check → read-test → topology probe를 한 번에 수행 가능
@@ -69,4 +74,4 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분은 현재 구현 반영 상태
-- 다음 권장 순서: repo CI 안정화 → 필요 시 branch protection/PR rule → topology live 고도화 or Cytoscape style 외부화
+- 다음 권장 순서: architecture view 미세 polish/commit closeout → repo CI 안정화 → 필요 시 branch protection/PR rule → topology live 고도화 or Cytoscape style 외부화
