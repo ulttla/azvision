@@ -662,9 +662,9 @@ export function ArchitecturePage() {
                   <li key={node.id}>
                     <div className="search-result-card architecture-flow-card">
                       <div>
-                        <strong>{node.label}</strong>
-                        <p>
-                          {ARCHITECTURE_STAGE_META[node.stage].label} • {node.familyLabel} • {node.nodeCount} item
+                        <strong>{node.shortLabel}</strong>
+                        <p className="hint">
+                          {node.label} • {ARCHITECTURE_STAGE_META[node.stage].label} • {node.familyLabel} • {node.nodeCount} item
                           {node.nodeCount === 1 ? '' : 's'}
                         </p>
                       </div>
