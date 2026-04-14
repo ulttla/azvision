@@ -6,6 +6,7 @@ import {
   getAuthConfigCheck,
   getTopology,
   getTopologyNodeDetail,
+  getWorkspaceInventorySummary,
   getWorkspaceResourceGroups,
   getWorkspaceResources,
   getWorkspaceSubscriptions,
@@ -14,6 +15,7 @@ import {
   type InventoryResource,
   type InventoryResourceGroup,
   type InventorySubscription,
+  type InventorySummaryResponse,
   type TopologyNode,
   type TopologyNodeDetail,
   type TopologyResponse,
@@ -132,6 +134,7 @@ export function TopologyPage() {
   const [availableSubscriptions, setAvailableSubscriptions] = useState<InventorySubscription[]>([])
   const [availableResourceGroups, setAvailableResourceGroups] = useState<InventoryResourceGroup[]>([])
   const [availableResources, setAvailableResources] = useState<InventoryResource[]>([])
+  const [inventorySummary, setInventorySummary] = useState<InventorySummaryResponse | null>(null)
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [inventoryMode, setInventoryMode] = useState('')
   const [inventoryWarning, setInventoryWarning] = useState('')
@@ -259,6 +262,7 @@ export function TopologyPage() {
       setAvailableSubscriptions([])
       setAvailableResourceGroups([])
       setAvailableResources([])
+      setInventorySummary(null)
       setSelectedSubscriptionId('')
       setInventoryMode('')
       setInventoryWarning('')
@@ -312,6 +316,29 @@ export function TopologyPage() {
         if (resourceResult.mode) {
           setInventoryMode(resourceResult.mode)
         }
+
+        const summaryResult = await getWorkspaceInventorySummary(selectedWorkspaceId, {
+          subscriptionId: selectedSubscriptionId || undefined,
+          resourceGroupName: focusedResourceGroupName || undefined,
+          resourceGroupLimit: 200,
+          resourceLimit: 500,
+        })
+        if (!active) {
+          return
+        }
+
+        setInventorySummary(summaryResult)
+        if (
+          summaryResult.warning &&
+          !resourceResult.warning &&
+          !resourceGroupResult.warning &&
+          !subscriptionResult.warning
+        ) {
+          setInventoryWarning(summaryResult.warning)
+        }
+        if (summaryResult.mode) {
+          setInventoryMode(summaryResult.mode)
+        }
       } catch (err) {
         if (!active) {
           return
@@ -319,6 +346,7 @@ export function TopologyPage() {
         setAvailableSubscriptions([])
         setAvailableResourceGroups([])
         setAvailableResources([])
+        setInventorySummary(null)
         setInventoryWarning(err instanceof Error ? err.message : 'Inventory scope load failed')
       } finally {
         if (active) {
@@ -862,6 +890,24 @@ export function TopologyPage() {
   const edgePreview = useMemo(() => filteredTopology.edges.slice(0, 16), [filteredTopology.edges])
   const detailEntries = useMemo(() => Object.entries(nodeDetail?.details ?? {}), [nodeDetail])
   const detailScope = useMemo(() => extractDetailScope(nodeDetail), [nodeDetail])
+  const inventoryTopResourceTypes = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    for (const resource of inventorySummary?.items.resources ?? []) {
+      const resourceType = resource.type?.trim() || 'unknown type'
+      counts.set(resourceType, (counts.get(resourceType) ?? 0) + 1)
+    }
+
+    return [...counts.entries()]
+      .map(([resourceType, count]) => ({ resourceType, count }))
+      .sort((left, right) => {
+        if (right.count !== left.count) {
+          return right.count - left.count
+        }
+        return left.resourceType.localeCompare(right.resourceType)
+      })
+      .slice(0, 5)
+  }, [inventorySummary])
   const searchScopeMeta = useMemo(() => getSearchScopeMeta(searchScope), [searchScope])
   const currentPresetState = useMemo<TopologyPresetState>(
     () => ({
@@ -1623,6 +1669,40 @@ export function TopologyPage() {
                 {availableSubscriptions.length} subscriptions / {availableResourceGroups.length} RGs listed / {availableResources.length} resources previewed
               </p>
               {inventoryWarning ? <p className="hint">Inventory note: {inventoryWarning}</p> : null}
+              {inventorySummary ? (
+                <>
+                  <div className="summary-grid summary-grid-wide section-spacer">
+                    <div className="metric-box">
+                      <span className="metric-label">Scoped Collector Subs</span>
+                      <strong>{inventorySummary.summary.subscription_count}</strong>
+                      <small>current collector window</small>
+                    </div>
+                    <div className="metric-box">
+                      <span className="metric-label">Scoped Collector RGs</span>
+                      <strong>{inventorySummary.summary.resource_group_count}</strong>
+                      <small>current collector window</small>
+                    </div>
+                    <div className="metric-box">
+                      <span className="metric-label">Scoped Collector Resources</span>
+                      <strong>{inventorySummary.summary.resource_count}</strong>
+                      <small>separate from topology projection cap</small>
+                    </div>
+                  </div>
+                  {inventoryTopResourceTypes.length ? (
+                    <div>
+                      <h3 className="section-spacer">Top Resource Types In Scope</h3>
+                      <ul className="edge-list compact-list">
+                        {inventoryTopResourceTypes.map((item) => (
+                          <li key={item.resourceType}>
+                            <strong>{item.resourceType}</strong>
+                            <p>{item.count} resources in current collector window</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
               {availableResources.length ? (
                 <div>
                   <h3 className="section-spacer">Scoped Inventory Preview</h3>

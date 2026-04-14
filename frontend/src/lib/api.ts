@@ -46,6 +46,26 @@ export type InventoryListResponse<T> = {
   items: T[]
 }
 
+export type InventorySummaryResponse = {
+  workspace_id: string
+  subscription_id?: string | null
+  resource_group_name?: string | null
+  mode?: string
+  warning?: string | null
+  status?: string
+  message?: string
+  summary: {
+    subscription_count: number
+    resource_group_count: number
+    resource_count: number
+  }
+  items: {
+    subscriptions: InventorySubscription[]
+    resource_groups: InventoryResourceGroup[]
+    resources: InventoryResource[]
+  }
+}
+
 export type TopologyChildSummary = {
   total: number
   type_counts: Record<string, number>
@@ -232,6 +252,36 @@ export async function getWorkspaceResources(
   const query = search.toString()
   return fetchJson<InventoryListResponse<InventoryResource>>(
     `/workspaces/${workspaceId}/resources${query ? `?${query}` : ''}`,
+  )
+}
+
+export async function getWorkspaceInventorySummary(
+  workspaceId: string,
+  options?: {
+    subscriptionId?: string
+    resourceGroupName?: string
+    resourceGroupLimit?: number
+    resourceLimit?: number
+  },
+): Promise<InventorySummaryResponse> {
+  const search = new URLSearchParams()
+
+  if (options?.subscriptionId) {
+    search.set('subscription_id', options.subscriptionId)
+  }
+  if (options?.resourceGroupName) {
+    search.set('resource_group_name', options.resourceGroupName)
+  }
+  if (options?.resourceGroupLimit) {
+    search.set('resource_group_limit', String(options.resourceGroupLimit))
+  }
+  if (options?.resourceLimit) {
+    search.set('resource_limit', String(options.resourceLimit))
+  }
+
+  const query = search.toString()
+  return fetchJson<InventorySummaryResponse>(
+    `/workspaces/${workspaceId}/inventory-summary${query ? `?${query}` : ''}`,
   )
 }
 

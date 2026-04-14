@@ -472,6 +472,11 @@ def collect_inventory(
         detail = response.text[:500] if response is not None else str(exc)
         raise AzureInventoryError(detail) from exc
 
+    if resource_group_name:
+        resource_groups = [
+            item for item in resource_groups if item.get("name") == resource_group_name
+        ]
+
     return AzureInventoryCollection(
         subscriptions=subscriptions,
         resource_groups=resource_groups,

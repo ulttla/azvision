@@ -101,6 +101,7 @@ def get_resources(
 def get_inventory_summary(
     workspace_id: str,
     subscription_id: str | None = Query(default=None),
+    resource_group_name: str | None = Query(default=None),
     resource_group_limit: int = Query(default=200, ge=1, le=500),
     resource_limit: int = Query(default=200, ge=1, le=500),
 ) -> dict:
@@ -109,6 +110,7 @@ def get_inventory_summary(
         resolution = resolve_inventory_collection(
             settings,
             subscription_id=subscription_id,
+            resource_group_name=resource_group_name,
             resource_group_limit=resource_group_limit,
             resource_limit=resource_limit,
         )
@@ -116,7 +118,9 @@ def get_inventory_summary(
         return {
             "workspace_id": workspace_id,
             "subscription_id": subscription_id,
+            "resource_group_name": resource_group_name,
             "mode": resolution.mode,
+            "warning": resolution.warning,
             "summary": {
                 "subscription_count": len(collection.subscriptions),
                 "resource_group_count": len(collection.resource_groups),
@@ -132,6 +136,7 @@ def get_inventory_summary(
         return {
             "workspace_id": workspace_id,
             "subscription_id": subscription_id,
+            "resource_group_name": resource_group_name,
             "summary": {
                 "subscription_count": 0,
                 "resource_group_count": 0,
