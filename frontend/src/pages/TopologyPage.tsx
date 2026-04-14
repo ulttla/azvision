@@ -6,8 +6,12 @@ import {
   getAuthConfigCheck,
   getTopology,
   getTopologyNodeDetail,
+  getWorkspaceResourceGroups,
+  getWorkspaceSubscriptions,
   getWorkspaces,
   type ExportItem,
+  type InventoryResourceGroup,
+  type InventorySubscription,
   type TopologyNode,
   type TopologyNodeDetail,
   type TopologyResponse,
@@ -100,6 +104,12 @@ export function TopologyPage() {
   const initialPreset = readTopologyPresetFromUrl()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('')
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState('')
+  const [availableSubscriptions, setAvailableSubscriptions] = useState<InventorySubscription[]>([])
+  const [availableResourceGroups, setAvailableResourceGroups] = useState<InventoryResourceGroup[]>([])
+  const [inventoryLoading, setInventoryLoading] = useState(false)
+  const [inventoryMode, setInventoryMode] = useState('')
+  const [inventoryWarning, setInventoryWarning] = useState('')
   const [topology, setTopology] = useState<TopologyResponse | null>(null)
   const [selectedNodeKey, setSelectedNodeKey] = useState<string>('')
   const [nodeDetail, setNodeDetail] = useState<TopologyNodeDetail | null>(null)
@@ -220,6 +230,67 @@ export function TopologyPage() {
   }, [selectedWorkspaceId, snapshotStorageMode])
 
   useEffect(() => {
+    if (!selectedWorkspaceId) {
+      setAvailableSubscriptions([])
+      setAvailableResourceGroups([])
+      setSelectedSubscriptionId('')
+      setInventoryMode('')
+      setInventoryWarning('')
+      return
+    }
+
+    let active = true
+
+    async function loadInventoryScope() {
+      try {
+        setInventoryLoading(true)
+
+        const subscriptionResult = await getWorkspaceSubscriptions(selectedWorkspaceId)
+        if (!active) {
+          return
+        }
+
+        setAvailableSubscriptions(subscriptionResult.items)
+        setInventoryMode(subscriptionResult.mode ?? '')
+        setInventoryWarning(subscriptionResult.warning ?? '')
+
+        const resourceGroupResult = await getWorkspaceResourceGroups(selectedWorkspaceId, {
+          subscriptionId: selectedSubscriptionId || undefined,
+          limit: 200,
+        })
+        if (!active) {
+          return
+        }
+
+        setAvailableResourceGroups(resourceGroupResult.items)
+        if (resourceGroupResult.warning && !subscriptionResult.warning) {
+          setInventoryWarning(resourceGroupResult.warning)
+        }
+        if (resourceGroupResult.mode) {
+          setInventoryMode(resourceGroupResult.mode)
+        }
+      } catch (err) {
+        if (!active) {
+          return
+        }
+        setAvailableSubscriptions([])
+        setAvailableResourceGroups([])
+        setInventoryWarning(err instanceof Error ? err.message : 'Inventory scope load failed')
+      } finally {
+        if (active) {
+          setInventoryLoading(false)
+        }
+      }
+    }
+
+    void loadInventoryScope()
+
+    return () => {
+      active = false
+    }
+  }, [selectedSubscriptionId, selectedWorkspaceId])
+
+  useEffect(() => {
     if (snapshotStorageMode !== 'server' || !selectedWorkspaceId || !localWorkspaceSnapshots.length) {
       setLocalSnapshotNoticeDismissed(false)
       return
@@ -228,6 +299,20 @@ export function TopologyPage() {
     const acknowledgedFingerprint = getSnapshotNoticeAcknowledgedFingerprint(selectedWorkspaceId)
     setLocalSnapshotNoticeDismissed(acknowledgedFingerprint === localSnapshotNoticeFingerprint)
   }, [localSnapshotNoticeFingerprint, localWorkspaceSnapshots.length, selectedWorkspaceId, snapshotStorageMode])
+
+  useEffect(() => {
+    if (!focusedResourceGroupName) {
+      return
+    }
+
+    const hasFocusedResourceGroup = availableResourceGroups.some(
+      (resourceGroup) => resourceGroup.name === focusedResourceGroupName,
+    )
+
+    if (!hasFocusedResourceGroup) {
+      setFocusedResourceGroupName('')
+    }
+  }, [availableResourceGroups, focusedResourceGroupName])
 
   useEffect(() => {
     async function loadTopology() {
@@ -243,6 +328,7 @@ export function TopologyPage() {
         setError('')
 
         const baseOptions = {
+          subscriptionId: selectedSubscriptionId || undefined,
           resourceGroupName: focusedResourceGroupName || undefined,
           resourceGroupLimit: 20,
           resourceLimit: 80,
@@ -274,7 +360,13 @@ export function TopologyPage() {
     }
 
     void loadTopology()
-  }, [expandedManagedInstanceRefs, focusedResourceGroupName, includeNetworkInference, selectedWorkspaceId])
+  }, [
+    expandedManagedInstanceRefs,
+    focusedResourceGroupName,
+    includeNetworkInference,
+    selectedSubscriptionId,
+    selectedWorkspaceId,
+  ])
 
   const filteredTopology = useMemo(
     () => buildFilteredTopology(topology, resourceFilters, relationFilters, relationTypeFilters),
@@ -1365,6 +1457,9 @@ export function TopologyPage() {
     }
 
     setExpandedManagedInstanceRefs([])
+    if (selectedNode.subscription_id) {
+      setSelectedSubscriptionId(selectedNode.subscription_id)
+    }
     setFocusedResourceGroupName((current) =>
       current === selectedNode.display_name ? '' : selectedNode.display_name,
     )
@@ -1400,6 +1495,7 @@ export function TopologyPage() {
                 value={selectedWorkspaceId}
                 onChange={(event) => {
                   setExpandedManagedInstanceRefs([])
+                  setSelectedSubscriptionId('')
                   setFocusedResourceGroupName('')
                   setSelectedWorkspaceId(event.target.value)
                 }}
@@ -1410,10 +1506,54 @@ export function TopologyPage() {
                   </option>
                 ))}
               </select>
+              <select
+                value={selectedSubscriptionId}
+                onChange={(event) => {
+                  setExpandedManagedInstanceRefs([])
+                  setFocusedResourceGroupName('')
+                  setSelectedSubscriptionId(event.target.value)
+                }}
+                disabled={!selectedWorkspaceId || inventoryLoading}
+              >
+                <option value="">All subscriptions</option>
+                {availableSubscriptions.map((subscription) => (
+                  <option
+                    key={subscription.subscription_id ?? subscription.display_name ?? 'subscription'}
+                    value={subscription.subscription_id ?? ''}
+                  >
+                    {subscription.display_name ?? subscription.subscription_id ?? 'Unnamed subscription'}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={focusedResourceGroupName}
+                onChange={(event) => {
+                  setExpandedManagedInstanceRefs([])
+                  setFocusedResourceGroupName(event.target.value)
+                }}
+                disabled={!selectedWorkspaceId || inventoryLoading}
+              >
+                <option value="">All resource groups</option>
+                {availableResourceGroups.map((resourceGroup) => (
+                  <option key={resourceGroup.id ?? resourceGroup.name ?? 'resource-group'} value={resourceGroup.name ?? ''}>
+                    {resourceGroup.name ?? 'Unnamed RG'}
+                    {resourceGroup.location ? ` • ${resourceGroup.location}` : ''}
+                  </option>
+                ))}
+              </select>
               <p className="hint">
                 Generated at: {formatDateTime(topology?.generated_at)}
                 {topology?.mode ? ` • ${topology.mode}` : ''}
+                {inventoryMode ? ` • inventory ${inventoryMode}` : ''}
               </p>
+              <p className="hint">
+                Scope: {selectedSubscriptionId ? 'single subscription' : 'all subscriptions'}
+                {' • '}
+                {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : 'all resource groups'}
+                {' • '}
+                {availableSubscriptions.length} subscriptions / {availableResourceGroups.length} RGs listed
+              </p>
+              {inventoryWarning ? <p className="hint">Inventory note: {inventoryWarning}</p> : null}
             </>
           )}
         </article>

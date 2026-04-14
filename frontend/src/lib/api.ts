@@ -5,6 +5,35 @@ export type Workspace = {
   description?: string
 }
 
+export type InventorySubscription = {
+  subscription_id?: string
+  display_name?: string
+  state?: string | null
+  tenant_id?: string | null
+  source?: string
+}
+
+export type InventoryResourceGroup = {
+  subscription_id?: string
+  name?: string
+  location?: string | null
+  id?: string
+  managed_by?: string | null
+  tags?: Record<string, string>
+  source?: string
+}
+
+export type InventoryListResponse<T> = {
+  workspace_id: string
+  subscription_id?: string | null
+  resource_group_name?: string | null
+  mode?: string
+  warning?: string | null
+  status?: string
+  message?: string
+  items: T[]
+}
+
 export type TopologyChildSummary = {
   total: number
   type_counts: Record<string, number>
@@ -135,6 +164,36 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 export async function getWorkspaces(): Promise<Workspace[]> {
   const data = await fetchJson<{ items: Workspace[] }>('/workspaces')
   return data.items
+}
+
+export async function getWorkspaceSubscriptions(
+  workspaceId: string,
+): Promise<InventoryListResponse<InventorySubscription>> {
+  return fetchJson<InventoryListResponse<InventorySubscription>>(
+    `/workspaces/${workspaceId}/subscriptions`,
+  )
+}
+
+export async function getWorkspaceResourceGroups(
+  workspaceId: string,
+  options?: {
+    subscriptionId?: string
+    limit?: number
+  },
+): Promise<InventoryListResponse<InventoryResourceGroup>> {
+  const search = new URLSearchParams()
+
+  if (options?.subscriptionId) {
+    search.set('subscription_id', options.subscriptionId)
+  }
+  if (options?.limit) {
+    search.set('limit', String(options.limit))
+  }
+
+  const query = search.toString()
+  return fetchJson<InventoryListResponse<InventoryResourceGroup>>(
+    `/workspaces/${workspaceId}/resource-groups${query ? `?${query}` : ''}`,
+  )
 }
 
 export async function getTopology(

@@ -26,6 +26,13 @@ class InventoryResolution:
     warning: str | None = None
 
 
+@dataclass
+class InventoryItemsResolution:
+    items: list[dict]
+    mode: str
+    warning: str | None = None
+
+
 def _truncate(items: list[dict], limit: int) -> list[dict]:
     return items[: max(limit, 0)]
 
@@ -515,6 +522,115 @@ def resolve_inventory_collection(
                 resource_group_limit=resource_group_limit,
                 resource_limit=resource_limit,
             ),
+            mode="mock",
+            warning=str(exc),
+        )
+
+
+def resolve_subscription_items(settings: Settings) -> InventoryItemsResolution:
+    mode = settings.topology_mode_resolved
+
+    if mode == "mock":
+        return InventoryItemsResolution(
+            items=_mock_inventory_collection().subscriptions,
+            mode="mock",
+        )
+
+    try:
+        return InventoryItemsResolution(
+            items=list_accessible_subscriptions(settings),
+            mode="live",
+        )
+    except AzureInventoryError as exc:
+        if mode != "auto":
+            raise
+
+        return InventoryItemsResolution(
+            items=_mock_inventory_collection().subscriptions,
+            mode="mock",
+            warning=str(exc),
+        )
+
+
+def resolve_resource_group_items(
+    settings: Settings,
+    *,
+    subscription_id: str | None = None,
+    limit: int = 200,
+) -> InventoryItemsResolution:
+    mode = settings.topology_mode_resolved
+
+    if mode == "mock":
+        return InventoryItemsResolution(
+            items=_mock_inventory_collection(
+                subscription_id=subscription_id,
+                resource_group_limit=limit,
+            ).resource_groups,
+            mode="mock",
+        )
+
+    try:
+        return InventoryItemsResolution(
+            items=list_resource_groups(
+                settings,
+                subscription_id=subscription_id,
+                limit=limit,
+            ),
+            mode="live",
+        )
+    except AzureInventoryError as exc:
+        if mode != "auto":
+            raise
+
+        return InventoryItemsResolution(
+            items=_mock_inventory_collection(
+                subscription_id=subscription_id,
+                resource_group_limit=limit,
+            ).resource_groups,
+            mode="mock",
+            warning=str(exc),
+        )
+
+
+def resolve_resource_items(
+    settings: Settings,
+    *,
+    subscription_id: str | None = None,
+    resource_group_name: str | None = None,
+    limit: int = 200,
+) -> InventoryItemsResolution:
+    mode = settings.topology_mode_resolved
+
+    if mode == "mock":
+        return InventoryItemsResolution(
+            items=_mock_inventory_collection(
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+                resource_limit=limit,
+            ).resources,
+            mode="mock",
+        )
+
+    try:
+        return InventoryItemsResolution(
+            items=list_resources(
+                settings,
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+                limit=limit,
+            ),
+            mode="live",
+        )
+    except AzureInventoryError as exc:
+        if mode != "auto":
+            raise
+
+        return InventoryItemsResolution(
+            items=_mock_inventory_collection(
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+                resource_limit=limit,
+            ).resources,
             mode="mock",
             warning=str(exc),
         )
