@@ -186,10 +186,11 @@
 
 ## 다음 액션
 1. API_CONTRACT / DATA_MODEL 문서에 snapshot persistence 반영
-2. local → server migration/import UX 범위 결정
-3. snapshot list에 source badge 또는 storage meta 노출 여부 판단
-4. 반복 import dedup 경고 / cleanup UX 검토
-5. reviewer 필요 시
+2. snapshot/history 후속 범위를 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 기준으로 정리
+3. local → server migration/import UX 범위 결정
+4. snapshot list에 source badge 또는 storage meta 노출 여부 판단
+5. 반복 import dedup 경고 / cleanup UX 검토
+6. reviewer 필요 시
    - VERA: spec/범위 정합성
    - AEGIS: 저장 경계/노출면 점검
 

@@ -28,6 +28,9 @@
 - `GET /workspaces/{workspace_id}/subscriptions`
 - `GET /workspaces/{workspace_id}/resources`
 - `GET /workspaces/{workspace_id}/resource-groups`
+- `GET /workspaces/{workspace_id}/inventory-summary`
+  - query: `subscription_id`, `resource_group_name`, `resource_group_limit`, `resource_limit`
+  - 응답: `summary.subscription_count`, `summary.resource_group_count`, `summary.resource_count` + `items.subscriptions[]`, `items.resource_groups[]`, `items.resources[]`
 
 ### Topology
 - `GET /workspaces/{workspace_id}/topology`
@@ -60,7 +63,7 @@
 - `GET /workspaces/{workspace_id}/snapshots`
   - 응답: `items[]` (`SnapshotRecord`)
 - `POST /workspaces/{workspace_id}/snapshots`
-  - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`
+  - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`
   - 응답: `SnapshotRecord`
 - `GET /workspaces/{workspace_id}/snapshots/{snapshot_id}`
   - 응답: `SnapshotRecord`
@@ -95,5 +98,5 @@
 - 비용 응답은 `currency` 와 `period` 를 포함한다 (Phase 2)
 - export 응답은 `format`, `status`, `output_path` 를 포함한다
 - snapshot list 응답은 `items` 배열을 포함한다
-- snapshot record 응답은 `id`, `workspace_id`, `name`, `compare_refs`, `cluster_children`, `scope`, `query`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `created_at`, `updated_at` 를 포함한다
+- snapshot record 응답은 `id`, `workspace_id`, `name`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `created_at`, `updated_at` 를 포함한다
 - snapshot delete 응답은 `workspace_id`, `snapshot_id`, `status` 를 포함한다

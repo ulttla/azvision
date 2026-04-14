@@ -112,7 +112,8 @@
 - `cluster_children`
 - `scope` — `visible` | `child-only` | `collapsed-preview`
 - `query_text` — SQLite persistence 컬럼, API에서는 `query` 로 노출
-- `resource_group_name`
+- `selected_subscription_id` — snapshot capture 시점 subscription scope
+- `resource_group_name` — snapshot capture 시점 RG scope
 - `topology_generated_at`
 - `visible_node_count`
 - `loaded_node_count`
@@ -120,6 +121,7 @@
 - `thumbnail_data_url` — optional, inline data URL
 - `created_at`
 - `updated_at`
+- 후속 history foundation 메모는 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 참조
 
 ## Graph Node Identity (1A 기준)
 - graph의 **public / canonical identity** 는 `node_key = <node_type>:<node_ref>` 이다
@@ -187,9 +189,11 @@
 
 ## Snapshot persistence 규칙 (Phase 1B)
 - snapshot은 **view state + metadata**만 저장한다
+- 현재 metadata에는 `selected_subscription_id`, `resource_group_name` 같은 inventory scope가 포함된다
 - restore는 저장된 state를 적용한 뒤 현재 live topology를 다시 사용한다
 - `storageKind(local|server)` 구분은 frontend view model/adapter 레벨에서만 사용하며, 현재 backend DB 컬럼에는 포함하지 않는다
 - thumbnail은 optional이며, 과도한 base64 payload 장기 보관은 추후 별도 최적화 대상으로 둔다
+- history foundation 확장은 `captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at` 같은 운영 메타 보강 방향을 우선 검토한다
 
 ## 이후 확장 포인트
 - historical snapshot timeline
