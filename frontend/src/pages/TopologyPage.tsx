@@ -7,9 +7,11 @@ import {
   getTopology,
   getTopologyNodeDetail,
   getWorkspaceResourceGroups,
+  getWorkspaceResources,
   getWorkspaceSubscriptions,
   getWorkspaces,
   type ExportItem,
+  type InventoryResource,
   type InventoryResourceGroup,
   type InventorySubscription,
   type TopologyNode,
@@ -129,6 +131,7 @@ export function TopologyPage() {
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(initialPreset.selectedSubscriptionId)
   const [availableSubscriptions, setAvailableSubscriptions] = useState<InventorySubscription[]>([])
   const [availableResourceGroups, setAvailableResourceGroups] = useState<InventoryResourceGroup[]>([])
+  const [availableResources, setAvailableResources] = useState<InventoryResource[]>([])
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [inventoryMode, setInventoryMode] = useState('')
   const [inventoryWarning, setInventoryWarning] = useState('')
@@ -255,6 +258,7 @@ export function TopologyPage() {
     if (!selectedWorkspaceId) {
       setAvailableSubscriptions([])
       setAvailableResourceGroups([])
+      setAvailableResources([])
       setSelectedSubscriptionId('')
       setInventoryMode('')
       setInventoryWarning('')
@@ -291,12 +295,30 @@ export function TopologyPage() {
         if (resourceGroupResult.mode) {
           setInventoryMode(resourceGroupResult.mode)
         }
+
+        const resourceResult = await getWorkspaceResources(selectedWorkspaceId, {
+          subscriptionId: selectedSubscriptionId || undefined,
+          resourceGroupName: focusedResourceGroupName || undefined,
+          limit: 12,
+        })
+        if (!active) {
+          return
+        }
+
+        setAvailableResources(resourceResult.items)
+        if (resourceResult.warning && !resourceGroupResult.warning && !subscriptionResult.warning) {
+          setInventoryWarning(resourceResult.warning)
+        }
+        if (resourceResult.mode) {
+          setInventoryMode(resourceResult.mode)
+        }
       } catch (err) {
         if (!active) {
           return
         }
         setAvailableSubscriptions([])
         setAvailableResourceGroups([])
+        setAvailableResources([])
         setInventoryWarning(err instanceof Error ? err.message : 'Inventory scope load failed')
       } finally {
         if (active) {
@@ -310,7 +332,7 @@ export function TopologyPage() {
     return () => {
       active = false
     }
-  }, [selectedSubscriptionId, selectedWorkspaceId])
+  }, [focusedResourceGroupName, selectedSubscriptionId, selectedWorkspaceId])
 
   useEffect(() => {
     if (snapshotStorageMode !== 'server' || !selectedWorkspaceId || !localWorkspaceSnapshots.length) {
@@ -1598,9 +1620,26 @@ export function TopologyPage() {
                 {' • '}
                 {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : 'all resource groups'}
                 {' • '}
-                {availableSubscriptions.length} subscriptions / {availableResourceGroups.length} RGs listed
+                {availableSubscriptions.length} subscriptions / {availableResourceGroups.length} RGs listed / {availableResources.length} resources previewed
               </p>
               {inventoryWarning ? <p className="hint">Inventory note: {inventoryWarning}</p> : null}
+              {availableResources.length ? (
+                <div>
+                  <h3 className="section-spacer">Scoped Inventory Preview</h3>
+                  <ul className="edge-list compact-list">
+                    {availableResources.slice(0, 8).map((resource) => (
+                      <li key={resource.id ?? `${resource.resource_group ?? 'rg'}:${resource.name ?? 'resource'}`}>
+                        <strong>{resource.name ?? 'Unnamed resource'}</strong>
+                        <p>{resource.type ?? 'unknown type'}</p>
+                        <p>
+                          {(resource.resource_group ?? 'no-rg')}
+                          {resource.location ? ` • ${resource.location}` : ''}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </>
           )}
         </article>

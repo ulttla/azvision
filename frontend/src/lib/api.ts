@@ -23,6 +23,18 @@ export type InventoryResourceGroup = {
   source?: string
 }
 
+export type InventoryResource = {
+  subscription_id?: string
+  resource_group?: string | null
+  name?: string
+  type?: string | null
+  kind?: string | null
+  location?: string | null
+  id?: string
+  tags?: Record<string, string>
+  source?: string
+}
+
 export type InventoryListResponse<T> = {
   workspace_id: string
   subscription_id?: string | null
@@ -194,6 +206,32 @@ export async function getWorkspaceResourceGroups(
   const query = search.toString()
   return fetchJson<InventoryListResponse<InventoryResourceGroup>>(
     `/workspaces/${workspaceId}/resource-groups${query ? `?${query}` : ''}`,
+  )
+}
+
+export async function getWorkspaceResources(
+  workspaceId: string,
+  options?: {
+    subscriptionId?: string
+    resourceGroupName?: string
+    limit?: number
+  },
+): Promise<InventoryListResponse<InventoryResource>> {
+  const search = new URLSearchParams()
+
+  if (options?.subscriptionId) {
+    search.set('subscription_id', options.subscriptionId)
+  }
+  if (options?.resourceGroupName) {
+    search.set('resource_group_name', options.resourceGroupName)
+  }
+  if (options?.limit) {
+    search.set('limit', String(options.limit))
+  }
+
+  const query = search.toString()
+  return fetchJson<InventoryListResponse<InventoryResource>>(
+    `/workspaces/${workspaceId}/resources${query ? `?${query}` : ''}`,
   )
 }
 
