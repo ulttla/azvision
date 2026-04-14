@@ -472,6 +472,10 @@ export function TopologyPage() {
           selectedWorkspaceId,
           selectedNode.node_type,
           selectedNode.node_ref,
+          {
+            subscriptionId: selectedSubscriptionId || undefined,
+            resourceGroupName: focusedResourceGroupName || undefined,
+          },
         )
         setNodeDetail(detail)
       } catch (err) {

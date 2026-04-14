@@ -246,11 +246,22 @@ export async function getTopologyNodeDetail(
   workspaceId: string,
   nodeType: string,
   nodeRef: string,
+  options?: {
+    subscriptionId?: string
+    resourceGroupName?: string
+  },
 ): Promise<TopologyNodeDetail> {
   const search = new URLSearchParams({
     node_type: nodeType,
     node_ref: nodeRef,
   })
+
+  if (options?.subscriptionId) {
+    search.set('subscription_id', options.subscriptionId)
+  }
+  if (options?.resourceGroupName) {
+    search.set('resource_group_name', options.resourceGroupName)
+  }
 
   return fetchJson<TopologyNodeDetail>(
     `/workspaces/${workspaceId}/topology/node-detail?${search.toString()}`,

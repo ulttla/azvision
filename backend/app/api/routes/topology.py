@@ -526,6 +526,8 @@ def _resource_detail(
     item: dict[str, Any],
     *,
     projection_mode: str,
+    subscription_id: str | None = None,
+    resource_group_name: str | None = None,
     child_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     resource_id = item.get("id")
@@ -547,6 +549,10 @@ def _resource_detail(
             "tags": item.get("tags") or {},
             "parent_resource_id": _extract_parent_resource_id(resource_id),
             "child_summary": child_summary,
+            "scope": {
+                "subscription_id": subscription_id,
+                "resource_group_name": resource_group_name,
+            },
         },
     }
 
@@ -612,6 +618,7 @@ def get_node_detail(
     node_type: str = Query(...),
     node_ref: str = Query(...),
     subscription_id: str | None = Query(default=None),
+    resource_group_name: str | None = Query(default=None),
     resource_group_limit: int = Query(default=200, ge=1, le=500),
     resource_limit: int = Query(default=500, ge=1, le=1000),
 ) -> dict[str, Any]:
@@ -623,6 +630,7 @@ def get_node_detail(
         resolution = resolve_inventory_collection(
             settings,
             subscription_id=subscription_id,
+            resource_group_name=resource_group_name,
             resource_group_limit=resource_group_limit,
             resource_limit=resource_limit,
         )
@@ -688,6 +696,8 @@ def get_node_detail(
                 workspace_id,
                 item,
                 projection_mode=projection_mode,
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
                 child_summary=child_summary,
             )
 
@@ -702,7 +712,11 @@ def get_node_detail(
         "status": "not-found",
         "details": {
             "mode": projection_mode,
-            "note": "Requested node was not found within the current live inventory window.",
+            "scope": {
+                "subscription_id": subscription_id,
+                "resource_group_name": resource_group_name,
+            },
+            "note": "Requested node was not found within the current scoped live inventory window.",
         },
     }
 
