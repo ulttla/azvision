@@ -80,6 +80,8 @@ export const UI_TEXT = {
   parentManagedInstanceHint: 'Jump back to the parent managed instance while exploring child nodes.',
   managedInstanceExpandedHint: 'Keep focus centered around the selected node after expansion.',
   managedInstanceCollapsedHint: 'Expand to render child database nodes directly on the canvas.',
+  scopedDetailHint: 'Node detail is resolved against the current subscription / resource group inventory scope.',
+  scopedDetailNotFoundHint: 'This node is outside the current scoped inventory window. Clear filters to search wider.',
   noProjectedDetails: 'No projected details available',
   noSelectedNode: 'No node selected',
   savedPresetsTitle: 'Saved Presets',

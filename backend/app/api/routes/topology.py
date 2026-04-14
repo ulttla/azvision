@@ -477,7 +477,14 @@ def _manual_node_detail(workspace_id: str, node_ref: str) -> dict[str, Any]:
     }
 
 
-def _subscription_detail(workspace_id: str, item: dict[str, Any], *, projection_mode: str) -> dict[str, Any]:
+def _subscription_detail(
+    workspace_id: str,
+    item: dict[str, Any],
+    *,
+    projection_mode: str,
+    subscription_id: str | None = None,
+    resource_group_name: str | None = None,
+) -> dict[str, Any]:
     subscription_id = item.get("subscription_id")
     return {
         "workspace_id": workspace_id,
@@ -493,11 +500,22 @@ def _subscription_detail(workspace_id: str, item: dict[str, Any], *, projection_
             "display_name": item.get("display_name"),
             "state": item.get("state"),
             "tenant_id": item.get("tenant_id"),
+            "scope": {
+                "subscription_id": subscription_id,
+                "resource_group_name": resource_group_name,
+            },
         },
     }
 
 
-def _resource_group_detail(workspace_id: str, item: dict[str, Any], *, projection_mode: str) -> dict[str, Any]:
+def _resource_group_detail(
+    workspace_id: str,
+    item: dict[str, Any],
+    *,
+    projection_mode: str,
+    subscription_id: str | None = None,
+    resource_group_name: str | None = None,
+) -> dict[str, Any]:
     resource_group_id = item.get("id") or _build_resource_group_id(
         item.get("subscription_id"),
         item.get("name"),
@@ -517,6 +535,10 @@ def _resource_group_detail(workspace_id: str, item: dict[str, Any], *, projectio
             "location": item.get("location"),
             "managed_by": item.get("managed_by"),
             "tags": item.get("tags") or {},
+            "scope": {
+                "subscription_id": subscription_id,
+                "resource_group_name": resource_group_name,
+            },
         },
     }
 
@@ -649,6 +671,10 @@ def get_node_detail(
             "message": str(exc),
             "details": {
                 "mode": "live-inventory-projection",
+                "scope": {
+                    "subscription_id": subscription_id,
+                    "resource_group_name": resource_group_name,
+                },
             },
         }
 
@@ -658,7 +684,13 @@ def get_node_detail(
             None,
         )
         if item:
-            return _subscription_detail(workspace_id, item, projection_mode=projection_mode)
+            return _subscription_detail(
+                workspace_id,
+                item,
+                projection_mode=projection_mode,
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+            )
 
     if node_type == "resourcegroup":
         item = next(
@@ -670,7 +702,13 @@ def get_node_detail(
             None,
         )
         if item:
-            return _resource_group_detail(workspace_id, item, projection_mode=projection_mode)
+            return _resource_group_detail(
+                workspace_id,
+                item,
+                projection_mode=projection_mode,
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+            )
 
     if node_type == "resource":
         item = next(

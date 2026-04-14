@@ -100,6 +100,28 @@ function prettifyKey(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+function extractDetailScope(detail: TopologyNodeDetail | null) {
+  const scope = detail?.details?.scope
+  if (!scope || typeof scope !== 'object') {
+    return null
+  }
+
+  const scopeRecord = scope as Record<string, unknown>
+  const subscriptionId =
+    typeof scopeRecord.subscription_id === 'string' ? scopeRecord.subscription_id : ''
+  const resourceGroupName =
+    typeof scopeRecord.resource_group_name === 'string' ? scopeRecord.resource_group_name : ''
+
+  if (!subscriptionId && !resourceGroupName) {
+    return null
+  }
+
+  return {
+    subscriptionId,
+    resourceGroupName,
+  }
+}
+
 export function TopologyPage() {
   const initialPreset = readTopologyPresetFromUrl()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -817,6 +839,7 @@ export function TopologyPage() {
 
   const edgePreview = useMemo(() => filteredTopology.edges.slice(0, 16), [filteredTopology.edges])
   const detailEntries = useMemo(() => Object.entries(nodeDetail?.details ?? {}), [nodeDetail])
+  const detailScope = useMemo(() => extractDetailScope(nodeDetail), [nodeDetail])
   const searchScopeMeta = useMemo(() => getSearchScopeMeta(searchScope), [searchScope])
   const currentPresetState = useMemo<TopologyPresetState>(
     () => ({
@@ -890,6 +913,20 @@ export function TopologyPage() {
   const managedInstanceChildSampleNames = useMemo(
     () => getManagedInstanceChildSampleNames(selectedNode, nodeDetail).slice(0, 5),
     [nodeDetail, selectedNode],
+  )
+  const detailScopeSummary = useMemo(
+    () =>
+      UI_TEXT.snapshotScopeMeta(
+        detailScope?.subscriptionId ?? selectedSubscriptionId,
+        detailScope?.resourceGroupName ?? focusedResourceGroupName,
+      ),
+    [detailScope, focusedResourceGroupName, selectedSubscriptionId],
+  )
+  const hasDetailScopeContext = Boolean(
+    detailScope?.subscriptionId ||
+      detailScope?.resourceGroupName ||
+      selectedSubscriptionId ||
+      focusedResourceGroupName,
   )
   const visibleManagedInstanceChildCount = useMemo(() => {
     if (!selectedNode || !isManagedInstanceNode(selectedNode)) {
@@ -2308,6 +2345,41 @@ export function TopologyPage() {
                   <strong>{selectedNode.location ?? '-'}</strong>
                 </div>
               </div>
+
+              {hasDetailScopeContext ? (
+                <div className="detail-item">
+                  <span>Scoped Inventory Window</span>
+                  <strong>{detailScopeSummary}</strong>
+                  <p className="hint detail-inline-hint">
+                    {nodeDetail?.status === 'not-found'
+                      ? UI_TEXT.scopedDetailNotFoundHint
+                      : UI_TEXT.scopedDetailHint}
+                  </p>
+                  <div className="button-row detail-button-row">
+                    {focusedResourceGroupName ? (
+                      <button
+                        type="button"
+                        className="toolbar-button"
+                        onClick={() => setFocusedResourceGroupName('')}
+                      >
+                        Load all resource groups
+                      </button>
+                    ) : null}
+                    {selectedSubscriptionId ? (
+                      <button
+                        type="button"
+                        className="toolbar-button"
+                        onClick={() => {
+                          setSelectedSubscriptionId('')
+                          setFocusedResourceGroupName('')
+                        }}
+                      >
+                        Load all subscriptions
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               {isResourceGroupNode(selectedNode) ? (
                 <div className="detail-item">
