@@ -4,11 +4,13 @@ import {
   createExport,
   getAuthConfigCheck,
   getTopology,
+  getWorkspaceInventorySummary,
   getWorkspaceResourceGroups,
   getWorkspaceSubscriptions,
   getWorkspaces,
   type InventoryResourceGroup,
   type InventorySubscription,
+  type InventorySummaryResponse,
   type TopologyResponse,
   type Workspace,
 } from '../lib/api'
@@ -155,6 +157,7 @@ export function ArchitecturePage() {
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [inventoryMode, setInventoryMode] = useState('')
   const [inventoryWarning, setInventoryWarning] = useState('')
+  const [inventorySummary, setInventorySummary] = useState<InventorySummaryResponse | null>(null)
   const [topology, setTopology] = useState<TopologyResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [topologyLoading, setTopologyLoading] = useState(false)
@@ -214,6 +217,7 @@ export function ArchitecturePage() {
       setFocusedResourceGroupName('')
       setInventoryMode('')
       setInventoryWarning('')
+      setInventorySummary(null)
       return
     }
 
@@ -247,12 +251,30 @@ export function ArchitecturePage() {
         if (resourceGroupResult.mode) {
           setInventoryMode(resourceGroupResult.mode)
         }
+
+        const summaryResult = await getWorkspaceInventorySummary(selectedWorkspaceId, {
+          subscriptionId: selectedSubscriptionId || undefined,
+          resourceGroupName: focusedResourceGroupName || undefined,
+          resourceGroupLimit: 200,
+        })
+        if (!active) {
+          return
+        }
+
+        setInventorySummary(summaryResult)
+        if (summaryResult.warning && !resourceGroupResult.warning && !subscriptionResult.warning) {
+          setInventoryWarning(summaryResult.warning)
+        }
+        if (summaryResult.mode && !resourceGroupResult.mode) {
+          setInventoryMode(summaryResult.mode)
+        }
       } catch (err) {
         if (!active) {
           return
         }
         setAvailableSubscriptions([])
         setAvailableResourceGroups([])
+        setInventorySummary(null)
         setInventoryWarning(err instanceof Error ? err.message : 'Failed to load architecture inventory scope')
       } finally {
         if (active) {
@@ -266,7 +288,7 @@ export function ArchitecturePage() {
     return () => {
       active = false
     }
-  }, [selectedSubscriptionId, selectedWorkspaceId])
+  }, [focusedResourceGroupName, selectedSubscriptionId, selectedWorkspaceId])
 
   useEffect(() => {
     if (!focusedResourceGroupName) {
@@ -598,6 +620,25 @@ export function ArchitecturePage() {
                 {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : 'all resource groups'}
               </p>
               {inventoryWarning ? <p className="hint">Inventory note: {inventoryWarning}</p> : null}
+              {inventorySummary ? (
+                <div className="summary-grid summary-grid-wide section-spacer">
+                  <div className="metric-box">
+                    <span className="metric-label">Collector Subs</span>
+                    <strong>{inventorySummary.summary.subscription_count}</strong>
+                    <small>in scope</small>
+                  </div>
+                  <div className="metric-box">
+                    <span className="metric-label">Collector RGs</span>
+                    <strong>{inventorySummary.summary.resource_group_count}</strong>
+                    <small>in scope</small>
+                  </div>
+                  <div className="metric-box">
+                    <span className="metric-label">Collector Resources</span>
+                    <strong>{inventorySummary.summary.resource_count}</strong>
+                    <small>raw inventory</small>
+                  </div>
+                </div>
+              ) : null}
             </>
           )}
         </article>
