@@ -75,6 +75,8 @@ class SnapshotCreateRequest(SnapshotBase):
 class SnapshotUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=SNAPSHOT_NAME_MAX_LENGTH)
     note: str | None = Field(default=None, max_length=SNAPSHOT_NOTE_MAX_LENGTH)
+    is_pinned: bool | None = None
+    archived: bool | None = None
 
     @field_validator("name", "note", mode="before")
     @classmethod
@@ -87,8 +89,13 @@ class SnapshotUpdateRequest(BaseModel):
 class SnapshotRecord(SnapshotBase):
     id: str
     workspace_id: str
+    captured_at: str
     created_at: str
     updated_at: str
+    last_restored_at: str = ""
+    restore_count: int = Field(default=0, ge=0)
+    is_pinned: bool = False
+    archived_at: str = ""
 
 
 class SnapshotListResponse(BaseModel):

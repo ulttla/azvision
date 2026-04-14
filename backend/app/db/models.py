@@ -141,8 +141,13 @@ DDL_STATEMENTS = [
         loaded_node_count INTEGER NOT NULL DEFAULT 0,
         edge_count INTEGER NOT NULL DEFAULT 0,
         thumbnail_data_url TEXT,
+        captured_at TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
+        updated_at TEXT NOT NULL,
+        last_restored_at TEXT,
+        restore_count INTEGER NOT NULL DEFAULT 0,
+        is_pinned INTEGER NOT NULL DEFAULT 0,
+        archived_at TEXT
     )
     """,
     """
@@ -180,5 +185,43 @@ def create_db_and_tables() -> None:
             "snapshots",
             "selected_subscription_id",
             "selected_subscription_id TEXT NOT NULL DEFAULT ''",
+        )
+        _ensure_column(
+            cursor,
+            "snapshots",
+            "captured_at",
+            "captured_at TEXT NOT NULL DEFAULT ''",
+        )
+        _ensure_column(
+            cursor,
+            "snapshots",
+            "last_restored_at",
+            "last_restored_at TEXT",
+        )
+        _ensure_column(
+            cursor,
+            "snapshots",
+            "restore_count",
+            "restore_count INTEGER NOT NULL DEFAULT 0",
+        )
+        _ensure_column(
+            cursor,
+            "snapshots",
+            "is_pinned",
+            "is_pinned INTEGER NOT NULL DEFAULT 0",
+        )
+        _ensure_column(
+            cursor,
+            "snapshots",
+            "archived_at",
+            "archived_at TEXT",
+        )
+
+        cursor.execute(
+            """
+            UPDATE snapshots
+            SET captured_at = COALESCE(NULLIF(captured_at, ''), created_at)
+            WHERE COALESCE(captured_at, '') = ''
+            """
         )
         conn.commit()

@@ -4,6 +4,7 @@ import {
   createTopologySnapshot,
   deleteTopologySnapshot,
   getTopologySnapshots,
+  recordTopologySnapshotRestoreEvent,
   type SnapshotApiCreateRequest,
   type SnapshotApiRecord,
   updateTopologySnapshot,
@@ -106,8 +107,9 @@ export interface SnapshotStorageProvider {
   update(
     workspaceId: string,
     snapshotId: string,
-    patch: { name?: string; note?: string },
+    patch: { name?: string; note?: string; isPinned?: boolean; archived?: boolean },
   ): Promise<SavedTopologySnapshot>
+  recordRestore(workspaceId: string, snapshotId: string): Promise<SavedTopologySnapshot>
   remove(workspaceId: string, snapshotId: string): Promise<void>
 }
 
@@ -207,6 +209,14 @@ function sanitizeSnapshotCount(value: unknown) {
   return Math.floor(numericValue)
 }
 
+function sanitizeSnapshotTimestamp(value: unknown) {
+  return String(value ?? '').trim()
+}
+
+function sanitizeSnapshotBoolean(value: unknown) {
+  return value === true
+}
+
 export function sanitizeSnapshotThumbnailDataUrl(value: unknown) {
   const thumbnailDataUrl = String(value ?? '').trim()
   if (!thumbnailDataUrl) {
@@ -289,8 +299,13 @@ export function loadSavedTopologySnapshots(): SavedTopologySnapshot[] {
         return {
           id: String((item as { id?: unknown }).id ?? ''),
           name: String((item as { name?: unknown }).name ?? '').trim(),
+          capturedAt: sanitizeSnapshotTimestamp((item as { capturedAt?: unknown }).capturedAt) || String((item as { createdAt?: unknown }).createdAt ?? ''),
           createdAt: String((item as { createdAt?: unknown }).createdAt ?? ''),
           updatedAt: String((item as { updatedAt?: unknown }).updatedAt ?? ''),
+          lastRestoredAt: sanitizeSnapshotTimestamp((item as { lastRestoredAt?: unknown }).lastRestoredAt),
+          restoreCount: sanitizeSnapshotCount((item as { restoreCount?: unknown }).restoreCount),
+          isPinned: sanitizeSnapshotBoolean((item as { isPinned?: unknown }).isPinned),
+          archivedAt: sanitizeSnapshotTimestamp((item as { archivedAt?: unknown }).archivedAt),
           storageKind: normalizeSnapshotStorageKind((item as { storageKind?: unknown }).storageKind),
           ...base,
         } satisfies SavedTopologySnapshot
@@ -436,11 +451,17 @@ export function normalizeImportedSnapshotPayload(raw: unknown) {
 
       const snapshot = item as Partial<SavedTopologySnapshot>
       const base = sanitizeSnapshotState(snapshot)
+      const now = new Date().toISOString()
       const nextSnapshot: SavedTopologySnapshot = {
         id: createPresetId(),
         name: String(snapshot.name ?? '').trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        capturedAt: sanitizeSnapshotTimestamp(snapshot.capturedAt) || String(snapshot.createdAt ?? '') || now,
+        createdAt: now,
+        updatedAt: now,
+        lastRestoredAt: sanitizeSnapshotTimestamp(snapshot.lastRestoredAt),
+        restoreCount: sanitizeSnapshotCount(snapshot.restoreCount),
+        isPinned: sanitizeSnapshotBoolean(snapshot.isPinned),
+        archivedAt: sanitizeSnapshotTimestamp(snapshot.archivedAt),
         storageKind: 'local',
         ...base,
       }
@@ -528,8 +549,13 @@ function mapSnapshotApiRecord(record: SnapshotApiRecord): SavedTopologySnapshot 
   return {
     id: record.id,
     name: String(record.name ?? '').trim(),
+    capturedAt: record.captured_at || record.created_at,
     createdAt: record.created_at,
     updatedAt: record.updated_at,
+    lastRestoredAt: record.last_restored_at || '',
+    restoreCount: sanitizeSnapshotCount(record.restore_count),
+    isPinned: record.is_pinned === true,
+    archivedAt: record.archived_at || '',
     storageKind: 'server',
     ...base,
   }
@@ -634,9 +660,17 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
   },
   async create(workspaceId, snapshot) {
     const allSnapshots = loadSavedTopologySnapshots()
+    const now = new Date().toISOString()
     const nextSnapshot = {
       ...snapshot,
       workspaceId,
+      capturedAt: sanitizeSnapshotTimestamp(snapshot.capturedAt) || now,
+      createdAt: snapshot.createdAt || now,
+      updatedAt: snapshot.updatedAt || now,
+      lastRestoredAt: sanitizeSnapshotTimestamp(snapshot.lastRestoredAt),
+      restoreCount: sanitizeSnapshotCount(snapshot.restoreCount),
+      isPinned: sanitizeSnapshotBoolean(snapshot.isPinned),
+      archivedAt: sanitizeSnapshotTimestamp(snapshot.archivedAt),
       storageKind: 'local' as const,
     }
     const nextSnapshots = [nextSnapshot, ...allSnapshots]
@@ -659,7 +693,40 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
         ? {
             ...snapshot,
             ...patch,
+            isPinned: patch.isPinned ?? snapshot.isPinned,
+            archivedAt:
+              patch.archived === undefined
+                ? snapshot.archivedAt
+                : patch.archived
+                  ? new Date().toISOString()
+                  : '',
             updatedAt: new Date().toISOString(),
+          }
+        : snapshot,
+    )
+
+    const updatedSnapshot = nextSnapshots.find(
+      (snapshot) => snapshot.id === snapshotId && snapshot.workspaceId === workspaceId,
+    )
+    if (!updatedSnapshot) {
+      throw new Error('Snapshot not found')
+    }
+
+    const persistResult = persistSavedTopologySnapshots(nextSnapshots)
+    if (!persistResult.ok) {
+      throw new Error(persistResult.message)
+    }
+
+    return updatedSnapshot
+  },
+  async recordRestore(workspaceId, snapshotId) {
+    const allSnapshots = loadSavedTopologySnapshots()
+    const nextSnapshots = allSnapshots.map((snapshot) =>
+      snapshot.id === snapshotId && snapshot.workspaceId === workspaceId
+        ? {
+            ...snapshot,
+            lastRestoredAt: new Date().toISOString(),
+            restoreCount: sanitizeSnapshotCount(snapshot.restoreCount) + 1,
           }
         : snapshot,
     )
@@ -705,6 +772,10 @@ const serverSnapshotStorageProvider: SnapshotStorageProvider = {
   },
   async update(workspaceId, snapshotId, patch) {
     const updatedSnapshot = await updateTopologySnapshot(workspaceId, snapshotId, patch)
+    return mapSnapshotApiRecord(updatedSnapshot)
+  },
+  async recordRestore(workspaceId, snapshotId) {
+    const updatedSnapshot = await recordTopologySnapshotRestoreEvent(workspaceId, snapshotId)
     return mapSnapshotApiRecord(updatedSnapshot)
   },
   async remove(workspaceId, snapshotId) {

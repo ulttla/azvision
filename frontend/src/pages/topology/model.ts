@@ -122,12 +122,19 @@ export const UI_TEXT = {
   renameSnapshot: 'Rename',
   deleteSnapshot: 'Delete',
   activeSnapshotBadge: 'Active view',
+  pinnedSnapshotBadge: 'Pinned',
+  archivedSnapshotBadge: 'Archived',
+  neverRestoredSnapshotBadge: 'Never restored',
   snapshotHint:
     'Snapshots capture current view state plus metadata. They do not store a frozen copy of live Azure resource data.',
   snapshotGuideTitle: 'Best for annotated point-in-time view setup',
   snapshotGuideBody: 'Use snapshots when you want notes, thumbnail preview, and saved counts for a specific topology view.',
   snapshotRestoreNotice: 'View state restored. Live topology data will refresh from the current workspace.',
   snapshotRestoreMetaHint: 'Restore reapplies the saved view settings, then reloads the current live topology.',
+  pinSnapshot: 'Pin',
+  unpinSnapshot: 'Unpin',
+  archiveSnapshot: 'Archive',
+  unarchiveSnapshot: 'Unarchive',
   snapshotSavedWithoutThumbnailSuffix: 'Saved without thumbnail to stay within browser storage limits',
   snapshotStorageNearLimit: 'Browser storage is getting full. Consider deleting older snapshots or exporting them to JSON.',
   snapshotStorageQuotaExceeded: 'Browser storage is full. Delete older snapshots or export them to JSON before saving more.',
@@ -147,6 +154,11 @@ export const UI_TEXT = {
     `${workspace} • ${scope} • ${compareCount} compare target${compareCount === 1 ? '' : 's'}`,
   snapshotCounts: (visibleCount: number, loadedCount: number, edgeCount: number) =>
     `${visibleCount} visible • ${loadedCount} loaded • ${edgeCount} edges`,
+  snapshotCapturedMeta: (capturedAt: string) => `Captured ${capturedAt ? new Date(capturedAt).toLocaleString() : '-'}`,
+  snapshotRestoredMeta: (lastRestoredAt: string, restoreCount: number) =>
+    lastRestoredAt
+      ? `Restored ${new Date(lastRestoredAt).toLocaleString()} • ${restoreCount} total restore${restoreCount === 1 ? '' : 's'}`
+      : 'Never restored yet',
   snapshotScopeMeta: (selectedSubscriptionId: string, resourceGroupName: string) => {
     const parts: string[] = []
 
@@ -231,8 +243,13 @@ export type SnapshotStorageKind = 'local' | 'server'
 export type SavedTopologySnapshot = TopologySnapshotState & {
   id: string
   name: string
+  capturedAt: string
   createdAt: string
   updatedAt: string
+  lastRestoredAt: string
+  restoreCount: number
+  isPinned: boolean
+  archivedAt: string
   storageKind: SnapshotStorageKind
 }
 

@@ -39,6 +39,14 @@ def update_snapshot(
         raise HTTPException(status_code=404, detail="Snapshot not found") from exc
 
 
+@router.post("/{snapshot_id}/restore-events", response_model=SnapshotRecord)
+def record_snapshot_restore_event(workspace_id: str, snapshot_id: str) -> SnapshotRecord:
+    try:
+        return service.record_restore_event(workspace_id, snapshot_id)
+    except SnapshotNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Snapshot not found") from exc
+
+
 @router.delete("/{snapshot_id}")
 def delete_snapshot(workspace_id: str, snapshot_id: str) -> dict[str, str]:
     try:

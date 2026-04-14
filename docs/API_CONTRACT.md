@@ -68,7 +68,12 @@
 - `GET /workspaces/{workspace_id}/snapshots/{snapshot_id}`
   - 응답: `SnapshotRecord`
 - `PATCH /workspaces/{workspace_id}/snapshots/{snapshot_id}`
-  - patch 가능 필드: `name`, `note`
+  - patch 가능 필드: `name`, `note`, `is_pinned`, `archived`
+  - `archived=true`면 `archived_at` 설정, `archived=false`면 archive 해제
+  - 응답: `SnapshotRecord`
+- `POST /workspaces/{workspace_id}/snapshots/{snapshot_id}/restore-events`
+  - snapshot restore usage 기록
+  - side effect: `last_restored_at`, `restore_count` 갱신
   - 응답: `SnapshotRecord`
 - `DELETE /workspaces/{workspace_id}/snapshots/{snapshot_id}`
   - 응답: `workspace_id`, `snapshot_id`, `status=deleted`
@@ -98,5 +103,5 @@
 - 비용 응답은 `currency` 와 `period` 를 포함한다 (Phase 2)
 - export 응답은 `format`, `status`, `output_path` 를 포함한다
 - snapshot list 응답은 `items` 배열을 포함한다
-- snapshot record 응답은 `id`, `workspace_id`, `name`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `created_at`, `updated_at` 를 포함한다
+- snapshot record 응답은 `id`, `workspace_id`, `name`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `captured_at`, `created_at`, `updated_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at` 를 포함한다
 - snapshot delete 응답은 `workspace_id`, `snapshot_id`, `status` 를 포함한다

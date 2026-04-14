@@ -171,15 +171,37 @@ export type SnapshotApiRecord = {
   loaded_node_count: number
   edge_count: number
   thumbnail_data_url: string
+  captured_at: string
   created_at: string
   updated_at: string
+  last_restored_at: string
+  restore_count: number
+  is_pinned: boolean
+  archived_at: string
 }
 
-export type SnapshotApiCreateRequest = Omit<SnapshotApiRecord, 'id' | 'workspace_id' | 'created_at' | 'updated_at'>
+export type SnapshotApiCreateRequest = {
+  preset_version: number
+  name: string
+  note: string
+  compare_refs: string[]
+  cluster_children: boolean
+  scope: 'visible' | 'child-only' | 'collapsed-preview'
+  query: string
+  selected_subscription_id: string
+  resource_group_name: string
+  topology_generated_at: string
+  visible_node_count: number
+  loaded_node_count: number
+  edge_count: number
+  thumbnail_data_url: string
+}
 
 export type SnapshotApiUpdateRequest = {
   name?: string
   note?: string
+  is_pinned?: boolean
+  archived?: boolean
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
@@ -414,6 +436,15 @@ export async function updateTopologySnapshot(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
+  })
+}
+
+export async function recordTopologySnapshotRestoreEvent(
+  workspaceId: string,
+  snapshotId: string,
+): Promise<SnapshotApiRecord> {
+  return fetchJson<SnapshotApiRecord>(`/workspaces/${workspaceId}/snapshots/${snapshotId}/restore-events`, {
+    method: 'POST',
   })
 }
 

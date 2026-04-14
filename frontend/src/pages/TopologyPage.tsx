@@ -940,6 +940,31 @@ export function TopologyPage() {
       savedSnapshots.find((snapshot) => arePresetStatesEqual(snapshot, currentPresetState))?.id ?? null,
     [currentPresetState, savedSnapshots],
   )
+  const orderedSavedSnapshots = useMemo(
+    () =>
+      [...savedSnapshots].sort((left, right) => {
+        if (left.isPinned !== right.isPinned) {
+          return left.isPinned ? -1 : 1
+        }
+
+        const leftArchived = Boolean(left.archivedAt)
+        const rightArchived = Boolean(right.archivedAt)
+        if (leftArchived !== rightArchived) {
+          return leftArchived ? 1 : -1
+        }
+
+        const leftRestoredAt = left.lastRestoredAt || ''
+        const rightRestoredAt = right.lastRestoredAt || ''
+        if (leftRestoredAt !== rightRestoredAt) {
+          return rightRestoredAt.localeCompare(leftRestoredAt)
+        }
+
+        const leftCapturedAt = left.capturedAt || left.createdAt || ''
+        const rightCapturedAt = right.capturedAt || right.createdAt || ''
+        return rightCapturedAt.localeCompare(leftCapturedAt)
+      }),
+    [savedSnapshots],
+  )
   const compareMetaByRef = useMemo(
     () =>
       new Map(
@@ -1127,8 +1152,13 @@ export function TopologyPage() {
     let nextSnapshot: SavedTopologySnapshot = {
       id: createPresetId(),
       name: snapshotNameInput.trim() || `${UI_TEXT.defaultSnapshotName} ${savedSnapshots.length + 1}`,
+      capturedAt: now,
       createdAt: now,
       updatedAt: now,
+      lastRestoredAt: '',
+      restoreCount: 0,
+      isPinned: false,
+      archivedAt: '',
       storageKind: snapshotStorageMode,
       note: snapshotNoteInput.trim(),
       topologyGeneratedAt: topology?.generated_at ?? '',
@@ -1184,7 +1214,7 @@ export function TopologyPage() {
     setExportMessage(`${UI_TEXT.loadedPresetPrefix} ${preset.name}`)
   }
 
-  function handleLoadSavedSnapshot(snapshot: SavedTopologySnapshot) {
+  async function handleLoadSavedSnapshot(snapshot: SavedTopologySnapshot) {
     const normalizedSnapshot = sanitizeSnapshotState(snapshot)
 
     setSelectedWorkspaceId(normalizedSnapshot.workspaceId)
@@ -1200,7 +1230,14 @@ export function TopologyPage() {
     setPendingFocusNodeKey('')
     setSnapshotNameInput('')
     setSnapshotNoteInput(normalizedSnapshot.note)
-    setExportMessage(`${UI_TEXT.loadedSnapshotPrefix} ${snapshot.name} — ${UI_TEXT.snapshotRestoreNotice}`)
+
+    try {
+      await snapshotStorageProvider.recordRestore(snapshot.workspaceId, snapshot.id)
+      await refreshSavedSnapshots(snapshot.workspaceId)
+      setExportMessage(`${UI_TEXT.loadedSnapshotPrefix} ${snapshot.name} — ${UI_TEXT.snapshotRestoreNotice}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+    }
   }
 
   async function handleRenameSavedSnapshot(snapshot: SavedTopologySnapshot) {
@@ -1267,6 +1304,34 @@ export function TopologyPage() {
       await snapshotStorageProvider.remove(selectedWorkspaceId, snapshot.id)
       await refreshSavedSnapshots(selectedWorkspaceId)
       setExportMessage(`${UI_TEXT.deletedSnapshotPrefix} ${snapshot.name}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+    }
+  }
+
+  async function handleToggleSnapshotPin(snapshot: SavedTopologySnapshot) {
+    try {
+      await snapshotStorageProvider.update(selectedWorkspaceId, snapshot.id, {
+        isPinned: !snapshot.isPinned,
+      })
+      await refreshSavedSnapshots(selectedWorkspaceId)
+      setExportMessage(
+        `${snapshot.isPinned ? UI_TEXT.unpinSnapshot : UI_TEXT.pinSnapshot}: ${snapshot.name}`,
+      )
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+    }
+  }
+
+  async function handleToggleSnapshotArchive(snapshot: SavedTopologySnapshot) {
+    try {
+      await snapshotStorageProvider.update(selectedWorkspaceId, snapshot.id, {
+        archived: !Boolean(snapshot.archivedAt),
+      })
+      await refreshSavedSnapshots(selectedWorkspaceId)
+      setExportMessage(
+        `${snapshot.archivedAt ? UI_TEXT.unarchiveSnapshot : UI_TEXT.archiveSnapshot}: ${snapshot.name}`,
+      )
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
     }
@@ -1928,8 +1993,9 @@ export function TopologyPage() {
           </div>
           {savedSnapshots.length ? (
             <div className="compare-chip-grid preset-list-grid">
-              {savedSnapshots.map((snapshot) => {
+              {orderedSavedSnapshots.map((snapshot) => {
                 const isActiveSnapshot = snapshot.id === activeSavedSnapshotId
+                const isArchivedSnapshot = Boolean(snapshot.archivedAt)
                 return (
                   <div
                     key={snapshot.id}
@@ -1951,6 +2017,9 @@ export function TopologyPage() {
                         <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
                           {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
                         </span>
+                        {snapshot.isPinned ? <span className="mini-chip">{UI_TEXT.pinnedSnapshotBadge}</span> : null}
+                        {isArchivedSnapshot ? <span className="mini-chip">{UI_TEXT.archivedSnapshotBadge}</span> : null}
+                        {!snapshot.lastRestoredAt ? <span className="mini-chip">{UI_TEXT.neverRestoredSnapshotBadge}</span> : null}
                         {isActiveSnapshot ? <span className="mini-chip">{UI_TEXT.activeSnapshotBadge}</span> : null}
                       </div>
                       <p className="hint preset-card-meta">
@@ -1971,6 +2040,10 @@ export function TopologyPage() {
                       <p className="hint preset-card-meta">
                         Generated {formatDateTime(snapshot.topologyGeneratedAt)} • Saved {formatDateTime(snapshot.updatedAt || snapshot.createdAt)}
                       </p>
+                      <p className="hint preset-card-meta">{UI_TEXT.snapshotCapturedMeta(snapshot.capturedAt)}</p>
+                      <p className="hint preset-card-meta">
+                        {UI_TEXT.snapshotRestoredMeta(snapshot.lastRestoredAt, snapshot.restoreCount)}
+                      </p>
                       <p className="hint storage-restore-meta">{UI_TEXT.snapshotRestoreMetaHint}</p>
                     </div>
                     <div className="button-row preset-card-actions">
@@ -1987,6 +2060,20 @@ export function TopologyPage() {
                         onClick={() => handleRenameSavedSnapshot(snapshot)}
                       >
                         {UI_TEXT.renameSnapshot}
+                      </button>
+                      <button
+                        type="button"
+                        className="toolbar-button search-inline-button"
+                        onClick={() => handleToggleSnapshotPin(snapshot)}
+                      >
+                        {snapshot.isPinned ? UI_TEXT.unpinSnapshot : UI_TEXT.pinSnapshot}
+                      </button>
+                      <button
+                        type="button"
+                        className="toolbar-button search-inline-button"
+                        onClick={() => handleToggleSnapshotArchive(snapshot)}
+                      >
+                        {isArchivedSnapshot ? UI_TEXT.unarchiveSnapshot : UI_TEXT.archiveSnapshot}
                       </button>
                       <button
                         type="button"

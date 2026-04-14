@@ -44,8 +44,13 @@ class SnapshotRepository:
             "loaded_node_count": int(row["loaded_node_count"] or 0),
             "edge_count": int(row["edge_count"] or 0),
             "thumbnail_data_url": row["thumbnail_data_url"] or "",
+            "captured_at": row["captured_at"] or row["created_at"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
+            "last_restored_at": row["last_restored_at"] or "",
+            "restore_count": int(row["restore_count"] or 0),
+            "is_pinned": bool(row["is_pinned"]),
+            "archived_at": row["archived_at"] or "",
         }
 
     def list_by_workspace(self, workspace_id: str) -> list[dict[str, Any]]:
@@ -55,7 +60,14 @@ class SnapshotRepository:
                 SELECT *
                 FROM snapshots
                 WHERE workspace_id = ?
-                ORDER BY updated_at DESC, created_at DESC, id DESC
+                ORDER BY
+                    CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END,
+                    CASE WHEN COALESCE(archived_at, '') = '' THEN 0 ELSE 1 END,
+                    CASE WHEN COALESCE(last_restored_at, '') = '' THEN 1 ELSE 0 END,
+                    last_restored_at DESC,
+                    captured_at DESC,
+                    updated_at DESC,
+                    id DESC
                 """,
                 (workspace_id,),
             ).fetchall()
@@ -99,9 +111,14 @@ class SnapshotRepository:
                     loaded_node_count,
                     edge_count,
                     thumbnail_data_url,
+                    captured_at,
                     created_at,
-                    updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    updated_at,
+                    last_restored_at,
+                    restore_count,
+                    is_pinned,
+                    archived_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["id"],
@@ -120,8 +137,13 @@ class SnapshotRepository:
                     payload["loaded_node_count"],
                     payload["edge_count"],
                     payload["thumbnail_data_url"],
+                    payload["captured_at"],
                     payload["created_at"],
                     payload["updated_at"],
+                    payload["last_restored_at"],
+                    payload["restore_count"],
+                    1 if payload["is_pinned"] else 0,
+                    payload["archived_at"],
                 ),
             )
             connection.commit()
@@ -145,13 +167,41 @@ class SnapshotRepository:
                 SET
                     name = ?,
                     note = ?,
+                    is_pinned = ?,
+                    archived_at = ?,
                     updated_at = ?
                 WHERE workspace_id = ? AND id = ?
                 """,
                 (
                     next_record["name"],
                     next_record["note"],
+                    1 if next_record["is_pinned"] else 0,
+                    next_record["archived_at"],
                     next_record["updated_at"],
+                    workspace_id,
+                    snapshot_id,
+                ),
+            )
+            connection.commit()
+
+        return self.get(workspace_id, snapshot_id)
+
+    def record_restore(self, workspace_id: str, snapshot_id: str, restored_at: str) -> dict[str, Any] | None:
+        current = self.get(workspace_id, snapshot_id)
+        if current is None:
+            return None
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE snapshots
+                SET
+                    last_restored_at = ?,
+                    restore_count = COALESCE(restore_count, 0) + 1
+                WHERE workspace_id = ? AND id = ?
+                """,
+                (
+                    restored_at,
                     workspace_id,
                     snapshot_id,
                 ),

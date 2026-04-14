@@ -119,8 +119,13 @@
 - `loaded_node_count`
 - `edge_count`
 - `thumbnail_data_url` — optional, inline data URL
+- `captured_at` — immutable capture time
 - `created_at`
-- `updated_at`
+- `updated_at` — rename/note/pin/archive 변경 시점
+- `last_restored_at` — 마지막 restore 시점
+- `restore_count` — restore usage count
+- `is_pinned`
+- `archived_at`
 - 후속 history foundation 메모는 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 참조
 
 ## Graph Node Identity (1A 기준)
@@ -193,7 +198,8 @@
 - restore는 저장된 state를 적용한 뒤 현재 live topology를 다시 사용한다
 - `storageKind(local|server)` 구분은 frontend view model/adapter 레벨에서만 사용하며, 현재 backend DB 컬럼에는 포함하지 않는다
 - thumbnail은 optional이며, 과도한 base64 payload 장기 보관은 추후 별도 최적화 대상으로 둔다
-- history foundation 확장은 `captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at` 같은 운영 메타 보강 방향을 우선 검토한다
+- history foundation 1차 구현으로 `captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at` 운영 메타를 반영했다
+- restore usage는 `POST /snapshots/{snapshot_id}/restore-events` 로 명시적으로 기록한다
 
 ## 이후 확장 포인트
 - historical snapshot timeline

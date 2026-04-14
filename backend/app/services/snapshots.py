@@ -44,8 +44,13 @@ class SnapshotService:
                 "loaded_node_count": payload.loaded_node_count,
                 "edge_count": payload.edge_count,
                 "thumbnail_data_url": payload.thumbnail_data_url,
+                "captured_at": now,
                 "created_at": now,
                 "updated_at": now,
+                "last_restored_at": "",
+                "restore_count": 0,
+                "is_pinned": False,
+                "archived_at": "",
             }
         )
         return SnapshotRecord.model_validate(record)
@@ -57,9 +62,22 @@ class SnapshotService:
         payload: SnapshotUpdateRequest,
     ) -> SnapshotRecord:
         patch = payload.model_dump(exclude_none=True)
+        if "archived" in patch:
+            archived = bool(patch.pop("archived"))
+            patch["archived_at"] = datetime.now(timezone.utc).isoformat() if archived else ""
         patch["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         snapshot = self.repository.update(workspace_id, snapshot_id, patch)
+        if snapshot is None:
+            raise SnapshotNotFoundError(snapshot_id)
+        return SnapshotRecord.model_validate(snapshot)
+
+    def record_restore_event(self, workspace_id: str, snapshot_id: str) -> SnapshotRecord:
+        snapshot = self.repository.record_restore(
+            workspace_id,
+            snapshot_id,
+            datetime.now(timezone.utc).isoformat(),
+        )
         if snapshot is None:
             raise SnapshotNotFoundError(snapshot_id)
         return SnapshotRecord.model_validate(snapshot)
