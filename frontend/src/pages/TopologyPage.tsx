@@ -2182,11 +2182,27 @@ export function TopologyPage() {
                   })}
                 </div>
               ) : (
-                <p className="hint">{snapshotsLoading ? UI_TEXT.loading : UI_TEXT.noSavedSnapshots}</p>
+                <p className="hint">
+                  {snapshotsLoading
+                    ? UI_TEXT.loading
+                    : snapshotStorageMode === 'server'
+                      ? localWorkspaceSnapshots.length > 0
+                        ? UI_TEXT.noServerSnapshotsWithLocalHint
+                        : UI_TEXT.noServerSnapshots
+                      : UI_TEXT.noSavedSnapshots}
+                </p>
               )}
             </>
           ) : (
-            <p className="hint">{snapshotsLoading ? UI_TEXT.loading : UI_TEXT.noSavedSnapshots}</p>
+            <p className="hint">
+              {snapshotsLoading
+                ? UI_TEXT.loading
+                : snapshotStorageMode === 'server'
+                  ? localWorkspaceSnapshots.length > 0
+                    ? UI_TEXT.noServerSnapshotsWithLocalHint
+                    : UI_TEXT.noServerSnapshots
+                  : UI_TEXT.noSavedSnapshots}
+            </p>
           )}
 
           <h3 className="section-spacer">{UI_TEXT.savedPresetsTitle}</h3>

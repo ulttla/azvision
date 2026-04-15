@@ -118,6 +118,8 @@ export const UI_TEXT = {
   defaultSnapshotName: 'Snapshot',
   saveCurrentSnapshot: 'Save current snapshot',
   noSavedSnapshots: 'No snapshots saved yet',
+  noServerSnapshots: 'No server snapshots saved yet',
+  noServerSnapshotsWithLocalHint: 'No server snapshots saved yet — import local snapshots or save a new server snapshot to start history.',
   loadSnapshot: 'Restore',
   renameSnapshot: 'Rename',
   deleteSnapshot: 'Delete',
