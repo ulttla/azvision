@@ -6,6 +6,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - Phase 1B 기준 server-backed snapshot/history 1차 구현 완료
 - snapshot history foundation 후속 설계 초안 추가 완료 (`docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md`)
 - H1 minimal implementation 반영: snapshot `captured_at / last_restored_at / restore_count / is_pinned / archived_at`, restore-event API, frontend pin/archive/usage meta UI
+- snapshot list query parity 1차 반영: `sort_by / sort_order / include_archived / pinned_first`
 - FastAPI backend + SQLite persistence + snapshot CRUD 반영 완료
 - React + Vite frontend에서 local/server dual-mode snapshot provider 지원
 - import CTA / dedup / source badge / notice persistence / responsive polish 1차 반영 완료
@@ -81,4 +82,4 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분은 현재 구현 반영 상태
-- 다음 권장 순서: snapshot history foundation(H1) 범위 확정 → backend history meta/restore-event 최소 구현 → frontend snapshot card/pinned/archive UX → 필요 시 branch protection/PR rule 또는 topology live 고도화
+- 다음 권장 순서: snapshot history list/query UX 추가 검증 → API/DATA_MODEL 문서 sync 보강 → 필요 시 branch protection/PR rule 또는 topology live 고도화

@@ -17,14 +17,21 @@ AzVision은 이미 아래를 구현한 상태다.
 - explicit local → server import CTA
 - snapshot별 `selected_subscription_id`, `resource_group_name` 저장
 - thumbnail / note / rename / delete / restore 흐름
+- `captured_at / last_restored_at / restore_count / is_pinned / archived_at` 운영 메타 반영
+- `POST /snapshots/{snapshot_id}/restore-events` 반영
 - server mode에서 workspace 기준 history list 조회
+- snapshot list query parity 1차 반영
+  - `sort_by`
+  - `sort_order`
+  - `include_archived`
+  - `pinned_first`
 
-즉, **"server-backed snapshots"는 구현 완료** 상태다.
-다만 현재의 history는 아래 한계가 있다.
-- 사실상 `updated_at DESC` 정렬 목록이며, "복원 이력"과 "수정 이력"이 구분되지 않음
-- rename/note 변경도 최신 history처럼 보일 수 있음
-- 마지막 restore 시점, restore 횟수, pinned/archived 같은 운영 메타가 없음
-- 사용자가 "이 snapshot이 최근에 저장된 것인지, 최근에 다시 연 것인지" 구분하기 어려움
+즉, **"server-backed snapshots + history foundation H1"은 usable baseline까지 구현 완료** 상태다.
+현재 남은 핵심은 아래다.
+- list query/정렬 규칙을 실제 UX와 완전히 맞추는지 추가 검증
+- rename/note update와 usage history 체감이 충분히 분리되는지 확인
+- pinned/recent/archived filter UX와 card meta 표현 미세조정
+- 이후 history를 revision system으로 비대화하지 않고 working set 중심으로 유지
 
 ## 문제 정의
 현재 snapshot은 저장/복원은 가능하지만, 장기적으로는 아래 질문에 답하기 어렵다.
@@ -144,6 +151,7 @@ SnapshotRecord {
 - `sort_order=asc|desc`
 - `include_archived=true|false`
 - `pinned_first=true|false`
+- 상태: **1차 구현 완료**, 이후 실제 UI/정렬 체감 검증 단계
 
 #### 2) patch field 확장
 - `name`
@@ -213,12 +221,14 @@ SnapshotRecord {
 
 ## 구현 단계 제안
 ### H1. foundation schema + API
+- 상태: **구현 완료**
 1. DB migration column 추가
 2. schema / repository / service / route 확장
 3. list sort/filter query 최소 반영
 4. restore-events endpoint 추가
 
 ### H2. frontend history UX
+- 상태: **1차 usable 반영 완료, polish/검증 여지 있음**
 1. snapshot card meta 재구성
 2. pin/archive action 추가
 3. load 시 restore-events 호출
