@@ -722,10 +722,10 @@ export function ArchitecturePage() {
         <article className="panel-card architecture-detail-card">
           <div className="section-heading">
             <h2>Selected Card</h2>
-            <span className="mini-status">Manual review surface</span>
+            <span className="mini-status">{selectedNode ? selectedNode.shortLabel : 'Manual review surface'}</span>
           </div>
           {selectedNode ? (
-            <div className="architecture-detail-copy">
+            <div className="architecture-detail-copy" data-testid="arch-detail-panel">
               <div className="architecture-card-title-row">
                 <strong>{selectedNode.label}</strong>
                 <span className={`mini-chip architecture-stage-chip architecture-stage-chip-${selectedNode.stage}`}>
@@ -752,7 +752,13 @@ export function ArchitecturePage() {
                 </div>
               </div>
               <div className="button-row architecture-card-actions">
-                <button type="button" className="toolbar-button" onClick={() => hideArchitectureNode(selectedNode)}>
+                <button
+                  type="button"
+                  className="toolbar-button"
+                  onClick={() => hideArchitectureNode(selectedNode)}
+                  aria-label={`Hide ${selectedNode.label} from architecture view`}
+                  data-testid="arch-detail-hide-btn"
+                >
                   Hide from architecture view
                 </button>
               </div>
@@ -807,8 +813,15 @@ export function ArchitecturePage() {
                       <article
                         key={node.id}
                         className={`architecture-node-card ${selectedNode?.id === node.id ? 'selected' : ''}`}
+                        data-testid="arch-node-card"
+                        data-node-id={node.id}
                       >
-                        <button type="button" className="node-button architecture-node-button" onClick={() => setSelectedNodeId(node.id)}>
+                        <button
+                          type="button"
+                          className="node-button architecture-node-button"
+                          onClick={() => setSelectedNodeId(node.id)}
+                          aria-label={`${selectedNode?.id === node.id ? 'Currently viewing' : 'Select'} ${node.shortLabel} — ${node.familyLabel}, ${node.nodeCount} item${node.nodeCount === 1 ? '' : 's'}`}
+                        >
                           <div>
                             <strong>{node.shortLabel}</strong>
                             <p>{node.familyLabel} • {node.nodeCount} item{node.nodeCount === 1 ? '' : 's'}</p>
@@ -816,10 +829,22 @@ export function ArchitecturePage() {
                           <span className="mini-chip">{node.resourceGroups[0] ?? 'shared'}</span>
                         </button>
                         <div className="button-row architecture-node-actions">
-                          <button type="button" className="toolbar-button search-inline-button" onClick={() => setSelectedNodeId(node.id)}>
-                            Detail
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => setSelectedNodeId(node.id)}
+                            aria-label={`${selectedNode?.id === node.id ? 'Currently selected' : 'Select'} ${node.shortLabel} for detail panel`}
+                            data-testid="arch-node-select-btn"
+                          >
+                            {selectedNode?.id === node.id ? 'Selected' : 'Select'}
                           </button>
-                          <button type="button" className="toolbar-button search-inline-button" onClick={() => hideArchitectureNode(node)}>
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => hideArchitectureNode(node)}
+                            aria-label={`Hide ${node.shortLabel} from architecture view`}
+                            data-testid="arch-node-hide-btn"
+                          >
                             Hide
                           </button>
                         </div>
