@@ -10,6 +10,12 @@ ENV_FILE_CANDIDATES = (
     PROJECT_DIR / ".env",
     BACKEND_DIR / ".env",
 )
+DEFAULT_CORS_DEV_PORTS = (5173, 4173, 4174, 4175, 4176)
+DEFAULT_CORS_ORIGINS = ",".join(
+    f"http://{host}:{port}"
+    for port in DEFAULT_CORS_DEV_PORTS
+    for host in ("localhost", "127.0.0.1")
+)
 
 
 class Settings(BaseSettings):
@@ -17,11 +23,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     api_v1_prefix: str = "/api/v1"
-    cors_origins: str = (
-        "http://localhost:5173,http://127.0.0.1:5173,"
-        "http://localhost:4173,http://127.0.0.1:4173,"
-        "http://localhost:4174,http://127.0.0.1:4174"
-    )
+    cors_origins: str = DEFAULT_CORS_ORIGINS
     database_url: str = "sqlite:///./azvision.db"
 
     azure_tenant_id: str = Field(
