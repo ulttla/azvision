@@ -37,6 +37,7 @@ cp .env.example .env
 
 - 권장 위치는 project root의 `.env`
 - backend를 단독 실행할 때는 `backend/.env`도 지원
+- frontend(Vite)도 `envDir: '..'` 기준으로 project root `.env`의 `VITE_*` 값을 함께 읽음
 - Azure live read-test 전에는 `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CERT_PATH`를 실제 값으로 채워야 함
 
 ### Backend
