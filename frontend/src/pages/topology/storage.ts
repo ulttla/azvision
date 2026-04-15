@@ -761,7 +761,12 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
 const serverSnapshotStorageProvider: SnapshotStorageProvider = {
   mode: 'server',
   async list(workspaceId) {
-    const snapshots = await getTopologySnapshots(workspaceId)
+    const snapshots = await getTopologySnapshots(workspaceId, {
+      sortBy: 'last_restored_at',
+      sortOrder: 'desc',
+      includeArchived: true,
+      pinnedFirst: true,
+    })
     return snapshots.map(mapSnapshotApiRecord)
   },
   async create(workspaceId, snapshot) {

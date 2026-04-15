@@ -98,5 +98,12 @@ class SnapshotRecord(SnapshotBase):
     archived_at: str = ""
 
 
+class SnapshotListQuery(BaseModel):
+    sort_by: Literal["updated_at", "captured_at", "last_restored_at"] = "last_restored_at"
+    sort_order: Literal["asc", "desc"] = "desc"
+    include_archived: bool = True
+    pinned_first: bool = True
+
+
 class SnapshotListResponse(BaseModel):
     items: list[SnapshotRecord]

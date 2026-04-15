@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.snapshots import SnapshotCreateRequest, SnapshotListResponse, SnapshotRecord, SnapshotUpdateRequest
+from app.schemas.snapshots import (
+    SnapshotCreateRequest,
+    SnapshotListQuery,
+    SnapshotListResponse,
+    SnapshotRecord,
+    SnapshotUpdateRequest,
+)
 from app.services.snapshots import SnapshotNotFoundError, SnapshotService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/snapshots", tags=["snapshots"])
@@ -10,8 +18,20 @@ service = SnapshotService()
 
 
 @router.get("", response_model=SnapshotListResponse)
-def list_snapshots(workspace_id: str) -> SnapshotListResponse:
-    return SnapshotListResponse(items=service.list_snapshots(workspace_id))
+def list_snapshots(
+    workspace_id: str,
+    sort_by: Literal["updated_at", "captured_at", "last_restored_at"] = "last_restored_at",
+    sort_order: Literal["asc", "desc"] = "desc",
+    include_archived: bool = True,
+    pinned_first: bool = True,
+) -> SnapshotListResponse:
+    query = SnapshotListQuery(
+        sort_by=sort_by,
+        sort_order=sort_order,
+        include_archived=include_archived,
+        pinned_first=pinned_first,
+    )
+    return SnapshotListResponse(items=service.list_snapshots(workspace_id, query))
 
 
 @router.post("", response_model=SnapshotRecord)

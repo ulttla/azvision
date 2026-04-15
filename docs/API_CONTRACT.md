@@ -61,6 +61,8 @@
 
 ### Snapshots (Phase 1B implemented)
 - `GET /workspaces/{workspace_id}/snapshots`
+  - query: `sort_by=updated_at|captured_at|last_restored_at`, `sort_order=asc|desc`, `include_archived=true|false`, `pinned_first=true|false`
+  - 기본값: `sort_by=last_restored_at`, `sort_order=desc`, `include_archived=true`, `pinned_first=true`
   - 응답: `items[]` (`SnapshotRecord`)
 - `POST /workspaces/{workspace_id}/snapshots`
   - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`

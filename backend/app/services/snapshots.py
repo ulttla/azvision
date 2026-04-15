@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from app.repositories.snapshots import SnapshotRepository
-from app.schemas.snapshots import SnapshotCreateRequest, SnapshotRecord, SnapshotUpdateRequest
+from app.schemas.snapshots import SnapshotCreateRequest, SnapshotListQuery, SnapshotRecord, SnapshotUpdateRequest
 
 
 class SnapshotNotFoundError(RuntimeError):
@@ -15,8 +15,18 @@ class SnapshotService:
     def __init__(self, repository: SnapshotRepository | None = None):
         self.repository = repository or SnapshotRepository()
 
-    def list_snapshots(self, workspace_id: str) -> list[SnapshotRecord]:
-        return [SnapshotRecord.model_validate(item) for item in self.repository.list_by_workspace(workspace_id)]
+    def list_snapshots(self, workspace_id: str, query: SnapshotListQuery | None = None) -> list[SnapshotRecord]:
+        list_query = query or SnapshotListQuery()
+        return [
+            SnapshotRecord.model_validate(item)
+            for item in self.repository.list_by_workspace(
+                workspace_id,
+                sort_by=list_query.sort_by,
+                sort_order=list_query.sort_order,
+                include_archived=list_query.include_archived,
+                pinned_first=list_query.pinned_first,
+            )
+        ]
 
     def get_snapshot(self, workspace_id: str, snapshot_id: str) -> SnapshotRecord:
         snapshot = self.repository.get(workspace_id, snapshot_id)

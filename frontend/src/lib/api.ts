@@ -204,7 +204,10 @@ export type SnapshotApiUpdateRequest = {
   archived?: boolean
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+export type SnapshotListSortBy = 'updated_at' | 'captured_at' | 'last_restored_at'
+export type SnapshotListSortOrder = 'asc' | 'desc'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, init)
@@ -407,8 +410,34 @@ export async function getAuthConfigCheck(): Promise<{
   return fetchJson('/auth/config-check')
 }
 
-export async function getTopologySnapshots(workspaceId: string): Promise<SnapshotApiRecord[]> {
-  const data = await fetchJson<{ items: SnapshotApiRecord[] }>(`/workspaces/${workspaceId}/snapshots`)
+export async function getTopologySnapshots(
+  workspaceId: string,
+  options?: {
+    sortBy?: SnapshotListSortBy
+    sortOrder?: SnapshotListSortOrder
+    includeArchived?: boolean
+    pinnedFirst?: boolean
+  },
+): Promise<SnapshotApiRecord[]> {
+  const search = new URLSearchParams()
+
+  if (options?.sortBy) {
+    search.set('sort_by', options.sortBy)
+  }
+  if (options?.sortOrder) {
+    search.set('sort_order', options.sortOrder)
+  }
+  if (options?.includeArchived !== undefined) {
+    search.set('include_archived', String(options.includeArchived))
+  }
+  if (options?.pinnedFirst !== undefined) {
+    search.set('pinned_first', String(options.pinnedFirst))
+  }
+
+  const query = search.toString()
+  const data = await fetchJson<{ items: SnapshotApiRecord[] }>(
+    `/workspaces/${workspaceId}/snapshots${query ? `?${query}` : ''}`,
+  )
   return data.items
 }
 

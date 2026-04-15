@@ -44,7 +44,7 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### Frontend
@@ -54,9 +54,14 @@ npm install
 npm run dev
 ```
 
+개발 모드 메모:
+- frontend 기본 API base는 `/api/v1`
+- Vite dev server가 `127.0.0.1:5173` 에서 실행되며 `/api/*` 요청을 backend `127.0.0.1:8000` 으로 proxy 함
+- 별도 `VITE_API_BASE_URL` 지정이 없으면 위 dev proxy 기준으로 동작
+
 기본 주소:
-- API: `http://localhost:8000`
-- UI: `http://localhost:5173`
+- API: `http://127.0.0.1:8000`
+- UI: `http://127.0.0.1:5173`
 
 ## CI baseline
 - GitHub Actions에서 다음 최소 검증을 수행

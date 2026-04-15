@@ -53,18 +53,34 @@ class SnapshotRepository:
             "archived_at": row["archived_at"] or "",
         }
 
-    def list_by_workspace(self, workspace_id: str) -> list[dict[str, Any]]:
+    def list_by_workspace(
+        self,
+        workspace_id: str,
+        *,
+        sort_by: str = "last_restored_at",
+        sort_order: str = "desc",
+        include_archived: bool = True,
+        pinned_first: bool = True,
+    ) -> list[dict[str, Any]]:
+        safe_sort_by = sort_by if sort_by in {"updated_at", "captured_at", "last_restored_at"} else "last_restored_at"
+        safe_sort_order = "ASC" if str(sort_order).lower() == "asc" else "DESC"
+        archived_filter_sql = "" if include_archived else " AND COALESCE(archived_at, '') = ''"
+        pinned_order_sql = "CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END,\n" if pinned_first else ""
+        restore_null_order_sql = (
+            "CASE WHEN COALESCE(last_restored_at, '') = '' THEN 1 ELSE 0 END,\n"
+            if safe_sort_by == "last_restored_at"
+            else ""
+        )
+
         with self._connect() as connection:
             rows = connection.execute(
-                """
+                f"""
                 SELECT *
                 FROM snapshots
-                WHERE workspace_id = ?
+                WHERE workspace_id = ?{archived_filter_sql}
                 ORDER BY
-                    CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END,
-                    CASE WHEN COALESCE(archived_at, '') = '' THEN 0 ELSE 1 END,
-                    CASE WHEN COALESCE(last_restored_at, '') = '' THEN 1 ELSE 0 END,
-                    last_restored_at DESC,
+                    {pinned_order_sql}CASE WHEN COALESCE(archived_at, '') = '' THEN 0 ELSE 1 END,
+                    {restore_null_order_sql}{safe_sort_by} {safe_sort_order},
                     captured_at DESC,
                     updated_at DESC,
                     id DESC
