@@ -10,6 +10,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - FastAPI backend + SQLite persistence + snapshot CRUD 반영 완료
 - React + Vite frontend에서 local/server dual-mode snapshot provider 지원
 - import CTA / dedup / source badge / notice persistence / responsive polish 1차 반영 완료
+- server snapshot empty-state copy clarified when local import candidates exist
 - Architecture View MVP 1차 usable 상태
   - `Topology View / Architecture View` 전환
   - compact stage pipeline / simplified edge / SVG export
