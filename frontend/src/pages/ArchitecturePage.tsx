@@ -685,7 +685,7 @@ export function ArchitecturePage() {
             <h2>View Controls</h2>
             <div className="button-row">
               <button type="button" className="toolbar-button" onClick={resetHiddenNodes} disabled={!hiddenSourceNodeKeys.length}>
-                Reset hidden nodes
+                Reset hidden nodes{hiddenNodes.length > 0 ? ` (${hiddenNodes.length})` : ''}
               </button>
               <button type="button" className="toolbar-button" onClick={() => void handleExport('png')} disabled={exportLoading || !visibleNodes.length}>
                 {exportLoading ? 'Exporting…' : 'Export PNG'}
