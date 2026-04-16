@@ -3,19 +3,25 @@
 Azure topology explorer 기반의 AzVision 개발 repo.
 
 ## 현재 상태
-- Phase 1B 기준 server-backed snapshot/history 1차 구현 완료
-- snapshot history foundation 후속 설계 초안 추가 완료 (`docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md`)
-- H1 minimal implementation 반영: snapshot `captured_at / last_restored_at / restore_count / is_pinned / archived_at`, restore-event API, frontend pin/archive/usage meta UI
-- snapshot list query parity 1차 반영: `sort_by / sort_order / include_archived / pinned_first`
-- FastAPI backend + SQLite persistence + snapshot CRUD 반영 완료
-- React + Vite frontend에서 local/server dual-mode snapshot provider 지원
-- import CTA / dedup / source badge / notice persistence / responsive polish 1차 반영 완료
-- server snapshot empty-state copy clarified when local import candidates exist
-- Architecture View MVP 1차 usable 상태
-  - `Topology View / Architecture View` 전환
-  - compact stage pipeline / simplified edge / SVG export
-  - browser-local hide/show override delta
-  - label readability + short alias pass 반영
+- 현재 active closeout 기준은 **Phase 1A manual modeling usable baseline 완료 + push-ready 정리 단계**
+- backend
+  - SQLite `manual_nodes` / `manual_edges` 기반 DB-backed CRUD 구현 완료
+  - topology 응답에 manual node/edge merge 반영 완료
+  - local runtime smoke 기준 `/` / `/healthz` 200 확인
+- frontend
+  - `TopologyPage`에서 workspace / subscription / resource group scope 제어, Cytoscape canvas, node detail, manual node/edge create/update/delete UI 동작
+  - `tsc --noEmit`, `vite build` 통과
+- 검증
+  - manual node/edge CRUD / PATCH / cleanup smoke 통과
+  - manual edge full E2E(create/list/update/delete) smoke 통과
+  - manual + scan node mixed topology merge smoke 통과
+  - backend compile smoke 통과
+- 문서/운영 상태
+  - `docs/API_CONTRACT.md` 는 current manual CRUD/PATCH 구조와 정합
+  - `docs/PHASE1A_BUILD_CHECKLIST.md` 는 manual modeling E2E 기준으로 최신화 진행 중
+- 참고
+  - repo 안에는 이전 라운드의 Phase 1B snapshot/history 및 Architecture View 구현도 그대로 포함되어 있음
+  - 다만 현재 작업 기준선과 다음 의사결정은 Phase 1A closeout sync 이후 `push 여부`와 `다음 트랙 선택`에 맞춰짐
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
@@ -75,7 +81,7 @@ npm run dev
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
 
 ## 메모
-- 현재는 **Phase 1B server-backed snapshot/history 1차 완료 + Architecture View MVP usable baseline 확보 단계**
+- 현재 closeout 기준 핵심은 **manual modeling 1차 완료 상태를 장기 문서/README/checklist와 맞추고 push 또는 다음 트랙 진입 판단을 내리는 것**
 - `GET /api/v1/auth/config-check` 는 env/cert 준비 상태를 확인
 - `GET /api/v1/auth/read-test` 는 실제 Azure subscription / resource group read를 검증
 - live topology/inference 점검은 `bash scripts/live_topology_probe.sh` 로 config-check → read-test → topology probe를 한 번에 수행 가능
@@ -83,5 +89,7 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
-- snapshot CRUD / import UX / local-server storage 구분은 현재 구현 반영 상태
-- 다음 권장 순서: snapshot history list/query UX 추가 검증 → API/DATA_MODEL 문서 sync 보강 → 필요 시 branch protection/PR rule 또는 topology live 고도화
+- snapshot CRUD / import UX / local-server storage 구분, Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
+- 다음 권장 순서: 문서 sync 마무리 → push 여부 결정 → 다음 트랙 선택
+  - live Azure scan/auth 실검
+  - 또는 같은 Phase 1A 목표선 안의 다음 기능/정리 작업

@@ -70,20 +70,20 @@
 ## 6. Frontend scaffold
 - [x] React + Vite 구조 정리
 - [x] workspace selector 화면 초안
-- [ ] subscription selector 초안
-- [ ] topology canvas 연결
-- [ ] detail side panel 초안
-- [ ] manual edit panel 초안
+- [x] subscription selector 초안
+- [x] topology canvas 연결
+- [x] detail side panel 초안
+- [x] manual edit panel 초안
 - [x] empty / loading / error state 정의
 - [x] frontend build 검증 (`npm run build`)
 
 ## 7. Graph rendering
 - [x] mock topology 데이터를 canonical payload 형식으로 정리
-- [ ] live topology API와 Cytoscape 연결
-- [ ] subscription / resource group / resource / manual node 렌더링 규칙 확정
-- [ ] edge style / relation type style 1차 반영
+- [x] live topology API와 Cytoscape 연결
+- [x] subscription / resource group / resource / manual node 렌더링 규칙 확정
+- [x] edge style / relation type style 1차 반영
 - [ ] source / confidence badge 또는 tooltip 1차 반영
-- [ ] node detail panel 연결
+- [x] node detail panel 연결
 
 ## 8. Manual modeling
 - [x] manual node 생성 폼
@@ -104,9 +104,9 @@
 ## 10. Definition of Done (Phase 1A)
 - [ ] 최소 2개 이상의 subscription read 성공
 - [ ] topology graph가 실제 Azure 데이터로 렌더링됨
-- [ ] manual node / edge 추가 가능
+- [x] manual node / edge 추가 가능
 - [ ] PNG export 가능
-- [ ] workspace 분리 구조 유지
+- [x] workspace 분리 구조 유지
 - [ ] 1A out-of-scope 기능이 구현에 침투하지 않음
   - Arc 1급 표현
   - PDF
