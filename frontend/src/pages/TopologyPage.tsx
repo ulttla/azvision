@@ -7,6 +7,8 @@ import {
   createManualNode,
   deleteManualEdge,
   deleteManualNode,
+  updateManualEdge,
+  updateManualNode,
   getAuthConfigCheck,
   getTopology,
   getTopologyNodeDetail,
@@ -24,6 +26,8 @@ import {
   type InventorySummaryResponse,
   type ManualEdge,
   type ManualNode,
+  type UpdateManualEdgeRequest,
+  type UpdateManualNodeRequest,
   type TopologyNode,
   type TopologyNodeDetail,
   type TopologyResponse,
@@ -226,6 +230,17 @@ export function TopologyPage() {
   const [manualEdgeRelationTypeInput, setManualEdgeRelationTypeInput] = useState('connects_to')
   const [manualEdgeNotesInput, setManualEdgeNotesInput] = useState('')
   const [manualModelRefreshKey, setManualModelRefreshKey] = useState(0)
+  const [editingManualNodeRef, setEditingManualNodeRef] = useState<string>('')
+  const [editManualNodeName, setEditManualNodeName] = useState('')
+  const [editManualNodeType, setEditManualNodeType] = useState('external-system')
+  const [editManualNodeVendor, setEditManualNodeVendor] = useState('')
+  const [editManualNodeEnvironment, setEditManualNodeEnvironment] = useState('')
+  const [editManualNodeNotes, setEditManualNodeNotes] = useState('')
+  const [editingManualEdgeRef, setEditingManualEdgeRef] = useState<string>('')
+  const [editManualEdgeSource, setEditManualEdgeSource] = useState('')
+  const [editManualEdgeTarget, setEditManualEdgeTarget] = useState('')
+  const [editManualEdgeRelationType, setEditManualEdgeRelationType] = useState('connects_to')
+  const [editManualEdgeNotes, setEditManualEdgeNotes] = useState('')
   const localSnapshotNoticeFingerprint = useMemo(
     () => createSnapshotNoticeFingerprint(localWorkspaceSnapshots),
     [localWorkspaceSnapshots],
@@ -1854,6 +1869,96 @@ export function TopologyPage() {
     }
   }
 
+  function startEditManualNode(node: ManualNode) {
+    setEditingManualNodeRef(node.manual_ref)
+    setEditManualNodeName(node.display_name)
+    setEditManualNodeType(node.manual_type)
+    setEditManualNodeVendor(node.vendor ?? '')
+    setEditManualNodeEnvironment(node.environment ?? '')
+    setEditManualNodeNotes(node.notes ?? '')
+    setEditingManualEdgeRef('')
+  }
+
+  function cancelEditManualNode() {
+    setEditingManualNodeRef('')
+  }
+
+  async function handleUpdateManualNode() {
+    if (!selectedWorkspaceId || !editingManualNodeRef) {
+      return
+    }
+
+    const patch: UpdateManualNodeRequest = {}
+    if (editManualNodeName.trim()) {
+      patch.display_name = editManualNodeName.trim()
+    }
+    if (editManualNodeType) {
+      patch.manual_type = editManualNodeType
+    }
+    if (editManualNodeVendor.trim()) {
+      patch.vendor = editManualNodeVendor.trim()
+    }
+    if (editManualNodeEnvironment.trim()) {
+      patch.environment = editManualNodeEnvironment.trim()
+    }
+    if (editManualNodeNotes.trim()) {
+      patch.notes = editManualNodeNotes.trim()
+    }
+
+    try {
+      await updateManualNode(selectedWorkspaceId, editingManualNodeRef, patch)
+      await refreshManualModeling(selectedWorkspaceId)
+      setManualModelRefreshKey((current) => current + 1)
+      setEditingManualNodeRef('')
+      setExportMessage('Manual node updated')
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Manual node update failed')
+    }
+  }
+
+  function startEditManualEdge(edge: ManualEdge) {
+    setEditingManualEdgeRef(edge.manual_edge_ref)
+    setEditManualEdgeSource(edge.source_node_key)
+    setEditManualEdgeTarget(edge.target_node_key)
+    setEditManualEdgeRelationType(edge.relation_type)
+    setEditManualEdgeNotes(edge.notes ?? '')
+    setEditingManualNodeRef('')
+  }
+
+  function cancelEditManualEdge() {
+    setEditingManualEdgeRef('')
+  }
+
+  async function handleUpdateManualEdge() {
+    if (!selectedWorkspaceId || !editingManualEdgeRef) {
+      return
+    }
+
+    const patch: UpdateManualEdgeRequest = {}
+    if (editManualEdgeSource) {
+      patch.source_node_key = editManualEdgeSource
+    }
+    if (editManualEdgeTarget) {
+      patch.target_node_key = editManualEdgeTarget
+    }
+    if (editManualEdgeRelationType) {
+      patch.relation_type = editManualEdgeRelationType
+    }
+    if (editManualEdgeNotes.trim()) {
+      patch.notes = editManualEdgeNotes.trim()
+    }
+
+    try {
+      await updateManualEdge(selectedWorkspaceId, editingManualEdgeRef, patch)
+      await refreshManualModeling(selectedWorkspaceId)
+      setManualModelRefreshKey((current) => current + 1)
+      setEditingManualEdgeRef('')
+      setExportMessage('Manual edge updated')
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Manual edge update failed')
+    }
+  }
+
   return (
     <main className="page-shell">
       <header className="hero-card">
@@ -2615,25 +2720,36 @@ export function TopologyPage() {
             <ul className="edge-list compact-list">
               {manualNodes.map((node) => (
                 <li key={node.manual_ref}>
-                  <strong>{node.display_name}</strong>
-                  <p>{node.manual_type}{node.vendor ? ` • ${node.vendor}` : ''}{node.environment ? ` • ${node.environment}` : ''}</p>
-                  {node.notes ? <p>{node.notes}</p> : null}
-                  <div className="button-row detail-button-row">
-                    <button
-                      type="button"
-                      className="toolbar-button search-inline-button"
-                      onClick={() => selectNode(node.node_key || `manual:${node.manual_ref}`, { focus: true })}
-                    >
-                      Focus
-                    </button>
-                    <button
-                      type="button"
-                      className="toolbar-button search-inline-button"
-                      onClick={() => handleDeleteManualNodeItem(node)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {editingManualNodeRef === node.manual_ref ? (
+                    <div className="preset-save-row snapshot-save-row">
+                      <input type="text" className="search-input" value={editManualNodeName} onChange={(event) => setEditManualNodeName(event.target.value)} placeholder="Display name" />
+                      <select value={editManualNodeType} onChange={(event) => setEditManualNodeType(event.target.value)}>
+                        <option value="external-system">external-system</option>
+                        <option value="onprem-service">onprem-service</option>
+                        <option value="saas">saas</option>
+                        <option value="vendor-appliance">vendor-appliance</option>
+                        <option value="other">other</option>
+                      </select>
+                      <input type="text" className="search-input" value={editManualNodeVendor} onChange={(event) => setEditManualNodeVendor(event.target.value)} placeholder="Vendor" />
+                      <input type="text" className="search-input" value={editManualNodeEnvironment} onChange={(event) => setEditManualNodeEnvironment(event.target.value)} placeholder="Environment" />
+                      <textarea className="search-input snapshot-note-input" value={editManualNodeNotes} onChange={(event) => setEditManualNodeNotes(event.target.value)} placeholder="Notes" rows={2} />
+                      <div className="button-row preset-toolbar-row">
+                        <button type="button" className="toolbar-button primary" onClick={handleUpdateManualNode}>Save</button>
+                        <button type="button" className="toolbar-button" onClick={cancelEditManualNode}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <strong>{node.display_name}</strong>
+                      <p>{node.manual_type}{node.vendor ? ` • ${node.vendor}` : ''}{node.environment ? ` • ${node.environment}` : ''}</p>
+                      {node.notes ? <p>{node.notes}</p> : null}
+                      <div className="button-row detail-button-row">
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => selectNode(node.node_key || `manual:${node.manual_ref}`, { focus: true })}>Focus</button>
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => startEditManualNode(node)}>Edit</button>
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => handleDeleteManualNodeItem(node)}>Delete</button>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
@@ -2646,19 +2762,45 @@ export function TopologyPage() {
             <ul className="edge-list compact-list">
               {manualEdges.map((edge) => (
                 <li key={edge.manual_edge_ref}>
-                  <strong>{edge.relation_type}</strong>
-                  <p>{edge.source_node_key}</p>
-                  <p>→ {edge.target_node_key}</p>
-                  {edge.notes ? <p>{edge.notes}</p> : null}
-                  <div className="button-row detail-button-row">
-                    <button
-                      type="button"
-                      className="toolbar-button search-inline-button"
-                      onClick={() => handleDeleteManualEdgeItem(edge)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {editingManualEdgeRef === edge.manual_edge_ref ? (
+                    <div className="preset-save-row snapshot-save-row">
+                      <select value={editManualEdgeSource} onChange={(event) => setEditManualEdgeSource(event.target.value)} disabled={!manualEdgeNodeOptions.length}>
+                        <option value="">Source node</option>
+                        {manualEdgeNodeOptions.map((node) => (
+                          <option key={`edit-source-${node.node_key}`} value={node.node_key}>{node.display_name} • {node.node_key}</option>
+                        ))}
+                      </select>
+                      <select value={editManualEdgeTarget} onChange={(event) => setEditManualEdgeTarget(event.target.value)} disabled={!manualEdgeNodeOptions.length}>
+                        <option value="">Target node</option>
+                        {manualEdgeNodeOptions.map((node) => (
+                          <option key={`edit-target-${node.node_key}`} value={node.node_key}>{node.display_name} • {node.node_key}</option>
+                        ))}
+                      </select>
+                      <select value={editManualEdgeRelationType} onChange={(event) => setEditManualEdgeRelationType(event.target.value)}>
+                        <option value="connects_to">connects_to</option>
+                        <option value="contains">contains</option>
+                        <option value="manages">manages</option>
+                        <option value="routes">routes</option>
+                        <option value="secures">secures</option>
+                      </select>
+                      <textarea className="search-input snapshot-note-input" value={editManualEdgeNotes} onChange={(event) => setEditManualEdgeNotes(event.target.value)} placeholder="Edge notes" rows={2} />
+                      <div className="button-row preset-toolbar-row">
+                        <button type="button" className="toolbar-button primary" onClick={handleUpdateManualEdge}>Save</button>
+                        <button type="button" className="toolbar-button" onClick={cancelEditManualEdge}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <strong>{edge.relation_type}</strong>
+                      <p>{edge.source_node_key}</p>
+                      <p>→ {edge.target_node_key}</p>
+                      {edge.notes ? <p>{edge.notes}</p> : null}
+                      <div className="button-row detail-button-row">
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => startEditManualEdge(edge)}>Edit</button>
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => handleDeleteManualEdgeItem(edge)}>Delete</button>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
