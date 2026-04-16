@@ -86,12 +86,14 @@
 - [ ] node detail panel 연결
 
 ## 8. Manual modeling
-- [ ] manual node 생성 폼
-- [ ] manual edge 생성 폼
-- [ ] manual node 수정 / 삭제
-- [ ] manual edge 수정 / 삭제
-- [ ] manual node 기본 confidence 정책 반영
-- [ ] manual edge 기본 confidence 정책 반영
+- [x] manual node 생성 폼
+- [x] manual edge 생성 폼
+- [x] manual node 수정 / 삭제
+- [x] manual edge 수정 / 삭제
+  - E2E smoke: create/list/update/delete via API + topology merge verified (2026-04-16)
+  - mixed topology merge smoke: manual node + cross-source edges (manual→azure) verified (2026-04-16)
+- [x] manual node 기본 confidence 정책 반영 (default 1.0)
+- [x] manual edge 기본 confidence 정책 반영 (default 1.0)
 
 ## 9. Export
 - [ ] PNG export 구현
