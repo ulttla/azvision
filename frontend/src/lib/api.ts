@@ -482,3 +482,135 @@ export async function deleteTopologySnapshot(workspaceId: string, snapshotId: st
     method: 'DELETE',
   })
 }
+
+// ── Manual Modeling ──────────────────────────────────────────────
+
+export type ManualNode = {
+  id: string
+  manual_ref: string
+  workspace_id: string
+  display_name: string
+  manual_type: string
+  vendor?: string | null
+  environment?: string | null
+  notes?: string | null
+  source: string
+  confidence: number
+  node_key?: string
+  node_type?: string
+  node_ref?: string
+}
+
+export type ManualEdge = {
+  id: string
+  manual_edge_ref: string
+  workspace_id: string
+  source_node_key: string
+  target_node_key: string
+  relation_type: string
+  notes?: string | null
+  source: string
+  confidence: number
+}
+
+export type CreateManualNodeRequest = {
+  manual_ref?: string
+  display_name: string
+  manual_type?: string
+  vendor?: string
+  environment?: string
+  notes?: string
+  confidence?: number
+}
+
+export type CreateManualEdgeRequest = {
+  manual_edge_ref?: string
+  source_node_key: string
+  target_node_key: string
+  relation_type?: string
+  notes?: string
+  confidence?: number
+}
+
+export type UpdateManualNodeRequest = {
+  display_name?: string
+  manual_type?: string
+  vendor?: string
+  environment?: string
+  notes?: string
+  confidence?: number
+}
+
+export type UpdateManualEdgeRequest = {
+  source_node_key?: string
+  target_node_key?: string
+  relation_type?: string
+  notes?: string
+  confidence?: number
+}
+
+export async function listManualNodes(workspaceId: string): Promise<ManualNode[]> {
+  return fetchJson<ManualNode[]>(`/workspaces/${workspaceId}/topology/manual-nodes`)
+}
+
+export async function createManualNode(
+  workspaceId: string,
+  payload: CreateManualNodeRequest,
+): Promise<ManualNode & { status: string }> {
+  return fetchJson(`/workspaces/${workspaceId}/topology/manual-nodes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateManualNode(
+  workspaceId: string,
+  manualNodeRef: string,
+  payload: UpdateManualNodeRequest,
+): Promise<ManualNode & { status: string }> {
+  return fetchJson(`/workspaces/${workspaceId}/topology/manual-nodes/${manualNodeRef}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteManualNode(workspaceId: string, manualNodeRef: string): Promise<void> {
+  await fetchJson(`/workspaces/${workspaceId}/topology/manual-nodes/${manualNodeRef}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function listManualEdges(workspaceId: string): Promise<ManualEdge[]> {
+  return fetchJson<ManualEdge[]>(`/workspaces/${workspaceId}/topology/manual-edges`)
+}
+
+export async function createManualEdge(
+  workspaceId: string,
+  payload: CreateManualEdgeRequest,
+): Promise<ManualEdge & { status: string }> {
+  return fetchJson(`/workspaces/${workspaceId}/topology/manual-edges`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateManualEdge(
+  workspaceId: string,
+  manualEdgeRef: string,
+  payload: UpdateManualEdgeRequest,
+): Promise<ManualEdge & { status: string }> {
+  return fetchJson(`/workspaces/${workspaceId}/topology/manual-edges/${manualEdgeRef}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteManualEdge(workspaceId: string, manualEdgeRef: string): Promise<void> {
+  await fetchJson(`/workspaces/${workspaceId}/topology/manual-edges/${manualEdgeRef}`, {
+    method: 'DELETE',
+  })
+}

@@ -2,6 +2,7 @@
 
 > **MVP note:** 초기는 이 계약의 하위 집합만 구현한다. topology / manual modeling / PNG export부터 먼저 연다.
 > **2026-04-10 update:** Phase 1B 중 `snapshot persistence` endpoint는 구현 반영 완료. 그 외 Phase 1B / Phase 2 / Phase 3 endpoint는 future section에 참조로만 기록.
+> **2026-04-15 update:** local dev 기준 `frontend/vite.config.ts`의 `envDir: '..'` 경로와 server snapshot empty-state copy 보정이 반영되어, root `.env` 기반 server snapshot mode 검증 흐름과 현재 문서 상태가 다시 일치한다.
 
 ## Base
 - `/api/v1`
@@ -40,7 +41,11 @@
 - `GET /workspaces/{workspace_id}/topology/node-detail?node_type={node_type}&node_ref={node_ref}`
   - topology detail 조회는 canonical identity 기준
   - 내부 PK는 public API에 노출하지 않음
+- `GET /workspaces/{workspace_id}/topology/manual-nodes`
+  - workspace 기준 manual node 목록 조회
 - `POST /workspaces/{workspace_id}/topology/manual-nodes`
+- `GET /workspaces/{workspace_id}/topology/manual-edges`
+  - workspace 기준 manual edge 목록 조회
 - `POST /workspaces/{workspace_id}/topology/manual-edges`
 - `PATCH /workspaces/{workspace_id}/topology/manual-nodes/{manual_node_ref}`
   - `manual_node_ref`는 DB PK가 아니라 `ManualNode.manual_ref`

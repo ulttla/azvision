@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any
-from uuid import uuid4
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.collectors.azure_inventory import (
     AzureInventoryCollection,
@@ -10,6 +9,7 @@ from app.collectors.azure_inventory import (
     resolve_inventory_collection,
 )
 from app.core.config import get_settings
+from app.repositories.manual_model import ManualModelRepository
 from app.services.topology_inference import infer_network_relationship_edges
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/topology", tags=["topology"])
@@ -415,6 +415,13 @@ def _project_live_topology(
         for inferred_edge in infer_network_relationship_edges(projected_resources):
             _add_edge(edges_by_key, inferred_edge)
 
+    # Merge manual nodes and edges from DB
+    manual_repo = ManualModelRepository()
+    for manual_node in manual_repo.get_manual_nodes_as_topology_nodes(workspace_id):
+        _add_node(nodes_by_key, manual_node)
+    for manual_edge in manual_repo.get_manual_edges_as_topology_edges(workspace_id):
+        _add_edge(edges_by_key, manual_edge)
+
     nodes = sorted(
         nodes_by_key.values(),
         key=lambda node: (
@@ -462,17 +469,38 @@ def _project_live_topology(
 
 
 def _manual_node_detail(workspace_id: str, node_ref: str) -> dict[str, Any]:
+    repo = _manual_repo()
+    manual_node = repo.get_manual_node(workspace_id, node_ref)
+    if manual_node is None:
+        return {
+            "workspace_id": workspace_id,
+            "node_key": f"manual:{node_ref}",
+            "node_type": "manual",
+            "node_ref": node_ref,
+            "display_name": node_ref,
+            "source": "manual",
+            "confidence": 0.0,
+            "status": "not-found",
+            "details": {
+                "mode": "manual-db",
+                "note": "Requested manual node was not found in workspace storage.",
+            },
+        }
+
     return {
         "workspace_id": workspace_id,
-        "node_key": f"manual:{node_ref}",
+        "node_key": f"manual:{manual_node['manual_ref']}",
         "node_type": "manual",
-        "node_ref": node_ref,
-        "display_name": node_ref,
+        "node_ref": manual_node["manual_ref"],
+        "display_name": manual_node["display_name"],
         "source": "manual",
-        "confidence": 1.0,
+        "confidence": manual_node.get("confidence", 1.0),
         "details": {
-            "mode": "manual-placeholder",
-            "note": "Manual persistence/detail projection is not implemented yet.",
+            "mode": "manual-db",
+            "manual_type": manual_node.get("manual_type"),
+            "vendor": manual_node.get("vendor"),
+            "environment": manual_node.get("environment"),
+            "notes": manual_node.get("notes"),
         },
     }
 
@@ -759,36 +787,98 @@ def get_node_detail(
     }
 
 
+def _manual_repo() -> ManualModelRepository:
+    return ManualModelRepository()
+
+
+def _available_node_keys_for_manual_edges(workspace_id: str) -> set[str]:
+    node_keys = {
+        node["node_key"] for node in _manual_repo().get_manual_nodes_as_topology_nodes(workspace_id)
+    }
+
+    settings = get_settings()
+    try:
+        resolution = resolve_inventory_collection(
+            settings,
+            resource_group_limit=500,
+            resource_limit=1000,
+        )
+        projected = _project_live_topology(
+            workspace_id,
+            resolution.collection,
+            projection_mode=_projection_mode_label(resolution.mode),
+            include_network_inference=False,
+            collapse_managed_instance_children=False,
+        )
+        node_keys.update(node["node_key"] for node in projected.get("nodes", []))
+    except AzureInventoryError:
+        pass
+
+    return node_keys
+
+
+def _validate_manual_edge_payload(workspace_id: str, payload: dict[str, Any]) -> None:
+    source_node_key = str(payload.get("source_node_key") or "").strip()
+    target_node_key = str(payload.get("target_node_key") or "").strip()
+    if not source_node_key or not target_node_key:
+        raise HTTPException(status_code=400, detail="source_node_key and target_node_key are required")
+
+    available_node_keys = _available_node_keys_for_manual_edges(workspace_id)
+    missing = [
+        node_key
+        for node_key in (source_node_key, target_node_key)
+        if node_key not in available_node_keys
+    ]
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown node_key reference(s): {', '.join(missing)}",
+        )
+
+
 @router.post("/manual-nodes")
 def create_manual_node(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-    manual_ref = payload.get("manual_ref") or f"mn_{uuid4().hex[:10]}"
+    repo = _manual_repo()
+    created = repo.create_manual_node(workspace_id, payload)
     return {
-        "workspace_id": workspace_id,
-        "manual_ref": manual_ref,
-        "node_key": f"manual:{manual_ref}",
-        "node_type": "manual",
-        "node_ref": manual_ref,
-        "display_name": payload.get("display_name", "Manual Node"),
-        "manual_type": payload.get("manual_type", "external-system"),
-        "source": "manual",
-        "confidence": payload.get("confidence", 1.0),
         "status": "created",
+        **created,
+        "node_key": f"manual:{created['manual_ref']}",
+        "node_type": "manual",
+        "node_ref": created["manual_ref"],
     }
 
 
 @router.post("/manual-edges")
 def create_manual_edge(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-    manual_edge_ref = payload.get("manual_edge_ref") or f"me_{uuid4().hex[:10]}"
+    _validate_manual_edge_payload(workspace_id, payload)
+    repo = _manual_repo()
+    created = repo.create_manual_edge(workspace_id, payload)
     return {
-        "workspace_id": workspace_id,
-        "manual_edge_ref": manual_edge_ref,
-        "source_node_key": payload.get("source_node_key"),
-        "target_node_key": payload.get("target_node_key"),
-        "relation_type": payload.get("relation_type", "connects_to"),
-        "source": "manual",
-        "confidence": payload.get("confidence", 1.0),
         "status": "created",
+        **created,
     }
+
+
+@router.get("/manual-nodes")
+def list_manual_nodes(workspace_id: str) -> list[dict[str, Any]]:
+    repo = _manual_repo()
+    nodes = repo.list_manual_nodes(workspace_id)
+    return [
+        {
+            **n,
+            "node_key": f"manual:{n['manual_ref']}",
+            "node_type": "manual",
+            "node_ref": n["manual_ref"],
+        }
+        for n in nodes
+    ]
+
+
+@router.get("/manual-edges")
+def list_manual_edges(workspace_id: str) -> list[dict[str, Any]]:
+    repo = _manual_repo()
+    return repo.list_manual_edges(workspace_id)
 
 
 @router.patch("/manual-nodes/{manual_node_ref}")
@@ -797,15 +887,14 @@ def update_manual_node(
     manual_node_ref: str,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
+    repo = _manual_repo()
+    updated = repo.update_manual_node(workspace_id, manual_node_ref, payload)
+    if updated is None:
+        return {"status": "not-found", "manual_ref": manual_node_ref}
     return {
-        "workspace_id": workspace_id,
-        "manual_ref": manual_node_ref,
-        "node_key": f"manual:{manual_node_ref}",
-        "display_name": payload.get("display_name", "Manual Node"),
-        "manual_type": payload.get("manual_type", "external-system"),
-        "source": "manual",
-        "confidence": payload.get("confidence", 1.0),
         "status": "updated",
+        **updated,
+        "node_key": f"manual:{updated['manual_ref']}",
     }
 
 
@@ -815,31 +904,36 @@ def update_manual_edge(
     manual_edge_ref: str,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
-    return {
-        "workspace_id": workspace_id,
-        "manual_edge_ref": manual_edge_ref,
-        "source_node_key": payload.get("source_node_key"),
-        "target_node_key": payload.get("target_node_key"),
-        "relation_type": payload.get("relation_type", "connects_to"),
-        "source": "manual",
-        "confidence": payload.get("confidence", 1.0),
-        "status": "updated",
-    }
+    repo = _manual_repo()
+    current = repo.get_manual_edge(workspace_id, manual_edge_ref)
+    if current is None:
+        return {"status": "not-found", "manual_edge_ref": manual_edge_ref}
+
+    merged_payload = {**current, **payload}
+    _validate_manual_edge_payload(workspace_id, merged_payload)
+    updated = repo.update_manual_edge(workspace_id, manual_edge_ref, payload)
+    if updated is None:
+        return {"status": "not-found", "manual_edge_ref": manual_edge_ref}
+    return {"status": "updated", **updated}
 
 
 @router.delete("/manual-nodes/{manual_node_ref}")
 def delete_manual_node(workspace_id: str, manual_node_ref: str) -> dict[str, Any]:
+    repo = _manual_repo()
+    deleted = repo.delete_manual_node(workspace_id, manual_node_ref)
     return {
         "workspace_id": workspace_id,
         "manual_ref": manual_node_ref,
-        "status": "deleted",
+        "status": "deleted" if deleted else "not-found",
     }
 
 
 @router.delete("/manual-edges/{manual_edge_ref}")
 def delete_manual_edge(workspace_id: str, manual_edge_ref: str) -> dict[str, Any]:
+    repo = _manual_repo()
+    deleted = repo.delete_manual_edge(workspace_id, manual_edge_ref)
     return {
         "workspace_id": workspace_id,
         "manual_edge_ref": manual_edge_ref,
-        "status": "deleted",
+        "status": "deleted" if deleted else "not-found",
     }

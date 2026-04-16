@@ -3,6 +3,10 @@ import type { Core } from 'cytoscape'
 
 import {
   createExport,
+  createManualEdge,
+  createManualNode,
+  deleteManualEdge,
+  deleteManualNode,
   getAuthConfigCheck,
   getTopology,
   getTopologyNodeDetail,
@@ -11,11 +15,15 @@ import {
   getWorkspaceResources,
   getWorkspaceSubscriptions,
   getWorkspaces,
+  listManualEdges,
+  listManualNodes,
   type ExportItem,
   type InventoryResource,
   type InventoryResourceGroup,
   type InventorySubscription,
   type InventorySummaryResponse,
+  type ManualEdge,
+  type ManualNode,
   type TopologyNode,
   type TopologyNodeDetail,
   type TopologyResponse,
@@ -205,6 +213,19 @@ export function TopologyPage() {
   const [snapshotFilter, setSnapshotFilter] = useState<SnapshotFilterTab>('all')
   const [snapshotNameInput, setSnapshotNameInput] = useState('')
   const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
+  const [manualNodes, setManualNodes] = useState<ManualNode[]>([])
+  const [manualEdges, setManualEdges] = useState<ManualEdge[]>([])
+  const [manualLoading, setManualLoading] = useState(false)
+  const [manualNodeNameInput, setManualNodeNameInput] = useState('')
+  const [manualNodeTypeInput, setManualNodeTypeInput] = useState('external-system')
+  const [manualNodeVendorInput, setManualNodeVendorInput] = useState('')
+  const [manualNodeEnvironmentInput, setManualNodeEnvironmentInput] = useState('')
+  const [manualNodeNotesInput, setManualNodeNotesInput] = useState('')
+  const [manualEdgeSourceNodeKey, setManualEdgeSourceNodeKey] = useState('')
+  const [manualEdgeTargetNodeKey, setManualEdgeTargetNodeKey] = useState('')
+  const [manualEdgeRelationTypeInput, setManualEdgeRelationTypeInput] = useState('connects_to')
+  const [manualEdgeNotesInput, setManualEdgeNotesInput] = useState('')
+  const [manualModelRefreshKey, setManualModelRefreshKey] = useState(0)
   const localSnapshotNoticeFingerprint = useMemo(
     () => createSnapshotNoticeFingerprint(localWorkspaceSnapshots),
     [localWorkspaceSnapshots],
@@ -251,6 +272,30 @@ export function TopologyPage() {
     setLocalWorkspaceSnapshots(loadLocalSnapshotsForWorkspace(workspaceId))
   }
 
+  async function refreshManualModeling(workspaceId = selectedWorkspaceId) {
+    if (!workspaceId) {
+      setManualNodes([])
+      setManualEdges([])
+      return
+    }
+
+    try {
+      setManualLoading(true)
+      const [nextManualNodes, nextManualEdges] = await Promise.all([
+        listManualNodes(workspaceId),
+        listManualEdges(workspaceId),
+      ])
+      setManualNodes(nextManualNodes)
+      setManualEdges(nextManualEdges)
+    } catch (error) {
+      setManualNodes([])
+      setManualEdges([])
+      setExportMessage(error instanceof Error ? error.message : 'Manual modeling load failed')
+    } finally {
+      setManualLoading(false)
+    }
+  }
+
   useEffect(() => {
     async function loadInitial() {
       try {
@@ -279,6 +324,10 @@ export function TopologyPage() {
   useEffect(() => {
     void refreshSavedSnapshots(selectedWorkspaceId)
   }, [selectedWorkspaceId, snapshotStorageProvider])
+
+  useEffect(() => {
+    void refreshManualModeling(selectedWorkspaceId)
+  }, [selectedWorkspaceId])
 
   useEffect(() => {
     refreshLocalWorkspaceSnapshots(selectedWorkspaceId)
@@ -463,6 +512,7 @@ export function TopologyPage() {
     expandedManagedInstanceRefs,
     focusedResourceGroupName,
     includeNetworkInference,
+    manualModelRefreshKey,
     selectedSubscriptionId,
     selectedWorkspaceId,
   ])
@@ -495,6 +545,13 @@ export function TopologyPage() {
   const workspacesById = useMemo(
     () => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
     [workspaces],
+  )
+  const manualEdgeNodeOptions = useMemo(
+    () =>
+      [...(topology?.nodes ?? [])].sort((left, right) =>
+        left.display_name.localeCompare(right.display_name, undefined, { sensitivity: 'base' }),
+      ),
+    [topology],
   )
 
   useEffect(() => {
@@ -1710,6 +1767,93 @@ export function TopologyPage() {
     )
   }
 
+  async function handleCreateManualNode() {
+    if (!selectedWorkspaceId || !manualNodeNameInput.trim()) {
+      setExportMessage('Manual node name is required')
+      return
+    }
+
+    try {
+      const created = await createManualNode(selectedWorkspaceId, {
+        display_name: manualNodeNameInput.trim(),
+        manual_type: manualNodeTypeInput,
+        vendor: manualNodeVendorInput.trim() || undefined,
+        environment: manualNodeEnvironmentInput.trim() || undefined,
+        notes: manualNodeNotesInput.trim() || undefined,
+      })
+
+      await refreshManualModeling(selectedWorkspaceId)
+      setManualModelRefreshKey((current) => current + 1)
+      setManualNodeNameInput('')
+      setManualNodeVendorInput('')
+      setManualNodeEnvironmentInput('')
+      setManualNodeNotesInput('')
+      setManualEdgeSourceNodeKey((current) => current || created.node_key || `manual:${created.manual_ref}`)
+      setExportMessage(`Manual node created: ${created.display_name}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Manual node create failed')
+    }
+  }
+
+  async function handleDeleteManualNodeItem(node: ManualNode) {
+    if (typeof window !== 'undefined' && !window.confirm(`Delete manual node "${node.display_name}"?`)) {
+      return
+    }
+
+    try {
+      await deleteManualNode(selectedWorkspaceId, node.manual_ref)
+      await refreshManualModeling(selectedWorkspaceId)
+      setManualModelRefreshKey((current) => current + 1)
+      const nodeKey = node.node_key || `manual:${node.manual_ref}`
+      if (manualEdgeSourceNodeKey === nodeKey) {
+        setManualEdgeSourceNodeKey('')
+      }
+      if (manualEdgeTargetNodeKey === nodeKey) {
+        setManualEdgeTargetNodeKey('')
+      }
+      setExportMessage(`Manual node deleted: ${node.display_name}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Manual node delete failed')
+    }
+  }
+
+  async function handleCreateManualEdge() {
+    if (!selectedWorkspaceId || !manualEdgeSourceNodeKey || !manualEdgeTargetNodeKey) {
+      setExportMessage('Manual edge source and target are required')
+      return
+    }
+
+    try {
+      await createManualEdge(selectedWorkspaceId, {
+        source_node_key: manualEdgeSourceNodeKey,
+        target_node_key: manualEdgeTargetNodeKey,
+        relation_type: manualEdgeRelationTypeInput,
+        notes: manualEdgeNotesInput.trim() || undefined,
+      })
+      await refreshManualModeling(selectedWorkspaceId)
+      setManualModelRefreshKey((current) => current + 1)
+      setManualEdgeNotesInput('')
+      setExportMessage(`Manual edge created: ${manualEdgeRelationTypeInput}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Manual edge create failed')
+    }
+  }
+
+  async function handleDeleteManualEdgeItem(edge: ManualEdge) {
+    if (typeof window !== 'undefined' && !window.confirm(`Delete manual edge "${edge.relation_type}"?`)) {
+      return
+    }
+
+    try {
+      await deleteManualEdge(selectedWorkspaceId, edge.manual_edge_ref)
+      await refreshManualModeling(selectedWorkspaceId)
+      setManualModelRefreshKey((current) => current + 1)
+      setExportMessage(`Manual edge deleted: ${edge.relation_type}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Manual edge delete failed')
+    }
+  }
+
   return (
     <main className="page-shell">
       <header className="hero-card">
@@ -2345,6 +2489,182 @@ export function TopologyPage() {
           <p className="hint">
             RG lazy load: {focusedResourceGroupName ? focusedResourceGroupName : 'all resource groups'}
           </p>
+        </article>
+
+        <article className="panel-card">
+          <div className="section-heading">
+            <h2>Manual Modeling</h2>
+            <span className="mini-status">
+              {manualLoading ? 'syncing...' : `${manualNodes.length} nodes • ${manualEdges.length} edges`}
+            </span>
+          </div>
+
+          <div className="storage-guide-card preset-guide-card">
+            <strong>Phase 1A manual overlay</strong>
+            <p className="hint">
+              Add external systems or consultant annotations, then connect them to Azure nodes with manual edges.
+            </p>
+          </div>
+
+          <h3 className="section-spacer">Create Manual Node</h3>
+          <div className="preset-save-row snapshot-save-row">
+            <input
+              type="text"
+              className="search-input"
+              value={manualNodeNameInput}
+              onChange={(event) => setManualNodeNameInput(event.target.value)}
+              placeholder="Display name"
+            />
+            <select value={manualNodeTypeInput} onChange={(event) => setManualNodeTypeInput(event.target.value)}>
+              <option value="external-system">external-system</option>
+              <option value="onprem-service">onprem-service</option>
+              <option value="saas">saas</option>
+              <option value="vendor-appliance">vendor-appliance</option>
+              <option value="other">other</option>
+            </select>
+            <input
+              type="text"
+              className="search-input"
+              value={manualNodeVendorInput}
+              onChange={(event) => setManualNodeVendorInput(event.target.value)}
+              placeholder="Vendor (optional)"
+            />
+            <input
+              type="text"
+              className="search-input"
+              value={manualNodeEnvironmentInput}
+              onChange={(event) => setManualNodeEnvironmentInput(event.target.value)}
+              placeholder="Environment (optional)"
+            />
+            <textarea
+              className="search-input snapshot-note-input"
+              value={manualNodeNotesInput}
+              onChange={(event) => setManualNodeNotesInput(event.target.value)}
+              placeholder="Notes (optional)"
+              rows={3}
+            />
+            <div className="button-row preset-toolbar-row">
+              <button
+                type="button"
+                className="toolbar-button primary"
+                onClick={handleCreateManualNode}
+                disabled={!selectedWorkspaceId || !manualNodeNameInput.trim()}
+              >
+                Create manual node
+              </button>
+            </div>
+          </div>
+
+          <h3 className="section-spacer">Create Manual Edge</h3>
+          <div className="preset-save-row snapshot-save-row">
+            <select
+              value={manualEdgeSourceNodeKey}
+              onChange={(event) => setManualEdgeSourceNodeKey(event.target.value)}
+              disabled={!selectedWorkspaceId || !manualEdgeNodeOptions.length}
+            >
+              <option value="">Source node</option>
+              {manualEdgeNodeOptions.map((node) => (
+                <option key={`source-${node.node_key}`} value={node.node_key}>
+                  {node.display_name} • {node.node_key}
+                </option>
+              ))}
+            </select>
+            <select
+              value={manualEdgeTargetNodeKey}
+              onChange={(event) => setManualEdgeTargetNodeKey(event.target.value)}
+              disabled={!selectedWorkspaceId || !manualEdgeNodeOptions.length}
+            >
+              <option value="">Target node</option>
+              {manualEdgeNodeOptions.map((node) => (
+                <option key={`target-${node.node_key}`} value={node.node_key}>
+                  {node.display_name} • {node.node_key}
+                </option>
+              ))}
+            </select>
+            <select
+              value={manualEdgeRelationTypeInput}
+              onChange={(event) => setManualEdgeRelationTypeInput(event.target.value)}
+            >
+              <option value="connects_to">connects_to</option>
+              <option value="contains">contains</option>
+              <option value="manages">manages</option>
+              <option value="routes">routes</option>
+              <option value="secures">secures</option>
+            </select>
+            <textarea
+              className="search-input snapshot-note-input"
+              value={manualEdgeNotesInput}
+              onChange={(event) => setManualEdgeNotesInput(event.target.value)}
+              placeholder="Edge notes (optional)"
+              rows={2}
+            />
+            <div className="button-row preset-toolbar-row">
+              <button
+                type="button"
+                className="toolbar-button primary"
+                onClick={handleCreateManualEdge}
+                disabled={!selectedWorkspaceId || !manualEdgeSourceNodeKey || !manualEdgeTargetNodeKey}
+              >
+                Create manual edge
+              </button>
+            </div>
+          </div>
+
+          <h3 className="section-spacer">Manual Nodes</h3>
+          {manualNodes.length ? (
+            <ul className="edge-list compact-list">
+              {manualNodes.map((node) => (
+                <li key={node.manual_ref}>
+                  <strong>{node.display_name}</strong>
+                  <p>{node.manual_type}{node.vendor ? ` • ${node.vendor}` : ''}{node.environment ? ` • ${node.environment}` : ''}</p>
+                  {node.notes ? <p>{node.notes}</p> : null}
+                  <div className="button-row detail-button-row">
+                    <button
+                      type="button"
+                      className="toolbar-button search-inline-button"
+                      onClick={() => selectNode(node.node_key || `manual:${node.manual_ref}`, { focus: true })}
+                    >
+                      Focus
+                    </button>
+                    <button
+                      type="button"
+                      className="toolbar-button search-inline-button"
+                      onClick={() => handleDeleteManualNodeItem(node)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="hint">No manual nodes yet</p>
+          )}
+
+          <h3 className="section-spacer">Manual Edges</h3>
+          {manualEdges.length ? (
+            <ul className="edge-list compact-list">
+              {manualEdges.map((edge) => (
+                <li key={edge.manual_edge_ref}>
+                  <strong>{edge.relation_type}</strong>
+                  <p>{edge.source_node_key}</p>
+                  <p>→ {edge.target_node_key}</p>
+                  {edge.notes ? <p>{edge.notes}</p> : null}
+                  <div className="button-row detail-button-row">
+                    <button
+                      type="button"
+                      className="toolbar-button search-inline-button"
+                      onClick={() => handleDeleteManualEdgeItem(edge)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="hint">No manual edges yet</p>
+          )}
         </article>
       </section>
 
