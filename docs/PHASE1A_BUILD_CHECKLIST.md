@@ -27,7 +27,8 @@
 - [x] `GET /auth/read-test` live wiring 구현
 - [ ] 멀티 subscription read 성공 기준 정의
   - 최소 2개 subscription read
-  - 현재 상태: env/cert 미주입으로 `not-configured` 응답 확인
+  - 현재 상태: existing `.env` 기준 auth ready / token acquire / single subscription read 성공
+  - 2026-04-16 live probe: subscription 1개, sample resource group 7개, topology projection `node_count=50`, `edge_count=55`, inferred edge 6개 확인
   - env discovery 개선: project root `.env` 우선 + `backend/.env` fallback 지원
 ## 2. Backend scaffold
 - [x] FastAPI app skeleton 정리
