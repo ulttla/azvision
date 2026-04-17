@@ -131,6 +131,15 @@ bash scripts/live_topology_probe.sh
 - `GET /api/v1/workspaces/local-demo/topology?include_network_inference=true`
 - 결과 JSON은 `/tmp/azvision_*` 파일로 저장
 
+## API 응답 contract 메모
+- 2026-04-17 cleanup 이후 아래 live endpoint는 success 시 `ok: true` 기준으로 확인 가능
+  - `GET /api/v1/auth/read-test`
+  - `GET /api/v1/workspaces/local-demo/subscriptions`
+  - `GET /api/v1/workspaces/local-demo/inventory-summary`
+  - `GET /api/v1/workspaces/local-demo/topology`
+  - `GET /api/v1/workspaces/local-demo/topology/node-detail`
+- smoke 시 `ok` 여부와 핵심 summary/count 값을 함께 확인하면 drift를 빨리 잡기 좋다.
+
 ## 다음 단계
 read test / topology probe 성공 후 진행 순서:
 1. 실제 live inventory 기준 inferred edge precision 검토

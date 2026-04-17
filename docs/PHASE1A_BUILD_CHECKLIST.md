@@ -61,10 +61,12 @@
 
 ## 5. Topology API
 - [x] `GET /workspaces/{workspace_id}/topology` 구현
+  - 2026-04-17 response contract cleanup: success `ok: true`, error envelope 정리
 - [x] topology payload에 필수 필드 포함
   - node: `node_key`, `node_type`, `node_ref`, `display_name`, `source`, `confidence`
   - edge: `source_node_key`, `target_node_key`, `relation_type`, `source`, `confidence`
 - [x] `GET /workspaces/{workspace_id}/topology/node-detail` 구현
+  - 2026-04-17 response contract cleanup: success `ok: true`, error/not-found envelope 정리
 - [x] `POST /topology/manual-nodes` 구현
 - [x] `POST /topology/manual-edges` 구현
 - [x] `PATCH /DELETE` manual node/edge 구현
