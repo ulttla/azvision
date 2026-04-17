@@ -28,6 +28,7 @@ import {
   type ManualNode,
   type UpdateManualEdgeRequest,
   type UpdateManualNodeRequest,
+  type TopologyEdge,
   type TopologyNode,
   type TopologyNodeDetail,
   type TopologyResponse,
@@ -142,6 +143,68 @@ function prettifyKey(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+function formatSourceLabel(value?: string) {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (!normalized) {
+    return '-'
+  }
+  if (normalized === 'azure') {
+    return 'Azure live'
+  }
+  if (normalized === 'manual') {
+    return 'Manual'
+  }
+  if (normalized === 'inferred') {
+    return 'Inferred'
+  }
+  return prettifyKey(normalized)
+}
+
+function formatConfidenceLabel(value?: number) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return '-'
+  }
+
+  return `${Math.round(value * 100)}%`
+}
+
+function getConfidenceTone(value?: number) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 'unknown'
+  }
+  if (value >= 0.95) {
+    return 'high'
+  }
+  if (value >= 0.7) {
+    return 'medium'
+  }
+  return 'low'
+}
+
+function getSourceTone(value?: string) {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (normalized === 'azure') {
+    return 'azure'
+  }
+  if (normalized === 'manual') {
+    return 'manual'
+  }
+  if (normalized === 'inferred') {
+    return 'inferred'
+  }
+  return 'default'
+}
+
+type GraphHoverCard = {
+  kind: 'node' | 'edge'
+  title: string
+  subtitle: string
+  source: string
+  confidence: number
+  x: number
+  y: number
+}
+
 function extractDetailScope(detail: TopologyNodeDetail | null) {
   const scope = detail?.details?.scope
   if (!scope || typeof scope !== 'object') {
@@ -218,6 +281,7 @@ export function TopologyPage() {
   const [snapshotNameInput, setSnapshotNameInput] = useState('')
   const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
   const [manualNodes, setManualNodes] = useState<ManualNode[]>([])
+  const [graphHoverCard, setGraphHoverCard] = useState<GraphHoverCard | null>(null)
   const [manualEdges, setManualEdges] = useState<ManualEdge[]>([])
   const [manualLoading, setManualLoading] = useState(false)
   const [manualNodeNameInput, setManualNodeNameInput] = useState('')
@@ -557,6 +621,20 @@ export function TopologyPage() {
 
     return map
   }, [topology])
+  const filteredNodesByKey = useMemo(
+    () => new Map<string, TopologyNode>(filteredTopology.nodes.map((node) => [node.node_key, node])),
+    [filteredTopology.nodes],
+  )
+  const filteredEdgesById = useMemo(
+    () =>
+      new Map<string, TopologyEdge>(
+        filteredTopology.edges.map((edge) => [
+          `${edge.source_node_key}::${edge.relation_type}::${edge.target_node_key}`,
+          edge,
+        ]),
+      ),
+    [filteredTopology.edges],
+  )
   const workspacesById = useMemo(
     () => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
     [workspaces],
@@ -720,6 +798,7 @@ export function TopologyPage() {
       if (!graphElements.length) {
         cyRef.current?.destroy()
         cyRef.current = null
+        setGraphHoverCard(null)
         setGraphRuntimeLoading(false)
         return
       }
@@ -745,6 +824,61 @@ export function TopologyPage() {
 
         const clearHoverState = () => {
           cy.elements().removeClass('hovered-node hovered-neighbor hovered-edge')
+          setGraphHoverCard(null)
+        }
+
+        const getHoverPosition = (event: any) => {
+          const renderedPosition = event.renderedPosition ?? event.target?.renderedPosition?.() ?? { x: 0, y: 0 }
+          return {
+            x: Number(renderedPosition.x ?? 0) + 14,
+            y: Number(renderedPosition.y ?? 0) + 14,
+          }
+        }
+
+        const showNodeHoverCard = (event: any) => {
+          const node = filteredNodesByKey.get(String(event.target.id()))
+          if (!node) {
+            setGraphHoverCard(null)
+            return
+          }
+
+          const position = getHoverPosition(event)
+          const subtitleBase = [prettifyKey(node.node_type), node.resource_type ?? '', node.location ?? '']
+            .map((item) => String(item).trim())
+            .filter(Boolean)
+            .join(' • ')
+
+          setGraphHoverCard({
+            kind: 'node',
+            title: node.display_name,
+            subtitle: subtitleBase || node.node_key,
+            source: node.source,
+            confidence: node.confidence,
+            x: position.x,
+            y: position.y,
+          })
+        }
+
+        const showEdgeHoverCard = (event: any) => {
+          const edge = filteredEdgesById.get(String(event.target.id()))
+          if (!edge) {
+            setGraphHoverCard(null)
+            return
+          }
+
+          const sourceNode = filteredNodesByKey.get(edge.source_node_key)
+          const targetNode = filteredNodesByKey.get(edge.target_node_key)
+          const position = getHoverPosition(event)
+
+          setGraphHoverCard({
+            kind: 'edge',
+            title: prettifyKey(edge.relation_type),
+            subtitle: `${sourceNode?.display_name ?? edge.source_node_key} → ${targetNode?.display_name ?? edge.target_node_key}`,
+            source: edge.source,
+            confidence: edge.confidence,
+            x: position.x,
+            y: position.y,
+          })
         }
 
         cy.on('tap', 'node', (event: any) => {
@@ -761,8 +895,10 @@ export function TopologyPage() {
           node.addClass('hovered-node')
           node.neighborhood('node').addClass('hovered-neighbor')
           node.connectedEdges().addClass('hovered-edge')
+          showNodeHoverCard(event)
         })
 
+        cy.on('mousemove', 'node', showNodeHoverCard)
         cy.on('mouseout', 'node', clearHoverState)
 
         cy.on('mouseover', 'edge', (event: any) => {
@@ -770,8 +906,10 @@ export function TopologyPage() {
           const edge = event.target
           edge.addClass('hovered-edge')
           edge.connectedNodes().addClass('hovered-neighbor')
+          showEdgeHoverCard(event)
         })
 
+        cy.on('mousemove', 'edge', showEdgeHoverCard)
         cy.on('mouseout', 'edge', clearHoverState)
 
         cy.ready(() => {
@@ -800,12 +938,13 @@ export function TopologyPage() {
 
     return () => {
       cancelled = true
+      setGraphHoverCard(null)
       activeCy?.destroy()
       if (cyRef.current === activeCy) {
         cyRef.current = null
       }
     }
-  }, [graphElements, layoutOptions])
+  }, [filteredEdgesById, filteredNodesByKey, graphElements, layoutOptions])
 
   useEffect(() => {
     const cy = cyRef.current
@@ -3077,7 +3216,29 @@ export function TopologyPage() {
             </div>
           </div>
 
-          <div ref={graphContainerRef} className="graph-canvas" />
+          <div className="graph-canvas-shell">
+            <div ref={graphContainerRef} className="graph-canvas" />
+            {graphHoverCard ? (
+              <div
+                className="graph-hover-card"
+                style={{ transform: `translate(${graphHoverCard.x}px, ${graphHoverCard.y}px)` }}
+              >
+                <div className="graph-hover-card-header">
+                  <strong>{graphHoverCard.title}</strong>
+                  <span className="mini-chip graph-hover-kind-chip">{graphHoverCard.kind}</span>
+                </div>
+                <p>{graphHoverCard.subtitle}</p>
+                <div className="graph-hover-card-meta">
+                  <span className={`mini-chip detail-source-chip source-${getSourceTone(graphHoverCard.source)}`}>
+                    {formatSourceLabel(graphHoverCard.source)}
+                  </span>
+                  <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(graphHoverCard.confidence)}`}>
+                    {formatConfidenceLabel(graphHoverCard.confidence)}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </div>
 
           {!canExportTopology && exportUnavailableMessage ? (
             <p className="hint export-hint">{exportUnavailableMessage}</p>
@@ -3101,6 +3262,14 @@ export function TopologyPage() {
               <div className="detail-hero">
                 <strong>{selectedNode.display_name}</strong>
                 <p>{selectedNode.node_key}</p>
+                <div className="detail-meta-chip-row">
+                  <span className={`mini-chip detail-source-chip source-${getSourceTone(selectedNode.source)}`}>
+                    Source • {formatSourceLabel(selectedNode.source)}
+                  </span>
+                  <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(selectedNode.confidence)}`}>
+                    Confidence • {formatConfidenceLabel(selectedNode.confidence)}
+                  </span>
+                </div>
                 {selectedParentNode ? (
                   <div className="detail-breadcrumb-row">
                     <span className="mini-chip">Parent MI</span>
@@ -3112,11 +3281,11 @@ export function TopologyPage() {
               <div className="detail-grid">
                 <div className="detail-item">
                   <span>Source</span>
-                  <strong>{selectedNode.source}</strong>
+                  <strong>{formatSourceLabel(selectedNode.source)}</strong>
                 </div>
                 <div className="detail-item">
                   <span>Confidence</span>
-                  <strong>{selectedNode.confidence}</strong>
+                  <strong>{formatConfidenceLabel(selectedNode.confidence)}</strong>
                 </div>
                 <div className="detail-item">
                   <span>Category</span>
