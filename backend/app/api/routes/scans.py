@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, Query
 
+from app.api.response_utils import build_error_response
 from app.collectors.azure_inventory import AzureInventoryError, collect_inventory
 from app.core.config import get_settings
 
@@ -41,6 +42,7 @@ def start_scan(
         )
         finished_at = datetime.now(timezone.utc)
         return {
+            "ok": True,
             "id": scan_id,
             "workspace_id": workspace_id,
             "status": "completed",
@@ -58,23 +60,23 @@ def start_scan(
         }
     except AzureInventoryError as exc:
         finished_at = datetime.now(timezone.utc)
-        return {
-            "id": scan_id,
-            "workspace_id": workspace_id,
-            "status": "failed",
-            "scope": "subscriptions,resource-groups,resources,network-relationships",
-            "started_at": started_at.isoformat(),
-            "finished_at": finished_at.isoformat(),
-            "created_at": started_at.isoformat(),
-            "summary": {
+        return build_error_response(
+            id=scan_id,
+            workspace_id=workspace_id,
+            status="failed",
+            scope="subscriptions,resource-groups,resources,network-relationships",
+            started_at=started_at.isoformat(),
+            finished_at=finished_at.isoformat(),
+            created_at=started_at.isoformat(),
+            summary={
                 "subscription_count": 0,
                 "resource_group_count": 0,
                 "resource_count": 0,
             },
-            "subscription_id": subscription_id,
-            "mode": "live-inventory-collector",
-            "message": str(exc),
-        }
+            subscription_id=subscription_id,
+            mode="live-inventory-collector",
+            message=str(exc),
+        )
 
 
 @router.get("")

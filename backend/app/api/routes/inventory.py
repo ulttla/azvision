@@ -1,6 +1,7 @@
 import requests
 from fastapi import APIRouter, Query
 
+from app.api.response_utils import build_error_response
 from app.collectors.azure_inventory import (
     AzureInventoryError,
     resolve_inventory_collection,
@@ -19,18 +20,18 @@ def get_subscriptions(workspace_id: str) -> dict:
     try:
         resolution = resolve_subscription_items(settings)
         return {
+            "ok": True,
             "workspace_id": workspace_id,
             "mode": resolution.mode,
             "warning": resolution.warning,
             "items": resolution.items,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
-        return {
-            "workspace_id": workspace_id,
-            "items": [],
-            "status": "error",
-            "message": str(exc),
-        }
+        return build_error_response(
+            workspace_id=workspace_id,
+            items=[],
+            message=str(exc),
+        )
 
 
 @router.get("/resource-groups")
@@ -47,6 +48,7 @@ def get_resource_groups(
             limit=limit,
         )
         return {
+            "ok": True,
             "workspace_id": workspace_id,
             "subscription_id": subscription_id,
             "mode": resolution.mode,
@@ -54,13 +56,12 @@ def get_resource_groups(
             "items": resolution.items,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
-        return {
-            "workspace_id": workspace_id,
-            "subscription_id": subscription_id,
-            "items": [],
-            "status": "error",
-            "message": str(exc),
-        }
+        return build_error_response(
+            workspace_id=workspace_id,
+            subscription_id=subscription_id,
+            items=[],
+            message=str(exc),
+        )
 
 
 @router.get("/resources")
@@ -79,6 +80,7 @@ def get_resources(
             limit=limit,
         )
         return {
+            "ok": True,
             "workspace_id": workspace_id,
             "subscription_id": subscription_id,
             "resource_group_name": resource_group_name,
@@ -87,14 +89,13 @@ def get_resources(
             "items": resolution.items,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
-        return {
-            "workspace_id": workspace_id,
-            "subscription_id": subscription_id,
-            "resource_group_name": resource_group_name,
-            "items": [],
-            "status": "error",
-            "message": str(exc),
-        }
+        return build_error_response(
+            workspace_id=workspace_id,
+            subscription_id=subscription_id,
+            resource_group_name=resource_group_name,
+            items=[],
+            message=str(exc),
+        )
 
 
 @router.get("/inventory-summary")
@@ -116,6 +117,7 @@ def get_inventory_summary(
         )
         collection = resolution.collection
         return {
+            "ok": True,
             "workspace_id": workspace_id,
             "subscription_id": subscription_id,
             "resource_group_name": resource_group_name,
@@ -133,20 +135,19 @@ def get_inventory_summary(
             },
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
-        return {
-            "workspace_id": workspace_id,
-            "subscription_id": subscription_id,
-            "resource_group_name": resource_group_name,
-            "summary": {
+        return build_error_response(
+            workspace_id=workspace_id,
+            subscription_id=subscription_id,
+            resource_group_name=resource_group_name,
+            summary={
                 "subscription_count": 0,
                 "resource_group_count": 0,
                 "resource_count": 0,
             },
-            "items": {
+            items={
                 "subscriptions": [],
                 "resource_groups": [],
                 "resources": [],
             },
-            "status": "error",
-            "message": str(exc),
-        }
+            message=str(exc),
+        )

@@ -4,11 +4,11 @@ from dataclasses import dataclass
 
 import requests
 
-from app.auth.azure_read_test import AzureReadTestError, get_json, get_management_token
+from app.core.azure_client import AzureClientError, get_management_token, get_paginated_items, get_json
 from app.core.config import Settings
 
 
-class AzureInventoryError(RuntimeError):
+class AzureInventoryError(AzureClientError):
     pass
 
 
@@ -302,20 +302,6 @@ def _mock_inventory_collection(
     )
 
 
-def _get_paginated_items(url: str, token: str, *, max_pages: int = 20) -> list[dict]:
-    items: list[dict] = []
-    next_url: str | None = url
-    page = 0
-
-    while next_url and page < max_pages:
-        payload = get_json(next_url, token)
-        items.extend(payload.get("value", []))
-        next_url = payload.get("nextLink")
-        page += 1
-
-    return items
-
-
 def list_accessible_subscriptions(settings: Settings) -> list[dict]:
     if not settings.auth_runtime_ready:
         raise AzureInventoryError("Azure auth is not ready")
@@ -353,7 +339,7 @@ def list_resource_groups(
 
     items: list[dict] = []
     for current_subscription_id in target_subscription_ids:
-        payload_items = _get_paginated_items(
+        payload_items = get_paginated_items(
             "https://management.azure.com/"
             f"subscriptions/{current_subscription_id}/resourcegroups"
             "?api-version=2021-04-01",
@@ -419,7 +405,7 @@ def list_resources(
                 "?api-version=2021-04-01"
             )
 
-        payload_items = _get_paginated_items(
+        payload_items = get_paginated_items(
             request_url,
             token,
             max_pages=20,
@@ -465,7 +451,7 @@ def collect_inventory(
             resource_group_name=resource_group_name,
             limit=resource_limit,
         )
-    except AzureReadTestError as exc:
+    except AzureClientError as exc:
         raise AzureInventoryError(str(exc)) from exc
     except requests.HTTPError as exc:
         response = exc.response

@@ -18,7 +18,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - manual + scan node mixed topology merge smoke 통과
   - backend compile smoke 통과
   - live topology probe PASS
-    - auth ready / token acquire / subscription 1개 read 성공
+    - auth ready / token acquire / subscription 2개 read 성공 (`Kepion Sub`, `Azure Sub for Select Wines`)
     - sample resource group 7개 확인
     - topology projection `node_count=50`, `edge_count=55`, inferred edge 6개 확인
 - 문서/운영 상태
@@ -95,4 +95,4 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분, Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
-- 다음 권장 순서: single-subscription live probe 결과를 기준 문서에 반영 → 2-subscription gate 또는 browser 실검 범위 확장 → 필요 시 같은 Phase 1A 목표선 안의 다음 기능/정리 작업
+- 다음 권장 순서: 2-subscription live read 성공 결과를 기준 문서에 반영 → backend cleanup(Azure client init / error response 공통화) → 필요 시 같은 Phase 1A 목표선 안의 다음 기능/정리 작업

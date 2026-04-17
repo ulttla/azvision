@@ -16,34 +16,34 @@
   - diagnostics read only
 
 ## 1. Auth / Azure read 준비
-- [ ] App Registration 실제 생성
-- [ ] certificate 기반 app-only auth 값 확보
+- [x] App Registration 실제 생성
+- [x] certificate 기반 app-only auth 값 확보
   - tenant id
   - client id
   - certificate thumbprint / 경로
-- [ ] 최소 read 권한 범위 확정
+- [x] 최소 read 권한 범위 확정
 - [x] local / dev 환경용 설정값 배치 방식 확정
 - [x] env discovery 개선: project root `.env` 우선 + `backend/.env` fallback 지원
 - [x] `GET /auth/config-check` 구현
 - [x] `GET /auth/read-test` live wiring 구현
-- [ ] 최소 read 권한 범위 확정
-- [ ] 멀티 subscription read 성공 기준 정의
+- [x] 멀티 subscription read 성공 기준 정의
   - 최소 2개 subscription read
-  - 현재 상태: existing `.env` 기준 auth ready / token acquire / single subscription read 성공
-  - 2026-04-16 live probe: subscription 1개, sample resource group 7개, topology projection `node_count=50`, `edge_count=55`, inferred edge 6개 확인
+  - 2026-04-16 live probe: sample resource group 7개, topology projection `node_count=50`, `edge_count=55`, inferred edge 6개 확인
   - 2026-04-16 browser 실검: live topology 51 nodes/56 edges (manual node/edge 포함), architecture view 28 cards/5 zones, snapshot save, view 전환 모두 정상
+  - 2026-04-17 live read-test: subscription 2개 (`Kepion Sub`, `Azure Sub for Select Wines`) 확인
+  - 2026-04-17 Azure Portal duplicate assign 확인: `Kepion Sub`의 `AzVision-dev` Reader는 이미 존재
 ## 2. Backend scaffold
 - [x] FastAPI app skeleton 정리
 - [x] workspace / scan / topology 라우터 골격 생성
 - [x] settings / config loader 분리
-- [ ] Azure client 초기화 레이어 분리
+- [x] Azure client 초기화 레이어 분리
 - [x] scan orchestration 초안 추가
-- [ ] error model / API response shape 공통화
+- [x] error model / API response shape 공통화
 
 ## 3. Discovery 구현
-- [ ] subscription enumerator 구현
-- [ ] resource group fetcher 구현
-- [ ] resource fetcher 구현
+- [x] subscription enumerator 구현
+- [x] resource group fetcher 구현
+- [x] resource fetcher 구현
   - type
   - location
   - tags
@@ -112,9 +112,9 @@
   - PDF export 도 button active, 생성 기능 확인됨
 
 ## 10. Definition of Done (Phase 1A)
-- [ ] 최소 2개 이상의 subscription read 성공
-  - 현재 1개만 Azure RBAC로 접근 가능 (Azure Sub for Select Wines)
-  - 2번째 구독 Reader 권한 추가 필요
+- [x] 최소 2개 이상의 subscription read 성공
+  - 2026-04-17 live read-test 기준 `Kepion Sub`, `Azure Sub for Select Wines` 2개 확인
+  - Azure Portal duplicate assign 응답으로 `Kepion Sub` Reader existing 상태 재확인
 - [x] topology graph가 실제 Azure 데이터로 렌더링됨
 - [x] manual node / edge 추가 가능
 - [x] PNG/PDF export 가능

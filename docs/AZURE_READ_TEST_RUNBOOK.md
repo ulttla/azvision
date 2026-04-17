@@ -63,8 +63,16 @@ curl http://localhost:8000/api/v1/auth/read-test
 
 ## 성공 판정
 - 토큰 발급 성공
-- subscription 1개 이상 조회 성공
+- target subscription들 조회 성공 (현재 실검 기준 2개: `Kepion Sub`, `Azure Sub for Select Wines`)
 - resource group 샘플 조회 성공
+
+## 최신 실검 메모 (2026-04-17)
+- `GET /api/v1/auth/read-test` 기준 `ok: true`, `token_acquired: true`
+- `accessible_subscriptions` 2개 확인
+  - `Kepion Sub`
+  - `Azure Sub for Select Wines`
+- Azure Portal에서 `Kepion Sub`에 `AzVision-dev` Reader를 추가 시도했을 때 `role assignment already exists` 반환
+  - 즉, duplicate assign 실패였고 실제 Reader 권한은 이미 존재했음
 
 ## 실패 패턴과 해석
 ### `Missing required Azure settings`
