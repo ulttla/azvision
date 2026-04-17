@@ -85,7 +85,8 @@
 - [x] live topology API와 Cytoscape 연결
 - [x] subscription / resource group / resource / manual node 렌더링 규칙 확정
 - [x] edge style / relation type style 1차 반영
-- [ ] source / confidence badge 또는 tooltip 1차 반영
+- [x] source / confidence badge 또는 tooltip 1차 반영
+  - hover card (node/edge mouseover) + detail panel meta chip row 구현 (2026-04-17)
 - [x] node detail panel 연결
 
 ## 8. Manual modeling
