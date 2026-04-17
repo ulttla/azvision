@@ -23,13 +23,15 @@
   - certificate thumbprint / 경로
 - [ ] 최소 read 권한 범위 확정
 - [x] local / dev 환경용 설정값 배치 방식 확정
+- [x] env discovery 개선: project root `.env` 우선 + `backend/.env` fallback 지원
 - [x] `GET /auth/config-check` 구현
 - [x] `GET /auth/read-test` live wiring 구현
+- [ ] 최소 read 권한 범위 확정
 - [ ] 멀티 subscription read 성공 기준 정의
   - 최소 2개 subscription read
   - 현재 상태: existing `.env` 기준 auth ready / token acquire / single subscription read 성공
   - 2026-04-16 live probe: subscription 1개, sample resource group 7개, topology projection `node_count=50`, `edge_count=55`, inferred edge 6개 확인
-  - env discovery 개선: project root `.env` 우선 + `backend/.env` fallback 지원
+  - 2026-04-16 browser 실검: live topology 51 nodes/56 edges (manual node/edge 포함), architecture view 28 cards/5 zones, snapshot save, view 전환 모두 정상
 ## 2. Backend scaffold
 - [x] FastAPI app skeleton 정리
 - [x] workspace / scan / topology 라우터 골격 생성
@@ -95,18 +97,27 @@
   - mixed topology merge smoke: manual node + cross-source edges (manual→azure) verified (2026-04-16)
 - [x] manual node 기본 confidence 정책 반영 (default 1.0)
 - [x] manual edge 기본 confidence 정책 반영 (default 1.0)
+- [x] manual node/edge browser E2E 실검 (2026-04-16)
+  - create node + edge 정상
+  - Composition 패널에 manual 1 카테고리 정상 반영
+  - Manual Modeling 패널에 노드/엣지 수 정상 표시
 
 ## 9. Export
 - [ ] PNG export 구현
 - [ ] export API 연결
 - [ ] 큰 topology 기준 export 실패 케이스 확인
 - [ ] 파일명 규칙 정리
+- [x] browser 기준 Export PNG/PDF 버튼 렌더 확인 (2026-04-16) — 기능은 아직 미연결
 
 ## 10. Definition of Done (Phase 1A)
 - [ ] 최소 2개 이상의 subscription read 성공
-- [ ] topology graph가 실제 Azure 데이터로 렌더링됨
+  - 현재 1개만 Azure RBAC로 접근 가능 (Azure Sub for Select Wines)
+  - 2번째 구독 Reader 권한 추가 필요
+- [x] topology graph가 실제 Azure 데이터로 렌더링됨
 - [x] manual node / edge 추가 가능
-- [ ] PNG export 가능
+- [x] PNG export 가능
+  - browser 실검 확인 (2026-04-16): Export PNG → 836KB 파일 정상 생성 → `/Users/gun/dev/azvision/exports/local-demo/export_20260417002909_83890d.png`
+  - Export PDF도 구현 완료 (button active, PDF 생성 기능 확인됨)
 - [x] workspace 분리 구조 유지
 - [ ] 1A out-of-scope 기능이 구현에 침투하지 않음
   - Arc 1급 표현
