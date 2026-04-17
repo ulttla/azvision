@@ -847,6 +847,7 @@ def create_manual_node(workspace_id: str, payload: dict[str, Any]) -> dict[str, 
     repo = _manual_repo()
     created = repo.create_manual_node(workspace_id, payload)
     return {
+        "ok": True,
         "status": "created",
         **created,
         "node_key": f"manual:{created['manual_ref']}",
@@ -861,6 +862,7 @@ def create_manual_edge(workspace_id: str, payload: dict[str, Any]) -> dict[str, 
     repo = _manual_repo()
     created = repo.create_manual_edge(workspace_id, payload)
     return {
+        "ok": True,
         "status": "created",
         **created,
     }
@@ -896,8 +898,13 @@ def update_manual_node(
     repo = _manual_repo()
     updated = repo.update_manual_node(workspace_id, manual_node_ref, payload)
     if updated is None:
-        return {"status": "not-found", "manual_ref": manual_node_ref}
+        return build_error_response(
+            status="not-found",
+            manual_ref=manual_node_ref,
+            message="Requested manual node was not found.",
+        )
     return {
+        "ok": True,
         "status": "updated",
         **updated,
         "node_key": f"manual:{updated['manual_ref']}",
@@ -913,33 +920,57 @@ def update_manual_edge(
     repo = _manual_repo()
     current = repo.get_manual_edge(workspace_id, manual_edge_ref)
     if current is None:
-        return {"status": "not-found", "manual_edge_ref": manual_edge_ref}
+        return build_error_response(
+            status="not-found",
+            manual_edge_ref=manual_edge_ref,
+            message="Requested manual edge was not found.",
+        )
 
     merged_payload = {**current, **payload}
     _validate_manual_edge_payload(workspace_id, merged_payload)
     updated = repo.update_manual_edge(workspace_id, manual_edge_ref, payload)
     if updated is None:
-        return {"status": "not-found", "manual_edge_ref": manual_edge_ref}
-    return {"status": "updated", **updated}
+        return build_error_response(
+            status="not-found",
+            manual_edge_ref=manual_edge_ref,
+            message="Requested manual edge was not found.",
+        )
+    return {"ok": True, "status": "updated", **updated}
 
 
 @router.delete("/manual-nodes/{manual_node_ref}")
 def delete_manual_node(workspace_id: str, manual_node_ref: str) -> dict[str, Any]:
     repo = _manual_repo()
     deleted = repo.delete_manual_node(workspace_id, manual_node_ref)
-    return {
-        "workspace_id": workspace_id,
-        "manual_ref": manual_node_ref,
-        "status": "deleted" if deleted else "not-found",
-    }
+    if deleted:
+        return {
+            "ok": True,
+            "workspace_id": workspace_id,
+            "manual_ref": manual_node_ref,
+            "status": "deleted",
+        }
+    return build_error_response(
+        workspace_id=workspace_id,
+        manual_ref=manual_node_ref,
+        status="not-found",
+        message="Requested manual node was not found.",
+    )
 
 
 @router.delete("/manual-edges/{manual_edge_ref}")
 def delete_manual_edge(workspace_id: str, manual_edge_ref: str) -> dict[str, Any]:
     repo = _manual_repo()
     deleted = repo.delete_manual_edge(workspace_id, manual_edge_ref)
-    return {
-        "workspace_id": workspace_id,
-        "manual_edge_ref": manual_edge_ref,
-        "status": "deleted" if deleted else "not-found",
-    }
+    if deleted:
+        return {
+            "ok": True,
+            "workspace_id": workspace_id,
+            "manual_edge_ref": manual_edge_ref,
+            "status": "deleted",
+        }
+    return build_error_response(
+        workspace_id=workspace_id,
+        manual_edge_ref=manual_edge_ref,
+        status="not-found",
+        message="Requested manual edge was not found.",
+    )
