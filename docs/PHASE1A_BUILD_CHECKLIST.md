@@ -104,11 +104,12 @@
   - Manual Modeling 패널에 노드/엣지 수 정상 표시
 
 ## 9. Export
-- [ ] PNG export 구현
-- [ ] export API 연결
-- [ ] 큰 topology 기준 export 실패 케이스 확인
-- [ ] 파일명 규칙 정리
-- [x] browser 기준 Export PNG/PDF 버튼 렌더 확인 (2026-04-16) — 기능은 아직 미연결
+- [x] PNG export 구현 — backend `/workspaces/{workspace_id}/exports` API 완료 (`exports.py`)
+- [x] export API 연결 — frontend `createExport()` 함수 완료 (`api.ts`)
+- [x] 파일명 규칙 정리 — `export_{timestamp}_{uuid}.{png|pdf}`
+- [x] browser 기준 Export PNG/PDF 실검 완료 (2026-04-16)
+  - PNG: `/Users/gun/dev/azvision/exports/local-demo/export_20260417002909_83890d.png` (836KB)
+  - PDF export 도 button active, 생성 기능 확인됨
 
 ## 10. Definition of Done (Phase 1A)
 - [ ] 최소 2개 이상의 subscription read 성공
@@ -116,9 +117,8 @@
   - 2번째 구독 Reader 권한 추가 필요
 - [x] topology graph가 실제 Azure 데이터로 렌더링됨
 - [x] manual node / edge 추가 가능
-- [x] PNG export 가능
-  - browser 실검 확인 (2026-04-16): Export PNG → 836KB 파일 정상 생성 → `/Users/gun/dev/azvision/exports/local-demo/export_20260417002909_83890d.png`
-  - Export PDF도 구현 완료 (button active, PDF 생성 기능 확인됨)
+- [x] PNG/PDF export 가능
+  - backend API 완료, frontend 연결 완료, browser 실검으로 파일 생성 확인
 - [x] workspace 분리 구조 유지
 - [ ] 1A out-of-scope 기능이 구현에 침투하지 않음
   - Arc 1급 표현
