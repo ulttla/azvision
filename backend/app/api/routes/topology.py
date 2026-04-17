@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.api.response_utils import build_error_response
 from app.collectors.azure_inventory import (
     AzureInventoryCollection,
     AzureInventoryError,
@@ -445,6 +446,7 @@ def _project_live_topology(
         relation_counts[relation_type] = relation_counts.get(relation_type, 0) + 1
 
     return {
+        "ok": True,
         "workspace_id": workspace_id,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "mode": projection_mode,
@@ -472,22 +474,24 @@ def _manual_node_detail(workspace_id: str, node_ref: str) -> dict[str, Any]:
     repo = _manual_repo()
     manual_node = repo.get_manual_node(workspace_id, node_ref)
     if manual_node is None:
-        return {
-            "workspace_id": workspace_id,
-            "node_key": f"manual:{node_ref}",
-            "node_type": "manual",
-            "node_ref": node_ref,
-            "display_name": node_ref,
-            "source": "manual",
-            "confidence": 0.0,
-            "status": "not-found",
-            "details": {
+        return build_error_response(
+            workspace_id=workspace_id,
+            node_key=f"manual:{node_ref}",
+            node_type="manual",
+            node_ref=node_ref,
+            display_name=node_ref,
+            source="manual",
+            confidence=0.0,
+            status="not-found",
+            details={
                 "mode": "manual-db",
                 "note": "Requested manual node was not found in workspace storage.",
             },
-        }
+            message="Requested manual node was not found in workspace storage.",
+        )
 
     return {
+        "ok": True,
         "workspace_id": workspace_id,
         "node_key": f"manual:{manual_node['manual_ref']}",
         "node_type": "manual",
@@ -515,6 +519,7 @@ def _subscription_detail(
 ) -> dict[str, Any]:
     subscription_id = item.get("subscription_id")
     return {
+        "ok": True,
         "workspace_id": workspace_id,
         "node_key": f"subscription:{subscription_id}",
         "node_type": "subscription",
@@ -549,6 +554,7 @@ def _resource_group_detail(
         item.get("name"),
     )
     return {
+        "ok": True,
         "workspace_id": workspace_id,
         "node_key": f"resourcegroup:{resource_group_id}",
         "node_type": "resourcegroup",
@@ -582,6 +588,7 @@ def _resource_detail(
 ) -> dict[str, Any]:
     resource_id = item.get("id")
     return {
+        "ok": True,
         "workspace_id": workspace_id,
         "node_key": f"resource:{resource_id}",
         "node_type": "resource",
@@ -637,17 +644,17 @@ def get_topology(
             resource_group_name=resource_group_name,
         )
     except AzureInventoryError as exc:
-        return {
-            "workspace_id": workspace_id,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "mode": "live-inventory-projection",
-            "options": {
+        return build_error_response(
+            workspace_id=workspace_id,
+            generated_at=datetime.now(timezone.utc).isoformat(),
+            mode="live-inventory-projection",
+            options={
                 "include_network_inference": include_network_inference,
                 "collapse_managed_instance_children": collapse_managed_instance_children,
                 "expanded_node_ref": expanded_node_ref,
                 "resource_group_name": resource_group_name,
             },
-            "summary": {
+            summary={
                 "subscription_count": 0,
                 "resource_group_count": 0,
                 "resource_count": 0,
@@ -655,11 +662,10 @@ def get_topology(
                 "node_count": 0,
                 "edge_count": 0,
             },
-            "nodes": [],
-            "edges": [],
-            "status": "error",
-            "message": str(exc),
-        }
+            nodes=[],
+            edges=[],
+            message=str(exc),
+        )
 
 
 @router.get("/node-detail")
@@ -687,24 +693,23 @@ def get_node_detail(
         collection = resolution.collection
         projection_mode = _projection_mode_label(resolution.mode)
     except AzureInventoryError as exc:
-        return {
-            "workspace_id": workspace_id,
-            "node_key": f"{node_type}:{node_ref}",
-            "node_type": node_type,
-            "node_ref": node_ref,
-            "display_name": node_ref.split("/")[-1] if "/" in node_ref else node_ref,
-            "source": "azure",
-            "confidence": 0.0,
-            "status": "error",
-            "message": str(exc),
-            "details": {
+        return build_error_response(
+            workspace_id=workspace_id,
+            node_key=f"{node_type}:{node_ref}",
+            node_type=node_type,
+            node_ref=node_ref,
+            display_name=node_ref.split("/")[-1] if "/" in node_ref else node_ref,
+            source="azure",
+            confidence=0.0,
+            details={
                 "mode": "live-inventory-projection",
                 "scope": {
                     "subscription_id": subscription_id,
                     "resource_group_name": resource_group_name,
                 },
             },
-        }
+            message=str(exc),
+        )
 
     if node_type == "subscription":
         item = next(
@@ -767,16 +772,16 @@ def get_node_detail(
                 child_summary=child_summary,
             )
 
-    return {
-        "workspace_id": workspace_id,
-        "node_key": f"{node_type}:{node_ref}",
-        "node_type": node_type,
-        "node_ref": node_ref,
-        "display_name": node_ref.split("/")[-1] if "/" in node_ref else node_ref,
-        "source": "manual" if node_type == "manual" else "azure",
-        "confidence": 0.0,
-        "status": "not-found",
-        "details": {
+    return build_error_response(
+        workspace_id=workspace_id,
+        node_key=f"{node_type}:{node_ref}",
+        node_type=node_type,
+        node_ref=node_ref,
+        display_name=node_ref.split("/")[-1] if "/" in node_ref else node_ref,
+        source="manual" if node_type == "manual" else "azure",
+        confidence=0.0,
+        status="not-found",
+        details={
             "mode": projection_mode,
             "scope": {
                 "subscription_id": subscription_id,
@@ -784,7 +789,8 @@ def get_node_detail(
             },
             "note": "Requested node was not found within the current scoped live inventory window.",
         },
-    }
+        message="Requested node was not found within the current scoped live inventory window.",
+    )
 
 
 def _manual_repo() -> ManualModelRepository:
