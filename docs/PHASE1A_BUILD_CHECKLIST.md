@@ -122,13 +122,14 @@
 - [x] PNG/PDF export 가능
   - backend API 완료, frontend 연결 완료, browser 실검으로 파일 생성 확인
 - [x] workspace 분리 구조 유지
-- [ ] 1A out-of-scope 기능이 구현에 침투하지 않음
-  - Arc 1급 표현
-  - PDF
-  - snapshot compare
-  - cost
-  - simulation
-  - copilot
+- [x] 1A out-of-scope 기능이 구현에 침투하지 않음
+  - Arc 1급 표현 — 없음
+  - PDF 독립 보고서 포맷 — 없음 (topology canvas PDF export는 Section 9 / DoD 기준 in-scope로 확정)
+  - snapshot compare — 없음
+  - cost — 없음
+  - simulation — 없음
+  - copilot — 없음
+  - 2026-04-17 코드 스캔 확인: backend/frontend 전체에 위 기능 구현 없음
 
 ## 11. 다음 reviewer 게이트
 - [ ] `AEGIS`: app-only auth / permission scope review (live Azure 연결 직전)
