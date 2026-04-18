@@ -43,9 +43,11 @@
   - 내부 PK는 public API에 노출하지 않음
 - `GET /workspaces/{workspace_id}/topology/manual-nodes`
   - workspace 기준 manual node 목록 조회
+  - 응답: `workspace_id`, `items[]`
 - `POST /workspaces/{workspace_id}/topology/manual-nodes`
 - `GET /workspaces/{workspace_id}/topology/manual-edges`
   - workspace 기준 manual edge 목록 조회
+  - 응답: `workspace_id`, `items[]`
 - `POST /workspaces/{workspace_id}/topology/manual-edges`
 - `PATCH /workspaces/{workspace_id}/topology/manual-nodes/{manual_node_ref}`
   - `manual_node_ref`는 DB PK가 아니라 `ManualNode.manual_ref`
@@ -101,7 +103,7 @@
 - `POST /workspaces/{workspace_id}/chat`
 
 ## Response shape principles
-- 모든 핵심 목록 응답은 `items` 배열을 포함한다
+- 모든 핵심 목록 응답은 `ok`, `workspace_id`, `items` 배열을 기본으로 포함한다
 - graph 응답은 `nodes` / `edges` 구조를 사용한다
 - manual 데이터는 `source = manual` 로 명시한다
 - topology node 응답은 `node_key`, `node_type`, `node_ref`, `source`, `confidence` 를 항상 포함한다

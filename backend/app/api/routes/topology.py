@@ -842,6 +842,15 @@ def _validate_manual_edge_payload(workspace_id: str, payload: dict[str, Any]) ->
         )
 
 
+def _serialize_manual_node(node: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **node,
+        "node_key": f"manual:{node['manual_ref']}",
+        "node_type": "manual",
+        "node_ref": node["manual_ref"],
+    }
+
+
 @router.post("/manual-nodes")
 def create_manual_node(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     repo = _manual_repo()
@@ -849,10 +858,7 @@ def create_manual_node(workspace_id: str, payload: dict[str, Any]) -> dict[str, 
     return {
         "ok": True,
         "status": "created",
-        **created,
-        "node_key": f"manual:{created['manual_ref']}",
-        "node_type": "manual",
-        "node_ref": created["manual_ref"],
+        **_serialize_manual_node(created),
     }
 
 
@@ -869,24 +875,24 @@ def create_manual_edge(workspace_id: str, payload: dict[str, Any]) -> dict[str, 
 
 
 @router.get("/manual-nodes")
-def list_manual_nodes(workspace_id: str) -> list[dict[str, Any]]:
+def list_manual_nodes(workspace_id: str) -> dict[str, Any]:
     repo = _manual_repo()
     nodes = repo.list_manual_nodes(workspace_id)
-    return [
-        {
-            **n,
-            "node_key": f"manual:{n['manual_ref']}",
-            "node_type": "manual",
-            "node_ref": n["manual_ref"],
-        }
-        for n in nodes
-    ]
+    return {
+        "ok": True,
+        "workspace_id": workspace_id,
+        "items": [_serialize_manual_node(node) for node in nodes],
+    }
 
 
 @router.get("/manual-edges")
-def list_manual_edges(workspace_id: str) -> list[dict[str, Any]]:
+def list_manual_edges(workspace_id: str) -> dict[str, Any]:
     repo = _manual_repo()
-    return repo.list_manual_edges(workspace_id)
+    return {
+        "ok": True,
+        "workspace_id": workspace_id,
+        "items": repo.list_manual_edges(workspace_id),
+    }
 
 
 @router.patch("/manual-nodes/{manual_node_ref}")
@@ -906,8 +912,7 @@ def update_manual_node(
     return {
         "ok": True,
         "status": "updated",
-        **updated,
-        "node_key": f"manual:{updated['manual_ref']}",
+        **_serialize_manual_node(updated),
     }
 
 

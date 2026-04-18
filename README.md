@@ -3,7 +3,7 @@
 Azure topology explorer 기반의 AzVision 개발 repo.
 
 ## 현재 상태
-- 현재 active closeout 기준은 **Phase 1A manual modeling usable baseline 완료 + push-ready 정리 단계**
+- 현재 active closeout 기준은 **Phase 1A DoD 전부 완료 + same-line contract/doc 정리 단계**
 - backend
   - SQLite `manual_nodes` / `manual_edges` 기반 DB-backed CRUD 구현 완료
   - topology 응답에 manual node/edge merge 반영 완료
@@ -22,11 +22,11 @@ Azure topology explorer 기반의 AzVision 개발 repo.
     - sample resource group 7개 확인
     - topology projection `node_count=50`, `edge_count=55`, inferred edge 6개 확인
 - 문서/운영 상태
-  - `docs/API_CONTRACT.md` 는 current manual CRUD/PATCH 구조와 정합
-  - `docs/PHASE1A_BUILD_CHECKLIST.md` 는 manual modeling E2E 기준으로 최신화 진행 중
+  - `docs/API_CONTRACT.md` 는 current manual CRUD/list envelope 구조와 정합
+  - `docs/PHASE1A_BUILD_CHECKLIST.md` 는 Phase 1A DoD 전부 완료 기준으로 최신화 완료
 - 참고
   - repo 안에는 이전 라운드의 Phase 1B snapshot/history 및 Architecture View 구현도 그대로 포함되어 있음
-  - 다만 현재 작업 기준선과 다음 의사결정은 Phase 1A closeout sync 이후 `push 여부`와 `다음 트랙 선택`에 맞춰짐
+  - 다만 현재 작업 기준선과 다음 의사결정은 Phase 1A closeout sync 이후 `same-line cleanup` 또는 `Phase 1B track 재진입` 판단에 맞춰짐
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
@@ -86,7 +86,7 @@ npm run dev
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
 
 ## 메모
-- 현재 closeout 기준 핵심은 **manual modeling 1차 완료 상태를 장기 문서/README/checklist와 맞추고 push 또는 다음 트랙 진입 판단을 내리는 것**
+- 현재 closeout 기준 핵심은 **Phase 1A DoD 완료 상태를 장기 문서/README/checklist와 맞추고, 남은 same-line cleanup 후 다음 트랙 진입 판단을 내리는 것**
 - `GET /api/v1/auth/config-check` 는 env/cert 준비 상태를 확인
 - `GET /api/v1/auth/read-test` 는 실제 Azure subscription / resource group read를 검증
 - live topology/inference 점검은 `bash scripts/live_topology_probe.sh` 로 config-check → read-test → topology probe를 한 번에 수행 가능

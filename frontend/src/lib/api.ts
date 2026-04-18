@@ -513,6 +513,14 @@ export type ManualEdge = {
   confidence: number
 }
 
+export type ManualListResponse<T> = {
+  ok?: boolean
+  workspace_id?: string
+  status?: string
+  message?: string
+  items: T[]
+}
+
 export type CreateManualNodeRequest = {
   manual_ref?: string
   display_name: string
@@ -549,8 +557,15 @@ export type UpdateManualEdgeRequest = {
   confidence?: number
 }
 
+function unwrapManualList<T>(data: T[] | ManualListResponse<T>): T[] {
+  return Array.isArray(data) ? data : data.items
+}
+
 export async function listManualNodes(workspaceId: string): Promise<ManualNode[]> {
-  return fetchJson<ManualNode[]>(`/workspaces/${workspaceId}/topology/manual-nodes`)
+  const data = await fetchJson<ManualNode[] | ManualListResponse<ManualNode>>(
+    `/workspaces/${workspaceId}/topology/manual-nodes`,
+  )
+  return unwrapManualList(data)
 }
 
 export async function createManualNode(
@@ -583,7 +598,10 @@ export async function deleteManualNode(workspaceId: string, manualNodeRef: strin
 }
 
 export async function listManualEdges(workspaceId: string): Promise<ManualEdge[]> {
-  return fetchJson<ManualEdge[]>(`/workspaces/${workspaceId}/topology/manual-edges`)
+  const data = await fetchJson<ManualEdge[] | ManualListResponse<ManualEdge>>(
+    `/workspaces/${workspaceId}/topology/manual-edges`,
+  )
+  return unwrapManualList(data)
 }
 
 export async function createManualEdge(
