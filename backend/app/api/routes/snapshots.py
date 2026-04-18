@@ -31,7 +31,7 @@ def list_snapshots(
         include_archived=include_archived,
         pinned_first=pinned_first,
     )
-    return SnapshotListResponse(items=service.list_snapshots(workspace_id, query))
+    return SnapshotListResponse(workspace_id=workspace_id, items=service.list_snapshots(workspace_id, query))
 
 
 @router.post("", response_model=SnapshotRecord)

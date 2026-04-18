@@ -70,7 +70,7 @@
 - `GET /workspaces/{workspace_id}/snapshots`
   - query: `sort_by=updated_at|captured_at|last_restored_at`, `sort_order=asc|desc`, `include_archived=true|false`, `pinned_first=true|false`
   - 기본값: `sort_by=last_restored_at`, `sort_order=desc`, `include_archived=true`, `pinned_first=true`
-  - 응답: `items[]` (`SnapshotRecord`)
+  - 응답: `ok`, `workspace_id`, `items[]` (`SnapshotRecord`)
 - `POST /workspaces/{workspace_id}/snapshots`
   - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`
   - 응답: `SnapshotRecord`
@@ -111,6 +111,6 @@
 - manual node의 canonical ref는 `ManualNode.manual_ref`, manual edge의 canonical ref는 `ManualEdge.manual_edge_ref` 를 사용한다
 - 비용 응답은 `currency` 와 `period` 를 포함한다 (Phase 2)
 - export 응답은 `format`, `status`, `output_path` 를 포함한다
-- snapshot list 응답은 `items` 배열을 포함한다
+- snapshot list 응답은 `ok`, `workspace_id`, `items` 배열을 포함한다
 - snapshot record 응답은 `id`, `workspace_id`, `name`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `captured_at`, `created_at`, `updated_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at` 를 포함한다
 - snapshot delete 응답은 `workspace_id`, `snapshot_id`, `status` 를 포함한다

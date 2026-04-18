@@ -3,30 +3,38 @@
 Azure topology explorer 기반의 AzVision 개발 repo.
 
 ## 현재 상태
-- 현재 active closeout 기준은 **Phase 1A DoD 전부 완료 + same-line contract/doc 정리 단계**
+- 현재 active 기준은 **Phase 1B server-backed snapshot/history + history foundation H1/H2 usable baseline 완료**
 - backend
   - SQLite `manual_nodes` / `manual_edges` 기반 DB-backed CRUD 구현 완료
   - topology 응답에 manual node/edge merge 반영 완료
+  - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
+  - snapshot CRUD + restore-events endpoint 구현 완료
+  - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
   - local runtime smoke 기준 `/` / `/healthz` 200 확인
   - existing `.env` 기준 live auth `config-check` / `read-test` / topology probe 동작 확인
 - frontend
   - `TopologyPage`에서 workspace / subscription / resource group scope 제어, Cytoscape canvas, node detail, manual node/edge create/update/delete UI 동작
+  - snapshot local/server dual-mode storage adapter 구현 완료
+  - server mode에서 local snapshot import CTA + dedup skip 흐름 구현 완료
   - `tsc --noEmit`, `vite build` 통과
 - 검증
   - manual node/edge CRUD / PATCH / cleanup smoke 통과
   - manual edge full E2E(create/list/update/delete) smoke 통과
   - manual + scan node mixed topology merge smoke 통과
   - backend compile smoke 통과
+  - browser fresh tab 기준 UI save → backend persistence → restore smoke 확인
   - live topology probe PASS
     - auth ready / token acquire / subscription 2개 read 성공 (`Kepion Sub`, `Azure Sub for Select Wines`)
     - sample resource group 7개 확인
     - topology projection `node_count=50`, `edge_count=55`, inferred edge 6개 확인
 - 문서/운영 상태
-  - `docs/API_CONTRACT.md` 는 current manual CRUD/list envelope 구조와 정합
+  - `docs/API_CONTRACT.md` 는 current manual CRUD/list envelope + snapshot CRUD/restore-events 구조와 정합
   - `docs/PHASE1A_BUILD_CHECKLIST.md` 는 Phase 1A DoD 전부 완료 기준으로 최신화 완료
+  - `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 는 Phase 1B 구현 완료 기준으로 최신화 완료
+  - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline 반영 완료
 - 참고
-  - repo 안에는 이전 라운드의 Phase 1B snapshot/history 및 Architecture View 구현도 그대로 포함되어 있음
-  - 다만 현재 작업 기준선과 다음 의사결정은 Phase 1A closeout sync 이후 `same-line cleanup` 또는 `Phase 1B track 재진입` 판단에 맞춰짐
+  - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
+  - 다음 권장 순서: H3 optional cleanup(thumbnail 크기/응답 weight 점검, archive default policy 검토) 또는 backend 공통화(Azure client init / error response)
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
@@ -86,7 +94,7 @@ npm run dev
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
 
 ## 메모
-- 현재 closeout 기준 핵심은 **Phase 1A DoD 완료 상태를 장기 문서/README/checklist와 맞추고, 남은 same-line cleanup 후 다음 트랙 진입 판단을 내리는 것**
+- 현재 구현 기준선: **Phase 1A DoD 완료 + Phase 1B server-backed snapshot/history + history foundation H1/H2 usable baseline**
 - `GET /api/v1/auth/config-check` 는 env/cert 준비 상태를 확인
 - `GET /api/v1/auth/read-test` 는 실제 Azure subscription / resource group read를 검증
 - live topology/inference 점검은 `bash scripts/live_topology_probe.sh` 로 config-check → read-test → topology probe를 한 번에 수행 가능
@@ -94,5 +102,5 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
-- snapshot CRUD / import UX / local-server storage 구분, Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
-- 다음 권장 순서: 2-subscription live read 성공 결과를 기준 문서에 반영 → backend cleanup(Azure client init / error response 공통화) → 필요 시 같은 Phase 1A 목표선 안의 다음 기능/정리 작업
+- snapshot CRUD / import UX / local-server storage 구분 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
+- 다음 권장 순서: H3 optional cleanup(thumbnail weight, archive default policy) → backend 공통화(Azure client init / error response) → 필요 시 Phase 2(Cost) 진입 판단

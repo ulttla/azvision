@@ -106,4 +106,6 @@ class SnapshotListQuery(BaseModel):
 
 
 class SnapshotListResponse(BaseModel):
+    ok: bool = True
+    workspace_id: str
     items: list[SnapshotRecord]
