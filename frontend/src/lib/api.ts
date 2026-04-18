@@ -195,6 +195,9 @@ export type SnapshotApiCreateRequest = {
   loaded_node_count: number
   edge_count: number
   thumbnail_data_url: string
+  /** Original capture timestamp. When provided (e.g. on local→server import) the
+   *  server preserves it instead of using the current time. */
+  captured_at?: string
 }
 
 export type SnapshotApiUpdateRequest = {

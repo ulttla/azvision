@@ -54,7 +54,7 @@ class SnapshotService:
                 "loaded_node_count": payload.loaded_node_count,
                 "edge_count": payload.edge_count,
                 "thumbnail_data_url": payload.thumbnail_data_url,
-                "captured_at": now,
+                "captured_at": payload.captured_at or now,
                 "created_at": now,
                 "updated_at": now,
                 "last_restored_at": "",

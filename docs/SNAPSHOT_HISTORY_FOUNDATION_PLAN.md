@@ -237,7 +237,7 @@ SnapshotRecord {
 ### H3. optional cleanup
 1. thumbnail size/response weight 점검
 2. archive default policy 검토
-3. import 시 captured_at 승계 규칙 보강
+3. import 시 captured_at 승계 규칙 보강 — **완료**: `SnapshotCreateRequest`에 optional `captured_at` 추가, 서비스 레이어 및 frontend `toSnapshotApiCreateRequest` 연결
 
 ## 검증 기준
 - legacy snapshot row가 migration 후 정상 조회될 것

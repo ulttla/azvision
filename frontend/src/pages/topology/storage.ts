@@ -563,6 +563,7 @@ function mapSnapshotApiRecord(record: SnapshotApiRecord): SavedTopologySnapshot 
 
 function toSnapshotApiCreateRequest(snapshot: SavedTopologySnapshot): SnapshotApiCreateRequest {
   const sanitizedSnapshot = sanitizeSnapshotState(snapshot)
+  const capturedAt = sanitizeSnapshotTimestamp(snapshot.capturedAt)
 
   return {
     preset_version: sanitizedSnapshot.presetVersion,
@@ -579,6 +580,7 @@ function toSnapshotApiCreateRequest(snapshot: SavedTopologySnapshot): SnapshotAp
     loaded_node_count: sanitizedSnapshot.loadedNodeCount,
     edge_count: sanitizedSnapshot.edgeCount,
     thumbnail_data_url: sanitizedSnapshot.thumbnailDataUrl,
+    ...(capturedAt ? { captured_at: capturedAt } : {}),
   }
 }
 

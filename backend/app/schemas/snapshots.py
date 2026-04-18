@@ -69,7 +69,9 @@ class SnapshotBase(BaseModel):
 
 
 class SnapshotCreateRequest(SnapshotBase):
-    pass
+    # Optional: caller may supply the original capture timestamp (e.g. on local→server import).
+    # When omitted the service uses the current UTC time.
+    captured_at: str | None = None
 
 
 class SnapshotUpdateRequest(BaseModel):

@@ -72,7 +72,7 @@
   - 기본값: `sort_by=last_restored_at`, `sort_order=desc`, `include_archived=true`, `pinned_first=true`
   - 응답: `ok`, `workspace_id`, `items[]` (`SnapshotRecord`)
 - `POST /workspaces/{workspace_id}/snapshots`
-  - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`
+  - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `captured_at` (optional — when provided, preserved as-is; used on local→server import to carry the original capture timestamp)
   - 응답: `SnapshotRecord`
 - `GET /workspaces/{workspace_id}/snapshots/{snapshot_id}`
   - 응답: `SnapshotRecord`
