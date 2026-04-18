@@ -9,6 +9,7 @@ from app.schemas.snapshots import (
     SnapshotListQuery,
     SnapshotListResponse,
     SnapshotRecord,
+    SnapshotSummaryRecord,
     SnapshotUpdateRequest,
 )
 from app.services.snapshots import SnapshotNotFoundError, SnapshotService

@@ -107,7 +107,33 @@ class SnapshotListQuery(BaseModel):
     pinned_first: bool = True
 
 
+class SnapshotSummaryRecord(BaseModel):
+    """Snapshot record without thumbnail_data_url for list responses."""
+    id: str
+    workspace_id: str
+    preset_version: int = 1
+    name: str
+    note: str = ""
+    compare_refs: list[str] = Field(default_factory=list)
+    cluster_children: bool = True
+    scope: str = "visible"
+    query: str = ""
+    selected_subscription_id: str = ""
+    resource_group_name: str = ""
+    topology_generated_at: str = ""
+    visible_node_count: int = 0
+    loaded_node_count: int = 0
+    edge_count: int = 0
+    captured_at: str = ""
+    created_at: str = ""
+    updated_at: str = ""
+    last_restored_at: str = ""
+    restore_count: int = 0
+    is_pinned: bool = False
+    archived_at: str = ""
+
+
 class SnapshotListResponse(BaseModel):
     ok: bool = True
     workspace_id: str
-    items: list[SnapshotRecord]
+    items: list[SnapshotSummaryRecord]

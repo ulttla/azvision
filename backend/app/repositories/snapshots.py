@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from app.core.config import get_settings
 from app.db.models import _resolve_sqlite_path
@@ -12,6 +12,22 @@ settings = get_settings()
 
 
 class SnapshotRepository:
+    _ALL_COLUMNS: ClassVar[list[str]] = [
+        "id", "workspace_id", "preset_version", "name", "note",
+        "compare_refs_json", "cluster_children", "scope", "query_text",
+        "selected_subscription_id", "resource_group_name",
+        "topology_generated_at", "visible_node_count", "loaded_node_count",
+        "edge_count", "thumbnail_data_url", "captured_at", "created_at",
+        "updated_at", "last_restored_at", "restore_count", "is_pinned",
+        "archived_at",
+    ]
+    # Columns excluded from list (summary) responses to reduce payload weight.
+    _LIST_EXCLUDED_COLUMNS: ClassVar[frozenset[str]] = frozenset({"thumbnail_data_url"})
+
+    @staticmethod
+    def _list_select_columns(all_columns: list[str]) -> list[str]:
+        return [c for c in all_columns if c not in SnapshotRepository._LIST_EXCLUDED_COLUMNS]
+
     def __init__(self, database_url: str | None = None):
         self.database_url = database_url or settings.database_url
 
@@ -26,8 +42,8 @@ class SnapshotRepository:
         return connection
 
     @staticmethod
-    def _deserialize_row(row: sqlite3.Row) -> dict[str, Any]:
-        return {
+    def _deserialize_row(row: sqlite3.Row, *, exclude_thumbnail: bool = False) -> dict[str, Any]:
+        result: dict[str, Any] = {
             "id": row["id"],
             "workspace_id": row["workspace_id"],
             "preset_version": int(row["preset_version"] or 1),
@@ -43,7 +59,6 @@ class SnapshotRepository:
             "visible_node_count": int(row["visible_node_count"] or 0),
             "loaded_node_count": int(row["loaded_node_count"] or 0),
             "edge_count": int(row["edge_count"] or 0),
-            "thumbnail_data_url": row["thumbnail_data_url"] or "",
             "captured_at": row["captured_at"] or row["created_at"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
@@ -52,6 +67,9 @@ class SnapshotRepository:
             "is_pinned": bool(row["is_pinned"]),
             "archived_at": row["archived_at"] or "",
         }
+        if not exclude_thumbnail:
+            result["thumbnail_data_url"] = row["thumbnail_data_url"] or ""
+        return result
 
     def list_by_workspace(
         self,
@@ -71,11 +89,12 @@ class SnapshotRepository:
             if safe_sort_by == "last_restored_at"
             else ""
         )
+        list_columns = ", ".join(self._list_select_columns(self._ALL_COLUMNS))
 
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
-                SELECT *
+                SELECT {list_columns}
                 FROM snapshots
                 WHERE workspace_id = ?{archived_filter_sql}
                 ORDER BY
@@ -88,7 +107,7 @@ class SnapshotRepository:
                 (workspace_id,),
             ).fetchall()
 
-        return [self._deserialize_row(row) for row in rows]
+        return [self._deserialize_row(row, exclude_thumbnail=True) for row in rows]
 
     def get(self, workspace_id: str, snapshot_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:

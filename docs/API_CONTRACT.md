@@ -70,12 +70,12 @@
 - `GET /workspaces/{workspace_id}/snapshots`
   - query: `sort_by=updated_at|captured_at|last_restored_at`, `sort_order=asc|desc`, `include_archived=true|false`, `pinned_first=true|false`
   - 기본값: `sort_by=last_restored_at`, `sort_order=desc`, `include_archived=true`, `pinned_first=true`
-  - 응답: `ok`, `workspace_id`, `items[]` (`SnapshotRecord`)
+  - 응답: `ok`, `workspace_id`, `items[]` (`SnapshotSummaryRecord` — `thumbnail_data_url` 제외, payload 절감)
 - `POST /workspaces/{workspace_id}/snapshots`
   - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `captured_at` (optional — when provided, preserved as-is; used on local→server import to carry the original capture timestamp)
-  - 응답: `SnapshotRecord`
+  - 응답: `SnapshotRecord` (thumbnail 포함)
 - `GET /workspaces/{workspace_id}/snapshots/{snapshot_id}`
-  - 응답: `SnapshotRecord`
+  - 응답: `SnapshotRecord` (thumbnail 포함)
 - `PATCH /workspaces/{workspace_id}/snapshots/{snapshot_id}`
   - patch 가능 필드: `name`, `note`, `is_pinned`, `archived`
   - `archived=true`면 `archived_at` 설정, `archived=false`면 archive 해제

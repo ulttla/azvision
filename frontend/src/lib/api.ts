@@ -170,7 +170,7 @@ export type SnapshotApiRecord = {
   visible_node_count: number
   loaded_node_count: number
   edge_count: number
-  thumbnail_data_url: string
+  thumbnail_data_url?: string  // absent in list responses; only present on single-record GET
   captured_at: string
   created_at: string
   updated_at: string
