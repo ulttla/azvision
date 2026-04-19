@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -55,6 +56,19 @@ async def azure_client_error_handler(_: Request, exc: AzureClientError) -> JSONR
     return JSONResponse(
         status_code=502,
         content=build_error_response(status="azure-error", message=str(exc)),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+    errors = exc.errors()
+    first = errors[0] if errors else {}
+    loc = " -> ".join(str(p) for p in first.get("loc", []) if p != "body")
+    msg = first.get("msg", "Validation error")
+    detail = f"{loc}: {msg}" if loc else msg
+    return JSONResponse(
+        status_code=422,
+        content=build_error_response(status="http-422", message=detail),
     )
 
 

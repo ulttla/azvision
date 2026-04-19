@@ -3,7 +3,6 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.api.response_utils import build_error_response
 from app.collectors.azure_inventory import (
     AzureInventoryCollection,
     AzureInventoryError,
@@ -474,21 +473,7 @@ def _manual_node_detail(workspace_id: str, node_ref: str) -> dict[str, Any]:
     repo = _manual_repo()
     manual_node = repo.get_manual_node(workspace_id, node_ref)
     if manual_node is None:
-        return build_error_response(
-            workspace_id=workspace_id,
-            node_key=f"manual:{node_ref}",
-            node_type="manual",
-            node_ref=node_ref,
-            display_name=node_ref,
-            source="manual",
-            confidence=0.0,
-            status="not-found",
-            details={
-                "mode": "manual-db",
-                "note": "Requested manual node was not found in workspace storage.",
-            },
-            message="Requested manual node was not found in workspace storage.",
-        )
+        raise HTTPException(status_code=404, detail="Requested manual node was not found in workspace storage.")
 
     return {
         "ok": True,
@@ -626,46 +611,23 @@ def get_topology(
     expanded_node_ref: str | None = Query(default=None),
 ) -> dict[str, Any]:
     settings = get_settings()
-    try:
-        resolution = resolve_inventory_collection(
-            settings,
-            subscription_id=subscription_id,
-            resource_group_name=resource_group_name,
-            resource_group_limit=resource_group_limit,
-            resource_limit=resource_limit,
-        )
-        return _project_live_topology(
-            workspace_id,
-            resolution.collection,
-            projection_mode=_projection_mode_label(resolution.mode),
-            include_network_inference=include_network_inference,
-            collapse_managed_instance_children=collapse_managed_instance_children,
-            expanded_node_ref=expanded_node_ref,
-            resource_group_name=resource_group_name,
-        )
-    except AzureInventoryError as exc:
-        return build_error_response(
-            workspace_id=workspace_id,
-            generated_at=datetime.now(timezone.utc).isoformat(),
-            mode="live-inventory-projection",
-            options={
-                "include_network_inference": include_network_inference,
-                "collapse_managed_instance_children": collapse_managed_instance_children,
-                "expanded_node_ref": expanded_node_ref,
-                "resource_group_name": resource_group_name,
-            },
-            summary={
-                "subscription_count": 0,
-                "resource_group_count": 0,
-                "resource_count": 0,
-                "hidden_resource_count": 0,
-                "node_count": 0,
-                "edge_count": 0,
-            },
-            nodes=[],
-            edges=[],
-            message=str(exc),
-        )
+    # AzureInventoryError (subclass of AzureClientError) propagates to global 502 handler.
+    resolution = resolve_inventory_collection(
+        settings,
+        subscription_id=subscription_id,
+        resource_group_name=resource_group_name,
+        resource_group_limit=resource_group_limit,
+        resource_limit=resource_limit,
+    )
+    return _project_live_topology(
+        workspace_id,
+        resolution.collection,
+        projection_mode=_projection_mode_label(resolution.mode),
+        include_network_inference=include_network_inference,
+        collapse_managed_instance_children=collapse_managed_instance_children,
+        expanded_node_ref=expanded_node_ref,
+        resource_group_name=resource_group_name,
+    )
 
 
 @router.get("/node-detail")
@@ -682,34 +644,16 @@ def get_node_detail(
         return _manual_node_detail(workspace_id, node_ref)
 
     settings = get_settings()
-    try:
-        resolution = resolve_inventory_collection(
-            settings,
-            subscription_id=subscription_id,
-            resource_group_name=resource_group_name,
-            resource_group_limit=resource_group_limit,
-            resource_limit=resource_limit,
-        )
-        collection = resolution.collection
-        projection_mode = _projection_mode_label(resolution.mode)
-    except AzureInventoryError as exc:
-        return build_error_response(
-            workspace_id=workspace_id,
-            node_key=f"{node_type}:{node_ref}",
-            node_type=node_type,
-            node_ref=node_ref,
-            display_name=node_ref.split("/")[-1] if "/" in node_ref else node_ref,
-            source="azure",
-            confidence=0.0,
-            details={
-                "mode": "live-inventory-projection",
-                "scope": {
-                    "subscription_id": subscription_id,
-                    "resource_group_name": resource_group_name,
-                },
-            },
-            message=str(exc),
-        )
+    # AzureInventoryError (subclass of AzureClientError) propagates to global 502 handler.
+    resolution = resolve_inventory_collection(
+        settings,
+        subscription_id=subscription_id,
+        resource_group_name=resource_group_name,
+        resource_group_limit=resource_group_limit,
+        resource_limit=resource_limit,
+    )
+    collection = resolution.collection
+    projection_mode = _projection_mode_label(resolution.mode)
 
     if node_type == "subscription":
         item = next(
@@ -772,25 +716,7 @@ def get_node_detail(
                 child_summary=child_summary,
             )
 
-    return build_error_response(
-        workspace_id=workspace_id,
-        node_key=f"{node_type}:{node_ref}",
-        node_type=node_type,
-        node_ref=node_ref,
-        display_name=node_ref.split("/")[-1] if "/" in node_ref else node_ref,
-        source="manual" if node_type == "manual" else "azure",
-        confidence=0.0,
-        status="not-found",
-        details={
-            "mode": projection_mode,
-            "scope": {
-                "subscription_id": subscription_id,
-                "resource_group_name": resource_group_name,
-            },
-            "note": "Requested node was not found within the current scoped live inventory window.",
-        },
-        message="Requested node was not found within the current scoped live inventory window.",
-    )
+    raise HTTPException(status_code=404, detail="Requested node was not found within the current scoped live inventory window.")
 
 
 def _manual_repo() -> ManualModelRepository:
@@ -904,11 +830,7 @@ def update_manual_node(
     repo = _manual_repo()
     updated = repo.update_manual_node(workspace_id, manual_node_ref, payload)
     if updated is None:
-        return build_error_response(
-            status="not-found",
-            manual_ref=manual_node_ref,
-            message="Requested manual node was not found.",
-        )
+        raise HTTPException(status_code=404, detail="Requested manual node was not found.")
     return {
         "ok": True,
         "status": "updated",
@@ -925,21 +847,13 @@ def update_manual_edge(
     repo = _manual_repo()
     current = repo.get_manual_edge(workspace_id, manual_edge_ref)
     if current is None:
-        return build_error_response(
-            status="not-found",
-            manual_edge_ref=manual_edge_ref,
-            message="Requested manual edge was not found.",
-        )
+        raise HTTPException(status_code=404, detail="Requested manual edge was not found.")
 
     merged_payload = {**current, **payload}
     _validate_manual_edge_payload(workspace_id, merged_payload)
     updated = repo.update_manual_edge(workspace_id, manual_edge_ref, payload)
     if updated is None:
-        return build_error_response(
-            status="not-found",
-            manual_edge_ref=manual_edge_ref,
-            message="Requested manual edge was not found.",
-        )
+        raise HTTPException(status_code=404, detail="Requested manual edge was not found.")
     return {"ok": True, "status": "updated", **updated}
 
 
@@ -954,12 +868,7 @@ def delete_manual_node(workspace_id: str, manual_node_ref: str) -> dict[str, Any
             "manual_ref": manual_node_ref,
             "status": "deleted",
         }
-    return build_error_response(
-        workspace_id=workspace_id,
-        manual_ref=manual_node_ref,
-        status="not-found",
-        message="Requested manual node was not found.",
-    )
+    raise HTTPException(status_code=404, detail="Requested manual node was not found.")
 
 
 @router.delete("/manual-edges/{manual_edge_ref}")
@@ -973,9 +882,4 @@ def delete_manual_edge(workspace_id: str, manual_edge_ref: str) -> dict[str, Any
             "manual_edge_ref": manual_edge_ref,
             "status": "deleted",
         }
-    return build_error_response(
-        workspace_id=workspace_id,
-        manual_edge_ref=manual_edge_ref,
-        status="not-found",
-        message="Requested manual edge was not found.",
-    )
+    raise HTTPException(status_code=404, detail="Requested manual edge was not found.")

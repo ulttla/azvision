@@ -1,7 +1,6 @@
 import requests
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from app.api.response_utils import build_error_response
 from app.collectors.azure_inventory import (
     AzureInventoryError,
     resolve_inventory_collection,
@@ -27,11 +26,7 @@ def get_subscriptions(workspace_id: str) -> dict:
             "items": resolution.items,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
-        return build_error_response(
-            workspace_id=workspace_id,
-            items=[],
-            message=str(exc),
-        )
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/resource-groups")
@@ -56,12 +51,7 @@ def get_resource_groups(
             "items": resolution.items,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
-        return build_error_response(
-            workspace_id=workspace_id,
-            subscription_id=subscription_id,
-            items=[],
-            message=str(exc),
-        )
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/resources")
@@ -89,13 +79,7 @@ def get_resources(
             "items": resolution.items,
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
-        return build_error_response(
-            workspace_id=workspace_id,
-            subscription_id=subscription_id,
-            resource_group_name=resource_group_name,
-            items=[],
-            message=str(exc),
-        )
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/inventory-summary")
@@ -135,19 +119,4 @@ def get_inventory_summary(
             },
         }
     except (AzureInventoryError, requests.HTTPError) as exc:
-        return build_error_response(
-            workspace_id=workspace_id,
-            subscription_id=subscription_id,
-            resource_group_name=resource_group_name,
-            summary={
-                "subscription_count": 0,
-                "resource_group_count": 0,
-                "resource_count": 0,
-            },
-            items={
-                "subscriptions": [],
-                "resource_groups": [],
-                "resources": [],
-            },
-            message=str(exc),
-        )
+        raise HTTPException(status_code=502, detail=str(exc)) from exc

@@ -1,7 +1,6 @@
 import requests
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
-from app.api.response_utils import build_error_response
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
 from app.core.config import get_settings
 
@@ -34,13 +33,9 @@ def config_check() -> dict:
 def read_test() -> dict:
     settings = get_settings()
     if not settings.auth_runtime_ready:
-        return build_error_response(
-            status="not-configured",
-            phase="1A-live-read-prep",
-            token_acquired=False,
-            accessible_subscriptions=[],
-            sample_resource_groups=[],
-            message="Missing required Azure settings or certificate path is invalid. Put Azure values in project root .env or backend/.env and ensure certificate path exists.",
+        raise HTTPException(
+            status_code=503,
+            detail="Missing required Azure settings or certificate path is invalid. Put Azure values in project root .env or backend/.env and ensure certificate path exists.",
         )
 
     try:
@@ -55,30 +50,10 @@ def read_test() -> dict:
             "message": result.message,
         }
     except AzureReadTestError as exc:
-        return build_error_response(
-            status="config-error",
-            phase="1A-live-read-prep",
-            token_acquired=False,
-            accessible_subscriptions=[],
-            sample_resource_groups=[],
-            message=str(exc),
-        )
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     except requests.HTTPError as exc:
         response = exc.response
-        return build_error_response(
-            status="azure-http-error",
-            phase="1A-live-read-prep",
-            token_acquired=True,
-            accessible_subscriptions=[],
-            sample_resource_groups=[],
-            message=response.text[:500] if response is not None else str(exc),
-        )
+        detail = response.text[:500] if response is not None else str(exc)
+        raise HTTPException(status_code=502, detail=detail) from exc
     except Exception as exc:
-        return build_error_response(
-            status="unexpected-error",
-            phase="1A-live-read-prep",
-            token_acquired=False,
-            accessible_subscriptions=[],
-            sample_resource_groups=[],
-            message=str(exc),
-        )
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

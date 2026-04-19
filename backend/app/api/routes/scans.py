@@ -3,8 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, Query
 
-from app.api.response_utils import build_error_response
-from app.collectors.azure_inventory import AzureInventoryError, collect_inventory
+from app.collectors.azure_inventory import collect_inventory
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/scans", tags=["scans"])
@@ -33,50 +32,31 @@ def start_scan(
     scan_id = f"scan_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
     started_at = datetime.now(timezone.utc)
 
-    try:
-        collection = collect_inventory(
-            settings,
-            subscription_id=subscription_id,
-            resource_group_limit=resource_group_limit,
-            resource_limit=resource_limit,
-        )
-        finished_at = datetime.now(timezone.utc)
-        return {
-            "ok": True,
-            "id": scan_id,
-            "workspace_id": workspace_id,
-            "status": "completed",
-            "scope": "subscriptions,resource-groups,resources,network-relationships",
-            "started_at": started_at.isoformat(),
-            "finished_at": finished_at.isoformat(),
-            "created_at": started_at.isoformat(),
-            "summary": {
-                "subscription_count": len(collection.subscriptions),
-                "resource_group_count": len(collection.resource_groups),
-                "resource_count": len(collection.resources),
-            },
-            "subscription_id": subscription_id,
-            "mode": "live-inventory-collector",
-        }
-    except AzureInventoryError as exc:
-        finished_at = datetime.now(timezone.utc)
-        return build_error_response(
-            id=scan_id,
-            workspace_id=workspace_id,
-            status="failed",
-            scope="subscriptions,resource-groups,resources,network-relationships",
-            started_at=started_at.isoformat(),
-            finished_at=finished_at.isoformat(),
-            created_at=started_at.isoformat(),
-            summary={
-                "subscription_count": 0,
-                "resource_group_count": 0,
-                "resource_count": 0,
-            },
-            subscription_id=subscription_id,
-            mode="live-inventory-collector",
-            message=str(exc),
-        )
+    # AzureInventoryError (subclass of AzureClientError) propagates to global 502 handler.
+    collection = collect_inventory(
+        settings,
+        subscription_id=subscription_id,
+        resource_group_limit=resource_group_limit,
+        resource_limit=resource_limit,
+    )
+    finished_at = datetime.now(timezone.utc)
+    return {
+        "ok": True,
+        "id": scan_id,
+        "workspace_id": workspace_id,
+        "status": "completed",
+        "scope": "subscriptions,resource-groups,resources,network-relationships",
+        "started_at": started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "created_at": started_at.isoformat(),
+        "summary": {
+            "subscription_count": len(collection.subscriptions),
+            "resource_group_count": len(collection.resource_groups),
+            "resource_count": len(collection.resources),
+        },
+        "subscription_id": subscription_id,
+        "mode": "live-inventory-collector",
+    }
 
 
 @router.get("")

@@ -29,6 +29,8 @@ run_case() {
 
   if [ "$method" = "GET" ]; then
     http_code="$(curl -sS -o "$body_file" -w '%{http_code}' "$url")"
+  elif [ "$method" = "DELETE" ]; then
+    http_code="$(curl -sS -o "$body_file" -w '%{http_code}' -X DELETE "$url")"
   else
     http_code="$(curl -sS -o "$body_file" -w '%{http_code}' -X "$method" -H 'Content-Type: application/json' -d '{}' "$url")"
   fi
@@ -63,10 +65,16 @@ echo "WORKSPACE_ID=$WORKSPACE_ID"
 a="${BASE_URL}/workspaces/${WORKSPACE_ID}/snapshots/does-not-exist"
 b="${BASE_URL}/workspaces/${WORKSPACE_ID}/exports/does-not-exist"
 c="${BASE_URL}/workspaces/${WORKSPACE_ID}/topology/manual-edges"
+d="${BASE_URL}/workspaces/${WORKSPACE_ID}/topology/node-detail?node_type=manual&node_ref=does-not-exist-manual"
+e="${BASE_URL}/workspaces/${WORKSPACE_ID}/topology/manual-nodes/does-not-exist-manual"
+f="${BASE_URL}/workspaces/${WORKSPACE_ID}/topology/node-detail"
 
 run_case "snapshot_not_found" "GET" "$a" "404" "Snapshot not found"
 run_case "export_not_found" "GET" "$b" "404" "Export not found"
 run_case "manual_edge_validation" "POST" "$c" "400" "source_node_key and target_node_key are required"
+run_case "manual_node_detail_not_found" "GET" "$d" "404" "Requested manual node was not found in workspace storage."
+run_case "manual_node_delete_not_found" "DELETE" "$e" "404" "Requested manual node was not found."
+run_case "node_detail_missing_params" "GET" "$f" "422" "query -> node_type: Field required"
 
 echo
 echo "All error response smoke checks passed."
