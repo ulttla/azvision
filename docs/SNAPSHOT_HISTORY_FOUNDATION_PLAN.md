@@ -236,7 +236,7 @@ SnapshotRecord {
 
 ### H3. optional cleanup
 1. thumbnail size/response weight 점검
-2. archive default policy 검토
+2. archive default policy 검토 — **완료**: `include_archived=True` 기본값 유지 결정. 근거: (1) frontend가 tab badge count를 위해 전체 목록이 필요, (2) client-side filtering이 이미 구현됨, (3) default 변경 시 tab count break. backend schema/frontend API call 양쪽 모두 `include_archived=True`로 일관되게 동작 중.
 3. import 시 captured_at 승계 규칙 보강 — **완료**: `SnapshotCreateRequest`에 optional `captured_at` 추가, 서비스 레이어 및 frontend `toSnapshotApiCreateRequest` 연결
 
 ## 검증 기준
