@@ -115,3 +115,7 @@
 - snapshot list 응답은 `ok`, `workspace_id`, `items` 배열을 포함한다
 - snapshot record 응답은 `id`, `workspace_id`, `name`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `captured_at`, `created_at`, `updated_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at` 를 포함한다
 - snapshot delete 응답은 `workspace_id`, `snapshot_id`, `status` 를 포함한다
+- non-2xx backend 응답은 기본적으로 JSON body `{ ok: false, status, message }` shape를 사용한다
+  - `raise HTTPException(status_code=404, detail="...")` 도 동일한 JSON envelope로 정규화된다
+  - 예: `404` → `{ ok: false, status: "http-404", message: "Snapshot not found" }`
+- frontend `fetchJson`은 non-2xx JSON body의 `message`를 읽어 `ApiError.message`로 surface 한다

@@ -10,12 +10,14 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
   - snapshot CRUD + restore-events endpoint 구현 완료
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
+  - global exception handling 기준으로 `HTTPException` / `AzureClientError` non-2xx 응답이 `{ ok, status, message }` JSON shape로 정규화됨
   - local runtime smoke 기준 `/` / `/healthz` 200 확인
   - existing `.env` 기준 live auth `config-check` / `read-test` / topology probe 동작 확인
 - frontend
   - `TopologyPage`에서 workspace / subscription / resource group scope 제어, Cytoscape canvas, node detail, manual node/edge create/update/delete UI 동작
   - snapshot local/server dual-mode storage adapter 구현 완료
   - server mode에서 local snapshot import CTA + dedup skip 흐름 구현 완료
+  - `fetchJson`이 non-2xx JSON body의 `message`를 `ApiError`로 surface 하도록 정리됨
   - `tsc --noEmit`, `vite build` 통과
 - 검증
   - manual node/edge CRUD / PATCH / cleanup smoke 통과
@@ -98,9 +100,10 @@ npm run dev
 - `GET /api/v1/auth/config-check` 는 env/cert 준비 상태를 확인
 - `GET /api/v1/auth/read-test` 는 실제 Azure subscription / resource group read를 검증
 - live topology/inference 점검은 `bash scripts/live_topology_probe.sh` 로 config-check → read-test → topology probe를 한 번에 수행 가능
+- error response contract 점검은 `bash scripts/error_response_smoke.sh` 로 representative 400/404 응답 shape를 확인 가능
 - `GET /api/v1/workspaces/{workspace_id}/subscriptions`
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
-- 다음 권장 순서: H3 optional cleanup(thumbnail weight, archive default policy) → backend 공통화(Azure client init / error response) → 필요 시 Phase 2(Cost) 진입 판단
+- 다음 권장 순서: H3 optional cleanup(thumbnail weight, archive default policy) → error response smoke / docs sync 유지 → 필요 시 Phase 2(Cost) 진입 판단
