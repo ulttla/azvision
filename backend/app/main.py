@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.response_utils import build_error_response
 from app.api.routes.auth import router as auth_router
@@ -54,6 +55,17 @@ async def azure_client_error_handler(_: Request, exc: AzureClientError) -> JSONR
     return JSONResponse(
         status_code=502,
         content=build_error_response(status="azure-error", message=str(exc)),
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=build_error_response(
+            status=f"http-{exc.status_code}",
+            message=str(exc.detail),
+        ),
     )
 
 

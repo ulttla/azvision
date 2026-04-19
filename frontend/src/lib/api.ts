@@ -212,11 +212,36 @@ export type SnapshotListSortOrder = 'asc' | 'desc'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
+export type ApiErrorDetail = {
+  ok?: boolean
+  status?: string
+  message?: string
+}
+
+class ApiError extends Error {
+  readonly status: number
+  readonly detail: ApiErrorDetail
+
+  constructor(status: number, detail: ApiErrorDetail) {
+    const message = detail.message || `API request failed: ${status}`
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.detail = detail
+  }
+}
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, init)
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`)
+    let detail: ApiErrorDetail = {}
+    try {
+      detail = await response.json()
+    } catch {
+      // body was not JSON – keep empty detail
+    }
+    throw new ApiError(response.status, detail)
   }
 
   return response.json() as Promise<T>
