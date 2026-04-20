@@ -5,3 +5,7 @@ pydantic-settings==2.5.2
 python-dotenv==1.0.1
 azure-identity==1.23.0
 requests==2.32.3
+
+# test
+pytest==8.3.5
+httpx==0.28.1
