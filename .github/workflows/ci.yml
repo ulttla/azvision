@@ -33,6 +33,44 @@ jobs:
           AZVISION_DATABASE_URL: sqlite:///./ci-azvision.db
         run: python -c "from app.main import app; print(app.title)"
 
+      - name: API smoke scripts
+        env:
+          AZVISION_DATABASE_URL: sqlite:///./ci-azvision.db
+          AZVISION_API_BASE_URL: http://127.0.0.1:8000/api/v1
+          AZVISION_WORKSPACE_ID: local-demo
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 >/tmp/azvision-api.log 2>&1 &
+          UVICORN_PID=$!
+          cleanup() {
+            kill "$UVICORN_PID" >/dev/null 2>&1 || true
+            wait "$UVICORN_PID" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import json
+          import time
+          import urllib.request
+
+          url = 'http://127.0.0.1:8000/healthz'
+          last_error = None
+          for _ in range(40):
+              try:
+                  with urllib.request.urlopen(url, timeout=2) as response:
+                      payload = json.loads(response.read().decode('utf-8'))
+                  if payload.get('status') == 'ok':
+                      print('healthz ok')
+                      break
+              except Exception as exc:
+                  last_error = exc
+                  time.sleep(0.5)
+          else:
+              raise SystemExit(f'API server did not become ready: {last_error}')
+          PY
+
+          bash ../scripts/error_response_smoke.sh
+          bash ../scripts/snapshot_payload_smoke.sh
+
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest

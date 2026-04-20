@@ -181,16 +181,19 @@
 
 ## 리스크 / 주의사항
 - thumbnail을 계속 inline base64로 저장하면 서버 저장소/응답 크기 부담 가능
+  - **2026-04-19 cleanup 반영:** list 응답은 summary-only(`thumbnail_data_url` 제외), single snapshot GET만 thumbnail 포함으로 분리
+  - frontend snapshot card preview는 missing thumbnail에 한해 detail lazy hydration으로 복원
 - history 범위를 너무 넓히면 revision/timeline 요구로 번질 수 있으므로 1B MVP는 CRUD + restore 위주로 제한
 - local snapshot migration은 자동보다 명시적 import가 안전
 
 ## 다음 액션
-1. API_CONTRACT / DATA_MODEL 문서에 snapshot persistence 반영
-2. snapshot/history 후속 범위를 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 기준으로 정리
+1. API_CONTRACT / DATA_MODEL 문서에 summary-list vs detail-thumbnail 분리 유지 반영
+2. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`)를 회귀 체크에 포함
 3. local → server migration/import UX 범위 결정
 4. snapshot list에 source badge 또는 storage meta 노출 여부 판단
 5. 반복 import dedup 경고 / cleanup UX 검토
-6. reviewer 필요 시
+6. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
+7. reviewer 필요 시
    - VERA: spec/범위 정합성
    - AEGIS: 저장 경계/노출면 점검
 

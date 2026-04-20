@@ -17,6 +17,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `TopologyPage`에서 workspace / subscription / resource group scope 제어, Cytoscape canvas, node detail, manual node/edge create/update/delete UI 동작
   - snapshot local/server dual-mode storage adapter 구현 완료
   - server mode에서 local snapshot import CTA + dedup skip 흐름 구현 완료
+  - server snapshot list payload는 summary-only(`thumbnail_data_url` 제외)로 유지하고, snapshot card preview는 single snapshot detail lazy hydration으로 복원
   - `fetchJson`이 non-2xx JSON body의 `message`를 `ApiError`로 surface 하도록 정리됨
   - `tsc --noEmit`, `vite build` 통과
 - 검증
@@ -34,9 +35,11 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `docs/PHASE1A_BUILD_CHECKLIST.md` 는 Phase 1A DoD 전부 완료 기준으로 최신화 완료
   - `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 는 Phase 1B 구현 완료 기준으로 최신화 완료
   - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline 반영 완료
+  - `scripts/snapshot_payload_smoke.sh` 로 snapshot list/detail payload 분리(summary list, detail thumbnail 포함) smoke 가능
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
-  - 다음 권장 순서: H3 optional cleanup(thumbnail 크기/응답 weight 점검, archive default policy 검토) 또는 backend 공통화(Azure client init / error response)
+  - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
+  - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 backend 공통화(Azure client init / error response)
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
@@ -92,6 +95,7 @@ npm run dev
   - backend dependency install
   - `python -m compileall app`
   - backend app import smoke
+  - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`)
   - frontend `npm ci` + `npm run build`
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
 
@@ -101,9 +105,10 @@ npm run dev
 - `GET /api/v1/auth/read-test` 는 실제 Azure subscription / resource group read를 검증
 - live topology/inference 점검은 `bash scripts/live_topology_probe.sh` 로 config-check → read-test → topology probe를 한 번에 수행 가능
 - error response contract 점검은 `bash scripts/error_response_smoke.sh` 로 representative 400/404 응답 shape를 확인 가능
+- snapshot summary/detail payload 점검은 `bash scripts/snapshot_payload_smoke.sh` 로 list는 thumbnail 제외, detail은 thumbnail 포함 계약을 확인 가능
 - `GET /api/v1/workspaces/{workspace_id}/subscriptions`
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
-- 다음 권장 순서: H3 optional cleanup(thumbnail weight, archive default policy) → error response smoke / docs sync 유지 → 필요 시 Phase 2(Cost) 진입 판단
+- 다음 권장 순서: thumbnail 장기 저장 전략 검토 → error/snapshot smoke 유지 → 필요 시 Phase 2(Cost) 진입 판단
