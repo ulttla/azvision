@@ -170,6 +170,7 @@ export type SnapshotApiRecord = {
   visible_node_count: number
   loaded_node_count: number
   edge_count: number
+  has_thumbnail?: boolean
   thumbnail_data_url?: string  // absent in list responses; only present on single-record GET
   captured_at: string
   created_at: string

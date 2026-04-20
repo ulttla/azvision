@@ -262,6 +262,7 @@ export type SavedTopologySnapshot = TopologySnapshotState & {
   restoreCount: number
   isPinned: boolean
   archivedAt: string
+  hasThumbnail: boolean
   storageKind: SnapshotStorageKind
 }
 

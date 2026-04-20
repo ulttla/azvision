@@ -306,6 +306,8 @@ export function loadSavedTopologySnapshots(): SavedTopologySnapshot[] {
           restoreCount: sanitizeSnapshotCount((item as { restoreCount?: unknown }).restoreCount),
           isPinned: sanitizeSnapshotBoolean((item as { isPinned?: unknown }).isPinned),
           archivedAt: sanitizeSnapshotTimestamp((item as { archivedAt?: unknown }).archivedAt),
+          hasThumbnail:
+            (item as { hasThumbnail?: unknown }).hasThumbnail === true || Boolean(base.thumbnailDataUrl),
           storageKind: normalizeSnapshotStorageKind((item as { storageKind?: unknown }).storageKind),
           ...base,
         } satisfies SavedTopologySnapshot
@@ -462,6 +464,7 @@ export function normalizeImportedSnapshotPayload(raw: unknown) {
         restoreCount: sanitizeSnapshotCount(snapshot.restoreCount),
         isPinned: sanitizeSnapshotBoolean(snapshot.isPinned),
         archivedAt: sanitizeSnapshotTimestamp(snapshot.archivedAt),
+        hasThumbnail: Boolean(base.thumbnailDataUrl),
         storageKind: 'local',
         ...base,
       }
@@ -556,6 +559,7 @@ function mapSnapshotApiRecord(record: SnapshotApiRecord): SavedTopologySnapshot 
     restoreCount: sanitizeSnapshotCount(record.restore_count),
     isPinned: record.is_pinned === true,
     archivedAt: record.archived_at || '',
+    hasThumbnail: record.has_thumbnail === true || Boolean(base.thumbnailDataUrl),
     storageKind: 'server',
     ...base,
   }
@@ -673,6 +677,7 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
       restoreCount: sanitizeSnapshotCount(snapshot.restoreCount),
       isPinned: sanitizeSnapshotBoolean(snapshot.isPinned),
       archivedAt: sanitizeSnapshotTimestamp(snapshot.archivedAt),
+      hasThumbnail: Boolean(sanitizeSnapshotThumbnailDataUrl(snapshot.thumbnailDataUrl)),
       storageKind: 'local' as const,
     }
     const nextSnapshots = [nextSnapshot, ...allSnapshots]

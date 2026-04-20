@@ -1268,7 +1268,12 @@ export function TopologyPage() {
           snapshot.id,
         )
 
-        return snapshot.storageKind === 'server' && !snapshot.thumbnailDataUrl && !hasCachedThumbnail
+        return (
+          snapshot.storageKind === 'server' &&
+          snapshot.hasThumbnail &&
+          !snapshot.thumbnailDataUrl &&
+          !hasCachedThumbnail
+        )
       })
       .slice(0, RECENT_SNAPSHOT_LIMIT)
 
@@ -1504,6 +1509,7 @@ export function TopologyPage() {
       restoreCount: 0,
       isPinned: false,
       archivedAt: '',
+      hasThumbnail: Boolean(thumbnailDataUrl),
       storageKind: snapshotStorageMode,
       note: snapshotNoteInput.trim(),
       topologyGeneratedAt: topology?.generated_at ?? '',
@@ -1521,6 +1527,7 @@ export function TopologyPage() {
       nextSnapshot = {
         ...nextSnapshot,
         thumbnailDataUrl: '',
+        hasThumbnail: false,
       }
       nextSnapshots = [nextSnapshot, ...savedSnapshots]
     }

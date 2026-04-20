@@ -128,7 +128,7 @@
 - `archived_at`
 - 후속 history foundation 메모는 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 참조
 - API 응답 메모
-  - snapshot list는 summary record를 사용하며 `thumbnail_data_url` 를 제외한다
+  - snapshot list는 summary record를 사용하며 `thumbnail_data_url` 를 제외하고 `has_thumbnail` 를 포함한다
   - single snapshot GET은 `thumbnail_data_url` 를 포함한다
 
 ## Graph Node Identity (1A 기준)

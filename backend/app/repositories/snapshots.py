@@ -26,7 +26,9 @@ class SnapshotRepository:
 
     @staticmethod
     def _list_select_columns(all_columns: list[str]) -> list[str]:
-        return [c for c in all_columns if c not in SnapshotRepository._LIST_EXCLUDED_COLUMNS]
+        columns = [c for c in all_columns if c not in SnapshotRepository._LIST_EXCLUDED_COLUMNS]
+        columns.append("CASE WHEN COALESCE(thumbnail_data_url, '') = '' THEN 0 ELSE 1 END AS has_thumbnail")
+        return columns
 
     def __init__(self, database_url: str | None = None):
         self.database_url = database_url or settings.database_url
@@ -43,6 +45,7 @@ class SnapshotRepository:
 
     @staticmethod
     def _deserialize_row(row: sqlite3.Row, *, exclude_thumbnail: bool = False) -> dict[str, Any]:
+        row_keys = set(row.keys())
         result: dict[str, Any] = {
             "id": row["id"],
             "workspace_id": row["workspace_id"],
@@ -59,6 +62,7 @@ class SnapshotRepository:
             "visible_node_count": int(row["visible_node_count"] or 0),
             "loaded_node_count": int(row["loaded_node_count"] or 0),
             "edge_count": int(row["edge_count"] or 0),
+            "has_thumbnail": bool(row["has_thumbnail"]) if "has_thumbnail" in row_keys else bool(row["thumbnail_data_url"]),
             "captured_at": row["captured_at"] or row["created_at"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],

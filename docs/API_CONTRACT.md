@@ -71,7 +71,7 @@
   - query: `sort_by=updated_at|captured_at|last_restored_at`, `sort_order=asc|desc`, `include_archived=true|false`, `pinned_first=true|false`
   - 기본값: `sort_by=last_restored_at`, `sort_order=desc`, `include_archived=true`, `pinned_first=true`
   - `include_archived=true` 기본값은 frontend tab badge count를 위해 전체 목록이 필요하므로 유지. client-side에서 tab별 filtering 수행
-  - 응답: `ok`, `workspace_id`, `items[]` (`SnapshotSummaryRecord` — `thumbnail_data_url` 제외, payload 절감)
+  - 응답: `ok`, `workspace_id`, `items[]` (`SnapshotSummaryRecord` — `thumbnail_data_url` 제외, `has_thumbnail` 포함, payload 절감)
 - `POST /workspaces/{workspace_id}/snapshots`
   - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `captured_at` (optional — when provided, preserved as-is; used on local→server import to carry the original capture timestamp)
   - 응답: `SnapshotRecord` (thumbnail 포함)
@@ -113,6 +113,7 @@
 - 비용 응답은 `currency` 와 `period` 를 포함한다 (Phase 2)
 - export 응답은 `format`, `status`, `output_path` 를 포함한다
 - snapshot list 응답은 `ok`, `workspace_id`, `items` 배열을 포함한다
+- snapshot summary record는 `has_thumbnail` 를 포함하며, list 응답에는 `thumbnail_data_url` 를 싣지 않는다
 - snapshot record 응답은 `id`, `workspace_id`, `name`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `captured_at`, `created_at`, `updated_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at` 를 포함한다
 - snapshot delete 응답은 `workspace_id`, `snapshot_id`, `status` 를 포함한다
 - non-2xx backend 응답은 기본적으로 JSON body `{ ok: false, status, message }` shape를 사용한다

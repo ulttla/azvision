@@ -82,8 +82,9 @@ assert payload.get('ok') is True, 'list: expected ok=true'
 items = payload.get('items') or []
 item = next((entry for entry in items if entry.get('id') == snapshot_id), None)
 assert item is not None, f"list: snapshot {snapshot_id} not found"
+assert item.get('has_thumbnail') is True, 'list: expected has_thumbnail=true for snapshot with thumbnail'
 assert 'thumbnail_data_url' not in item, 'list: thumbnail_data_url should be omitted from summary payload'
-print(f"[list] found summary snapshot {snapshot_id} without thumbnail_data_url")
+print(f"[list] found summary snapshot {snapshot_id} without thumbnail_data_url and with has_thumbnail=true")
 PY
 
 detail_http_code="$(curl -sS -o "$TMP_DIR/detail_response.json" -w '%{http_code}' \

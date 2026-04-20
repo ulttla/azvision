@@ -124,6 +124,7 @@ class SnapshotSummaryRecord(BaseModel):
     visible_node_count: int = 0
     loaded_node_count: int = 0
     edge_count: int = 0
+    has_thumbnail: bool = False
     captured_at: str = ""
     created_at: str = ""
     updated_at: str = ""
