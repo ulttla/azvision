@@ -12,6 +12,7 @@ import {
   getAuthConfigCheck,
   getTopology,
   getTopologyNodeDetail,
+  getTopologySnapshot,
   getWorkspaceInventorySummary,
   getWorkspaceResourceGroups,
   getWorkspaceResources,
@@ -268,6 +269,7 @@ export function TopologyPage() {
   const [savedPresets, setSavedPresets] = useState<SavedTopologyPreset[]>(() => loadSavedTopologyPresets())
   const [presetNameInput, setPresetNameInput] = useState('')
   const [savedSnapshots, setSavedSnapshots] = useState<SavedTopologySnapshot[]>([])
+  const [serverSnapshotThumbnailById, setServerSnapshotThumbnailById] = useState<Record<string, string>>({})
   const [snapshotStorageMode] = useState<SnapshotStorageMode>(() => getSnapshotStorageMode())
   const snapshotStorageProvider = useMemo(
     () => createSnapshotStorageProvider(snapshotStorageMode),
@@ -403,6 +405,10 @@ export function TopologyPage() {
   useEffect(() => {
     void refreshSavedSnapshots(selectedWorkspaceId)
   }, [selectedWorkspaceId, snapshotStorageProvider])
+
+  useEffect(() => {
+    setServerSnapshotThumbnailById({})
+  }, [selectedWorkspaceId, snapshotStorageMode])
 
   useEffect(() => {
     void refreshManualModeling(selectedWorkspaceId)
@@ -1241,6 +1247,67 @@ export function TopologyPage() {
     // archived
     return orderedSavedSnapshots.filter((s) => Boolean(s.archivedAt))
   }, [orderedSavedSnapshots, snapshotFilter])
+  const renderedSavedSnapshots = useMemo(
+    () =>
+      displayedSavedSnapshots.map((snapshot) => ({
+        ...snapshot,
+        thumbnailDataUrl: snapshot.thumbnailDataUrl || serverSnapshotThumbnailById[snapshot.id] || '',
+      })),
+    [displayedSavedSnapshots, serverSnapshotThumbnailById],
+  )
+
+  useEffect(() => {
+    if (snapshotStorageMode !== 'server' || !selectedWorkspaceId || !displayedSavedSnapshots.length) {
+      return
+    }
+
+    const missingThumbnailSnapshots = displayedSavedSnapshots
+      .filter(
+        (snapshot) =>
+          snapshot.storageKind === 'server' &&
+          !snapshot.thumbnailDataUrl &&
+          !serverSnapshotThumbnailById[snapshot.id],
+      )
+      .slice(0, RECENT_SNAPSHOT_LIMIT)
+
+    if (!missingThumbnailSnapshots.length) {
+      return
+    }
+
+    let active = true
+
+    async function hydrateSnapshotThumbnails() {
+      const results = await Promise.all(
+        missingThumbnailSnapshots.map(async (snapshot) => {
+          try {
+            const detail = await getTopologySnapshot(selectedWorkspaceId, snapshot.id)
+            return [snapshot.id, detail.thumbnail_data_url || ''] as const
+          } catch {
+            return [snapshot.id, ''] as const
+          }
+        }),
+      )
+
+      if (!active) {
+        return
+      }
+
+      setServerSnapshotThumbnailById((current) => {
+        const next = { ...current }
+        for (const [snapshotId, thumbnailDataUrl] of results) {
+          next[snapshotId] = thumbnailDataUrl
+        }
+        return next
+      })
+    }
+
+    void hydrateSnapshotThumbnails()
+
+    return () => {
+      active = false
+    }
+  }, [displayedSavedSnapshots, selectedWorkspaceId, serverSnapshotThumbnailById, snapshotStorageMode])
+
   const compareMetaByRef = useMemo(
     () =>
       new Map(
@@ -2471,9 +2538,9 @@ export function TopologyPage() {
               {snapshotFilter !== 'archived' && snapshotFilterCounts.archived > 0 ? (
                 <p className="hint snapshot-archived-hint">{UI_TEXT.snapshotArchivedHint(snapshotFilterCounts.archived)}</p>
               ) : null}
-              {displayedSavedSnapshots.length ? (
+              {renderedSavedSnapshots.length ? (
                 <div className="compare-chip-grid preset-list-grid">
-                  {displayedSavedSnapshots.map((snapshot) => {
+                  {renderedSavedSnapshots.map((snapshot) => {
                     const isActiveSnapshot = snapshot.id === activeSavedSnapshotId
                     const isArchivedSnapshot = Boolean(snapshot.archivedAt)
                     return (

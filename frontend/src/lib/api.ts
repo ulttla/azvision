@@ -482,6 +482,13 @@ export async function createTopologySnapshot(
   })
 }
 
+export async function getTopologySnapshot(
+  workspaceId: string,
+  snapshotId: string,
+): Promise<SnapshotApiRecord> {
+  return fetchJson<SnapshotApiRecord>(`/workspaces/${workspaceId}/snapshots/${snapshotId}`)
+}
+
 export async function updateTopologySnapshot(
   workspaceId: string,
   snapshotId: string,
