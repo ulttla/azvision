@@ -1262,12 +1262,14 @@ export function TopologyPage() {
     }
 
     const missingThumbnailSnapshots = displayedSavedSnapshots
-      .filter(
-        (snapshot) =>
-          snapshot.storageKind === 'server' &&
-          !snapshot.thumbnailDataUrl &&
-          !serverSnapshotThumbnailById[snapshot.id],
-      )
+      .filter((snapshot) => {
+        const hasCachedThumbnail = Object.prototype.hasOwnProperty.call(
+          serverSnapshotThumbnailById,
+          snapshot.id,
+        )
+
+        return snapshot.storageKind === 'server' && !snapshot.thumbnailDataUrl && !hasCachedThumbnail
+      })
       .slice(0, RECENT_SNAPSHOT_LIMIT)
 
     if (!missingThumbnailSnapshots.length) {
