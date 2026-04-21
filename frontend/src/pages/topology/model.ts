@@ -177,6 +177,14 @@ export const UI_TEXT = {
   snapshotFilterRecent: 'Recent',
   snapshotFilterArchived: 'Archived',
   snapshotArchivedHint: (count: number) => `${count} archived snapshot${count === 1 ? '' : 's'} — switch to Archived to view`,
+  snapshotSortLabel: 'Sort',
+  snapshotSortByOptions: {
+    last_restored_at: 'Last restored',
+    captured_at: 'Captured',
+    updated_at: 'Updated',
+  } as Record<SnapshotSortBy, string>,
+  snapshotSortOrderDesc: '↓ Newest first',
+  snapshotSortOrderAsc: '↑ Oldest first',
   exportSnapshots: 'Export JSON',
   importSnapshots: 'Import JSON',
   importLocalSnapshots: 'Import local snapshots',
@@ -250,6 +258,8 @@ export type TopologySnapshotState = TopologyPresetState & {
 
 export type SnapshotStorageKind = 'local' | 'server'
 export type SnapshotFilterTab = 'all' | 'pinned' | 'recent' | 'archived'
+export type SnapshotSortBy = 'last_restored_at' | 'captured_at' | 'updated_at'
+export type SnapshotSortOrder = 'asc' | 'desc'
 export const RECENT_SNAPSHOT_LIMIT = 8
 
 export type SavedTopologySnapshot = TopologySnapshotState & {

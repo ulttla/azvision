@@ -57,6 +57,8 @@ import {
   type SavedTopologySnapshot,
   type SearchScope,
   type SnapshotFilterTab,
+  type SnapshotSortBy,
+  type SnapshotSortOrder,
   type TopologyPresetState,
 } from './topology/model'
 import { buildSearchResultGroups, getSearchScopeMeta, searchTopologyNodes } from './topology/search'
@@ -280,6 +282,8 @@ export function TopologyPage() {
   const [localSnapshotImporting, setLocalSnapshotImporting] = useState(false)
   const [snapshotsLoading, setSnapshotsLoading] = useState(false)
   const [snapshotFilter, setSnapshotFilter] = useState<SnapshotFilterTab>('all')
+  const [snapshotSortBy, setSnapshotSortBy] = useState<SnapshotSortBy>('last_restored_at')
+  const [snapshotSortOrder, setSnapshotSortOrder] = useState<SnapshotSortOrder>('desc')
   const [snapshotNameInput, setSnapshotNameInput] = useState('')
   const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
   const [manualNodes, setManualNodes] = useState<ManualNode[]>([])
@@ -1197,17 +1201,22 @@ export function TopologyPage() {
           return leftArchived ? 1 : -1
         }
 
-        const leftRestoredAt = left.lastRestoredAt || ''
-        const rightRestoredAt = right.lastRestoredAt || ''
-        if (leftRestoredAt !== rightRestoredAt) {
-          return rightRestoredAt.localeCompare(leftRestoredAt)
+        const getFieldValue = (s: SavedTopologySnapshot): string => {
+          if (snapshotSortBy === 'last_restored_at') return s.lastRestoredAt || ''
+          if (snapshotSortBy === 'updated_at') return s.updatedAt || ''
+          return s.capturedAt || s.createdAt || ''
         }
+
+        const leftVal = getFieldValue(left)
+        const rightVal = getFieldValue(right)
+        const cmp = rightVal.localeCompare(leftVal) // desc by default
+        if (cmp !== 0) return snapshotSortOrder === 'asc' ? -cmp : cmp
 
         const leftCapturedAt = left.capturedAt || left.createdAt || ''
         const rightCapturedAt = right.capturedAt || right.createdAt || ''
         return rightCapturedAt.localeCompare(leftCapturedAt)
       }),
-    [savedSnapshots],
+    [savedSnapshots, snapshotSortBy, snapshotSortOrder],
   )
   const snapshotFilterCounts = useMemo(() => {
     const nonArchived = savedSnapshots.filter((s) => !s.archivedAt)
@@ -2544,6 +2553,31 @@ export function TopologyPage() {
                   </button>
                 ))}
               </div>
+              {snapshotFilter !== 'recent' ? (
+                <div className="snapshot-sort-row">
+                  <span className="snapshot-sort-label">{UI_TEXT.snapshotSortLabel}</span>
+                  <select
+                    className="snapshot-sort-select"
+                    value={snapshotSortBy}
+                    onChange={(e) => setSnapshotSortBy(e.target.value as SnapshotSortBy)}
+                  >
+                    {(Object.entries(UI_TEXT.snapshotSortByOptions) as [SnapshotSortBy, string][]).map(
+                      ([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                  <button
+                    type="button"
+                    className="toolbar-button snapshot-sort-order-button"
+                    onClick={() => setSnapshotSortOrder((o) => (o === 'desc' ? 'asc' : 'desc'))}
+                  >
+                    {snapshotSortOrder === 'desc' ? UI_TEXT.snapshotSortOrderDesc : UI_TEXT.snapshotSortOrderAsc}
+                  </button>
+                </div>
+              ) : null}
               {snapshotFilter !== 'archived' && snapshotFilterCounts.archived > 0 ? (
                 <p className="hint snapshot-archived-hint">{UI_TEXT.snapshotArchivedHint(snapshotFilterCounts.archived)}</p>
               ) : null}
