@@ -31,7 +31,8 @@
   - backend regression tests로 `captured_at asc/desc`, `last_restored_at desc`, route query parsing 경로를 추가 고정
   - frontend helper + `scripts/snapshot_sort_semantics_smoke.mts`를 추가해 `Saved` custom sort와 `Recent` fixed semantics를 browser 없이도 빠르게 smoke 가능하게 정리
   - `scripts/snapshot_sort_api_smoke.sh`를 추가해 live backend 기준 `captured_at` / `last_restored_at` / `pinned_first` / `include_archived` 조합을 빠르게 재검증할 수 있게 함
-  - browser tool 경로 block/timeout으로 actual UI visual smoke는 다음 회차로 이월
+  - `scripts/snapshot_sort_visual_smoke.mjs`를 추가해 local Chrome CDP 기준 actual UI visual smoke와 `Recent` tab sort-control hidden 상태까지 재검증 가능하게 정리
+  - browser tool의 local/private URL navigation policy block은 남아 있지만, same-line visual verification blocker는 해소
 
 ## Phase 1B 목표
 1. snapshot을 browser localStorage 외에도 backend에 저장 가능하게 만들기
@@ -198,12 +199,11 @@
 - local snapshot migration은 자동보다 명시적 import가 안전
 
 ## 다음 액션
-1. `Saved Snapshots` custom sort와 `Recent` fixed semantics 조합을 실제 사용감 기준으로 검증
-2. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`)와 sort API smoke(`scripts/snapshot_sort_api_smoke.sh`)를 같이 유지하며 회귀 체크 지속
-3. snapshot list에 source badge 또는 storage meta 노출 여부 판단
-4. 반복 import dedup 경고 / cleanup UX 검토
-5. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
-6. reviewer 필요 시
+1. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`), sort API smoke(`scripts/snapshot_sort_api_smoke.sh`), visual smoke(`scripts/snapshot_sort_visual_smoke.mjs`)를 같이 유지하며 회귀 체크 지속
+2. snapshot list에 source badge 또는 storage meta 노출 여부 판단
+3. 반복 import dedup 경고 / cleanup UX 검토
+4. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
+5. reviewer 필요 시
    - VERA: spec/범위 정합성
    - AEGIS: 저장 경계/노출면 점검
 

@@ -34,13 +34,14 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - 문서/운영 상태
   - `docs/API_CONTRACT.md` 는 current manual CRUD/list envelope + snapshot CRUD/restore-events 구조와 정합
   - `docs/PHASE1A_BUILD_CHECKLIST.md` 는 Phase 1A DoD 전부 완료 기준으로 최신화 완료
-  - `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 는 Phase 1B 구현 완료 + snapshot sort UX same-line polish 기준으로 최신화 완료
-  - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline + `Saved Snapshots` sort UX 반영 기준으로 최신화 완료
+  - `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 는 Phase 1B 구현 완료 + snapshot sort UX visual smoke closeout 기준으로 최신화 완료
+  - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline + `Saved Snapshots` sort UX visual smoke 반영 기준으로 최신화 완료
   - `scripts/snapshot_payload_smoke.sh` 로 snapshot list/detail payload 분리(summary list, detail thumbnail 포함) smoke 가능
+  - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
-  - 다음 권장 순서: `Saved Snapshots` sort UX 실사용 검증 → thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 backend 공통화(Azure client init / error response)
+  - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 backend 공통화(Azure client init / error response)
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
@@ -108,6 +109,7 @@ npm run dev
 - error response contract 점검은 `bash scripts/error_response_smoke.sh` 로 representative 400/404 응답 shape를 확인 가능
 - snapshot summary/detail payload 점검은 `bash scripts/snapshot_payload_smoke.sh` 로 list는 thumbnail 제외, detail은 thumbnail 포함 계약을 확인 가능
 - snapshot sort semantics 점검은 `node --experimental-strip-types scripts/snapshot_sort_semantics_smoke.mts` 로 `Saved` custom sort와 `Recent` fixed semantics를 빠르게 smoke 가능
+- snapshot sort visual smoke는 `node scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI 순서와 `Recent` tab sort-control 숨김까지 확인 가능
 - backend list query semantics 점검은 `bash scripts/snapshot_sort_api_smoke.sh` 로 `captured_at` / `last_restored_at` / `pinned_first` / `include_archived` 조합을 live API 기준으로 smoke 가능
 - `GET /api/v1/workspaces/{workspace_id}/subscriptions`
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
