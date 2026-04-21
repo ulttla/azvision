@@ -27,6 +27,9 @@
   - 정렬 후보: `Last Restored` / `Captured` / `Updated`
   - direction toggle: newest first / oldest first
   - `Recent` tab은 fixed semantics 유지를 위해 sort control 숨김
+- **2026-04-21 regression follow-up**
+  - backend regression tests로 `captured_at asc/desc`, `last_restored_at desc`, route query parsing 경로를 추가 고정
+  - browser tool 경로 block/timeout으로 actual UI visual smoke는 다음 회차로 이월
 
 ## Phase 1B 목표
 1. snapshot을 browser localStorage 외에도 backend에 저장 가능하게 만들기
