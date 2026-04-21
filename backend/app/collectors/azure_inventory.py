@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable, TypeVar
 
 import requests
 
@@ -33,12 +34,31 @@ class InventoryItemsResolution:
     warning: str | None = None
 
 
+T = TypeVar("T")
+
+
 def _truncate(items: list[dict], limit: int) -> list[dict]:
     return items[: max(limit, 0)]
 
 
 def _mock_resource_id(subscription_id: str, resource_group_name: str, provider_path: str) -> str:
     return f"/subscriptions/{subscription_id}/resourceGroups/{resource_group_name}/providers/{provider_path}"
+
+
+def _inventory_error_message(exc: AzureInventoryError | AzureClientError | requests.HTTPError) -> str:
+    if isinstance(exc, requests.HTTPError):
+        response = exc.response
+        return response.text[:500] if response is not None else str(exc)
+    return str(exc)
+
+
+def _run_live_inventory(operation: Callable[[], T]) -> T:
+    try:
+        return operation()
+    except AzureInventoryError:
+        raise
+    except (AzureClientError, requests.HTTPError) as exc:
+        raise AzureInventoryError(_inventory_error_message(exc)) from exc
 
 
 def _mock_inventory_collection(
@@ -438,36 +458,29 @@ def collect_inventory(
     resource_group_limit: int = 200,
     resource_limit: int = 200,
 ) -> AzureInventoryCollection:
-    try:
-        subscriptions = list_accessible_subscriptions(settings)
-        resource_groups = list_resource_groups(
-            settings,
-            subscription_id=subscription_id,
-            limit=resource_group_limit,
+    collection = _run_live_inventory(
+        lambda: AzureInventoryCollection(
+            subscriptions=list_accessible_subscriptions(settings),
+            resource_groups=list_resource_groups(
+                settings,
+                subscription_id=subscription_id,
+                limit=resource_group_limit,
+            ),
+            resources=list_resources(
+                settings,
+                subscription_id=subscription_id,
+                resource_group_name=resource_group_name,
+                limit=resource_limit,
+            ),
         )
-        resources = list_resources(
-            settings,
-            subscription_id=subscription_id,
-            resource_group_name=resource_group_name,
-            limit=resource_limit,
-        )
-    except AzureClientError as exc:
-        raise AzureInventoryError(str(exc)) from exc
-    except requests.HTTPError as exc:
-        response = exc.response
-        detail = response.text[:500] if response is not None else str(exc)
-        raise AzureInventoryError(detail) from exc
+    )
 
     if resource_group_name:
-        resource_groups = [
-            item for item in resource_groups if item.get("name") == resource_group_name
+        collection.resource_groups = [
+            item for item in collection.resource_groups if item.get("name") == resource_group_name
         ]
 
-    return AzureInventoryCollection(
-        subscriptions=subscriptions,
-        resource_groups=resource_groups,
-        resources=resources,
-    )
+    return collection
 
 
 def resolve_inventory_collection(
@@ -529,7 +542,7 @@ def resolve_subscription_items(settings: Settings) -> InventoryItemsResolution:
 
     try:
         return InventoryItemsResolution(
-            items=list_accessible_subscriptions(settings),
+            items=_run_live_inventory(lambda: list_accessible_subscriptions(settings)),
             mode="live",
         )
     except AzureInventoryError as exc:
@@ -562,10 +575,12 @@ def resolve_resource_group_items(
 
     try:
         return InventoryItemsResolution(
-            items=list_resource_groups(
-                settings,
-                subscription_id=subscription_id,
-                limit=limit,
+            items=_run_live_inventory(
+                lambda: list_resource_groups(
+                    settings,
+                    subscription_id=subscription_id,
+                    limit=limit,
+                )
             ),
             mode="live",
         )
@@ -604,11 +619,13 @@ def resolve_resource_items(
 
     try:
         return InventoryItemsResolution(
-            items=list_resources(
-                settings,
-                subscription_id=subscription_id,
-                resource_group_name=resource_group_name,
-                limit=limit,
+            items=_run_live_inventory(
+                lambda: list_resources(
+                    settings,
+                    subscription_id=subscription_id,
+                    resource_group_name=resource_group_name,
+                    limit=limit,
+                )
             ),
             mode="live",
         )
