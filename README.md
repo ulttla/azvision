@@ -96,7 +96,7 @@ npm run dev
   - backend dependency install
   - `python -m compileall app`
   - backend app import smoke
-  - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`)
+  - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`, `scripts/snapshot_sort_api_smoke.sh`)
   - frontend `npm ci` + `npm run build`
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
 
@@ -108,6 +108,7 @@ npm run dev
 - error response contract 점검은 `bash scripts/error_response_smoke.sh` 로 representative 400/404 응답 shape를 확인 가능
 - snapshot summary/detail payload 점검은 `bash scripts/snapshot_payload_smoke.sh` 로 list는 thumbnail 제외, detail은 thumbnail 포함 계약을 확인 가능
 - snapshot sort semantics 점검은 `node --experimental-strip-types scripts/snapshot_sort_semantics_smoke.mts` 로 `Saved` custom sort와 `Recent` fixed semantics를 빠르게 smoke 가능
+- backend list query semantics 점검은 `bash scripts/snapshot_sort_api_smoke.sh` 로 `captured_at` / `last_restored_at` / `pinned_first` / `include_archived` 조합을 live API 기준으로 smoke 가능
 - `GET /api/v1/workspaces/{workspace_id}/subscriptions`
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
 - `GET /api/v1/workspaces/{workspace_id}/resources`

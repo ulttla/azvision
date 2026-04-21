@@ -70,6 +70,7 @@ jobs:
 
           bash ../scripts/error_response_smoke.sh
           bash ../scripts/snapshot_payload_smoke.sh
+          bash ../scripts/snapshot_sort_api_smoke.sh
 
   frontend:
     name: Frontend build

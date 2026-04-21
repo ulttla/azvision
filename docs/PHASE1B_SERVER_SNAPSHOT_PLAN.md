@@ -30,6 +30,7 @@
 - **2026-04-21 regression follow-up**
   - backend regression tests로 `captured_at asc/desc`, `last_restored_at desc`, route query parsing 경로를 추가 고정
   - frontend helper + `scripts/snapshot_sort_semantics_smoke.mts`를 추가해 `Saved` custom sort와 `Recent` fixed semantics를 browser 없이도 빠르게 smoke 가능하게 정리
+  - `scripts/snapshot_sort_api_smoke.sh`를 추가해 live backend 기준 `captured_at` / `last_restored_at` / `pinned_first` / `include_archived` 조합을 빠르게 재검증할 수 있게 함
   - browser tool 경로 block/timeout으로 actual UI visual smoke는 다음 회차로 이월
 
 ## Phase 1B 목표
@@ -198,7 +199,7 @@
 
 ## 다음 액션
 1. `Saved Snapshots` custom sort와 `Recent` fixed semantics 조합을 실제 사용감 기준으로 검증
-2. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`) 유지 + 회귀 체크 지속
+2. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`)와 sort API smoke(`scripts/snapshot_sort_api_smoke.sh`)를 같이 유지하며 회귀 체크 지속
 3. snapshot list에 source badge 또는 storage meta 노출 여부 판단
 4. 반복 import dedup 경고 / cleanup UX 검토
 5. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
