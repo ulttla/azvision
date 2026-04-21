@@ -63,6 +63,11 @@ import {
 } from './topology/model'
 import { buildSearchResultGroups, getSearchScopeMeta, searchTopologyNodes } from './topology/search'
 import {
+  getDisplayedSnapshots,
+  getSnapshotFilterCounts,
+  orderSavedSnapshots,
+} from './topology/snapshot-order'
+import {
   arePresetStatesEqual,
   buildSnapshotThumbnailDataUrl,
   consumeTopologySnapshotStorageWarning,
@@ -1189,73 +1194,24 @@ export function TopologyPage() {
     [currentPresetState, savedSnapshots],
   )
   const orderedSavedSnapshots = useMemo(
-    () =>
-      [...savedSnapshots].sort((left, right) => {
-        if (left.isPinned !== right.isPinned) {
-          return left.isPinned ? -1 : 1
-        }
-
-        const leftArchived = Boolean(left.archivedAt)
-        const rightArchived = Boolean(right.archivedAt)
-        if (leftArchived !== rightArchived) {
-          return leftArchived ? 1 : -1
-        }
-
-        const getFieldValue = (s: SavedTopologySnapshot): string => {
-          if (snapshotSortBy === 'last_restored_at') return s.lastRestoredAt || ''
-          if (snapshotSortBy === 'updated_at') return s.updatedAt || ''
-          return s.capturedAt || s.createdAt || ''
-        }
-
-        const leftVal = getFieldValue(left)
-        const rightVal = getFieldValue(right)
-        const cmp = rightVal.localeCompare(leftVal) // desc by default
-        if (cmp !== 0) return snapshotSortOrder === 'asc' ? -cmp : cmp
-
-        const leftCapturedAt = left.capturedAt || left.createdAt || ''
-        const rightCapturedAt = right.capturedAt || right.createdAt || ''
-        return rightCapturedAt.localeCompare(leftCapturedAt)
-      }),
+    () => orderSavedSnapshots(savedSnapshots, snapshotSortBy, snapshotSortOrder),
     [savedSnapshots, snapshotSortBy, snapshotSortOrder],
   )
-  const snapshotFilterCounts = useMemo(() => {
-    const nonArchived = savedSnapshots.filter((s) => !s.archivedAt)
-    const archived = savedSnapshots.filter((s) => Boolean(s.archivedAt))
-    const pinned = nonArchived.filter((s) => s.isPinned)
-    const recent = [...nonArchived]
-      .sort((a, b) => {
-        const aTime = a.lastRestoredAt || a.capturedAt || a.createdAt || ''
-        const bTime = b.lastRestoredAt || b.capturedAt || b.createdAt || ''
-        return bTime.localeCompare(aTime)
-      })
-      .slice(0, RECENT_SNAPSHOT_LIMIT)
-    return {
-      all: nonArchived.length,
-      pinned: pinned.length,
-      recent: recent.length,
-      archived: archived.length,
-    }
-  }, [savedSnapshots])
-  const displayedSavedSnapshots = useMemo(() => {
-    const nonArchived = orderedSavedSnapshots.filter((s) => !s.archivedAt)
-    if (snapshotFilter === 'all') {
-      return nonArchived
-    }
-    if (snapshotFilter === 'pinned') {
-      return nonArchived.filter((s) => s.isPinned)
-    }
-    if (snapshotFilter === 'recent') {
-      return [...nonArchived]
-        .sort((a, b) => {
-          const aTime = a.lastRestoredAt || a.capturedAt || a.createdAt || ''
-          const bTime = b.lastRestoredAt || b.capturedAt || b.createdAt || ''
-          return bTime.localeCompare(aTime)
-        })
-        .slice(0, RECENT_SNAPSHOT_LIMIT)
-    }
-    // archived
-    return orderedSavedSnapshots.filter((s) => Boolean(s.archivedAt))
-  }, [orderedSavedSnapshots, snapshotFilter])
+  const snapshotFilterCounts = useMemo(
+    () => getSnapshotFilterCounts(savedSnapshots, RECENT_SNAPSHOT_LIMIT),
+    [savedSnapshots],
+  )
+  const displayedSavedSnapshots = useMemo(
+    () =>
+      getDisplayedSnapshots(
+        savedSnapshots,
+        snapshotFilter,
+        snapshotSortBy,
+        snapshotSortOrder,
+        RECENT_SNAPSHOT_LIMIT,
+      ),
+    [savedSnapshots, snapshotFilter, snapshotSortBy, snapshotSortOrder],
+  )
   const renderedSavedSnapshots = useMemo(
     () =>
       displayedSavedSnapshots.map((snapshot) => ({

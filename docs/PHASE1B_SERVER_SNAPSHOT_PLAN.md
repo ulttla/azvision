@@ -29,6 +29,7 @@
   - `Recent` tab은 fixed semantics 유지를 위해 sort control 숨김
 - **2026-04-21 regression follow-up**
   - backend regression tests로 `captured_at asc/desc`, `last_restored_at desc`, route query parsing 경로를 추가 고정
+  - frontend helper + `scripts/snapshot_sort_semantics_smoke.mts`를 추가해 `Saved` custom sort와 `Recent` fixed semantics를 browser 없이도 빠르게 smoke 가능하게 정리
   - browser tool 경로 block/timeout으로 actual UI visual smoke는 다음 회차로 이월
 
 ## Phase 1B 목표
