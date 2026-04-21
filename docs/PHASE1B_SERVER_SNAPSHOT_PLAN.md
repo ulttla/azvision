@@ -22,6 +22,11 @@
   - frontend snapshot storage provider를 local/server dual-mode로 확장 완료
   - dev 기준 `frontend/.env.local`에서 `VITE_TOPOLOGY_SNAPSHOT_BACKEND=server` 활성화 확인
   - browser fresh tab 기준 UI save → backend persistence → restore smoke 확인
+- **2026-04-20 same-line polish**
+  - `Saved Snapshots` 패널에 sort field / sort order control 추가
+  - 정렬 후보: `Last Restored` / `Captured` / `Updated`
+  - direction toggle: newest first / oldest first
+  - `Recent` tab은 fixed semantics 유지를 위해 sort control 숨김
 
 ## Phase 1B 목표
 1. snapshot을 browser localStorage 외에도 backend에 저장 가능하게 만들기
@@ -123,6 +128,7 @@
 - Snapshot / Preset 구분은 현재 Phase 1A 카피를 유지
 - server-backed 전환 후에도 버튼/카드 구조는 최대한 유지
 - restore 시 안내 문구는 계속 유지
+- `Saved Snapshots`는 사용자가 working set을 재정렬할 수 있게 하되, `Recent`는 이름 그대로 fixed recent semantics를 유지한다
 - local snapshot과 server snapshot이 동시에 존재하면 구분 배지 또는 source meta 추가 검토
 
 ## Migration / Import UX 결정안 (2026-04-10)
@@ -187,13 +193,12 @@
 - local snapshot migration은 자동보다 명시적 import가 안전
 
 ## 다음 액션
-1. API_CONTRACT / DATA_MODEL 문서에 summary-list vs detail-thumbnail 분리 유지 반영
-2. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`)를 회귀 체크에 포함
-3. local → server migration/import UX 범위 결정
-4. snapshot list에 source badge 또는 storage meta 노출 여부 판단
-5. 반복 import dedup 경고 / cleanup UX 검토
-6. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
-7. reviewer 필요 시
+1. `Saved Snapshots` custom sort와 `Recent` fixed semantics 조합을 실제 사용감 기준으로 검증
+2. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`) 유지 + 회귀 체크 지속
+3. snapshot list에 source badge 또는 storage meta 노출 여부 판단
+4. 반복 import dedup 경고 / cleanup UX 검토
+5. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
+6. reviewer 필요 시
    - VERA: spec/범위 정합성
    - AEGIS: 저장 경계/노출면 점검
 

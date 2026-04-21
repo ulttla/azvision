@@ -25,10 +25,14 @@ AzVision은 이미 아래를 구현한 상태다.
   - `sort_order`
   - `include_archived`
   - `pinned_first`
+- `Saved Snapshots` 패널에 sort field / sort order control 추가
+  - `Last Restored` / `Captured` / `Updated`
+  - newest / oldest
+  - `Recent` tab은 fixed semantics 유지를 위해 별도 sort control 숨김
 
 즉, **"server-backed snapshots + history foundation H1"은 usable baseline까지 구현 완료** 상태다.
 현재 남은 핵심은 아래다.
-- list query/정렬 규칙을 실제 UX와 완전히 맞추는지 추가 검증
+- `Saved Snapshots` custom sort와 `Recent` fixed semantics 조합이 실제 working set 판단에 충분한지 추가 검증
 - rename/note update와 usage history 체감이 충분히 분리되는지 확인
 - pinned/recent/archived filter UX와 card meta 표현 미세조정
 - 이후 history를 revision system으로 비대화하지 않고 working set 중심으로 유지
@@ -228,11 +232,12 @@ SnapshotRecord {
 4. restore-events endpoint 추가
 
 ### H2. frontend history UX
-- 상태: **1차 usable 반영 완료, polish/검증 여지 있음**
+- 상태: **1차 usable 반영 + sort control 반영 완료, polish/검증 여지 있음**
 1. snapshot card meta 재구성
 2. pin/archive action 추가
 3. load 시 restore-events 호출
 4. recent/pinned/archived filter 추가
+5. `Saved Snapshots` sort field / sort order control 추가, `Recent` tab fixed semantics 유지
 
 ### H3. optional cleanup
 1. thumbnail size/response weight 점검
@@ -256,10 +261,10 @@ SnapshotRecord {
 - archive는 hard delete 대체가 아니라 working set 정리 수단으로만 봐야 함
 
 ## 권장 다음 순서
-1. API_CONTRACT / DATA_MODEL을 현재 구현 기준으로 먼저 sync
-2. 그 다음 H1 foundation scope를 확정
-3. backend migration + restore-events 최소 구현
-4. frontend snapshot card meta / pinned / archive UX 연결
+1. `Saved Snapshots` custom sort와 `Recent` tab fixed semantics가 실사용 working set 판단에 충분한지 확인
+2. snapshot card meta / pinned / archived 표현의 미세 polish 필요 여부 판단
+3. thumbnail 장기 저장 전략(object storage / size guard) 재검토
+4. history 범위를 revision system으로 넓히지 않고 working set 중심으로 유지할 운영 기준 고정
 
 ## 한 줄 결론
 - AzVision의 다음 snapshot/history 단계는 raw topology archive가 아니라, **capture / restore / active working set을 구분하는 history foundation**을 추가하는 방향이 가장 안전하다.

@@ -18,6 +18,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - snapshot local/server dual-mode storage adapter 구현 완료
   - server mode에서 local snapshot import CTA + dedup skip 흐름 구현 완료
   - server snapshot list payload는 summary-only(`thumbnail_data_url` 제외)로 유지하고, snapshot card preview는 single snapshot detail lazy hydration으로 복원
+  - `Saved Snapshots` 패널에 client-side sort field / sort order control(`Last Restored`, `Captured`, `Updated`; newest/oldest) 반영 완료, `Recent` tab은 고정 recent semantics 유지를 위해 control 숨김
   - `fetchJson`이 non-2xx JSON body의 `message`를 `ApiError`로 surface 하도록 정리됨
   - `tsc --noEmit`, `vite build` 통과
 - 검증
@@ -33,13 +34,13 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - 문서/운영 상태
   - `docs/API_CONTRACT.md` 는 current manual CRUD/list envelope + snapshot CRUD/restore-events 구조와 정합
   - `docs/PHASE1A_BUILD_CHECKLIST.md` 는 Phase 1A DoD 전부 완료 기준으로 최신화 완료
-  - `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 는 Phase 1B 구현 완료 기준으로 최신화 완료
-  - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline 반영 완료
+  - `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 는 Phase 1B 구현 완료 + snapshot sort UX same-line polish 기준으로 최신화 완료
+  - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline + `Saved Snapshots` sort UX 반영 기준으로 최신화 완료
   - `scripts/snapshot_payload_smoke.sh` 로 snapshot list/detail payload 분리(summary list, detail thumbnail 포함) smoke 가능
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
-  - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 backend 공통화(Azure client init / error response)
+  - 다음 권장 순서: `Saved Snapshots` sort UX 실사용 검증 → thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 backend 공통화(Azure client init / error response)
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
