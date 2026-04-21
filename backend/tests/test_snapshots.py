@@ -151,6 +151,58 @@ class TestSnapshotServiceList:
         ids = [r.id for r in results]
         assert b.id in ids
 
+    def test_sort_by_captured_at_desc_orders_newest_first(self, snapshot_service: SnapshotService):
+        older = snapshot_service.create_snapshot(
+            WORKSPACE,
+            _make_create_request(name="Older", captured_at="2026-04-20T10:00:00+00:00"),
+        )
+        newer = snapshot_service.create_snapshot(
+            WORKSPACE,
+            _make_create_request(name="Newer", captured_at="2026-04-20T11:00:00+00:00"),
+        )
+
+        from app.schemas.snapshots import SnapshotListQuery
+        results = snapshot_service.list_snapshots(
+            WORKSPACE,
+            SnapshotListQuery(sort_by="captured_at", sort_order="desc", pinned_first=False),
+        )
+        assert [r.id for r in results[:2]] == [newer.id, older.id]
+
+    def test_sort_by_captured_at_asc_orders_oldest_first(self, snapshot_service: SnapshotService):
+        older = snapshot_service.create_snapshot(
+            WORKSPACE,
+            _make_create_request(name="Older", captured_at="2026-04-20T10:00:00+00:00"),
+        )
+        newer = snapshot_service.create_snapshot(
+            WORKSPACE,
+            _make_create_request(name="Newer", captured_at="2026-04-20T11:00:00+00:00"),
+        )
+
+        from app.schemas.snapshots import SnapshotListQuery
+        results = snapshot_service.list_snapshots(
+            WORKSPACE,
+            SnapshotListQuery(sort_by="captured_at", sort_order="asc", pinned_first=False),
+        )
+        assert [r.id for r in results[:2]] == [older.id, newer.id]
+
+    def test_sort_by_last_restored_at_desc_prefers_restored_and_pushes_never_restored_last(
+        self,
+        snapshot_service: SnapshotService,
+    ):
+        never_restored = snapshot_service.create_snapshot(WORKSPACE, _make_create_request(name="Never"))
+        restored_older = snapshot_service.create_snapshot(WORKSPACE, _make_create_request(name="Older restore"))
+        restored_newer = snapshot_service.create_snapshot(WORKSPACE, _make_create_request(name="Newer restore"))
+
+        snapshot_service.record_restore_event(WORKSPACE, restored_older.id)
+        snapshot_service.record_restore_event(WORKSPACE, restored_newer.id)
+
+        from app.schemas.snapshots import SnapshotListQuery
+        results = snapshot_service.list_snapshots(
+            WORKSPACE,
+            SnapshotListQuery(sort_by="last_restored_at", sort_order="desc", pinned_first=False),
+        )
+        assert [r.id for r in results[:3]] == [restored_newer.id, restored_older.id, never_restored.id]
+
 
 class TestSnapshotServiceGet:
     def test_get_existing_snapshot(self, snapshot_service: SnapshotService):
@@ -323,6 +375,24 @@ class TestSnapshotRouteList:
         resp = client.get("/api/v1/workspaces/no-such-ws/snapshots")
         assert resp.status_code == 200
         assert resp.json()["items"] == []
+
+    def test_list_respects_sort_by_and_sort_order_query(self, client: TestClient):
+        client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(name="Older", captured_at="2026-04-20T10:00:00+00:00"),
+        )
+        client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(name="Newer", captured_at="2026-04-20T11:00:00+00:00"),
+        )
+
+        resp = client.get(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            params={"sort_by": "captured_at", "sort_order": "asc", "pinned_first": "false"},
+        )
+        assert resp.status_code == 200
+        names = [item["name"] for item in resp.json()["items"]]
+        assert names[:2] == ["Older", "Newer"]
 
 
 class TestSnapshotRouteGet:
