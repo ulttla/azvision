@@ -2604,9 +2604,11 @@ export function TopologyPage() {
                         <div className="preset-card-copy">
                           <div className="preset-card-title-row">
                             <strong>{snapshot.name}</strong>
-                            <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
-                              {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
-                            </span>
+                            {snapshotStorageMode === 'server' ? (
+                              <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
+                                {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
+                              </span>
+                            ) : null}
                             {snapshot.isPinned ? <span className="mini-chip">{UI_TEXT.pinnedSnapshotBadge}</span> : null}
                             {isArchivedSnapshot ? <span className="mini-chip">{UI_TEXT.archivedSnapshotBadge}</span> : null}
                             {!snapshot.lastRestoredAt ? <span className="mini-chip">{UI_TEXT.neverRestoredSnapshotBadge}</span> : null}
@@ -2619,7 +2621,6 @@ export function TopologyPage() {
                               workspacesById.get(snapshot.workspaceId)?.name ?? snapshot.workspaceId,
                             )}
                           </p>
-                          <p className="hint preset-card-meta">{UI_TEXT.snapshotStorageMeta(snapshot.storageKind)}</p>
                           <p className="hint preset-card-meta">
                             {UI_TEXT.snapshotScopeMeta(snapshot.selectedSubscriptionId, snapshot.resourceGroupName)}
                           </p>
