@@ -262,8 +262,9 @@ SnapshotRecord {
 
 ## 권장 다음 순서
 1. `scripts/snapshot_sort_visual_smoke.mjs` 기준 visual smoke를 회귀 경로로 유지하면서 추가 snapshot UX polish 범위를 최소 단위로만 검토
-2. thumbnail 장기 저장 전략(object storage / size guard) 재검토
-3. history 범위를 revision system으로 넓히지 않고 working set 중심으로 유지할 운영 기준 고정
+2. current baseline은 save-after warning surface + pre-save storage-mode guard hint 조합으로 유지하면서 thumbnail guard contract UX drift를 더 좁게 점검
+3. thumbnail 장기 저장 전략(object storage / size guard) 재검토
+4. history 범위를 revision system으로 넓히지 않고 working set 중심으로 유지할 운영 기준 고정
 
 ## 한 줄 결론
 - AzVision의 다음 snapshot/history 단계는 raw topology archive가 아니라, **capture / restore / active working set을 구분하는 history foundation**을 추가하는 방향이 가장 안전하다.

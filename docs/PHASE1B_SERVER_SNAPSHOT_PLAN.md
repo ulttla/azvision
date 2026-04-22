@@ -33,6 +33,9 @@
   - `scripts/snapshot_sort_api_smoke.sh`를 추가해 live backend 기준 `captured_at` / `last_restored_at` / `pinned_first` / `include_archived` 조합을 빠르게 재검증할 수 있게 함
   - `scripts/snapshot_sort_visual_smoke.mjs`를 추가해 local Chrome CDP 기준 actual UI visual smoke와 `Recent` tab sort-control hidden 상태까지 재검증 가능하게 정리
   - browser tool의 local/private URL navigation policy block은 남아 있지만, same-line visual verification blocker는 해소
+- **2026-04-22 same-line UX follow-up**
+  - snapshot guide에 현재 storage mode 기준 guard hint를 추가해 server validation/size guard와 browser storage pressure 때문에 thumbnail preview가 빠질 수 있음을 저장 전에 미리 안내
+  - 기존 save-after warning surface와 함께 pre-save expectation setting까지 맞춰 current guard contract의 UX drift를 좁힘
 
 ## Phase 1B 목표
 1. snapshot을 browser localStorage 외에도 backend에 저장 가능하게 만들기
@@ -202,6 +205,7 @@
 1. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`), sort API smoke(`scripts/snapshot_sort_api_smoke.sh`), visual smoke(`scripts/snapshot_sort_visual_smoke.mjs`)를 같이 유지하며 회귀 체크 지속
 2. 반복 import dedup 경고 / cleanup UX 검토
 3. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
+4. current baseline은 save-after warning surface + pre-save storage-mode guard hint 조합으로 유지
 5. reviewer 필요 시
    - VERA: spec/범위 정합성
    - AEGIS: 저장 경계/노출면 점검

@@ -20,6 +20,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - server snapshot list payload는 summary-only(`thumbnail_data_url` 제외)로 유지하고, snapshot card preview는 single snapshot detail lazy hydration으로 복원
   - `Saved Snapshots` 패널에 client-side sort field / sort order control(`Last Restored`, `Captured`, `Updated`; newest/oldest) 반영 완료, `Recent` tab은 고정 recent semantics 유지를 위해 control 숨김
   - snapshot card는 local/server source badge, storage meta, `Updated`, `Archived` 메타를 함께 노출해 capture/restore/update 상태 구분을 더 명확히 표시함
+  - snapshot guide는 현재 storage mode 기준으로 thumbnail guard 동작(server validation/size guard, browser storage pressure)을 인라인 hint로 미리 안내함
   - `fetchJson`이 non-2xx JSON body의 `message`를 `ApiError`로 surface 하도록 정리됨
   - `tsc --noEmit`, `vite build` 통과
 - 검증
@@ -43,6 +44,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
   - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 docs/ops mirror 정리 여부 판단
+  - current same-line UX baseline: save 이후 warning surface + save 전 storage-mode guard hint
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`

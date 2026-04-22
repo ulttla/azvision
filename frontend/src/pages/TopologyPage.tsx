@@ -2413,6 +2413,9 @@ export function TopologyPage() {
             <strong>{UI_TEXT.snapshotGuideTitle}</strong>
             <p className="hint">{UI_TEXT.snapshotHint}</p>
             <p className="hint storage-guide-copy">{UI_TEXT.snapshotGuideBody}</p>
+            <p className="hint storage-guide-copy">
+              {snapshotStorageMode === 'server' ? UI_TEXT.snapshotServerGuardHint : UI_TEXT.snapshotLocalGuardHint}
+            </p>
           </div>
           {snapshotStorageMode === 'server' && localWorkspaceSnapshots.length > 0 && !localSnapshotNoticeDismissed ? (
             <div className="info-banner snapshot-import-banner">

@@ -131,6 +131,10 @@ export const UI_TEXT = {
     'Snapshots capture current view state plus metadata. They do not store a frozen copy of live Azure resource data.',
   snapshotGuideTitle: 'Best for annotated point-in-time view setup',
   snapshotGuideBody: 'Use snapshots when you want notes, thumbnail preview, and saved counts for a specific topology view.',
+  snapshotServerGuardHint:
+    'Server mode may save the snapshot without a thumbnail if the preview is rejected by validation or size guard. The snapshot itself still saves.',
+  snapshotLocalGuardHint:
+    'Browser-local mode may drop the thumbnail preview when storage nears browser limits, but the snapshot itself still saves.',
   snapshotRestoreNotice: 'View state restored. Live topology data will refresh from the current workspace.',
   snapshotRestoreMetaHint: 'Restore reapplies the saved view settings, then reloads the current live topology.',
   pinSnapshot: 'Pin',
