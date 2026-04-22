@@ -11,7 +11,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.repositories.snapshots import SnapshotRepository
-from app.schemas.snapshots import SnapshotCreateRequest, SnapshotUpdateRequest
+from app.schemas.snapshots import (
+    SNAPSHOT_THUMBNAIL_MAX_LENGTH,
+    SnapshotCreateRequest,
+    SnapshotUpdateRequest,
+)
 from app.services.snapshots import SnapshotNotFoundError, SnapshotService
 
 
@@ -95,6 +99,12 @@ class TestSnapshotServiceCreate:
         req = _make_create_request(thumbnail_data_url=thumb)
         record = snapshot_service.create_snapshot(WORKSPACE, req)
         assert record.thumbnail_data_url == thumb
+
+    def test_thumbnail_rejected_if_oversized(self, snapshot_service: SnapshotService):
+        oversized_thumb = f"data:image/png;base64,{'a' * SNAPSHOT_THUMBNAIL_MAX_LENGTH}"
+        req = _make_create_request(thumbnail_data_url=oversized_thumb)
+        record = snapshot_service.create_snapshot(WORKSPACE, req)
+        assert record.thumbnail_data_url == ""
 
 
 class TestSnapshotServiceList:
@@ -396,6 +406,15 @@ class TestSnapshotRouteList:
 
 
 class TestSnapshotRouteGet:
+    def test_post_oversized_thumbnail_returns_record_without_thumbnail(self, client: TestClient):
+        oversized_thumb = f"data:image/png;base64,{'a' * SNAPSHOT_THUMBNAIL_MAX_LENGTH}"
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(thumbnail_data_url=oversized_thumb),
+        )
+        assert resp.status_code == 200
+        assert resp.json()["thumbnail_data_url"] == ""
+
     def test_get_returns_thumbnail(self, client: TestClient):
         thumb = "data:image/jpeg;base64,/9j/abc"
         created = client.post(

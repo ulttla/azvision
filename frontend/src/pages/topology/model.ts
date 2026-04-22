@@ -137,6 +137,8 @@ export const UI_TEXT = {
   unpinSnapshot: 'Unpin',
   archiveSnapshot: 'Archive',
   unarchiveSnapshot: 'Unarchive',
+  snapshotServerThumbnailRejectedWarning:
+    'Server snapshot saved without thumbnail because the thumbnail was rejected during validation.',
   snapshotSavedWithoutThumbnailSuffix: 'Saved without thumbnail to stay within browser storage limits',
   snapshotStorageNearLimit: 'Browser storage is getting full. Consider deleting older snapshots or exporting them to JSON.',
   snapshotStorageQuotaExceeded: 'Browser storage is full. Delete older snapshots or export them to JSON before saving more.',

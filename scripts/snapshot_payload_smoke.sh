@@ -8,6 +8,7 @@ TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 TMP_DIR="$OUT_DIR/azvision_snapshot_payload_smoke_$TIMESTAMP"
 THUMBNAIL_DATA_URL='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn7L7sAAAAASUVORK5CYII='
 SNAPSHOT_ID=""
+OVERSIZED_SNAPSHOT_ID=""
 
 mkdir -p "$TMP_DIR"
 
@@ -21,10 +22,12 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 cleanup() {
-  if [ -n "$SNAPSHOT_ID" ]; then
-    curl -sS -o "$TMP_DIR/cleanup_delete.json" -w '%{http_code}' -X DELETE \
-      "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$SNAPSHOT_ID" >/dev/null || true
-  fi
+  for snapshot_id in "$SNAPSHOT_ID" "$OVERSIZED_SNAPSHOT_ID"; do
+    if [ -n "$snapshot_id" ]; then
+      curl -sS -o "$TMP_DIR/cleanup_delete.json" -w '%{http_code}' -X DELETE \
+        "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$snapshot_id" >/dev/null || true
+    fi
+  done
 }
 trap cleanup EXIT
 
@@ -108,6 +111,64 @@ print(f"[detail] thumbnail_data_url restored on single-record GET for {snapshot_
 print(f"[size] summary_item_bytes={summary_item_bytes} detail_item_bytes={detail_item_bytes} delta={detail_item_bytes - summary_item_bytes}")
 PY
 
+python3 - "$TMP_DIR/oversized_create_request.json" "$TIMESTAMP" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" <<'PY'
+import json, sys
+out_file, timestamp, generated_at = sys.argv[1:4]
+payload = {
+    "preset_version": 2,
+    "name": f"Snapshot oversized thumbnail smoke {timestamp}",
+    "note": "oversized thumbnail should be sanitized out",
+    "compare_refs": [],
+    "cluster_children": True,
+    "scope": "visible",
+    "query": "",
+    "selected_subscription_id": "",
+    "resource_group_name": "",
+    "topology_generated_at": generated_at,
+    "visible_node_count": 1,
+    "loaded_node_count": 1,
+    "edge_count": 0,
+    "thumbnail_data_url": "data:image/png;base64," + ("a" * ((500 * 1024) + 1)),
+}
+with open(out_file, 'w', encoding='utf-8') as f:
+    json.dump(payload, f)
+PY
+
+oversized_create_http_code="$(curl -sS -o "$TMP_DIR/oversized_create_response.json" -w '%{http_code}' \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data @"$TMP_DIR/oversized_create_request.json" \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots")"
+
+OVERSIZED_SNAPSHOT_ID="$(python3 - "$TMP_DIR/oversized_create_response.json" "$oversized_create_http_code" <<'PY'
+import json, sys
+body_file, http_code = sys.argv[1:3]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"oversized create: expected HTTP 200, got {http_code}"
+assert payload.get('id'), 'oversized create: missing snapshot id'
+assert payload.get('thumbnail_data_url') == '', 'oversized create: expected thumbnail_data_url to be sanitized out'
+print(payload['id'])
+PY
+)"
+
+oversized_list_http_code="$(curl -sS -o "$TMP_DIR/oversized_list_response.json" -w '%{http_code}' \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots")"
+
+python3 - "$TMP_DIR/oversized_list_response.json" "$oversized_list_http_code" "$OVERSIZED_SNAPSHOT_ID" <<'PY'
+import json, sys
+body_file, http_code, snapshot_id = sys.argv[1:4]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"oversized list: expected HTTP 200, got {http_code}"
+items = payload.get('items') or []
+item = next((entry for entry in items if entry.get('id') == snapshot_id), None)
+assert item is not None, f"oversized list: snapshot {snapshot_id} not found"
+assert item.get('has_thumbnail') is False, 'oversized list: expected has_thumbnail=false after sanitization'
+assert 'thumbnail_data_url' not in item, 'oversized list: thumbnail_data_url should be omitted from summary payload'
+print(f"[oversized] sanitized thumbnail removed for {snapshot_id} and summary has_thumbnail=false")
+PY
+
 delete_http_code="$(curl -sS -o "$TMP_DIR/delete_response.json" -w '%{http_code}' -X DELETE \
   "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$SNAPSHOT_ID")"
 
@@ -123,6 +184,22 @@ print(f"[delete] removed {snapshot_id}")
 PY
 
 SNAPSHOT_ID=""
+
+oversized_delete_http_code="$(curl -sS -o "$TMP_DIR/oversized_delete_response.json" -w '%{http_code}' -X DELETE \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$OVERSIZED_SNAPSHOT_ID")"
+
+python3 - "$TMP_DIR/oversized_delete_response.json" "$oversized_delete_http_code" "$OVERSIZED_SNAPSHOT_ID" <<'PY'
+import json, sys
+body_file, http_code, snapshot_id = sys.argv[1:4]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"oversized delete: expected HTTP 200, got {http_code}"
+assert payload.get('status') == 'deleted', f"oversized delete: expected status=deleted, got {payload.get('status')}"
+assert payload.get('snapshot_id') == snapshot_id, f"oversized delete: expected snapshot_id={snapshot_id}, got {payload.get('snapshot_id')}"
+print(f"[delete] removed oversized {snapshot_id}")
+PY
+
+OVERSIZED_SNAPSHOT_ID=""
 
 echo
 echo "Snapshot payload smoke checks passed."
