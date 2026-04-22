@@ -1,4 +1,3 @@
-import requests
 from fastapi import APIRouter, HTTPException
 
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
@@ -49,11 +48,7 @@ def read_test() -> dict:
             "sample_resource_groups": result.sample_resource_groups,
             "message": result.message,
         }
-    except AzureReadTestError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    except requests.HTTPError as exc:
-        response = exc.response
-        detail = response.text[:500] if response is not None else str(exc)
-        raise HTTPException(status_code=502, detail=detail) from exc
+    except AzureReadTestError:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

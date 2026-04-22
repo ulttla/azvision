@@ -41,7 +41,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
-  - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 backend 공통화(Azure client init / error response)
+  - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 backend 공통화(Azure client init)
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`

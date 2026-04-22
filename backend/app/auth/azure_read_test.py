@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable, TypeVar
+
+import requests
 
 from app.core.azure_client import AzureClientError, get_json, get_management_token
 from app.core.config import Settings
@@ -19,53 +22,72 @@ class AzureReadTestResult:
     message: str
 
 
+T = TypeVar("T")
+
+
+def _read_test_error_message(exc: AzureReadTestError | AzureClientError | requests.HTTPError) -> str:
+    if isinstance(exc, requests.HTTPError):
+        response = exc.response
+        return response.text[:500] if response is not None else str(exc)
+    return str(exc)
+
+
+def _run_live_read_test(operation: Callable[[], T]) -> T:
+    try:
+        return operation()
+    except AzureReadTestError:
+        raise
+    except (AzureClientError, requests.HTTPError) as exc:
+        raise AzureReadTestError(_read_test_error_message(exc)) from exc
+
+
 def run_azure_read_test(settings: Settings) -> AzureReadTestResult:
     if not settings.auth_runtime_ready:
         raise AzureReadTestError("Missing required Azure settings or certificate path is invalid")
 
-    try:
+    def _operation() -> AzureReadTestResult:
         token = get_management_token(settings)
-    except AzureClientError as exc:
-        raise AzureReadTestError(str(exc)) from exc
 
-    subscriptions_payload = get_json(
-        "https://management.azure.com/subscriptions?api-version=2020-01-01",
-        token,
-    )
-    subscription_items = subscriptions_payload.get("value", [])
-    accessible_subscriptions = [
-        {
-            "subscription_id": item.get("subscriptionId"),
-            "display_name": item.get("displayName"),
-            "state": item.get("state"),
-            "tenant_id": item.get("tenantId"),
-        }
-        for item in subscription_items
-    ]
+        subscriptions_payload = get_json(
+            "https://management.azure.com/subscriptions?api-version=2020-01-01",
+            token,
+        )
+        subscription_items = subscriptions_payload.get("value", [])
+        accessible_subscriptions = [
+            {
+                "subscription_id": item.get("subscriptionId"),
+                "display_name": item.get("displayName"),
+                "state": item.get("state"),
+                "tenant_id": item.get("tenantId"),
+            }
+            for item in subscription_items
+        ]
 
-    sample_resource_groups: list[dict] = []
-    if accessible_subscriptions:
-        first_subscription_id = accessible_subscriptions[0].get("subscription_id")
-        if first_subscription_id:
-            rg_payload = get_json(
-                "https://management.azure.com/"
-                f"subscriptions/{first_subscription_id}/resourcegroups"
-                "?api-version=2021-04-01",
-                token,
-            )
-            sample_resource_groups = [
-                {
-                    "subscription_id": first_subscription_id,
-                    "name": item.get("name"),
-                    "location": item.get("location"),
-                }
-                for item in rg_payload.get("value", [])[:10]
-            ]
+        sample_resource_groups: list[dict] = []
+        if accessible_subscriptions:
+            first_subscription_id = accessible_subscriptions[0].get("subscription_id")
+            if first_subscription_id:
+                rg_payload = get_json(
+                    "https://management.azure.com/"
+                    f"subscriptions/{first_subscription_id}/resourcegroups"
+                    "?api-version=2021-04-01",
+                    token,
+                )
+                sample_resource_groups = [
+                    {
+                        "subscription_id": first_subscription_id,
+                        "name": item.get("name"),
+                        "location": item.get("location"),
+                    }
+                    for item in rg_payload.get("value", [])[:10]
+                ]
 
-    return AzureReadTestResult(
-        ok=True,
-        token_acquired=True,
-        accessible_subscriptions=accessible_subscriptions,
-        sample_resource_groups=sample_resource_groups,
-        message="Azure live read test completed",
-    )
+        return AzureReadTestResult(
+            ok=True,
+            token_acquired=True,
+            accessible_subscriptions=accessible_subscriptions,
+            sample_resource_groups=sample_resource_groups,
+            message="Azure live read test completed",
+        )
+
+    return _run_live_read_test(_operation)
