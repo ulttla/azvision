@@ -119,7 +119,7 @@
 - non-2xx backend 응답은 기본적으로 JSON body `{ ok: false, status, message }` shape를 사용한다
   - `raise HTTPException(status_code=N, detail="...")` 도 동일한 JSON envelope로 정규화된다
   - 예: `404` → `{ ok: false, status: "http-404", message: "Snapshot not found" }`
-  - `502` (Azure/upstream failures): `{ ok: false, status: "http-502", message: "<upstream error>" }`
+  - `502` (Azure/upstream failures surfaced through `AzureClientError` subclasses): `{ ok: false, status: "azure-error", message: "<upstream error>" }`
   - `503` (service not configured): `{ ok: false, status: "http-503", message: "<config error>" }`
   - `500` (unexpected): `{ ok: false, status: "http-500", message: "<error>" }`
   - `422` (FastAPI request validation): `{ ok: false, status: "http-422", message: "<field>: <msg>" }` — FastAPI default 422 shape가 아닌 동일 envelope로 정규화됨

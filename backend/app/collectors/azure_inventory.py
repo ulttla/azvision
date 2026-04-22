@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, TypeVar
-
-import requests
 
 from app.core.azure_client import AzureClientError, get_management_token, get_paginated_items, get_json
 from app.core.config import Settings
+from app.core.azure_error import wrap_azure_operation
 
 
 class AzureInventoryError(AzureClientError):
@@ -34,31 +32,12 @@ class InventoryItemsResolution:
     warning: str | None = None
 
 
-T = TypeVar("T")
-
-
 def _truncate(items: list[dict], limit: int) -> list[dict]:
     return items[: max(limit, 0)]
 
 
 def _mock_resource_id(subscription_id: str, resource_group_name: str, provider_path: str) -> str:
     return f"/subscriptions/{subscription_id}/resourceGroups/{resource_group_name}/providers/{provider_path}"
-
-
-def _inventory_error_message(exc: AzureInventoryError | AzureClientError | requests.HTTPError) -> str:
-    if isinstance(exc, requests.HTTPError):
-        response = exc.response
-        return response.text[:500] if response is not None else str(exc)
-    return str(exc)
-
-
-def _run_live_inventory(operation: Callable[[], T]) -> T:
-    try:
-        return operation()
-    except AzureInventoryError:
-        raise
-    except (AzureClientError, requests.HTTPError) as exc:
-        raise AzureInventoryError(_inventory_error_message(exc)) from exc
 
 
 def _mock_inventory_collection(
@@ -458,7 +437,7 @@ def collect_inventory(
     resource_group_limit: int = 200,
     resource_limit: int = 200,
 ) -> AzureInventoryCollection:
-    collection = _run_live_inventory(
+    collection = wrap_azure_operation(
         lambda: AzureInventoryCollection(
             subscriptions=list_accessible_subscriptions(settings),
             resource_groups=list_resource_groups(
@@ -472,7 +451,8 @@ def collect_inventory(
                 resource_group_name=resource_group_name,
                 limit=resource_limit,
             ),
-        )
+        ),
+        AzureInventoryError,
     )
 
     if resource_group_name:
@@ -542,7 +522,7 @@ def resolve_subscription_items(settings: Settings) -> InventoryItemsResolution:
 
     try:
         return InventoryItemsResolution(
-            items=_run_live_inventory(lambda: list_accessible_subscriptions(settings)),
+            items=wrap_azure_operation(lambda: list_accessible_subscriptions(settings), AzureInventoryError),
             mode="live",
         )
     except AzureInventoryError as exc:
@@ -575,12 +555,13 @@ def resolve_resource_group_items(
 
     try:
         return InventoryItemsResolution(
-            items=_run_live_inventory(
+            items=wrap_azure_operation(
                 lambda: list_resource_groups(
                     settings,
                     subscription_id=subscription_id,
                     limit=limit,
-                )
+                ),
+                AzureInventoryError,
             ),
             mode="live",
         )
@@ -619,13 +600,14 @@ def resolve_resource_items(
 
     try:
         return InventoryItemsResolution(
-            items=_run_live_inventory(
+            items=wrap_azure_operation(
                 lambda: list_resources(
                     settings,
                     subscription_id=subscription_id,
                     resource_group_name=resource_group_name,
                     limit=limit,
-                )
+                ),
+                AzureInventoryError,
             ),
             mode="live",
         )

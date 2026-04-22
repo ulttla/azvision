@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, TypeVar
-
-import requests
 
 from app.core.azure_client import AzureClientError, get_json, get_management_token
+from app.core.azure_error import wrap_azure_operation
 from app.core.config import Settings
 
 
@@ -20,25 +18,6 @@ class AzureReadTestResult:
     accessible_subscriptions: list[dict]
     sample_resource_groups: list[dict]
     message: str
-
-
-T = TypeVar("T")
-
-
-def _read_test_error_message(exc: AzureReadTestError | AzureClientError | requests.HTTPError) -> str:
-    if isinstance(exc, requests.HTTPError):
-        response = exc.response
-        return response.text[:500] if response is not None else str(exc)
-    return str(exc)
-
-
-def _run_live_read_test(operation: Callable[[], T]) -> T:
-    try:
-        return operation()
-    except AzureReadTestError:
-        raise
-    except (AzureClientError, requests.HTTPError) as exc:
-        raise AzureReadTestError(_read_test_error_message(exc)) from exc
 
 
 def run_azure_read_test(settings: Settings) -> AzureReadTestResult:
@@ -90,4 +69,4 @@ def run_azure_read_test(settings: Settings) -> AzureReadTestResult:
             message="Azure live read test completed",
         )
 
-    return _run_live_read_test(_operation)
+    return wrap_azure_operation(_operation, AzureReadTestError)
