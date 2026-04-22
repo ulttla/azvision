@@ -779,10 +779,12 @@ const serverSnapshotStorageProvider: SnapshotStorageProvider = {
   async create(workspaceId, snapshot) {
     const request = toSnapshotApiCreateRequest(snapshot)
     const createdSnapshot = await createTopologySnapshot(workspaceId, request)
+    const thumbnailSanitized = Boolean(snapshot.thumbnailDataUrl) && !request.thumbnail_data_url
+    const thumbnailRejected = request.thumbnail_data_url && !createdSnapshot.thumbnail_data_url
     return {
       snapshot: mapSnapshotApiRecord(createdSnapshot),
       warning:
-        request.thumbnail_data_url && !createdSnapshot.thumbnail_data_url
+        thumbnailSanitized || thumbnailRejected
           ? UI_TEXT.snapshotServerThumbnailRejectedWarning
           : undefined,
     }
