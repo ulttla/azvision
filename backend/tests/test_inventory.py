@@ -74,3 +74,75 @@ class TestInventoryRoutes:
             "status": "azure-error",
             "message": "inventory route boom",
         }
+
+    def test_resource_groups_route_uses_global_azure_error_envelope(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.inventory as inventory_routes
+
+        monkeypatch.setattr(
+            inventory_routes,
+            "resolve_resource_group_items",
+            lambda settings, subscription_id=None, limit=200: _raise(
+                AzureInventoryError("resource groups route boom")
+            ),
+        )
+
+        response = client.get(f"/api/v1/workspaces/{WORKSPACE}/resource-groups")
+
+        assert response.status_code == 502
+        assert response.json() == {
+            "ok": False,
+            "status": "azure-error",
+            "message": "resource groups route boom",
+        }
+
+    def test_resources_route_uses_global_azure_error_envelope(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.inventory as inventory_routes
+
+        monkeypatch.setattr(
+            inventory_routes,
+            "resolve_resource_items",
+            lambda settings, subscription_id=None, resource_group_name=None, limit=200: _raise(
+                AzureInventoryError("resources route boom")
+            ),
+        )
+
+        response = client.get(f"/api/v1/workspaces/{WORKSPACE}/resources")
+
+        assert response.status_code == 502
+        assert response.json() == {
+            "ok": False,
+            "status": "azure-error",
+            "message": "resources route boom",
+        }
+
+    def test_inventory_summary_route_uses_global_azure_error_envelope(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.inventory as inventory_routes
+
+        monkeypatch.setattr(
+            inventory_routes,
+            "resolve_inventory_collection",
+            lambda settings, subscription_id=None, resource_group_name=None, resource_group_limit=200, resource_limit=200: _raise(
+                AzureInventoryError("inventory summary route boom")
+            ),
+        )
+
+        response = client.get(f"/api/v1/workspaces/{WORKSPACE}/inventory-summary")
+
+        assert response.status_code == 502
+        assert response.json() == {
+            "ok": False,
+            "status": "azure-error",
+            "message": "inventory summary route boom",
+        }
