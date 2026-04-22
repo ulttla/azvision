@@ -332,7 +332,8 @@ export type ArchitectureViewOverrideState = {
 - 최소 수동 액션 1개(node hide/show 또는 stage move)가 동작함
 - 향후 수동 수정용 override schema가 문서와 코드 구조에 반영됨
 
-## 현재 구현 상태 메모 (2026-04-13)
+## 현재 구현 상태 메모 (2026-04-21 review)
+- 이 섹션은 Architecture View 라인 기준 상태 메모다. snapshot sort, error response contract, inventory/auth Azure error normalization 후속은 `README.md`, `docs/API_CONTRACT.md` 기준 최신 상태를 따른다.
 - `Topology View / Architecture View` 탭 전환 반영 완료
 - frontend 전용 architecture view-model + stage bucket + simplified edge 생성 반영 완료
 - `ArchitecturePage`에서 SVG 기반 compact diagram / zone board / flow summary / selected card 패널 구성 완료

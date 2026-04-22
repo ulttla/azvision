@@ -47,9 +47,9 @@
   - type
   - location
   - tags
-- [ ] network relationship resolver 1차 구현
-- [ ] ScanRun 저장 구조 반영
-- [ ] 첫 live scan 결과를 SQLite에 저장
+- [-] network relationship resolver 1차 구현 (Phase 1A out-of-scope, Phase 2/3 backlog)
+- [-] ScanRun 저장 구조 반영 (Phase 1A out-of-scope, persistence expansion backlog)
+- [-] 첫 live scan 결과를 SQLite에 저장 (Phase 1A out-of-scope, persistence expansion backlog)
 
 ## 4. Data model / persistence
 - [x] SQLite schema 초안 작성
