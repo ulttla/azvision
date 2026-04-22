@@ -160,10 +160,18 @@ export const UI_TEXT = {
     capturedAt
       ? `Captured: ${new Date(capturedAt).toLocaleString()}${relativeTime ? ` (${relativeTime})` : ''}`
       : 'Captured: —',
+  snapshotUpdatedMeta: (updatedAt: string, relativeTime?: string) =>
+    updatedAt
+      ? `Updated: ${new Date(updatedAt).toLocaleString()}${relativeTime ? ` (${relativeTime})` : ''}`
+      : 'Updated: —',
   snapshotRestoredMeta: (lastRestoredAt: string, restoreCount: number, relativeTime?: string) =>
     lastRestoredAt
       ? `Last restored: ${new Date(lastRestoredAt).toLocaleString()}${relativeTime ? ` (${relativeTime})` : ''} • ${restoreCount} restore${restoreCount === 1 ? '' : 's'}`
       : 'Never restored',
+  snapshotArchivedMeta: (archivedAt: string, relativeTime?: string) =>
+    archivedAt
+      ? `Archived: ${new Date(archivedAt).toLocaleString()}${relativeTime ? ` (${relativeTime})` : ''}`
+      : '',
   snapshotScopeMeta: (selectedSubscriptionId: string, resourceGroupName: string) => {
     const parts: string[] = []
 

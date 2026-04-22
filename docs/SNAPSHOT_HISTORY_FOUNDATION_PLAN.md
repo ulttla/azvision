@@ -261,7 +261,7 @@ SnapshotRecord {
 - archive는 hard delete 대체가 아니라 working set 정리 수단으로만 봐야 함
 
 ## 권장 다음 순서
-1. `scripts/snapshot_sort_visual_smoke.mjs` 기준 visual smoke를 회귀 경로로 유지하면서 snapshot card meta / pinned / archived 표현의 미세 polish 필요 여부 판단
+1. `scripts/snapshot_sort_visual_smoke.mjs` 기준 visual smoke를 회귀 경로로 유지하면서 추가 snapshot UX polish 범위를 최소 단위로만 검토
 2. thumbnail 장기 저장 전략(object storage / size guard) 재검토
 3. history 범위를 revision system으로 넓히지 않고 working set 중심으로 유지할 운영 기준 고정
 

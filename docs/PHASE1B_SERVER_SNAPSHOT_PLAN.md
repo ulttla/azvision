@@ -189,7 +189,7 @@
 2. server mode일 때 local snapshot import 함수 추가 (기존 create endpoint 순차 호출)
 3. `TopologyPage.tsx`에 notice + CTA 연결
 4. import 결과 summary(성공/중복 skip/실패) 표시
-5. 필요 시 후속으로 source badge/local-server meta 표시
+5. 후속 polish로 source badge/local-server meta 표시까지 반영 완료
 
 ## 리스크 / 주의사항
 - thumbnail을 계속 inline base64로 저장하면 서버 저장소/응답 크기 부담 가능
@@ -200,9 +200,8 @@
 
 ## 다음 액션
 1. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`), sort API smoke(`scripts/snapshot_sort_api_smoke.sh`), visual smoke(`scripts/snapshot_sort_visual_smoke.mjs`)를 같이 유지하며 회귀 체크 지속
-2. snapshot list에 source badge 또는 storage meta 노출 여부 판단
-3. 반복 import dedup 경고 / cleanup UX 검토
-4. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
+2. 반복 import dedup 경고 / cleanup UX 검토
+3. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
 5. reviewer 필요 시
    - VERA: spec/범위 정합성
    - AEGIS: 저장 경계/노출면 점검

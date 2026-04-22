@@ -2560,11 +2560,9 @@ export function TopologyPage() {
                         <div className="preset-card-copy">
                           <div className="preset-card-title-row">
                             <strong>{snapshot.name}</strong>
-                            {snapshotStorageMode === 'server' ? (
-                              <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
-                                {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
-                              </span>
-                            ) : null}
+                            <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
+                              {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
+                            </span>
                             {snapshot.isPinned ? <span className="mini-chip">{UI_TEXT.pinnedSnapshotBadge}</span> : null}
                             {isArchivedSnapshot ? <span className="mini-chip">{UI_TEXT.archivedSnapshotBadge}</span> : null}
                             {!snapshot.lastRestoredAt ? <span className="mini-chip">{UI_TEXT.neverRestoredSnapshotBadge}</span> : null}
@@ -2583,6 +2581,9 @@ export function TopologyPage() {
                           <p className="hint preset-card-meta">
                             {UI_TEXT.snapshotCounts(snapshot.visibleNodeCount, snapshot.loadedNodeCount, snapshot.edgeCount)}
                           </p>
+                          <p className="hint preset-card-meta">
+                            {UI_TEXT.snapshotStorageMeta(snapshot.storageKind)}
+                          </p>
                           {snapshot.note ? <p className="hint snapshot-note">{snapshot.note}</p> : null}
                           <p className="hint preset-card-meta">
                             Generated {formatDateTime(snapshot.topologyGeneratedAt)}
@@ -2591,8 +2592,16 @@ export function TopologyPage() {
                             {UI_TEXT.snapshotCapturedMeta(snapshot.capturedAt, formatRelativeTime(snapshot.capturedAt))}
                           </p>
                           <p className="hint preset-card-meta">
+                            {UI_TEXT.snapshotUpdatedMeta(snapshot.updatedAt, formatRelativeTime(snapshot.updatedAt))}
+                          </p>
+                          <p className="hint preset-card-meta">
                             {UI_TEXT.snapshotRestoredMeta(snapshot.lastRestoredAt, snapshot.restoreCount, formatRelativeTime(snapshot.lastRestoredAt))}
                           </p>
+                          {isArchivedSnapshot ? (
+                            <p className="hint preset-card-meta">
+                              {UI_TEXT.snapshotArchivedMeta(snapshot.archivedAt, formatRelativeTime(snapshot.archivedAt))}
+                            </p>
+                          ) : null}
                           <p className="hint storage-restore-meta">{UI_TEXT.snapshotRestoreMetaHint}</p>
                         </div>
                         <div className="button-row preset-card-actions">
