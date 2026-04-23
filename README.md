@@ -21,6 +21,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `Saved Snapshots` 패널에 client-side sort field / sort order control(`Last Restored`, `Captured`, `Updated`; newest/oldest) 반영 완료, `Recent` tab은 고정 recent semantics 유지를 위해 control 숨김
   - snapshot card는 local/server source badge, storage meta, `Updated`, `Archived` 메타를 함께 노출해 capture/restore/update 상태 구분을 더 명확히 표시함
   - snapshot guide는 현재 storage mode 기준으로 thumbnail guard 동작(server validation/guard checks, local guard checks/browser storage pressure)을 인라인 hint로 미리 안내함
+  - server save-after warning copy도 `server validation or thumbnail guard checks` 기준으로 정렬해 guide와 실제 warning 문구 drift를 줄임
   - `fetchJson`이 non-2xx JSON body의 `message`를 `ApiError`로 surface 하도록 정리됨
   - `tsc --noEmit`, `vite build` 통과
 - 검증
@@ -40,11 +41,12 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline + `Saved Snapshots` sort UX visual smoke 반영 기준으로 최신화 완료
   - `scripts/snapshot_payload_smoke.sh` 로 snapshot list/detail payload 분리(summary list, detail thumbnail 포함)와 oversized thumbnail sanitize 경로 smoke 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
+  - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide와 save-after warning copy가 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
   - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 docs/ops mirror 정리 여부 판단
-  - current same-line UX baseline: save 이후 warning surface(local/browser sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint
+  - current same-line UX baseline: save 이후 warning surface(local/browser sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + server warning copy alignment smoke
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`

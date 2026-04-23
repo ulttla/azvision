@@ -142,7 +142,7 @@ export const UI_TEXT = {
   archiveSnapshot: 'Archive',
   unarchiveSnapshot: 'Unarchive',
   snapshotServerThumbnailRejectedWarning:
-    'Server snapshot saved without thumbnail because thumbnail guard checks removed the preview before save.',
+    'Server snapshot saved without thumbnail because server validation or thumbnail guard checks removed the preview before save.',
   snapshotLocalThumbnailRejectedWarning:
     'Browser-local snapshot saved without thumbnail because thumbnail guard checks removed the preview before save.',
   snapshotSavedWithoutThumbnailSuffix: 'Saved without thumbnail to stay within browser storage limits',
