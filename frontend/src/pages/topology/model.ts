@@ -132,9 +132,9 @@ export const UI_TEXT = {
   snapshotGuideTitle: 'Best for annotated point-in-time view setup',
   snapshotGuideBody: 'Use snapshots when you want notes, thumbnail preview, and saved counts for a specific topology view.',
   snapshotServerGuardHint:
-    'Server mode may save the snapshot without a thumbnail if the preview is rejected by validation or size guard. The snapshot itself still saves.',
+    'Server mode may save the snapshot without a thumbnail if validation or thumbnail guard checks remove the preview before save. The snapshot itself still saves.',
   snapshotLocalGuardHint:
-    'Browser-local mode may drop the thumbnail preview when storage nears browser limits, but the snapshot itself still saves.',
+    'Browser-local mode may save the snapshot without a thumbnail if thumbnail guard checks or browser storage limits remove the preview before save. The snapshot itself still saves.',
   snapshotRestoreNotice: 'View state restored. Live topology data will refresh from the current workspace.',
   snapshotRestoreMetaHint: 'Restore reapplies the saved view settings, then reloads the current live topology.',
   pinSnapshot: 'Pin',
@@ -143,6 +143,8 @@ export const UI_TEXT = {
   unarchiveSnapshot: 'Unarchive',
   snapshotServerThumbnailRejectedWarning:
     'Server snapshot saved without thumbnail because thumbnail guard checks removed the preview before save.',
+  snapshotLocalThumbnailRejectedWarning:
+    'Browser-local snapshot saved without thumbnail because thumbnail guard checks removed the preview before save.',
   snapshotSavedWithoutThumbnailSuffix: 'Saved without thumbnail to stay within browser storage limits',
   snapshotStorageNearLimit: 'Browser storage is getting full. Consider deleting older snapshots or exporting them to JSON.',
   snapshotStorageQuotaExceeded: 'Browser storage is full. Delete older snapshots or export them to JSON before saving more.',

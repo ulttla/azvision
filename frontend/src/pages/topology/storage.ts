@@ -667,6 +667,8 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
   async create(workspaceId, snapshot) {
     const allSnapshots = loadSavedTopologySnapshots()
     const now = new Date().toISOString()
+    const sanitizedThumbnailDataUrl = sanitizeSnapshotThumbnailDataUrl(snapshot.thumbnailDataUrl)
+    const thumbnailSanitized = Boolean(snapshot.thumbnailDataUrl) && !sanitizedThumbnailDataUrl
     const nextSnapshot = {
       ...snapshot,
       workspaceId,
@@ -677,7 +679,8 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
       restoreCount: sanitizeSnapshotCount(snapshot.restoreCount),
       isPinned: sanitizeSnapshotBoolean(snapshot.isPinned),
       archivedAt: sanitizeSnapshotTimestamp(snapshot.archivedAt),
-      hasThumbnail: Boolean(sanitizeSnapshotThumbnailDataUrl(snapshot.thumbnailDataUrl)),
+      thumbnailDataUrl: sanitizedThumbnailDataUrl,
+      hasThumbnail: Boolean(sanitizedThumbnailDataUrl),
       storageKind: 'local' as const,
     }
     const nextSnapshots = [nextSnapshot, ...allSnapshots]
@@ -686,11 +689,14 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
       throw new Error(persistResult.message)
     }
 
+    const warnings = [
+      thumbnailSanitized ? UI_TEXT.snapshotLocalThumbnailRejectedWarning : '',
+      shouldWarnForSnapshotStorage(persistResult.estimatedBytes) ? UI_TEXT.snapshotStorageNearLimit : '',
+    ].filter(Boolean)
+
     return {
       snapshot: nextSnapshot,
-      warning: shouldWarnForSnapshotStorage(persistResult.estimatedBytes)
-        ? UI_TEXT.snapshotStorageNearLimit
-        : '',
+      warning: warnings.join(' '),
     }
   },
   async update(workspaceId, snapshotId, patch) {
