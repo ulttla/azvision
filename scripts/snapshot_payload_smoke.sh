@@ -9,6 +9,7 @@ TMP_DIR="$OUT_DIR/azvision_snapshot_payload_smoke_$TIMESTAMP"
 THUMBNAIL_DATA_URL='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn7L7sAAAAASUVORK5CYII='
 SNAPSHOT_ID=""
 OVERSIZED_SNAPSHOT_ID=""
+INVALID_SNAPSHOT_ID=""
 
 mkdir -p "$TMP_DIR"
 
@@ -22,7 +23,7 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 cleanup() {
-  for snapshot_id in "$SNAPSHOT_ID" "$OVERSIZED_SNAPSHOT_ID"; do
+  for snapshot_id in "$SNAPSHOT_ID" "$OVERSIZED_SNAPSHOT_ID" "$INVALID_SNAPSHOT_ID"; do
     if [ -n "$snapshot_id" ]; then
       curl -sS -o "$TMP_DIR/cleanup_delete.json" -w '%{http_code}' -X DELETE \
         "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$snapshot_id" >/dev/null || true
@@ -169,6 +170,92 @@ assert 'thumbnail_data_url' not in item, 'oversized list: thumbnail_data_url sho
 print(f"[oversized] sanitized thumbnail removed for {snapshot_id} and summary has_thumbnail=false")
 PY
 
+oversized_detail_http_code="$(curl -sS -o "$TMP_DIR/oversized_detail_response.json" -w '%{http_code}' \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$OVERSIZED_SNAPSHOT_ID")"
+
+python3 - "$TMP_DIR/oversized_detail_response.json" "$oversized_detail_http_code" "$OVERSIZED_SNAPSHOT_ID" <<'PY'
+import json, sys
+body_file, http_code, snapshot_id = sys.argv[1:4]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"oversized detail: expected HTTP 200, got {http_code}"
+assert payload.get('id') == snapshot_id, f"oversized detail: expected id {snapshot_id}, got {payload.get('id')}"
+assert payload.get('thumbnail_data_url') == '', 'oversized detail: expected thumbnail_data_url to stay sanitized out'
+print(f"[oversized-detail] thumbnail_data_url remains empty on single-record GET for {snapshot_id}")
+PY
+
+python3 - "$TMP_DIR/invalid_create_request.json" "$TIMESTAMP" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" <<'PY'
+import json, sys
+out_file, timestamp, generated_at = sys.argv[1:4]
+payload = {
+    "preset_version": 2,
+    "name": f"Snapshot invalid thumbnail smoke {timestamp}",
+    "note": "invalid thumbnail should be sanitized out",
+    "compare_refs": [],
+    "cluster_children": True,
+    "scope": "visible",
+    "query": "",
+    "selected_subscription_id": "",
+    "resource_group_name": "",
+    "topology_generated_at": generated_at,
+    "visible_node_count": 1,
+    "loaded_node_count": 1,
+    "edge_count": 0,
+    "thumbnail_data_url": "not-a-data-url",
+}
+with open(out_file, 'w', encoding='utf-8') as f:
+    json.dump(payload, f)
+PY
+
+invalid_create_http_code="$(curl -sS -o "$TMP_DIR/invalid_create_response.json" -w '%{http_code}' \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data @"$TMP_DIR/invalid_create_request.json" \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots")"
+
+INVALID_SNAPSHOT_ID="$(python3 - "$TMP_DIR/invalid_create_response.json" "$invalid_create_http_code" <<'PY'
+import json, sys
+body_file, http_code = sys.argv[1:3]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"invalid create: expected HTTP 200, got {http_code}"
+assert payload.get('id'), 'invalid create: missing snapshot id'
+assert payload.get('thumbnail_data_url') == '', 'invalid create: expected thumbnail_data_url to be sanitized out'
+print(payload['id'])
+PY
+)"
+
+invalid_list_http_code="$(curl -sS -o "$TMP_DIR/invalid_list_response.json" -w '%{http_code}' \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots")"
+
+python3 - "$TMP_DIR/invalid_list_response.json" "$invalid_list_http_code" "$INVALID_SNAPSHOT_ID" <<'PY'
+import json, sys
+body_file, http_code, snapshot_id = sys.argv[1:4]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"invalid list: expected HTTP 200, got {http_code}"
+items = payload.get('items') or []
+item = next((entry for entry in items if entry.get('id') == snapshot_id), None)
+assert item is not None, f"invalid list: snapshot {snapshot_id} not found"
+assert item.get('has_thumbnail') is False, 'invalid list: expected has_thumbnail=false after sanitization'
+assert 'thumbnail_data_url' not in item, 'invalid list: thumbnail_data_url should be omitted from summary payload'
+print(f"[invalid] sanitized thumbnail removed for {snapshot_id} and summary has_thumbnail=false")
+PY
+
+invalid_detail_http_code="$(curl -sS -o "$TMP_DIR/invalid_detail_response.json" -w '%{http_code}' \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$INVALID_SNAPSHOT_ID")"
+
+python3 - "$TMP_DIR/invalid_detail_response.json" "$invalid_detail_http_code" "$INVALID_SNAPSHOT_ID" <<'PY'
+import json, sys
+body_file, http_code, snapshot_id = sys.argv[1:4]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"invalid detail: expected HTTP 200, got {http_code}"
+assert payload.get('id') == snapshot_id, f"invalid detail: expected id {snapshot_id}, got {payload.get('id')}"
+assert payload.get('thumbnail_data_url') == '', 'invalid detail: expected thumbnail_data_url to stay sanitized out'
+print(f"[invalid-detail] thumbnail_data_url remains empty on single-record GET for {snapshot_id}")
+PY
+
 delete_http_code="$(curl -sS -o "$TMP_DIR/delete_response.json" -w '%{http_code}' -X DELETE \
   "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$SNAPSHOT_ID")"
 
@@ -200,6 +287,22 @@ print(f"[delete] removed oversized {snapshot_id}")
 PY
 
 OVERSIZED_SNAPSHOT_ID=""
+
+invalid_delete_http_code="$(curl -sS -o "$TMP_DIR/invalid_delete_response.json" -w '%{http_code}' -X DELETE \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$INVALID_SNAPSHOT_ID")"
+
+python3 - "$TMP_DIR/invalid_delete_response.json" "$invalid_delete_http_code" "$INVALID_SNAPSHOT_ID" <<'PY'
+import json, sys
+body_file, http_code, snapshot_id = sys.argv[1:4]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"invalid delete: expected HTTP 200, got {http_code}"
+assert payload.get('status') == 'deleted', f"invalid delete: expected status=deleted, got {payload.get('status')}"
+assert payload.get('snapshot_id') == snapshot_id, f"invalid delete: expected snapshot_id={snapshot_id}, got {payload.get('snapshot_id')}"
+print(f"[delete] removed invalid {snapshot_id}")
+PY
+
+INVALID_SNAPSHOT_ID=""
 
 echo
 echo "Snapshot payload smoke checks passed."

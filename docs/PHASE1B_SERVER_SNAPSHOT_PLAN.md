@@ -203,7 +203,7 @@
 - local snapshot migration은 자동보다 명시적 import가 안전
 
 ## 다음 액션
-1. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`), sort API smoke(`scripts/snapshot_sort_api_smoke.sh`), visual smoke(`scripts/snapshot_sort_visual_smoke.mjs`)를 같이 유지하며 회귀 체크 지속
+1. snapshot payload smoke(`scripts/snapshot_payload_smoke.sh`), sort API smoke(`scripts/snapshot_sort_api_smoke.sh`), visual smoke(`scripts/snapshot_sort_visual_smoke.mjs`)를 같이 유지하며 invalid/oversized thumbnail sanitize 경로 포함 회귀 체크 지속
 2. 반복 import dedup 경고 / cleanup UX 검토
 3. 남은 장기 과제는 thumbnail object storage / size guard 방향 재검토
 4. current baseline은 save-after warning surface(local/browser sanitize + server-side blank thumbnail 커버) + pre-save storage-mode guard hint + server warning copy alignment smoke 조합으로 유지
