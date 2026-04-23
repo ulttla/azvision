@@ -74,7 +74,7 @@
   - 응답: `ok`, `workspace_id`, `items[]` (`SnapshotSummaryRecord` — `thumbnail_data_url` 제외, `has_thumbnail` 포함, payload 절감)
 - `POST /workspaces/{workspace_id}/snapshots`
   - request: `preset_version`, `name`, `note`, `compare_refs`, `cluster_children`, `scope`, `query`, `selected_subscription_id`, `resource_group_name`, `topology_generated_at`, `visible_node_count`, `loaded_node_count`, `edge_count`, `thumbnail_data_url`, `captured_at` (optional — when provided, preserved as-is; used on local→server import to carry the original capture timestamp)
-  - thumbnail guard: backend는 `thumbnail_data_url` 이 `data:image/` 로 시작하지 않거나 길이가 `512000` bytes를 초과하면 값을 `""` 로 sanitize 하고 snapshot 저장 자체는 계속 진행한다. caller는 create/detail 응답의 `thumbnail_data_url=""` 와 list summary의 `has_thumbnail=false` 로 sanitize 결과를 확인할 수 있다
+  - thumbnail guard: backend는 `thumbnail_data_url` 이 `data:image/` 로 시작하지 않거나 문자열 길이가 `512000` (`500 * 1024`)를 초과하면 값을 `""` 로 sanitize 하고 snapshot 저장 자체는 계속 진행한다. caller는 create/detail 응답의 `thumbnail_data_url=""` 와 list summary의 `has_thumbnail=false` 로 sanitize 결과를 확인할 수 있다
   - 응답: `SnapshotRecord` (thumbnail 포함)
 - `GET /workspaces/{workspace_id}/snapshots/{snapshot_id}`
   - 응답: `SnapshotRecord` (thumbnail 포함)
