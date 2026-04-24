@@ -35,7 +35,7 @@
 
 ## 설계 원칙
 - 브라우저 기반 웹앱으로 제공해 설치 부담을 줄인다
-- 회사별 workspace를 분리해 consultant 재사용성을 확보한다
+- 회사별 workspace를 분리하되, 현재는 single-user deployment 안에서 Azure scope와 저장 데이터를 나누는 프로젝트 단위로 취급한다
 - Azure 자동 수집과 수동 보강을 함께 지원한다
 - core 기능은 LLM 없이도 동작해야 한다
 - 비용 분석과 시뮬레이션은 독립 엔진으로 분리한다
