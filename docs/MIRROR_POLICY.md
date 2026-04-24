@@ -26,7 +26,10 @@
 |---|---|---|---|---|
 | `README.md` | workspace-only | Workspace mirror entrypoint and local operating note; not canonical project documentation. | NOVA | 2026-05-01 |
 
+## Tooling
+- `scripts/check_doc_mirror.sh` is visibility-only. It prints repo/workspace doc drift and always exits 0.
+- Expected one-side-only entries must still be recorded under `## Deferred Drift`.
+
 ## Future, not in current slice
-- Visibility-only mirror diff script.
 - Lightweight manifest if repeated drift remains painful.
 - Optional pre-closeout checklist hook; no CI gate until the workflow stabilizes.
