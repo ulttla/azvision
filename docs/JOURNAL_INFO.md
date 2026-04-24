@@ -15,3 +15,13 @@
 
 ## 임시 업데이트 파일 예시
 - `/Users/gun/.openclaw/workspace/tmp/azvision_journal_update_YYYYMMDD.md`
+
+## Docs mirror reconcile log
+| Date | File | Direction | Rationale |
+|---|---|---|---|
+| 2026-04-24 | `ARCHITECTURE_VIEW_MVP_PLAN.md` | repo → workspace | repo canonical plan existed, workspace cache missing |
+| 2026-04-24 | `AZURE_READ_TEST_RUNBOOK.md` | repo → workspace | repo had newer live read-test and topology probe notes |
+| 2026-04-24 | `PHASE1A_BUILD_CHECKLIST.md` | repo → workspace | repo had newer Phase 1A completion and live verification state |
+| 2026-04-24 | `PHASE1B_SERVER_SNAPSHOT_PLAN.md` | already aligned | repo and workspace are byte-identical after current snapshot guard commits |
+| 2026-04-24 | `SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` | already aligned | repo and workspace are byte-identical after current snapshot guard commits |
+| 2026-04-24 | `MIRROR_POLICY.md` | repo → workspace | canonical mirror operating rule added to prevent future direction drift |
