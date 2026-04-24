@@ -1,7 +1,8 @@
 # AzVision MVP Scope
 
-> **freeze 선언:** 이번 구현 범위 고정은 **Phase 1A only** 기준이다.
-> Phase 1B / Phase 2 / Phase 3 기능은 구현하지 않는다.
+> **현재 제품 기준선:** single-user first.
+> 현재 구현은 Phase 1B server-backed snapshot/history usable baseline까지 반영됐지만, productization 기능은 아직 범위가 아니다.
+> user login / multi-user / permission model / language toggle은 보류한다.
 > 각 Phase의 세부 범위는 `PRODUCT_VISION.md`를 참조한다.
 
 ## Phase 1A: Core Discovery MVP (현재 freeze 대상)
@@ -24,6 +25,9 @@
 - 비용 분석 (Phase 2)
 - what-if 시뮬레이션 (Phase 3)
 - AI copilot (Phase 3)
+- user login / account 관리
+- multi-user collaboration / permission model
+- language toggle / i18n
 - 자동 remediation
 - write 작업 (Azure 리소스 수정)
 
@@ -41,6 +45,8 @@
 - 정교한 비용 최적화 추천
 - LLM 기반 분석
 - 다중 사용자 협업 편집
+- user login / permission model
+- language toggle / i18n
 
 ## Phase 2: Cost Intelligence
 ### In scope
@@ -70,4 +76,4 @@
 - topology graph가 실제 Azure 데이터로 렌더링됨
 - manual node / edge 추가 가능
 - PNG export 가능
-- workspace 분리 구조가 유지됨
+- workspace 분리 구조가 유지됨. 단, 이는 현재 single-user deployment 안의 프로젝트/scope 분리이며 계정/권한 경계가 아니다.

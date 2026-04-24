@@ -4,6 +4,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 
 ## 현재 상태
 - 현재 active 기준은 **Phase 1B server-backed snapshot/history + history foundation H1/H2 usable baseline 완료**
+- 제품 기준선은 **single-user first** 이다. 현재 `workspace`는 한 사용자/한 배포 안에서 Azure scope와 저장 데이터를 구분하는 프로젝트 단위이며, user login / multi-user / permission model / language toggle은 productization 단계로 보류한다.
 - backend
   - SQLite `manual_nodes` / `manual_edges` 기반 DB-backed CRUD 구현 완료
   - topology 응답에 manual node/edge merge 반영 완료

@@ -3,6 +3,7 @@
 ## 설계 원칙
 - 자동 수집 데이터와 수동 입력 데이터를 분리하되, 화면에서는 하나의 graph로 합친다
 - 모든 데이터는 workspace 단위로 분리한다
+- 현재 workspace는 single-user deployment 안의 프로젝트/scope 분리 단위이며, user/account/permission boundary가 아니다
 - 관계는 source와 confidence를 가진다
 - 그래프 node는 `node_type` + `node_ref`로 식별한다
 
@@ -207,5 +208,5 @@
 ## 이후 확장 포인트
 - historical snapshot timeline
 - diff between scans
-- multi-tenant isolation
-- role-based access control
+- multi-tenant isolation (productization 단계 보류)
+- role-based access control (productization 단계 보류)

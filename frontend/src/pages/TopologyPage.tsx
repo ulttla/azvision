@@ -2144,7 +2144,7 @@ export function TopologyPage() {
       <header className="hero-card">
         <div>
           <p className="eyebrow">AzVision</p>
-          <h1>Phase 1A Readability + MI Collapse</h1>
+          <h1>Azure topology explorer</h1>
           <p className="subtext">{UI_TEXT.heroSubtext}</p>
         </div>
         <div className={`status-pill ${authReady ? 'ready' : 'pending'}`}>
@@ -2823,7 +2823,7 @@ export function TopologyPage() {
           </div>
 
           <div className="storage-guide-card preset-guide-card">
-            <strong>Phase 1A manual overlay</strong>
+            <strong>Manual topology overlay</strong>
             <p className="hint">
               Add external systems or consultant annotations, then connect them to Azure nodes with manual edges.
             </p>

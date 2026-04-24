@@ -1,7 +1,7 @@
 # AzVision Product Vision
 
 ## 한 줄 정의
-`AzVision`은 회사 Azure와 연계 hybrid 환경을 자동 수집하고, 수동 보강과 비용 분석, 시뮬레이션, export를 제공하는 아키텍트용 웹 플랫폼이다.
+`AzVision`은 회사 Azure와 연계 hybrid 환경을 자동 수집하고, 수동 보강과 비용 분석, 시뮬레이션, export를 제공하는 single-user-first 아키텍트용 웹앱이다.
 
 ## 문제 정의
 Azure 환경이 커질수록 다음이 어려워진다.
@@ -47,11 +47,13 @@ Azure 환경이 커질수록 다음이 어려워진다.
 - 회사가 바뀌어도 다시 쓸 수 있는 이식성
 
 ## 제품 원칙
+- single-user first로 만든다.
 - 웹앱으로 제공해 설치 부담을 줄인다
 - core 기능은 LLM 없이 동작한다
 - 사용자가 필요한 경우에만 LLM API key를 넣는다
-- 회사별 workspace를 분리한다
+- 회사별 workspace를 분리하되, 현재 workspace는 계정/권한 경계가 아니라 한 사용자/한 배포 안의 프로젝트 단위로 취급한다.
 - manual annotation은 graph의 1급 데이터로 다룬다
+- user login, multi-user collaboration, permission model, language toggle은 productization 단계로 보류한다.
 
 ## 성공 기준 (제품 최종 목표)
 > 아래는 제품 출시 후 달성할 최종 목표들이며, 각 Phase별 성공 기준은 `MVP_SCOPE.md`를 참조한다.
