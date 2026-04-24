@@ -7,6 +7,9 @@ import { SNAPSHOT_THUMBNAIL_MAX_LENGTH, UI_TEXT } from '../frontend/src/pages/to
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const backendSnapshotSchema = readFileSync(path.join(repoRoot, 'backend/app/schemas/snapshots.py'), 'utf8')
 const apiContractDoc = readFileSync(path.join(repoRoot, 'docs/API_CONTRACT.md'), 'utf8')
+const phase1bPlanDoc = readFileSync(path.join(repoRoot, 'docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md'), 'utf8')
+const historyPlanDoc = readFileSync(path.join(repoRoot, 'docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md'), 'utf8')
+const readmeDoc = readFileSync(path.join(repoRoot, 'README.md'), 'utf8')
 const topologyPage = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
 
 assert.equal(
@@ -55,6 +58,24 @@ assert.match(
   topologyPage,
   /snapshotStorageMode\s*===\s*'local'\s*&&\s*estimateSerializedBytes\(nextSnapshots\)\s*>=\s*SNAPSHOT_STORAGE_WARN_BYTES\s*&&\s*nextSnapshot\.thumbnailDataUrl/s,
   'browser storage pressure should only drop snapshot thumbnails before save in local mode',
+)
+
+assert.match(
+  readmeDoc,
+  /browser storage pressure 기반 pre-save thumbnail drop은 이제 local mode에만 적용/i,
+  'README should state that browser storage pressure only strips thumbnails before save in local mode',
+)
+
+assert.match(
+  phase1bPlanDoc,
+  /browser storage pressure 기반 pre-save thumbnail drop은 local mode에만 남기고, server mode는 thumbnail을 backend guard\/validation까지 전달/i,
+  'Phase 1B plan should keep the local-only pre-save thumbnail ownership note',
+)
+
+assert.match(
+  historyPlanDoc,
+  /local-only pre-save sanitize \+ server-side blank thumbnail 커버/i,
+  'history plan should keep the local-only pre-save sanitize baseline wording',
 )
 
 assert.match(
