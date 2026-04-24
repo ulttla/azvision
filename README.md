@@ -45,7 +45,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
-  - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 docs/ops mirror 정리 여부 판단
+  - 다음 권장 순서: visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke를 회귀 경로로 유지하고, 추가 UX polish 범위를 최소 단위로만 검토
   - current same-line UX baseline: save 이후 warning surface(local/browser sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + guard copy/threshold/API contract alignment smoke
 
 ## 운영 메모
@@ -121,4 +121,4 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
-- 다음 권장 순서: thumbnail 장기 저장 전략 검토 → error/snapshot smoke 유지 → 필요 시 Phase 2(Cost) 진입 판단
+- 다음 권장 순서: visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke 유지 → thumbnail 장기 저장 전략 검토 → 필요 시 Phase 2(Cost) 진입 판단
