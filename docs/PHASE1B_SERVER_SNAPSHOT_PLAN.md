@@ -36,7 +36,7 @@
 - **2026-04-22 same-line UX follow-up**
   - snapshot guide에 현재 storage mode 기준 guard hint를 추가해 server validation/guard checks와 local guard checks/browser storage pressure 때문에 thumbnail preview가 빠질 수 있음을 저장 전에 미리 안내
   - browser storage pressure 기반 pre-save thumbnail drop은 local mode에만 남기고, server mode는 thumbnail을 backend guard/validation까지 전달하도록 정렬
-  - 기존 save-after warning surface(local/browser sanitize + server-side blank thumbnail 커버)와 함께 pre-save expectation setting까지 맞춰 current guard contract의 UX drift를 좁힘
+  - 기존 save-after warning surface(local-only pre-save sanitize + server-side blank thumbnail 커버)와 함께 pre-save expectation setting까지 맞춰 current guard contract의 UX drift를 좁힘
   - server save-after warning copy도 `server validation or thumbnail guard checks` 기준으로 정렬했고, `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 guide/warning copy drift뿐 아니라 shared thumbnail max-length와 API contract sanitize wording까지 빠르게 smoke 가능하게 정리
 
 ## Phase 1B 목표
