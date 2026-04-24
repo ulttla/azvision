@@ -22,6 +22,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `Saved Snapshots` 패널에 client-side sort field / sort order control(`Last Restored`, `Captured`, `Updated`; newest/oldest) 반영 완료, `Recent` tab은 고정 recent semantics 유지를 위해 control 숨김
   - snapshot card는 local/server source badge, storage meta, `Updated`, `Archived` 메타를 함께 노출해 capture/restore/update 상태 구분을 더 명확히 표시함
   - snapshot guide는 현재 storage mode 기준으로 thumbnail guard 동작(server validation/guard checks, local guard checks/browser storage pressure)을 인라인 hint로 미리 안내함
+  - browser storage pressure 기반 pre-save thumbnail drop은 이제 local mode에만 적용되고, server mode는 thumbnail을 backend guard/validation까지 그대로 전달함
   - server save-after warning copy도 `server validation or thumbnail guard checks` 기준으로 정렬해 guide와 실제 warning 문구 drift를 줄임
   - `fetchJson`이 non-2xx JSON body의 `message`를 `ApiError`로 surface 하도록 정리됨
   - `tsc --noEmit`, `vite build` 통과
@@ -47,7 +48,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
   - 다음 권장 순서: visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke를 회귀 경로로 유지하고, 추가 UX polish 범위를 최소 단위로만 검토
-  - current same-line UX baseline: save 이후 warning surface(local/browser sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + guard copy/threshold/API contract alignment smoke
+  - current same-line UX baseline: save 이후 warning surface(local-only pre-save sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + guard copy/threshold/API contract alignment smoke
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`

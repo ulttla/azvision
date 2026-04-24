@@ -262,7 +262,7 @@ SnapshotRecord {
 
 ## 권장 다음 순서
 1. `scripts/snapshot_sort_visual_smoke.mjs` 기준 visual smoke를 회귀 경로로 유지하고, `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 및 `scripts/snapshot_payload_smoke.sh` 로 guide/warning copy, shared max-length, API contract sanitize wording, invalid/oversized thumbnail sanitize 경로를 함께 점검하면서 추가 snapshot UX polish 범위를 최소 단위로만 검토
-2. current baseline은 save-after warning surface(local/browser sanitize + server-side blank thumbnail 커버) + pre-save storage-mode guard hint + guard copy/threshold/API contract alignment smoke + payload sanitize smoke 조합으로 유지하면서 thumbnail guard contract UX drift를 더 좁게 점검
+2. current baseline은 save-after warning surface(local-only pre-save sanitize + server-side blank thumbnail 커버) + pre-save storage-mode guard hint + guard copy/threshold/API contract alignment smoke + payload sanitize smoke 조합으로 유지하면서 thumbnail guard contract UX drift를 더 좁게 점검
 3. thumbnail 장기 저장 전략(object storage / size guard) 재검토
 4. history 범위를 revision system으로 넓히지 않고 working set 중심으로 유지할 운영 기준 고정
 
