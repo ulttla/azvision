@@ -1487,7 +1487,11 @@ export function TopologyPage() {
 
     let savedWithoutThumbnail = false
     let nextSnapshots = [nextSnapshot, ...savedSnapshots]
-    if (estimateSerializedBytes(nextSnapshots) >= SNAPSHOT_STORAGE_WARN_BYTES && nextSnapshot.thumbnailDataUrl) {
+    if (
+      snapshotStorageMode === 'local' &&
+      estimateSerializedBytes(nextSnapshots) >= SNAPSHOT_STORAGE_WARN_BYTES &&
+      nextSnapshot.thumbnailDataUrl
+    ) {
       savedWithoutThumbnail = true
       nextSnapshot = {
         ...nextSnapshot,

@@ -7,6 +7,7 @@ import { SNAPSHOT_THUMBNAIL_MAX_LENGTH, UI_TEXT } from '../frontend/src/pages/to
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const backendSnapshotSchema = readFileSync(path.join(repoRoot, 'backend/app/schemas/snapshots.py'), 'utf8')
 const apiContractDoc = readFileSync(path.join(repoRoot, 'docs/API_CONTRACT.md'), 'utf8')
+const topologyPage = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
 
 assert.equal(
   SNAPSHOT_THUMBNAIL_MAX_LENGTH,
@@ -48,6 +49,12 @@ assert.match(
   UI_TEXT.snapshotLocalGuardHint,
   /thumbnail guard checks or browser storage limits/i,
   'local pre-save guard hint should mention both guard checks and browser storage limits',
+)
+
+assert.match(
+  topologyPage,
+  /snapshotStorageMode\s*===\s*'local'\s*&&\s*estimateSerializedBytes\(nextSnapshots\)\s*>=\s*SNAPSHOT_STORAGE_WARN_BYTES\s*&&\s*nextSnapshot\.thumbnailDataUrl/s,
+  'browser storage pressure should only drop snapshot thumbnails before save in local mode',
 )
 
 assert.match(
