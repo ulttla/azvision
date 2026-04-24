@@ -41,12 +41,12 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline + `Saved Snapshots` sort UX visual smoke 반영 기준으로 최신화 완료
   - `scripts/snapshot_payload_smoke.sh` 로 snapshot list/detail payload 분리(summary list, detail thumbnail 포함)와 invalid/oversized thumbnail sanitize 경로 smoke 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
-  - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide와 save-after warning copy가 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
+  - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
   - 다음 권장 순서: thumbnail 장기 저장 전략(object storage/size guard) 재검토 또는 docs/ops mirror 정리 여부 판단
-  - current same-line UX baseline: save 이후 warning surface(local/browser sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + server warning copy alignment smoke
+  - current same-line UX baseline: save 이후 warning surface(local/browser sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + guard copy/threshold/API contract alignment smoke
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
