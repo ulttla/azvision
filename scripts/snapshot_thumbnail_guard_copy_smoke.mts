@@ -55,6 +55,12 @@ assert.match(
 )
 
 assert.match(
+  UI_TEXT.snapshotLocalThumbnailRejectedWarning,
+  /thumbnail guard checks.*before save/i,
+  'local save-time warning should stay aligned with the documented pre-save thumbnail guard contract',
+)
+
+assert.match(
   topologyPage,
   /snapshotStorageMode\s*===\s*'local'\s*&&\s*estimateSerializedBytes\(nextSnapshots\)\s*>=\s*SNAPSHOT_STORAGE_WARN_BYTES\s*&&\s*nextSnapshot\.thumbnailDataUrl/s,
   'browser storage pressure should only drop snapshot thumbnails before save in local mode',
