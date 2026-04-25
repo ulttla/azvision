@@ -132,7 +132,7 @@ export const UI_TEXT = {
   snapshotGuideTitle: 'Best for annotated point-in-time view setup',
   snapshotGuideBody: 'Use snapshots when you want notes, thumbnail preview, and saved counts for a specific topology view.',
   snapshotServerGuardHint:
-    'Server mode may save the snapshot without a thumbnail if validation or thumbnail guard checks remove the preview before save. The snapshot itself still saves.',
+    'Server mode may save the snapshot without a thumbnail if server validation or thumbnail guard checks remove the preview during save. The snapshot itself still saves.',
   snapshotLocalGuardHint:
     'Browser-local mode may save the snapshot without a thumbnail if thumbnail guard checks or browser storage limits remove the preview before save. The snapshot itself still saves.',
   snapshotRestoreNotice: 'View state restored. Live topology data will refresh from the current workspace.',
@@ -142,7 +142,7 @@ export const UI_TEXT = {
   archiveSnapshot: 'Archive',
   unarchiveSnapshot: 'Unarchive',
   snapshotServerThumbnailRejectedWarning:
-    'Server snapshot saved without thumbnail because server validation or thumbnail guard checks removed the preview before save.',
+    'Server snapshot saved without thumbnail because server validation or thumbnail guard checks removed the preview during save.',
   snapshotLocalThumbnailRejectedWarning:
     'Browser-local snapshot saved without thumbnail because thumbnail guard checks removed the preview before save.',
   snapshotSavedWithoutThumbnailSuffix: 'Saved without thumbnail to stay within browser storage limits',

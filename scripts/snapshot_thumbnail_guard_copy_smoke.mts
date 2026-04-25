@@ -38,13 +38,13 @@ assert.match(
 
 assert.match(
   UI_TEXT.snapshotServerGuardHint,
-  /validation or thumbnail guard checks/i,
-  'server pre-save guard hint should mention validation and thumbnail guard checks',
+  /server validation or thumbnail guard checks.*during save/i,
+  'server guard hint should place server-mode thumbnail removal during save',
 )
 
 assert.match(
   UI_TEXT.snapshotServerThumbnailRejectedWarning,
-  /server validation or thumbnail guard checks/i,
+  /server validation or thumbnail guard checks.*during save/i,
   'server save-time warning should stay aligned with the documented validation/guard contract',
 )
 
