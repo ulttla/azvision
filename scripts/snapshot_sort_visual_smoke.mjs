@@ -219,6 +219,11 @@ async function main() {
   }
   const apiData = await apiResponse.json()
   const snapshots = apiData.items || []
+  if (!snapshots.length) {
+    throw new Error(
+      'Snapshot sort visual smoke requires at least one existing snapshot. Seed snapshots first, for example with snapshot_sort_api_smoke.sh against the same backend.',
+    )
+  }
   const nonArchived = snapshots.filter((snapshot) => !snapshot.archived_at)
   const expectedDefaultAll = orderSavedSnapshots(snapshots, 'last_restored_at', 'desc').filter(
     (snapshot) => !snapshot.archived_at,
