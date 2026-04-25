@@ -195,6 +195,24 @@ class TestSnapshotServiceList:
         )
         assert [r.id for r in results[:2]] == [older.id, newer.id]
 
+    def test_sort_by_updated_at_desc_orders_newest_update_first(self, snapshot_service: SnapshotService):
+        older_update = snapshot_service.create_snapshot(
+            WORKSPACE,
+            _make_create_request(name="Older update", captured_at="2026-04-20T10:00:00+00:00"),
+        )
+        newer_update = snapshot_service.create_snapshot(
+            WORKSPACE,
+            _make_create_request(name="Newer update", captured_at="2026-04-20T10:00:00+00:00"),
+        )
+        snapshot_service.update_snapshot(WORKSPACE, newer_update.id, SnapshotUpdateRequest(note="updated"))
+
+        from app.schemas.snapshots import SnapshotListQuery
+        results = snapshot_service.list_snapshots(
+            WORKSPACE,
+            SnapshotListQuery(sort_by="updated_at", sort_order="desc", pinned_first=False),
+        )
+        assert [r.id for r in results[:2]] == [newer_update.id, older_update.id]
+
     def test_sort_by_last_restored_at_desc_prefers_restored_and_pushes_never_restored_last(
         self,
         snapshot_service: SnapshotService,
