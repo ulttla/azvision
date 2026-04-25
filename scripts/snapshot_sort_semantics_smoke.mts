@@ -81,6 +81,12 @@ assert.deepEqual(
 )
 
 assert.deepEqual(
+  orderSavedSnapshots(snapshots, 'updated_at', 'desc').map((snapshot) => snapshot.name),
+  ['Charlie', 'Bravo', 'Alpha', 'Delta'],
+  'saved updated_at order should keep pinned first, then newest updated, then archived last',
+)
+
+assert.deepEqual(
   getDisplayedSnapshots(snapshots, 'recent', 'captured_at', 'asc', 8).map((snapshot) => snapshot.name),
   ['Alpha', 'Bravo', 'Charlie'],
   'recent tab should ignore saved custom sort and use restore/capture recency only',
