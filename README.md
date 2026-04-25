@@ -119,7 +119,7 @@ npm run dev
 - snapshot sort semantics 점검은 `node --experimental-strip-types scripts/snapshot_sort_semantics_smoke.mts` 로 `Saved` custom sort와 `Recent` fixed semantics를 빠르게 smoke 가능
 - snapshot sort visual smoke는 `node scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI 순서와 `Recent` tab sort-control 숨김까지 확인 가능
 - docs mirror drift 점검은 `bash scripts/check_doc_mirror.sh` 로 수행하며, 예상된 one-side-only 항목은 `docs/MIRROR_POLICY.md` 의 Deferred Drift에 기록한다
-- backend list query semantics 점검은 `bash scripts/snapshot_sort_api_smoke.sh` 로 `captured_at` / `last_restored_at` / `pinned_first` / `include_archived` 조합을 live API 기준으로 smoke 가능
+- backend list query semantics 점검은 `bash scripts/snapshot_sort_api_smoke.sh` 로 `captured_at` / `last_restored_at` / `updated_at` / `pinned_first` / `include_archived` 조합을 live API 기준으로 smoke 가능
 - `GET /api/v1/workspaces/{workspace_id}/subscriptions`
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
 - `GET /api/v1/workspaces/{workspace_id}/resources`
