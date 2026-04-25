@@ -231,6 +231,9 @@ async function main() {
   const expectedCapturedAsc = orderSavedSnapshots(snapshots, 'captured_at', 'asc').filter(
     (snapshot) => !snapshot.archived_at,
   )
+  const expectedUpdatedAsc = orderSavedSnapshots(snapshots, 'updated_at', 'asc').filter(
+    (snapshot) => !snapshot.archived_at,
+  )
   const expectedRecent = getRecentSnapshots(nonArchived)
 
   const userDataDir = path.join(os.tmpdir(), `azvision-sort-visual-smoke-profile-${Date.now()}`)
@@ -305,6 +308,12 @@ async function main() {
     assertNameOrder('captured asc', capturedAscCards, expectedCapturedAsc)
     await captureScreenshot(client, path.join(OUT_DIR, 'saved-captured-asc.png'))
 
+    await setSelectValue(client, '.snapshot-sort-select', 'updated_at')
+    await sleep(400)
+    const updatedAscCards = await readUiCards(client)
+    assertNameOrder('updated asc', updatedAscCards, expectedUpdatedAsc)
+    await captureScreenshot(client, path.join(OUT_DIR, 'saved-updated-asc.png'))
+
     await clickExpression(
       client,
       `(() => {
@@ -346,10 +355,12 @@ async function main() {
       },
       defaultAll: nameList(defaultCards),
       capturedAsc: nameList(capturedAscCards),
+      updatedAsc: nameList(updatedAscCards),
       recent: nameList(recentCards),
       screenshots: {
         savedDefault: path.join(OUT_DIR, 'saved-default.png'),
         savedCapturedAsc: path.join(OUT_DIR, 'saved-captured-asc.png'),
+        savedUpdatedAsc: path.join(OUT_DIR, 'saved-updated-asc.png'),
         recent: path.join(OUT_DIR, 'recent.png'),
       },
     }
