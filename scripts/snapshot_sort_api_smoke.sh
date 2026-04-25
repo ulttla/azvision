@@ -188,6 +188,26 @@ assert names[:4] == expected, f"last_restored desc order mismatch: {names[:4]} !
 print(f"[last_restored_at desc] {names[:4]}")
 PY
 
+updated_http_code="$(curl -sS -o "$TMP_DIR/list_updated_asc.json" -w '%{http_code}' \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots?sort_by=updated_at&sort_order=asc&pinned_first=false&include_archived=true")"
+
+python3 - "$TMP_DIR/list_updated_asc.json" "$updated_http_code" "$TIMESTAMP" <<'PY'
+import json, sys
+body_file, http_code, stamp = sys.argv[1:4]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"updated_at asc: expected HTTP 200, got {http_code}"
+names = [item['name'] for item in payload.get('items', []) if f'Sort smoke {stamp}' in item.get('name', '')]
+expected = [
+    f'Sort smoke {stamp} older',
+    f'Sort smoke {stamp} restored',
+    f'Sort smoke {stamp} pinned',
+    f'Sort smoke {stamp} archived',
+]
+assert names[:4] == expected, f"updated_at asc order mismatch: {names[:4]} != {expected}"
+print(f"[updated_at asc] {names[:4]}")
+PY
+
 pinned_http_code="$(curl -sS -o "$TMP_DIR/list_pinned_first.json" -w '%{http_code}' \
   "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots?sort_by=last_restored_at&sort_order=desc&pinned_first=true&include_archived=true")"
 
@@ -220,6 +240,26 @@ expected = [
 ]
 assert names[:3] == expected, f"active only order mismatch: {names[:3]} != {expected}"
 print(f"[include_archived=false] {names[:3]}")
+PY
+
+active_pinned_http_code="$(curl -sS -o "$TMP_DIR/list_active_pinned_first.json" -w '%{http_code}' \
+  "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots?include_archived=false&pinned_first=true&sort_by=captured_at&sort_order=asc")"
+
+python3 - "$TMP_DIR/list_active_pinned_first.json" "$active_pinned_http_code" "$TIMESTAMP" <<'PY'
+import json, sys
+body_file, http_code, stamp = sys.argv[1:4]
+with open(body_file, 'r', encoding='utf-8') as f:
+    payload = json.load(f)
+assert int(http_code) == 200, f"active pinned first: expected HTTP 200, got {http_code}"
+names = [item['name'] for item in payload.get('items', []) if f'Sort smoke {stamp}' in item.get('name', '')]
+assert f'Sort smoke {stamp} archived' not in names, f"include_archived=false still returned archived item: {names}"
+expected = [
+    f'Sort smoke {stamp} pinned',
+    f'Sort smoke {stamp} older',
+    f'Sort smoke {stamp} restored',
+]
+assert names[:3] == expected, f"active pinned-first order mismatch: {names[:3]} != {expected}"
+print(f"[include_archived=false + pinned_first] {names[:3]}")
 PY
 
 echo
