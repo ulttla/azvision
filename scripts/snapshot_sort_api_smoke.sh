@@ -20,7 +20,11 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 cleanup() {
-  for snapshot_id in "${SNAPSHOT_IDS[@]:-}"; do
+  if [ "${#SNAPSHOT_IDS[@]}" -eq 0 ]; then
+    return
+  fi
+
+  for snapshot_id in "${SNAPSHOT_IDS[@]}"; do
     if [ -n "$snapshot_id" ]; then
       curl -sS -X DELETE "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots/$snapshot_id" >/dev/null || true
     fi
@@ -56,14 +60,17 @@ create_snapshot() {
 JSON
 
   local http_code
-  http_code="$(curl -sS -o "$response_path" -w '%{http_code}' \
+  if ! http_code="$(curl -sS -o "$response_path" -w '%{http_code}' \
     -X POST \
     -H 'Content-Type: application/json' \
     --data @"$payload_path" \
-    "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots")"
+    "$BASE_URL/workspaces/$WORKSPACE_ID/snapshots")"; then
+    echo "create: request failed for $key" >&2
+    return 1
+  fi
 
   local snapshot_id
-  snapshot_id="$(python3 - "$response_path" "$http_code" "$name" <<'PY'
+  if ! snapshot_id="$(python3 - "$response_path" "$http_code" "$name" <<'PY'
 import json, sys
 body_file, http_code, expected_name = sys.argv[1:4]
 with open(body_file, 'r', encoding='utf-8') as f:
@@ -73,9 +80,11 @@ assert payload.get('name') == expected_name, f"create: expected name {expected_n
 assert payload.get('id'), 'create: missing snapshot id'
 print(payload['id'])
 PY
-)"
+)"; then
+    echo "create: response validation failed for $key" >&2
+    return 1
+  fi
 
-  SNAPSHOT_IDS+=("$snapshot_id")
   echo "$snapshot_id"
 }
 
@@ -127,9 +136,13 @@ echo "BASE_URL=$BASE_URL"
 echo "WORKSPACE_ID=$WORKSPACE_ID"
 
 a_id="$(create_snapshot older '2026-04-21T10:00:00Z')"
+SNAPSHOT_IDS+=("$a_id")
 b_id="$(create_snapshot restored '2026-04-21T10:05:00Z')"
+SNAPSHOT_IDS+=("$b_id")
 c_id="$(create_snapshot pinned '2026-04-21T10:10:00Z')"
+SNAPSHOT_IDS+=("$c_id")
 d_id="$(create_snapshot archived '2026-04-21T10:15:00Z')"
+SNAPSHOT_IDS+=("$d_id")
 
 post_restore_event "$b_id"
 patch_snapshot "$c_id" '{"is_pinned": true}' "patch_pinned"
