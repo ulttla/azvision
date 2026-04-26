@@ -110,8 +110,12 @@
 - `GET /workspaces/{workspace_id}/simulations`
 - `GET /workspaces/{workspace_id}/simulations/{simulation_id}`
 
-### Copilot (Phase 3)
+### Copilot (Phase 3 first-pass implemented)
 - `POST /workspaces/{workspace_id}/chat`
+  - request: `message`
+  - query: `subscription_id`, `resource_group_name`, `resource_group_limit`, `resource_limit`
+  - 응답: `ok`, `workspace_id`, `mode`(inventory mode), `copilot_mode`, `llm_status`, `answer`, `suggestions[]`, `context`
+  - 현재는 `llm_status=not_configured` 인 rule-based copilot first pass이며, 외부 LLM provider/BYOK 연결은 아직 미구현
 
 ## Response shape principles
 - 모든 핵심 목록 응답은 `ok`, `workspace_id`, `items` 배열을 기본으로 포함한다
