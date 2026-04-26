@@ -105,9 +105,13 @@
   - 응답: rule-based recommendation `items[]` with `rule_id`, `category`, `severity`, `resource_id`, `title`, `recommendation`, `evidence`, `confidence`
   - 현재는 Azure Cost Management 금액 수집이 아니라 topology/inventory 기반 triage recommendation이다
 
-### Simulation (Phase 3)
+### Simulation (Phase 3 first-pass implemented)
 - `POST /workspaces/{workspace_id}/simulations`
+  - request: `workload_name`, `environment`, `description` 또는 `message`
+  - 응답: `ok`, `workspace_id`, `simulation_id`, `status=generated`, `mode=rule-based`, `recommended_resources[]`, `assumptions[]`
+  - 현재는 in-process store 기반 first pass이며 DB persistence/deployment template/pricing calculation은 아직 미구현
 - `GET /workspaces/{workspace_id}/simulations`
+  - 현재 process lifetime 안에서 생성된 simulation 목록 반환
 - `GET /workspaces/{workspace_id}/simulations/{simulation_id}`
 
 ### Copilot (Phase 3 first-pass implemented)

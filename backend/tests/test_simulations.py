@@ -1,0 +1,56 @@
+from __future__ import annotations
+
+from fastapi.testclient import TestClient
+
+from app.services.simulation import build_simulation
+
+WORKSPACE = "ws-simulation-test"
+
+
+def test_build_simulation_recommends_resources_from_description() -> None:
+    simulation = build_simulation(
+        {
+            "workload_name": "portal",
+            "environment": "prod",
+            "description": "private web app with SQL database and DR backup",
+        }
+    )
+    resource_types = {item["resource_type"] for item in simulation["recommended_resources"]}
+
+    assert "Microsoft.Web/sites" in resource_types
+    assert "Microsoft.Sql/servers/databases" in resource_types
+    assert "Microsoft.Network/virtualNetworks" in resource_types
+    assert "Microsoft.RecoveryServices/vaults" in resource_types
+    assert simulation["mode"] == "rule-based"
+
+
+def test_simulation_routes_create_list_and_get(client: TestClient) -> None:
+    create_response = client.post(
+        f"/api/v1/workspaces/{WORKSPACE}/simulations",
+        json={
+            "workload_name": "analytics",
+            "environment": "dev",
+            "description": "analytics reporting app with private network",
+        },
+    )
+
+    assert create_response.status_code == 200
+    created = create_response.json()
+    assert created["ok"] is True
+    assert created["simulation_id"].startswith("sim_")
+    assert created["recommended_resources"]
+
+    list_response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations")
+    assert list_response.status_code == 200
+    assert list_response.json()["items"][0]["simulation_id"] == created["simulation_id"]
+
+    get_response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/{created['simulation_id']}")
+    assert get_response.status_code == 200
+    assert get_response.json()["simulation_id"] == created["simulation_id"]
+
+
+def test_unknown_simulation_returns_404_envelope(client: TestClient) -> None:
+    response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/nope")
+
+    assert response.status_code == 404
+    assert response.json()["ok"] is False
