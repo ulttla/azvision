@@ -11,6 +11,7 @@ from app.services.cost_analysis import (
     build_cost_resource_rows,
     build_cost_summary,
 )
+from app.services.cost_ingestion import get_default_cost_ingestion_provider
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/cost", tags=["cost"])
 
@@ -58,9 +59,10 @@ def get_cost_summary(
         resource_limit=resource_limit,
     )
     recommendations = build_cost_recommendations(resources)
+    cost_snapshot = get_default_cost_ingestion_provider().get_cost_snapshot(resources)
     return {
         **_cost_payload_base(workspace_id, resolution),
-        "summary": build_cost_summary(resources, recommendations),
+        "summary": build_cost_summary(resources, recommendations, cost_snapshot),
     }
 
 

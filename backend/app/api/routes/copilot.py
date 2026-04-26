@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query
 
 from app.collectors.azure_inventory import resolve_inventory_collection
 from app.core.config import get_settings
-from app.services.copilot import build_rule_based_copilot_answer
+from app.services.copilot import get_default_copilot_provider
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/chat", tags=["copilot"])
 
@@ -28,7 +28,7 @@ def post_copilot_message(
         resource_group_limit=resource_group_limit,
         resource_limit=resource_limit,
     )
-    answer = build_rule_based_copilot_answer(message, resolution.collection.resources)
+    answer = get_default_copilot_provider().answer(message, resolution.collection.resources)
     response: dict[str, Any] = {
         "ok": True,
         "workspace_id": workspace_id,

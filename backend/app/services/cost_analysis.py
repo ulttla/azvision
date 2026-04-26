@@ -200,7 +200,11 @@ def build_cost_resource_rows(resources: list[dict[str, Any]], recommendations: l
     ]
 
 
-def build_cost_summary(resources: list[dict[str, Any]], recommendations: list[dict[str, Any]]) -> dict[str, Any]:
+def build_cost_summary(
+    resources: list[dict[str, Any]],
+    recommendations: list[dict[str, Any]],
+    cost_snapshot: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     severity_counts = Counter(str(item.get("severity") or "unknown") for item in recommendations)
     category_counts = Counter(str(item.get("category") or "unknown") for item in recommendations)
     resource_type_counts = Counter(str(resource.get("type") or "unknown") for resource in resources)
@@ -211,11 +215,17 @@ def build_cost_summary(resources: list[dict[str, Any]], recommendations: list[di
     )
     governance_gap_count = len([resource for resource in resources if _resource_id(resource) and not _has_cost_relevant_tag(resource)])
 
+    snapshot = cost_snapshot or {}
+
     return {
-        "currency": None,
-        "estimated_monthly_cost": None,
-        "cost_status": "unknown-cost-data",
+        "currency": snapshot.get("currency"),
+        "estimated_monthly_cost": snapshot.get("estimated_monthly_cost"),
+        "cost_status": snapshot.get("cost_status") or "unknown-cost-data",
         "source": "rule-based-resource-inventory",
+        "cost_source": snapshot.get("cost_source") or "not_configured",
+        "cost_ingestion_provider": snapshot.get("cost_ingestion_provider") or "noop",
+        "cost_ingestion_configured": bool(snapshot.get("cost_ingestion_configured")),
+        "matched_cost_resource_count": int(snapshot.get("matched_resource_count") or 0),
         "resource_count": len(resources),
         "analyzed_resource_count": len([resource for resource in resources if _resource_id(resource)]),
         "recommendation_count": len(recommendations),

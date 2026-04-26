@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any
+from typing import Any, Protocol
 
 from app.services.cost_analysis import build_cost_recommendations
+
+
+class CopilotProvider(Protocol):
+    provider_name: str
+
+    def answer(self, message: str, resources: list[dict[str, Any]]) -> dict[str, Any]:
+        """Return a normalized copilot answer payload."""
 
 
 def _resource_type(resource: dict[str, Any]) -> str:
@@ -75,6 +82,7 @@ def build_rule_based_copilot_answer(message: str, resources: list[dict[str, Any]
 
     return {
         "copilot_mode": "rule-based",
+        "provider": "rule-based",
         "llm_status": "not_configured",
         "answer": "\n".join(answer_lines),
         "suggestions": suggestions[:8],
@@ -84,3 +92,14 @@ def build_rule_based_copilot_answer(message: str, resources: list[dict[str, Any]
             "top_resource_types": top_types,
         },
     }
+
+
+class RuleBasedCopilotProvider:
+    provider_name = "rule-based"
+
+    def answer(self, message: str, resources: list[dict[str, Any]]) -> dict[str, Any]:
+        return build_rule_based_copilot_answer(message, resources)
+
+
+def get_default_copilot_provider() -> CopilotProvider:
+    return RuleBasedCopilotProvider()

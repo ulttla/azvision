@@ -139,6 +139,7 @@ export function CostPage() {
           </button>
         </div>
         {mode ? <p className="hint">Inventory mode: {mode}</p> : null}
+        {summary ? <p className="hint">Cost ingestion: {summary.cost_ingestion_provider} • configured: {summary.cost_ingestion_configured ? 'yes' : 'no'}</p> : null}
         {warning ? <p className="warning-text">{warning}</p> : null}
         {error ? <p className="error-text">{error}</p> : null}
       </section>
@@ -188,7 +189,7 @@ export function CostPage() {
           <div className="cost-copilot-answer">
             <div className="cost-recommendation-heading">
               <strong>{copilotResponse.copilot_mode} answer</strong>
-              <span className="mini-chip">LLM: {copilotResponse.llm_status}</span>
+              <span className="mini-chip">Provider: {copilotResponse.provider ?? copilotResponse.copilot_mode} • LLM: {copilotResponse.llm_status}</span>
             </div>
             <p>{copilotResponse.answer}</p>
             <ul>

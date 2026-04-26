@@ -71,6 +71,10 @@ export type CostSummary = {
   estimated_monthly_cost: number | null
   cost_status: string
   source: string
+  cost_source: string
+  cost_ingestion_provider: string
+  cost_ingestion_configured: boolean
+  matched_cost_resource_count: number
   resource_count: number
   analyzed_resource_count: number
   recommendation_count: number
@@ -137,6 +141,7 @@ export type CopilotResponse = {
   workspace_id: string
   mode?: string
   copilot_mode: string
+  provider?: string
   llm_status: string
   answer: string
   suggestions: string[]

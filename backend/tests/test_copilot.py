@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.services.copilot import build_rule_based_copilot_answer
+from app.services.copilot import build_rule_based_copilot_answer, get_default_copilot_provider
 
 WORKSPACE = "ws-copilot-test"
 
@@ -20,9 +20,18 @@ def test_rule_based_copilot_cost_question_mentions_not_configured_llm() -> None:
     answer = build_rule_based_copilot_answer("How can I save cost?", resources)
 
     assert answer["copilot_mode"] == "rule-based"
+    assert answer["provider"] == "rule-based"
     assert answer["llm_status"] == "not_configured"
     assert answer["context"]["recommendation_count"] >= 1
     assert answer["suggestions"]
+
+
+def test_default_copilot_provider_uses_rule_based_contract() -> None:
+    answer = get_default_copilot_provider().answer("", [])
+
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "not_configured"
+    assert answer["context"]["resource_count"] == 0
 
 
 def test_copilot_chat_route_returns_contextual_answer(client: TestClient) -> None:

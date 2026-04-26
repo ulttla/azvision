@@ -100,6 +100,7 @@
   - 응답: `ok`, `workspace_id`, `mode`, `summary`
   - 현재 `summary.estimated_monthly_cost` 와 `summary.currency` 는 실제 Azure Cost Management 수집 전까지 `null` 이며, `cost_status=unknown-cost-data` 로 명시한다
   - `summary.cost_driver_counts` 와 `summary.governance_gap_count` 로 금액 추정 없이 비용 검토 우선순위 signal을 제공한다
+  - `summary.cost_ingestion_provider=noop`, `summary.cost_ingestion_configured=false` 로 향후 Azure Cost Management provider 교체 지점을 명시한다
 - `GET /workspaces/{workspace_id}/cost/resources`
   - 응답: `items[]` with `resource_id`, `resource_name`, `resource_type`, `cost_status`, `cost_driver_labels[]`, `recommendation_count`
 - `POST /workspaces/{workspace_id}/cost/recommendations`
@@ -127,7 +128,7 @@
 - `POST /workspaces/{workspace_id}/chat`
   - request: `message`
   - query: `subscription_id`, `resource_group_name`, `resource_group_limit`, `resource_limit`
-  - 응답: `ok`, `workspace_id`, `mode`(inventory mode), `copilot_mode`, `llm_status`, `answer`, `suggestions[]`, `context`
+  - 응답: `ok`, `workspace_id`, `mode`(inventory mode), `copilot_mode`, `provider`, `llm_status`, `answer`, `suggestions[]`, `context`
   - 현재는 `llm_status=not_configured` 인 rule-based copilot first pass이며, 외부 LLM provider/BYOK 연결은 아직 미구현
 
 ## Response shape principles
