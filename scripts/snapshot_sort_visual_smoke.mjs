@@ -224,7 +224,6 @@ async function main() {
       'Snapshot sort visual smoke requires at least one existing snapshot. Seed snapshots first, for example with snapshot_sort_api_smoke.sh against the same backend.',
     )
   }
-  const nonArchived = snapshots.filter((snapshot) => !snapshot.archived_at)
   const expectedDefaultAll = orderSavedSnapshots(snapshots, 'last_restored_at', 'desc').filter(
     (snapshot) => !snapshot.archived_at,
   )
@@ -234,7 +233,7 @@ async function main() {
   const expectedUpdatedAsc = orderSavedSnapshots(snapshots, 'updated_at', 'asc').filter(
     (snapshot) => !snapshot.archived_at,
   )
-  const expectedRecent = getRecentSnapshots(nonArchived)
+  const expectedRecent = getRecentSnapshots(expectedUpdatedAsc)
 
   const userDataDir = path.join(os.tmpdir(), `azvision-sort-visual-smoke-profile-${Date.now()}`)
   const chrome = spawn(
