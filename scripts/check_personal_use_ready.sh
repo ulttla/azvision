@@ -52,6 +52,18 @@ else
   warn "backup script is not executable: scripts/backup_sqlite.sh"
 fi
 
+if [ -x "$ROOT_DIR/scripts/verify_sqlite_backup.sh" ]; then
+  ok "backup verifier executable"
+else
+  warn "backup verifier is not executable: scripts/verify_sqlite_backup.sh"
+fi
+
+if [ -x "$ROOT_DIR/scripts/personal_use_acceptance.sh" ]; then
+  ok "personal acceptance script executable"
+else
+  warn "personal acceptance script is not executable: scripts/personal_use_acceptance.sh"
+fi
+
 if [ -f "$ROOT_DIR/azvision.db" ] || [ -f "$ROOT_DIR/backend/azvision.db" ]; then
   ok "local SQLite state present"
 else
@@ -83,6 +95,8 @@ Next commands:
   scripts/run_dev.sh
   scripts/personal_use_smoke.sh
   scripts/backup_sqlite.sh
+  scripts/verify_sqlite_backup.sh
+  scripts/personal_use_acceptance.sh
 EOF
 
 exit "$EXIT_CODE"
