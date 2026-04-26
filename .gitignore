@@ -15,6 +15,7 @@ backend/app/__pycache__/
 # Local DB / runtime
 azvision.db
 backend/azvision.db
+backups/
 exports/
 secrets/
 
