@@ -65,7 +65,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 
 ## 개인 실사용 v0.9 빠른 실행
 
-Gun 단독 로컬 사용 기준으로는 아래 경로를 우선 사용한다. 자세한 절차는 `docs/PERSONAL_USE_RUNBOOK.md`, 범위/acceptance 기준은 `docs/PERSONAL_USE_READINESS_PLAN.md` 참고.
+Gun 단독 로컬 사용 기준으로는 아래 경로를 우선 사용한다. 자세한 절차는 `docs/PERSONAL_USE_RUNBOOK.md`, 범위/acceptance 기준은 `docs/PERSONAL_USE_READINESS_PLAN.md`, 운영 메모는 `docs/PERSONAL_USE_SESSION_NOTES.md` 참고.
 
 ```bash
 cd /Users/gun/dev/azvision
