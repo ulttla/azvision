@@ -1719,3 +1719,37 @@ select {
   border-color: rgba(74, 222, 128, 0.24);
   color: #bbf7d0;
 }
+
+.cost-copilot-card {
+  display: grid;
+  gap: 12px;
+}
+
+.cost-copilot-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.cost-copilot-input {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.cost-copilot-answer {
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 14px;
+  background: rgba(14, 165, 233, 0.08);
+  padding: 12px;
+}
+
+.cost-copilot-answer p {
+  white-space: pre-line;
+}
+
+.cost-copilot-answer ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: #cbd5e1;
+}

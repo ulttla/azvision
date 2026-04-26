@@ -5,6 +5,8 @@ import {
   getCostRecommendations,
   getCostResources,
   getCostSummary,
+  postCopilotMessage,
+  type CopilotResponse,
   type CostRecommendation,
   type CostResourceRow,
   type CostSummary,
@@ -47,6 +49,9 @@ export function CostPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [copilotPrompt, setCopilotPrompt] = useState('How can I reduce cost or improve this architecture?')
+  const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
+  const [copilotLoading, setCopilotLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -95,6 +100,21 @@ export function CostPage() {
     [resources],
   )
 
+  async function askCopilot() {
+    if (!copilotPrompt.trim()) {
+      return
+    }
+    setCopilotLoading(true)
+    setError('')
+    try {
+      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim()))
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to ask copilot')
+    } finally {
+      setCopilotLoading(false)
+    }
+  }
+
   return (
     <main className="page-shell cost-page-shell">
       <section className="panel-card hero-card">
@@ -140,6 +160,36 @@ export function CostPage() {
           <span className="metric-label">Severity mix</span>
           <strong>{summary ? formatCountMap(summary.severity_counts) : '-'}</strong>
         </article>
+      </section>
+
+      <section className="panel-card cost-copilot-card">
+        <h3>Rule-based copilot</h3>
+        <p className="hint">LLM provider is not connected yet; this first pass answers from inventory and rule-based recommendations.</p>
+        <div className="cost-copilot-input-row">
+          <textarea
+            className="search-input cost-copilot-input"
+            value={copilotPrompt}
+            onChange={(event) => setCopilotPrompt(event.target.value)}
+            rows={3}
+          />
+          <button type="button" className="toolbar-button primary" onClick={askCopilot} disabled={copilotLoading}>
+            {copilotLoading ? 'Thinking…' : 'Ask'}
+          </button>
+        </div>
+        {copilotResponse ? (
+          <div className="cost-copilot-answer">
+            <div className="cost-recommendation-heading">
+              <strong>{copilotResponse.copilot_mode} answer</strong>
+              <span className="mini-chip">LLM: {copilotResponse.llm_status}</span>
+            </div>
+            <p>{copilotResponse.answer}</p>
+            <ul>
+              {copilotResponse.suggestions.map((suggestion) => (
+                <li key={suggestion}>{suggestion}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       <section className="panel-grid cost-panel-grid">

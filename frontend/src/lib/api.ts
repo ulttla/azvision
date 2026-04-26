@@ -129,6 +129,22 @@ export type CostRecommendationResponse = {
   items: CostRecommendation[]
 }
 
+export type CopilotResponse = {
+  ok: boolean
+  workspace_id: string
+  mode?: string
+  copilot_mode: string
+  llm_status: string
+  answer: string
+  suggestions: string[]
+  context: {
+    resource_count: number
+    recommendation_count: number
+    top_resource_types: string[]
+  }
+  warning?: string | null
+}
+
 export type CostQueryOptions = {
   subscriptionId?: string
   resourceGroupName?: string
@@ -447,6 +463,18 @@ export async function getCostRecommendations(
     `/workspaces/${workspaceId}/cost/recommendations${buildInventoryQuery(options)}`,
     { method: 'POST' },
   )
+}
+
+export async function postCopilotMessage(
+  workspaceId: string,
+  message: string,
+  options?: CostQueryOptions,
+): Promise<CopilotResponse> {
+  return fetchJson<CopilotResponse>(`/workspaces/${workspaceId}/chat${buildInventoryQuery(options)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  })
 }
 
 export async function getTopology(
