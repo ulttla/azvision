@@ -145,6 +145,37 @@ export type CopilotResponse = {
   warning?: string | null
 }
 
+export type SimulationResourceRecommendation = {
+  resource_type: string
+  name_hint: string
+  reason: string
+  priority: string
+}
+
+export type SimulationRecord = {
+  simulation_id: string
+  created_at: string
+  status: string
+  mode: string
+  workload_name: string
+  environment: string
+  description: string
+  matched_rules: string[]
+  recommended_resources: SimulationResourceRecommendation[]
+  assumptions: string[]
+}
+
+export type SimulationResponse = SimulationRecord & {
+  ok: boolean
+  workspace_id: string
+}
+
+export type SimulationListResponse = {
+  ok: boolean
+  workspace_id: string
+  items: SimulationRecord[]
+}
+
 export type CostQueryOptions = {
   subscriptionId?: string
   resourceGroupName?: string
@@ -475,6 +506,21 @@ export async function postCopilotMessage(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message }),
   })
+}
+
+export async function createSimulation(
+  workspaceId: string,
+  payload: { workload_name: string; environment: string; description: string },
+): Promise<SimulationResponse> {
+  return fetchJson<SimulationResponse>(`/workspaces/${workspaceId}/simulations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getSimulations(workspaceId: string): Promise<SimulationListResponse> {
+  return fetchJson<SimulationListResponse>(`/workspaces/${workspaceId}/simulations`)
 }
 
 export async function getTopology(
