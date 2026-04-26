@@ -13,6 +13,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
   - snapshot CRUD + restore-events endpoint 구현 완료
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
+  - rule-based Cost Intelligence first-pass endpoint(`/cost/summary`, `/cost/resources`, `/cost/recommendations`) 구현 완료. 실제 Cost Management 금액 수집 전까지 비용 금액은 `unknown-cost-data` 로 명시
   - global exception handling 기준으로 `HTTPException` / `AzureClientError` non-2xx 응답이 `{ ok, status, message }` JSON shape로 정규화됨
   - local runtime smoke 기준 `/` / `/healthz` 200 확인
   - existing `.env` 기준 live auth `config-check` / `read-test` / topology probe 동작 확인
@@ -158,4 +159,5 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
-- 다음 권장 순서: explicit network relationship regression + visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke 유지 → thumbnail 장기 저장 전략 검토 → 필요 시 Phase 2(Cost) 진입 판단
+- Cost Intelligence first-pass는 rule-based recommendation까지 구현됐고, 실제 Azure Cost Management ingestion / dollar amount mapping은 다음 Phase 2 세부 작업으로 남는다
+- 다음 권장 순서: explicit network relationship regression + cost recommendation regression + visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke 유지 → Azure Cost Management ingestion 또는 AI Copilot skeleton 진입 판단

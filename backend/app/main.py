@@ -8,6 +8,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.response_utils import build_error_response
 from app.api.routes.auth import router as auth_router
+from app.api.routes.cost import router as cost_router
 from app.core.azure_client import AzureClientError
 from app.api.routes.exports import router as exports_router
 from app.api.routes.inventory import router as inventory_router
@@ -49,6 +50,7 @@ app.include_router(scans_router, prefix=settings.api_v1_prefix)
 app.include_router(snapshots_router, prefix=settings.api_v1_prefix)
 app.include_router(topology_router, prefix=settings.api_v1_prefix)
 app.include_router(exports_router, prefix=settings.api_v1_prefix)
+app.include_router(cost_router, prefix=settings.api_v1_prefix)
 
 
 @app.exception_handler(AzureClientError)
