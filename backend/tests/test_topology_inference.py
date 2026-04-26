@@ -14,6 +14,7 @@ RT_ID = f"{BASE}/Microsoft.Network/routeTables/rt-app"
 NIC_ID = f"{BASE}/Microsoft.Network/networkInterfaces/nic-app"
 PIP_ID = f"{BASE}/Microsoft.Network/publicIPAddresses/pip-app"
 LB_ID = f"{BASE}/Microsoft.Network/loadBalancers/lb-app"
+APPGW_ID = f"{BASE}/Microsoft.Network/applicationGateways/agw-app"
 VM_ID = f"{BASE}/Microsoft.Compute/virtualMachines/vm-app"
 PEP_ID = f"{BASE}/Microsoft.Network/privateEndpoints/pep-storage"
 STORAGE_ID = f"{BASE}/Microsoft.Storage/storageAccounts/stapp"
@@ -65,7 +66,11 @@ def test_explicit_network_edges_follow_arm_id_references() -> None:
             {"subnets": [{"id": SUBNET_ID}], "networkInterfaces": [{"id": NIC_ID}]},
         ),
         _resource(RT_ID, "Microsoft.Network/routeTables", {"subnets": [{"id": SUBNET_ID}]}),
-        _resource(PIP_ID, "Microsoft.Network/publicIPAddresses"),
+        _resource(
+            PIP_ID,
+            "Microsoft.Network/publicIPAddresses",
+            {"ipConfiguration": {"id": f"{NIC_ID}/ipConfigurations/ipconfig1"}},
+        ),
         _resource(
             NIC_ID,
             "Microsoft.Network/networkInterfaces",
@@ -85,6 +90,18 @@ def test_explicit_network_edges_follow_arm_id_references() -> None:
         _resource(
             LB_ID,
             "Microsoft.Network/loadBalancers",
+            {
+                "frontendIPConfigurations": [
+                    {"properties": {"subnet": {"id": SUBNET_ID}, "publicIPAddress": {"id": PIP_ID}}}
+                ],
+                "backendAddressPools": [
+                    {"properties": {"backendIPConfigurations": [{"id": f"{NIC_ID}/ipConfigurations/ipconfig1"}]}}
+                ],
+            },
+        ),
+        _resource(
+            APPGW_ID,
+            "Microsoft.Network/applicationGateways",
             {
                 "frontendIPConfigurations": [
                     {"properties": {"subnet": {"id": SUBNET_ID}, "publicIPAddress": {"id": PIP_ID}}}
@@ -126,8 +143,22 @@ def test_explicit_network_edges_follow_arm_id_references() -> None:
     assert (f"resource:{LB_ID}", f"resource:{NIC_ID}", "connects_to") in keys
     assert (f"resource:{SUBNET_ID}", f"resource:{LB_ID}", "connects_to") in keys
     assert (f"resource:{PIP_ID}", f"resource:{LB_ID}", "connects_to") in keys
+    assert (f"resource:{APPGW_ID}", f"resource:{NIC_ID}", "connects_to") in keys
+    assert (f"resource:{SUBNET_ID}", f"resource:{APPGW_ID}", "connects_to") in keys
+    assert (f"resource:{PIP_ID}", f"resource:{APPGW_ID}", "connects_to") in keys
     assert (f"resource:{SUBNET_ID}", f"resource:{PEP_ID}", "connects_to") in keys
     assert (f"resource:{PEP_ID}", f"resource:{STORAGE_ID}", "connects_to") in keys
+    pip_to_nic_edge = next(
+        edge
+        for edge in edges
+        if edge["source_node_key"] == f"resource:{PIP_ID}"
+        and edge["target_node_key"] == f"resource:{NIC_ID}"
+        and edge["relation_type"] == "connects_to"
+    )
+    assert set(pip_to_nic_edge["evidence"]) == {
+        "networkInterface.ipConfigurations[].publicIPAddress.id",
+        "publicIPAddress.ipConfiguration.id",
+    }
     assert all(edge["source"] == "azure-explicit" for edge in edges)
     assert all(edge["confidence"] == 1.0 for edge in edges)
     assert all(edge["resolver"] == "network-explicit-v1" for edge in edges)

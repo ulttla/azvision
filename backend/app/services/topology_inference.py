@@ -375,7 +375,15 @@ def infer_explicit_network_relationship_edges(resources: list[dict[str, Any]]) -
             edge["relation_type"],
             edge["source"],
         )
-        deduped.setdefault(key, edge)
+        existing = deduped.get(key)
+        if existing is None:
+            deduped[key] = edge
+            continue
+
+        existing_evidence = existing.setdefault("evidence", [])
+        for evidence in edge.get("evidence", []):
+            if evidence not in existing_evidence:
+                existing_evidence.append(evidence)
     return list(deduped.values())
 
 
