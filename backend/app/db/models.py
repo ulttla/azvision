@@ -166,6 +166,10 @@ DDL_STATEMENTS = [
         description TEXT NOT NULL,
         matched_rules_json TEXT NOT NULL DEFAULT '[]',
         recommended_resources_json TEXT NOT NULL DEFAULT '[]',
+        architecture_notes_json TEXT NOT NULL DEFAULT '[]',
+        cost_considerations_json TEXT NOT NULL DEFAULT '[]',
+        security_considerations_json TEXT NOT NULL DEFAULT '[]',
+        next_actions_json TEXT NOT NULL DEFAULT '[]',
         assumptions_json TEXT NOT NULL DEFAULT '[]'
     )
     """,
@@ -234,6 +238,30 @@ def create_db_and_tables() -> None:
             "snapshots",
             "archived_at",
             "archived_at TEXT",
+        )
+        _ensure_column(
+            cursor,
+            "simulations",
+            "architecture_notes_json",
+            "architecture_notes_json TEXT NOT NULL DEFAULT '[]'",
+        )
+        _ensure_column(
+            cursor,
+            "simulations",
+            "cost_considerations_json",
+            "cost_considerations_json TEXT NOT NULL DEFAULT '[]'",
+        )
+        _ensure_column(
+            cursor,
+            "simulations",
+            "security_considerations_json",
+            "security_considerations_json TEXT NOT NULL DEFAULT '[]'",
+        )
+        _ensure_column(
+            cursor,
+            "simulations",
+            "next_actions_json",
+            "next_actions_json TEXT NOT NULL DEFAULT '[]'",
         )
 
         cursor.execute(

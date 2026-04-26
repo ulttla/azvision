@@ -37,6 +37,10 @@ class SimulationRecord(BaseModel):
     description: str
     matched_rules: list[str] = Field(default_factory=list)
     recommended_resources: list[SimulationResourceRecommendation] = Field(default_factory=list)
+    architecture_notes: list[str] = Field(default_factory=list)
+    cost_considerations: list[str] = Field(default_factory=list)
+    security_considerations: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
 
 

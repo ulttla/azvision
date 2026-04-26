@@ -143,7 +143,34 @@ export function SimulationPage() {
                   </div>
                 ))}
               </div>
+              <div className="simulation-insight-grid">
+                <div className="cost-note-box">
+                  <h4>Architecture notes</h4>
+                  {selectedSimulation.architecture_notes.map((note) => (
+                    <p key={note}>{note}</p>
+                  ))}
+                </div>
+                <div className="cost-note-box">
+                  <h4>Cost considerations</h4>
+                  {selectedSimulation.cost_considerations.map((note) => (
+                    <p key={note}>{note}</p>
+                  ))}
+                </div>
+                <div className="cost-note-box">
+                  <h4>Security considerations</h4>
+                  {selectedSimulation.security_considerations.map((note) => (
+                    <p key={note}>{note}</p>
+                  ))}
+                </div>
+                <div className="cost-note-box">
+                  <h4>Next actions</h4>
+                  {selectedSimulation.next_actions.map((action) => (
+                    <p key={action}>{action}</p>
+                  ))}
+                </div>
+              </div>
               <div className="cost-note-box">
+                <h4>Assumptions</h4>
                 {selectedSimulation.assumptions.map((assumption) => (
                   <p key={assumption}>{assumption}</p>
                 ))}

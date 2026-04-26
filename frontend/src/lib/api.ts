@@ -162,6 +162,10 @@ export type SimulationRecord = {
   description: string
   matched_rules: string[]
   recommended_resources: SimulationResourceRecommendation[]
+  architecture_notes: string[]
+  cost_considerations: string[]
+  security_considerations: string[]
+  next_actions: string[]
   assumptions: string[]
 }
 

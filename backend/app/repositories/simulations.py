@@ -38,6 +38,10 @@ class SimulationRepository:
             "description": row["description"],
             "matched_rules": json.loads(row["matched_rules_json"] or "[]"),
             "recommended_resources": json.loads(row["recommended_resources_json"] or "[]"),
+            "architecture_notes": json.loads(row["architecture_notes_json"] or "[]"),
+            "cost_considerations": json.loads(row["cost_considerations_json"] or "[]"),
+            "security_considerations": json.loads(row["security_considerations_json"] or "[]"),
+            "next_actions": json.loads(row["next_actions_json"] or "[]"),
             "assumptions": json.loads(row["assumptions_json"] or "[]"),
         }
 
@@ -56,8 +60,12 @@ class SimulationRepository:
                     description,
                     matched_rules_json,
                     recommended_resources_json,
+                    architecture_notes_json,
+                    cost_considerations_json,
+                    security_considerations_json,
+                    next_actions_json,
                     assumptions_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     simulation["simulation_id"],
@@ -70,6 +78,10 @@ class SimulationRepository:
                     simulation["description"],
                     json.dumps(simulation["matched_rules"]),
                     json.dumps(simulation["recommended_resources"]),
+                    json.dumps(simulation["architecture_notes"]),
+                    json.dumps(simulation["cost_considerations"]),
+                    json.dumps(simulation["security_considerations"]),
+                    json.dumps(simulation["next_actions"]),
                     json.dumps(simulation["assumptions"]),
                 ),
             )

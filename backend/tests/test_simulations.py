@@ -22,6 +22,8 @@ def test_build_simulation_recommends_resources_from_description() -> None:
     assert "Microsoft.Network/virtualNetworks" in resource_types
     assert "Microsoft.RecoveryServices/vaults" in resource_types
     assert simulation["mode"] == "rule-based"
+    assert any("SQL" in item for item in simulation["cost_considerations"])
+    assert any("production readiness" in item for item in simulation["next_actions"])
 
 
 def test_simulation_routes_create_list_and_get(client: TestClient) -> None:
@@ -39,6 +41,10 @@ def test_simulation_routes_create_list_and_get(client: TestClient) -> None:
     assert created["ok"] is True
     assert created["simulation_id"].startswith("sim_")
     assert created["recommended_resources"]
+    assert created["architecture_notes"]
+    assert created["cost_considerations"]
+    assert created["security_considerations"]
+    assert created["next_actions"]
 
     list_response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations")
     assert list_response.status_code == 200

@@ -126,6 +126,50 @@ def _tokens(text: str) -> set[str]:
     return {token for token in normalized.split() if token}
 
 
+def _build_simulation_insights(resource_types: set[str], token_set: set[str], environment: str) -> dict[str, list[str]]:
+    architecture_notes = [
+        "Start from the required resources, then treat recommended and optional resources as review candidates.",
+        "Keep observability in the first design iteration so cost, reliability, and support signals are available from day one.",
+    ]
+    cost_considerations = [
+        "Set budgets and alerts before deployment; this simulation does not call Azure pricing APIs yet.",
+        "Use tags for workload, environment, owner, and cost center on all generated resources.",
+    ]
+    security_considerations = [
+        "Use managed identity and least-privilege RBAC instead of embedding secrets in app settings.",
+        "Review public exposure, inbound rules, and diagnostic log retention before production release.",
+    ]
+    next_actions = [
+        "Confirm region, data residency, expected traffic, and availability requirements.",
+        "Convert the accepted resources into an IaC module or deployment template after sizing is validated.",
+    ]
+
+    if "Microsoft.Network/virtualNetworks" in resource_types:
+        architecture_notes.append("Model subnet boundaries, private endpoints, and DNS dependencies before app deployment.")
+        security_considerations.append("Attach NSGs to subnets and document allowed traffic flows for private resources.")
+    if "Microsoft.Sql/servers/databases" in resource_types:
+        cost_considerations.append("Choose SQL tier after estimating DTU/vCore, storage, backup retention, and failover needs.")
+        security_considerations.append("Plan private access, auditing, encryption, and admin break-glass controls for SQL.")
+    if "Microsoft.Network/frontDoors" in resource_types:
+        cost_considerations.append("Review ingress, WAF, rules engine, and egress patterns because global edge services can add variable cost.")
+        security_considerations.append("Enable WAF policy and TLS governance before exposing the app publicly.")
+    if "Microsoft.Synapse/workspaces" in resource_types or "Microsoft.DataFactory/factories" in resource_types:
+        cost_considerations.append("Separate always-on analytics capacity from scheduled pipeline workloads to avoid idle spend.")
+        next_actions.append("Define data sources, refresh cadence, retention, and reporting SLAs before selecting analytics SKUs.")
+    if "Microsoft.RecoveryServices/vaults" in resource_types or {"dr", "disaster", "ha", "backup"} & token_set:
+        architecture_notes.append("Document RPO/RTO targets and choose paired-region or backup-only design explicitly.")
+        cost_considerations.append("Include backup storage, retention, cross-region replication, and test restore cost in the estimate.")
+    if environment.lower() in {"prod", "production"}:
+        next_actions.append("Run a production readiness review covering identity, monitoring, backup, scaling, and incident response.")
+
+    return {
+        "architecture_notes": architecture_notes,
+        "cost_considerations": cost_considerations,
+        "security_considerations": security_considerations,
+        "next_actions": next_actions,
+    }
+
+
 def build_simulation(payload: dict[str, Any]) -> dict[str, Any]:
     description = str(payload.get("description") or payload.get("message") or "").strip()
     workload_name = str(payload.get("workload_name") or "workload").strip() or "workload"
@@ -154,6 +198,8 @@ def build_simulation(payload: dict[str, Any]) -> dict[str, Any]:
         normalized["name_hint"] = normalized["name_hint"].replace("<workload>", workload_name).replace("<env>", environment)
         normalized_items.append(normalized)
 
+    insights = _build_simulation_insights(seen_types, token_set, environment)
+
     return {
         "simulation_id": f"sim_{uuid4().hex[:12]}",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -164,6 +210,10 @@ def build_simulation(payload: dict[str, Any]) -> dict[str, Any]:
         "description": description,
         "matched_rules": matched_rules,
         "recommended_resources": normalized_items,
+        "architecture_notes": insights["architecture_notes"],
+        "cost_considerations": insights["cost_considerations"],
+        "security_considerations": insights["security_considerations"],
+        "next_actions": insights["next_actions"],
         "assumptions": [
             "This is a first-pass architecture simulation, not a deployment template.",
             "Validate sizing, region, data residency, identity, and network constraints before build.",
