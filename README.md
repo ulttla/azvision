@@ -15,7 +15,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
   - rule-based Cost Intelligence first-pass endpoint(`/cost/summary`, `/cost/resources`, `/cost/recommendations`) 구현 완료. 실제 Cost Management 금액 수집 전까지 비용 금액은 `unknown-cost-data` 로 명시하고 cost driver signal 및 `noop` cost ingestion provider hook을 제공
   - frontend `Cost Insights` view에서 rule-based cost summary/recommendations/resource prompts 확인 가능
-  - `/chat` rule-based copilot first-pass 구현 완료. 현재는 `llm_status=not_configured` 로 실제 LLM 연결 전 구조/비용/네트워크 질문에 대한 deterministic answer/suggestions를 반환
+  - `/chat` rule-based copilot first-pass 구현 완료. 현재는 `llm_status=not_configured`, `provider=rule-based` 로 실제 LLM 연결 전 구조/비용/네트워크 질문에 대한 deterministic answer/suggestions를 반환
   - `/simulations` rule-based first-pass 구현 완료. workload 설명 기반 recommended resources, architecture/cost/security notes, next actions, assumptions를 생성하고 SQLite에 저장. 각 simulation은 markdown report, non-deployable Bicep outline template, 현재 inventory fit 비교로 확인 가능
   - global exception handling 기준으로 `HTTPException` / `AzureClientError` non-2xx 응답이 `{ ok, status, message }` JSON shape로 정규화됨
   - local runtime smoke 기준 `/` / `/healthz` 200 확인
@@ -57,6 +57,9 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
   - 다음 권장 순서: explicit network relationship regression + visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke를 회귀 경로로 유지하고, 추가 UX polish 범위를 최소 단위로만 검토
   - current same-line UX baseline: save 이후 warning surface(local-only pre-save sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + guard copy/threshold/API contract alignment smoke
+
+## Provider extension notes
+- Cost ingestion / Copilot provider hook의 현재 계약과 향후 교체 지점은 `docs/PROVIDER_EXTENSION_NOTES.md` 참고.
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
