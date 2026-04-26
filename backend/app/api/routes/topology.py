@@ -10,7 +10,10 @@ from app.collectors.azure_inventory import (
 )
 from app.core.config import get_settings
 from app.repositories.manual_model import ManualModelRepository
-from app.services.topology_inference import infer_network_relationship_edges
+from app.services.topology_inference import (
+    infer_explicit_network_relationship_edges,
+    infer_network_relationship_edges,
+)
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/topology", tags=["topology"])
 
@@ -411,8 +414,26 @@ def _project_live_topology(
             },
         )
 
+    explicit_network_relation_keys: set[tuple[str, str, str]] = set()
+    for explicit_edge in infer_explicit_network_relationship_edges(projected_resources):
+        explicit_network_relation_keys.add(
+            (
+                explicit_edge["source_node_key"],
+                explicit_edge["target_node_key"],
+                explicit_edge["relation_type"],
+            )
+        )
+        _add_edge(edges_by_key, explicit_edge)
+
     if include_network_inference:
         for inferred_edge in infer_network_relationship_edges(projected_resources):
+            inferred_relation_key = (
+                inferred_edge["source_node_key"],
+                inferred_edge["target_node_key"],
+                inferred_edge["relation_type"],
+            )
+            if inferred_relation_key in explicit_network_relation_keys:
+                continue
             _add_edge(edges_by_key, inferred_edge)
 
     # Merge manual nodes and edges from DB

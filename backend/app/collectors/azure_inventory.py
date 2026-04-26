@@ -420,6 +420,7 @@ def list_resources(
                     "location": item.get("location"),
                     "id": item.get("id"),
                     "tags": item.get("tags") or {},
+                    "properties": item.get("properties") or {},
                     "source": "azure",
                 }
             )

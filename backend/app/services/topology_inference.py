@@ -76,6 +76,14 @@ _RELATION_COMPATIBILITY_PREFIXES: dict[str, tuple[str, ...]] = {
     "routes": _WORKLOAD_TYPE_PREFIXES,
 }
 
+_NETWORK_CHILD_SEGMENTS = {
+    "subnets",
+    "ipconfigurations",
+    "backendaddresspools",
+    "frontendipconfigurations",
+    "privateendpointconnections",
+}
+
 _WORKLOAD_FAMILY_RESOURCE_TYPE_PREFIXES: dict[str, tuple[str, ...]] = {
     "sql-managed-instance": ("microsoft.sql/managedinstances",),
     "synapse-workspace": ("microsoft.synapse/workspaces",),
@@ -101,6 +109,206 @@ def _canonical(value: str | None) -> str | None:
 
 def _resource_type_lower(item: dict[str, Any]) -> str:
     return str(item.get("type") or "").lower()
+
+
+def _resource_id(item: dict[str, Any]) -> str | None:
+    resource_id = item.get("id")
+    return resource_id if isinstance(resource_id, str) and resource_id else None
+
+
+def _canonical_resource_id(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return value.rstrip("/").lower()
+
+
+def _resource_ids_by_canonical(resources: list[dict[str, Any]]) -> dict[str, str]:
+    ids: dict[str, str] = {}
+    for item in resources:
+        resource_id = _resource_id(item)
+        canonical_id = _canonical_resource_id(resource_id)
+        if canonical_id and resource_id:
+            ids[canonical_id] = resource_id
+    return ids
+
+
+def _properties(item: dict[str, Any]) -> dict[str, Any]:
+    properties = item.get("properties")
+    return properties if isinstance(properties, dict) else {}
+
+
+def _iter_dicts(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _id_from_ref(value: Any) -> str | None:
+    if isinstance(value, dict):
+        candidate = value.get("id")
+        return candidate if isinstance(candidate, str) and candidate else None
+    if isinstance(value, str) and value:
+        return value
+    return None
+
+
+def _strip_child_resource_id(resource_id: str | None) -> str | None:
+    if not resource_id:
+        return None
+
+    parts = [part for part in resource_id.rstrip("/").split("/") if part]
+    lowered = [part.lower() for part in parts]
+    for segment in _NETWORK_CHILD_SEGMENTS:
+        if segment in lowered:
+            index = lowered.index(segment)
+            return "/" + "/".join(parts[:index])
+    return resource_id
+
+
+def _resolve_existing_resource_id(raw_id: str | None, resource_ids: dict[str, str]) -> str | None:
+    if not raw_id:
+        return None
+
+    for candidate in (raw_id, _strip_child_resource_id(raw_id)):
+        canonical_id = _canonical_resource_id(candidate)
+        if canonical_id and canonical_id in resource_ids:
+            return resource_ids[canonical_id]
+    return None
+
+
+def _explicit_edge(
+    source_id: str | None,
+    target_id: str | None,
+    *,
+    relation_type: str,
+    evidence: str,
+) -> dict[str, Any] | None:
+    if not source_id or not target_id or _canonical_resource_id(source_id) == _canonical_resource_id(target_id):
+        return None
+
+    return {
+        "source_node_key": f"resource:{source_id}",
+        "target_node_key": f"resource:{target_id}",
+        "relation_type": relation_type,
+        "source": "azure-explicit",
+        "confidence": 1.0,
+        "resolver": "network-explicit-v1",
+        "evidence": [evidence],
+    }
+
+
+def _add_explicit_edge(edges: list[dict[str, Any]], edge: dict[str, Any] | None) -> None:
+    if edge is not None:
+        edges.append(edge)
+
+
+def infer_explicit_network_relationship_edges(resources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Build high-confidence network edges from ARM resource IDs in resource properties.
+
+    This resolver is intentionally conservative: it only emits edges when both
+    endpoints are present in the current topology resource set and the relation
+    comes from an explicit ARM ID reference, not naming affinity.
+    """
+    resource_ids = _resource_ids_by_canonical(resources)
+    edges: list[dict[str, Any]] = []
+
+    for resource in resources:
+        current_id = _resource_id(resource)
+        if not current_id:
+            continue
+
+        resource_type = _resource_type_lower(resource)
+        properties = _properties(resource)
+
+        if resource_type == "microsoft.compute/virtualmachines":
+            network_profile = properties.get("networkProfile")
+            network_profile = network_profile if isinstance(network_profile, dict) else {}
+            for nic_ref in _iter_dicts(network_profile.get("networkInterfaces")):
+                nic_id = _resolve_existing_resource_id(_id_from_ref(nic_ref), resource_ids)
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(nic_id, current_id, relation_type="connects_to", evidence="vm.networkProfile.networkInterfaces[].id"),
+                )
+
+        if resource_type == "microsoft.network/networkinterfaces":
+            nsg_id = _resolve_existing_resource_id(_id_from_ref(properties.get("networkSecurityGroup")), resource_ids)
+            _add_explicit_edge(
+                edges,
+                _explicit_edge(nsg_id, current_id, relation_type="secures", evidence="networkInterface.networkSecurityGroup.id"),
+            )
+
+            for ip_config in _iter_dicts(properties.get("ipConfigurations")):
+                ip_props = ip_config.get("properties")
+                ip_props = ip_props if isinstance(ip_props, dict) else {}
+                subnet_id = _resolve_existing_resource_id(_id_from_ref(ip_props.get("subnet")), resource_ids)
+                public_ip_id = _resolve_existing_resource_id(_id_from_ref(ip_props.get("publicIPAddress")), resource_ids)
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(subnet_id, current_id, relation_type="connects_to", evidence="networkInterface.ipConfigurations[].subnet.id"),
+                )
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(public_ip_id, current_id, relation_type="connects_to", evidence="networkInterface.ipConfigurations[].publicIPAddress.id"),
+                )
+
+        if resource_type == "microsoft.network/virtualnetworks/subnets":
+            nsg_id = _resolve_existing_resource_id(_id_from_ref(properties.get("networkSecurityGroup")), resource_ids)
+            route_table_id = _resolve_existing_resource_id(_id_from_ref(properties.get("routeTable")), resource_ids)
+            _add_explicit_edge(
+                edges,
+                _explicit_edge(nsg_id, current_id, relation_type="secures", evidence="subnet.networkSecurityGroup.id"),
+            )
+            _add_explicit_edge(
+                edges,
+                _explicit_edge(route_table_id, current_id, relation_type="routes", evidence="subnet.routeTable.id"),
+            )
+
+        if resource_type == "microsoft.network/privateendpoints":
+            subnet_id = _resolve_existing_resource_id(_id_from_ref(properties.get("subnet")), resource_ids)
+            _add_explicit_edge(
+                edges,
+                _explicit_edge(subnet_id, current_id, relation_type="connects_to", evidence="privateEndpoint.subnet.id"),
+            )
+            for connection in _iter_dicts(properties.get("privateLinkServiceConnections")):
+                connection_props = connection.get("properties")
+                connection_props = connection_props if isinstance(connection_props, dict) else {}
+                target_id = _resolve_existing_resource_id(
+                    connection_props.get("privateLinkServiceId"),
+                    resource_ids,
+                )
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(current_id, target_id, relation_type="connects_to", evidence="privateEndpoint.privateLinkServiceConnections[].privateLinkServiceId"),
+                )
+
+        if resource_type == "microsoft.network/publicipaddresses":
+            ip_config_id = _resolve_existing_resource_id(_id_from_ref(properties.get("ipConfiguration")), resource_ids)
+            _add_explicit_edge(
+                edges,
+                _explicit_edge(current_id, ip_config_id, relation_type="connects_to", evidence="publicIPAddress.ipConfiguration.id"),
+            )
+
+        if resource_type in {"microsoft.network/loadbalancers", "microsoft.network/applicationgateways"}:
+            for pool in _iter_dicts(properties.get("backendAddressPools")):
+                pool_props = pool.get("properties")
+                pool_props = pool_props if isinstance(pool_props, dict) else {}
+                for ip_config in _iter_dicts(pool_props.get("backendIPConfigurations")):
+                    backend_id = _resolve_existing_resource_id(_id_from_ref(ip_config), resource_ids)
+                    _add_explicit_edge(
+                        edges,
+                        _explicit_edge(current_id, backend_id, relation_type="connects_to", evidence="backendAddressPools[].backendIPConfigurations[].id"),
+                    )
+
+    deduped: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for edge in edges:
+        key = (
+            edge["source_node_key"],
+            edge["target_node_key"],
+            edge["relation_type"],
+            edge["source"],
+        )
+        deduped.setdefault(key, edge)
+    return list(deduped.values())
 
 
 def _resource_display_name(resource: dict[str, Any]) -> str:

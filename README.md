@@ -8,6 +8,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - backend
   - SQLite `manual_nodes` / `manual_edges` 기반 DB-backed CRUD 구현 완료
   - topology 응답에 manual node/edge merge 반영 완료
+  - ARM property의 Azure resource ID reference 기반 explicit network relationship edge(`source=azure-explicit`, `confidence=1.0`) 생성 경로 추가 완료
   - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
   - snapshot CRUD + restore-events endpoint 구현 완료
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
@@ -49,7 +50,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
-  - 다음 권장 순서: visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke를 회귀 경로로 유지하고, 추가 UX polish 범위를 최소 단위로만 검토
+  - 다음 권장 순서: explicit network relationship regression + visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke를 회귀 경로로 유지하고, 추가 UX polish 범위를 최소 단위로만 검토
   - current same-line UX baseline: save 이후 warning surface(local-only pre-save sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + guard copy/threshold/API contract alignment smoke
 
 ## 운영 메모
@@ -156,4 +157,4 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
-- 다음 권장 순서: visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke 유지 → thumbnail 장기 저장 전략 검토 → 필요 시 Phase 2(Cost) 진입 판단
+- 다음 권장 순서: explicit network relationship regression + visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke 유지 → thumbnail 장기 저장 전략 검토 → 필요 시 Phase 2(Cost) 진입 판단

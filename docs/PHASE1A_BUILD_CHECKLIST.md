@@ -47,7 +47,9 @@
   - type
   - location
   - tags
-- [-] network relationship resolver 1차 구현 (Phase 1A out-of-scope, Phase 2/3 backlog)
+- [~] network relationship resolver 1차 구현
+  - Azure ID 기반 explicit edge resolver 추가: VM↔NIC, NIC↔Subnet/Public IP, NSG↔NIC/Subnet, Route Table↔Subnet, Private Endpoint↔Subnet/대상 서비스
+  - 아직 전체 Azure dependency graph는 아니며, ARM property에 양 끝 resource ID가 있고 양 끝 node가 현재 topology set에 있을 때만 생성
 - [-] ScanRun 저장 구조 반영 (Phase 1A out-of-scope, persistence expansion backlog)
 - [-] 첫 live scan 결과를 SQLite에 저장 (Phase 1A out-of-scope, persistence expansion backlog)
 

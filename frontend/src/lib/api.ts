@@ -102,6 +102,8 @@ export type TopologyEdge = {
   relation_category?: string
   source: string
   confidence: number
+  resolver?: string
+  evidence?: string[]
 }
 
 export type TopologySummary = {
