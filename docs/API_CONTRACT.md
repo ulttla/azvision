@@ -39,6 +39,7 @@
   - 각 node 필수 필드: `node_key`, `node_type`, `node_ref`, `display_name`, `source`, `confidence`
   - 각 edge 필수 필드: `source_node_key`, `target_node_key`, `relation_type`, `source`, `confidence`
   - Azure ID 기반 명시 관계는 `source=azure-explicit`, `confidence=1.0`, `resolver=network-explicit-v1`, `evidence[]` 를 포함한다. 현재 명시 관계 resolver는 ARM property의 resource ID reference에서 양 끝 node가 모두 현재 topology resource set에 있을 때만 edge를 만든다.
+  - live inventory 수집은 network/compute 주요 타입에 대해 detail GET을 best-effort로 수행해 relationship property를 보강한다. detail 조회 실패는 base inventory 실패로 승격하지 않고 resource-level `detail_warning` 으로 보존한다.
   - 이름/타입 기반 추론 관계는 `include_network_inference=true`일 때만 추가되며, 동일한 `source_node_key`/`target_node_key`/`relation_type` 명시 edge가 있으면 중복 추론 edge는 생략한다.
 - `GET /workspaces/{workspace_id}/topology/node-detail?node_type={node_type}&node_ref={node_ref}`
   - topology detail 조회는 canonical identity 기준

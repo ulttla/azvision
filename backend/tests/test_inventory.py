@@ -52,6 +52,79 @@ class TestInventoryResolvers:
             azure_inventory.resolve_subscription_items(settings)
 
 
+class TestResourcePropertyEnrichment:
+    def test_list_resources_enriches_network_resource_properties(self, monkeypatch: pytest.MonkeyPatch):
+        subscription_id = "sub-test"
+        resource_id = (
+            f"/subscriptions/{subscription_id}/resourceGroups/rg-test"
+            "/providers/Microsoft.Network/networkInterfaces/nic-test"
+        )
+
+        monkeypatch.setattr(
+            azure_inventory,
+            "list_accessible_subscriptions",
+            lambda settings: [{"subscription_id": subscription_id}],
+        )
+        monkeypatch.setattr(azure_inventory, "get_management_token", lambda settings: "token")
+        monkeypatch.setattr(
+            azure_inventory,
+            "get_paginated_items",
+            lambda url, token, max_pages=20: [
+                {
+                    "id": resource_id,
+                    "name": "nic-test",
+                    "type": "Microsoft.Network/networkInterfaces",
+                    "location": "canadacentral",
+                    "tags": {},
+                }
+            ],
+        )
+        monkeypatch.setattr(
+            azure_inventory,
+            "get_json",
+            lambda url, token: {"properties": {"networkSecurityGroup": {"id": "nsg-id"}}},
+        )
+
+        items = azure_inventory.list_resources(Settings(), subscription_id=subscription_id)
+
+        assert items[0]["properties"] == {"networkSecurityGroup": {"id": "nsg-id"}}
+        assert "detail_warning" not in items[0]
+
+    def test_list_resources_keeps_base_item_when_detail_enrichment_fails(self, monkeypatch: pytest.MonkeyPatch):
+        subscription_id = "sub-test"
+        resource_id = (
+            f"/subscriptions/{subscription_id}/resourceGroups/rg-test"
+            "/providers/Microsoft.Network/privateEndpoints/pep-test"
+        )
+
+        monkeypatch.setattr(
+            azure_inventory,
+            "list_accessible_subscriptions",
+            lambda settings: [{"subscription_id": subscription_id}],
+        )
+        monkeypatch.setattr(azure_inventory, "get_management_token", lambda settings: "token")
+        monkeypatch.setattr(
+            azure_inventory,
+            "get_paginated_items",
+            lambda url, token, max_pages=20: [
+                {
+                    "id": resource_id,
+                    "name": "pep-test",
+                    "type": "Microsoft.Network/privateEndpoints",
+                    "location": "canadacentral",
+                    "tags": {},
+                    "properties": {"subnet": {"id": "subnet-id"}},
+                }
+            ],
+        )
+        monkeypatch.setattr(azure_inventory, "get_json", lambda url, token: _raise(RuntimeError("detail boom")))
+
+        items = azure_inventory.list_resources(Settings(), subscription_id=subscription_id)
+
+        assert items[0]["properties"] == {"subnet": {"id": "subnet-id"}}
+        assert "detail boom" in items[0]["detail_warning"]
+
+
 class TestInventoryRoutes:
     def test_subscriptions_route_uses_global_azure_error_envelope(
         self,

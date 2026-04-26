@@ -9,6 +9,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - SQLite `manual_nodes` / `manual_edges` 기반 DB-backed CRUD 구현 완료
   - topology 응답에 manual node/edge merge 반영 완료
   - ARM property의 Azure resource ID reference 기반 explicit network relationship edge(`source=azure-explicit`, `confidence=1.0`) 생성 경로 추가 완료
+  - live resource 목록 수집 시 network/compute 주요 타입은 detail GET으로 relationship property를 best-effort 보강함
   - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
   - snapshot CRUD + restore-events endpoint 구현 완료
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료

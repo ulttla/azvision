@@ -375,6 +375,49 @@ def _extract_resource_group(resource_id: str | None) -> str | None:
         return None
 
 
+_DETAIL_API_VERSION_BY_TYPE_PREFIX: tuple[tuple[str, str], ...] = (
+    ("microsoft.compute/virtualmachines", "2024-03-01"),
+    ("microsoft.network/applicationgateways", "2023-11-01"),
+    ("microsoft.network/loadbalancers", "2023-11-01"),
+    ("microsoft.network/networkinterfaces", "2023-11-01"),
+    ("microsoft.network/networksecuritygroups", "2023-11-01"),
+    ("microsoft.network/privateendpoints", "2023-11-01"),
+    ("microsoft.network/publicipaddresses", "2023-11-01"),
+    ("microsoft.network/routetables", "2023-11-01"),
+    ("microsoft.network/virtualnetworks/subnets", "2023-11-01"),
+    ("microsoft.network/virtualnetworks", "2023-11-01"),
+)
+
+
+def _resource_detail_api_version(resource_type: str | None) -> str | None:
+    normalized_type = str(resource_type or "").lower()
+    for type_prefix, api_version in _DETAIL_API_VERSION_BY_TYPE_PREFIX:
+        if normalized_type.startswith(type_prefix):
+            return api_version
+    return None
+
+
+def _resource_detail_url(resource_id: str, api_version: str) -> str:
+    return f"https://management.azure.com{resource_id}?api-version={api_version}"
+
+
+def _resource_properties_from_detail(token: str, resource_id: str | None, resource_type: str | None) -> tuple[dict, str | None]:
+    if not resource_id:
+        return {}, None
+
+    api_version = _resource_detail_api_version(resource_type)
+    if not api_version:
+        return {}, None
+
+    try:
+        detail = get_json(_resource_detail_url(resource_id, api_version), token)
+    except Exception as exc:  # best-effort enrichment must not break the base inventory list
+        return {}, str(exc)
+
+    properties = detail.get("properties")
+    return properties if isinstance(properties, dict) else {}, None
+
+
 def list_resources(
     settings: Settings,
     *,
@@ -410,20 +453,32 @@ def list_resources(
             max_pages=20,
         )
         for item in payload_items:
-            items.append(
-                {
-                    "subscription_id": current_subscription_id,
-                    "resource_group": item.get("resourceGroup") or _extract_resource_group(item.get("id")),
-                    "name": item.get("name"),
-                    "type": item.get("type"),
-                    "kind": item.get("kind"),
-                    "location": item.get("location"),
-                    "id": item.get("id"),
-                    "tags": item.get("tags") or {},
-                    "properties": item.get("properties") or {},
-                    "source": "azure",
-                }
+            properties = item.get("properties") or {}
+            detail_warning = None
+            detail_properties, detail_warning = _resource_properties_from_detail(
+                token,
+                item.get("id"),
+                item.get("type"),
             )
+            if detail_properties:
+                properties = detail_properties
+
+            resource = {
+                "subscription_id": current_subscription_id,
+                "resource_group": item.get("resourceGroup") or _extract_resource_group(item.get("id")),
+                "name": item.get("name"),
+                "type": item.get("type"),
+                "kind": item.get("kind"),
+                "location": item.get("location"),
+                "id": item.get("id"),
+                "tags": item.get("tags") or {},
+                "properties": properties,
+                "source": "azure",
+            }
+            if detail_warning:
+                resource["detail_warning"] = detail_warning
+
+            items.append(resource)
             if len(items) >= limit:
                 return _truncate(items, limit)
 
