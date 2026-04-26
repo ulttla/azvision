@@ -1659,3 +1659,63 @@ select {
     min-width: 860px;
   }
 }
+
+.cost-page-shell {
+  gap: 20px;
+}
+
+.cost-control-row {
+  margin-top: 18px;
+  align-items: flex-end;
+}
+
+.cost-panel-grid {
+  align-items: start;
+}
+
+.cost-recommendation-list,
+.cost-resource-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.cost-recommendation-card,
+.cost-resource-row,
+.cost-note-box {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.42);
+  padding: 12px;
+}
+
+.cost-recommendation-heading,
+.cost-resource-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cost-recommendation-card p,
+.cost-note-box p {
+  margin: 8px 0 0;
+}
+
+.severity-high {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: #fecaca;
+}
+
+.severity-medium {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #fde68a;
+}
+
+.severity-low {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(74, 222, 128, 0.24);
+  color: #bbf7d0;
+}

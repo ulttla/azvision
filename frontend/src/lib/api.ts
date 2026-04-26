@@ -66,6 +66,76 @@ export type InventorySummaryResponse = {
   }
 }
 
+export type CostSummary = {
+  currency: string | null
+  estimated_monthly_cost: number | null
+  cost_status: string
+  source: string
+  resource_count: number
+  analyzed_resource_count: number
+  recommendation_count: number
+  severity_counts: Record<string, number>
+  category_counts: Record<string, number>
+  top_resource_types: Record<string, number>
+  notes: string[]
+}
+
+export type CostRecommendation = {
+  rule_id: string
+  category: string
+  severity: string
+  resource_id: string
+  resource_name: string
+  resource_type: string
+  title: string
+  recommendation: string
+  evidence: string[]
+  confidence: number
+}
+
+export type CostResourceRow = {
+  resource_id: string
+  resource_name: string
+  resource_type: string
+  resource_group?: string | null
+  location?: string | null
+  currency: string | null
+  estimated_monthly_cost: number | null
+  cost_status: string
+  recommendation_count: number
+}
+
+export type CostSummaryResponse = {
+  ok: boolean
+  workspace_id: string
+  mode?: string
+  warning?: string | null
+  summary: CostSummary
+}
+
+export type CostResourceResponse = {
+  ok: boolean
+  workspace_id: string
+  mode?: string
+  warning?: string | null
+  items: CostResourceRow[]
+}
+
+export type CostRecommendationResponse = {
+  ok: boolean
+  workspace_id: string
+  mode?: string
+  warning?: string | null
+  items: CostRecommendation[]
+}
+
+export type CostQueryOptions = {
+  subscriptionId?: string
+  resourceGroupName?: string
+  resourceGroupLimit?: number
+  resourceLimit?: number
+}
+
 export type TopologyChildSummary = {
   total: number
   type_counts: Record<string, number>
@@ -221,7 +291,7 @@ export type ApiErrorDetail = {
   message?: string
 }
 
-class ApiError extends Error {
+export class ApiError extends Error {
   readonly status: number
   readonly detail: ApiErrorDetail
 
@@ -338,6 +408,44 @@ export async function getWorkspaceInventorySummary(
   const query = search.toString()
   return fetchJson<InventorySummaryResponse>(
     `/workspaces/${workspaceId}/inventory-summary${query ? `?${query}` : ''}`,
+  )
+}
+
+function buildInventoryQuery(options?: CostQueryOptions): string {
+  const search = new URLSearchParams()
+
+  if (options?.subscriptionId) {
+    search.set('subscription_id', options.subscriptionId)
+  }
+  if (options?.resourceGroupName) {
+    search.set('resource_group_name', options.resourceGroupName)
+  }
+  if (options?.resourceGroupLimit) {
+    search.set('resource_group_limit', String(options.resourceGroupLimit))
+  }
+  if (options?.resourceLimit) {
+    search.set('resource_limit', String(options.resourceLimit))
+  }
+
+  const query = search.toString()
+  return query ? `?${query}` : ''
+}
+
+export async function getCostSummary(workspaceId: string, options?: CostQueryOptions): Promise<CostSummaryResponse> {
+  return fetchJson<CostSummaryResponse>(`/workspaces/${workspaceId}/cost/summary${buildInventoryQuery(options)}`)
+}
+
+export async function getCostResources(workspaceId: string, options?: CostQueryOptions): Promise<CostResourceResponse> {
+  return fetchJson<CostResourceResponse>(`/workspaces/${workspaceId}/cost/resources${buildInventoryQuery(options)}`)
+}
+
+export async function getCostRecommendations(
+  workspaceId: string,
+  options?: CostQueryOptions,
+): Promise<CostRecommendationResponse> {
+  return fetchJson<CostRecommendationResponse>(
+    `/workspaces/${workspaceId}/cost/recommendations${buildInventoryQuery(options)}`,
+    { method: 'POST' },
   )
 }
 

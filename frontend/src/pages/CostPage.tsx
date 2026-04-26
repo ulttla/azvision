@@ -1,0 +1,190 @@
+import { useEffect, useMemo, useState } from 'react'
+
+import {
+  ApiError,
+  getCostRecommendations,
+  getCostResources,
+  getCostSummary,
+  type CostRecommendation,
+  type CostResourceRow,
+  type CostSummary,
+} from '../lib/api'
+
+const DEFAULT_WORKSPACE_ID = import.meta.env.VITE_DEFAULT_WORKSPACE_ID ?? 'local-demo'
+
+function formatCountMap(value: Record<string, number>) {
+  const entries = Object.entries(value)
+  if (!entries.length) {
+    return 'none'
+  }
+  return entries.map(([key, count]) => `${key}: ${count}`).join(' • ')
+}
+
+function formatCostStatus(summary?: CostSummary | null) {
+  if (!summary) {
+    return 'loading'
+  }
+  if (summary.estimated_monthly_cost == null) {
+    return 'No dollar amount yet — rule-based analysis only'
+  }
+  return `${summary.currency ?? ''} ${summary.estimated_monthly_cost}`.trim()
+}
+
+function severityRank(value: string) {
+  if (value === 'high') return 0
+  if (value === 'medium') return 1
+  if (value === 'low') return 2
+  return 3
+}
+
+export function CostPage() {
+  const [workspaceId, setWorkspaceId] = useState<string>(DEFAULT_WORKSPACE_ID)
+  const [summary, setSummary] = useState<CostSummary | null>(null)
+  const [resources, setResources] = useState<CostResourceRow[]>([])
+  const [recommendations, setRecommendations] = useState<CostRecommendation[]>([])
+  const [mode, setMode] = useState('')
+  const [warning, setWarning] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCostInsights() {
+      setLoading(true)
+      setError('')
+      try {
+        const [summaryResult, resourceResult, recommendationResult] = await Promise.all([
+          getCostSummary(workspaceId),
+          getCostResources(workspaceId),
+          getCostRecommendations(workspaceId),
+        ])
+        if (cancelled) return
+
+        setSummary(summaryResult.summary)
+        setResources(resourceResult.items)
+        setRecommendations(recommendationResult.items)
+        setMode(summaryResult.mode ?? recommendationResult.mode ?? resourceResult.mode ?? '')
+        setWarning(summaryResult.warning ?? recommendationResult.warning ?? resourceResult.warning ?? '')
+      } catch (err) {
+        if (cancelled) return
+        setSummary(null)
+        setResources([])
+        setRecommendations([])
+        setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to load cost insights')
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadCostInsights()
+    return () => {
+      cancelled = true
+    }
+  }, [refreshKey, workspaceId])
+
+  const sortedRecommendations = useMemo(
+    () => [...recommendations].sort((left, right) => severityRank(left.severity) - severityRank(right.severity)),
+    [recommendations],
+  )
+  const topResources = useMemo(
+    () => [...resources].sort((left, right) => right.recommendation_count - left.recommendation_count).slice(0, 8),
+    [resources],
+  )
+
+  return (
+    <main className="page-shell cost-page-shell">
+      <section className="panel-card hero-card">
+        <p className="eyebrow">AzVision • Cost Intelligence</p>
+        <h2>Rule-based cost analyst first pass</h2>
+        <p className="subtext">
+          This view turns the current Azure inventory into cost triage prompts. It does not claim actual spend yet;
+          dollar mapping comes after Azure Cost Management ingestion.
+        </p>
+        <div className="control-row cost-control-row">
+          <label className="field-label">
+            Workspace
+            <input
+              className="search-input"
+              value={workspaceId}
+              onChange={(event) => setWorkspaceId(event.target.value)}
+              onBlur={() => setWorkspaceId((current) => current.trim() || DEFAULT_WORKSPACE_ID)}
+            />
+          </label>
+          <button type="button" className="toolbar-button primary" onClick={() => setRefreshKey((value) => value + 1)}>
+            {loading ? 'Refreshing…' : 'Refresh cost insights'}
+          </button>
+        </div>
+        {mode ? <p className="hint">Inventory mode: {mode}</p> : null}
+        {warning ? <p className="warning-text">{warning}</p> : null}
+        {error ? <p className="error-text">{error}</p> : null}
+      </section>
+
+      <section className="summary-grid">
+        <article className="metric-card">
+          <span className="metric-label">Cost status</span>
+          <strong>{formatCostStatus(summary)}</strong>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Resources analyzed</span>
+          <strong>{summary?.analyzed_resource_count ?? '-'}</strong>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Recommendations</span>
+          <strong>{summary?.recommendation_count ?? '-'}</strong>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Severity mix</span>
+          <strong>{summary ? formatCountMap(summary.severity_counts) : '-'}</strong>
+        </article>
+      </section>
+
+      <section className="panel-grid cost-panel-grid">
+        <article className="panel-card">
+          <h3>Top recommendations</h3>
+          <div className="cost-recommendation-list">
+            {sortedRecommendations.slice(0, 12).map((item) => (
+              <div key={`${item.rule_id}-${item.resource_id}`} className="cost-recommendation-card">
+                <div className="cost-recommendation-heading">
+                  <strong>{item.title}</strong>
+                  <span className={`mini-chip severity-${item.severity}`}>{item.severity}</span>
+                </div>
+                <p>{item.recommendation}</p>
+                <p className="hint">
+                  {item.resource_name} • {item.resource_type} • confidence {Math.round(item.confidence * 100)}%
+                </p>
+                {item.evidence.length ? <p className="hint">Evidence: {item.evidence.join(' • ')}</p> : null}
+              </div>
+            ))}
+            {!sortedRecommendations.length && !loading ? <p className="hint">No recommendations for this scope.</p> : null}
+          </div>
+        </article>
+
+        <article className="panel-card">
+          <h3>Resources with most prompts</h3>
+          <div className="cost-resource-list">
+            {topResources.map((resource) => (
+              <div key={resource.resource_id} className="cost-resource-row">
+                <div>
+                  <strong>{resource.resource_name}</strong>
+                  <p className="hint">{resource.resource_type}</p>
+                </div>
+                <span className="mini-chip">{resource.recommendation_count} prompts</span>
+              </div>
+            ))}
+          </div>
+          {summary?.notes?.length ? (
+            <div className="cost-note-box">
+              {summary.notes.map((note) => (
+                <p key={note}>{note}</p>
+              ))}
+            </div>
+          ) : null}
+        </article>
+      </section>
+    </main>
+  )
+}

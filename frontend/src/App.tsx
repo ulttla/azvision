@@ -10,7 +10,12 @@ const ArchitecturePage = lazy(async () => {
   return { default: module.ArchitecturePage }
 })
 
-type ViewMode = 'topology' | 'architecture'
+const CostPage = lazy(async () => {
+  const module = await import('./pages/CostPage')
+  return { default: module.CostPage }
+})
+
+type ViewMode = 'topology' | 'architecture' | 'cost'
 
 function LoadingShell() {
   return (
@@ -33,7 +38,7 @@ export default function App() {
             <p className="eyebrow workspace-shell-eyebrow">AzVision Workspace</p>
             <h1 className="workspace-shell-title">Azure topology and architecture workspace</h1>
             <p className="subtext workspace-shell-subtext">
-              Switch between detailed topology exploration and the presentation-focused architecture view.
+              Switch between topology exploration, presentation architecture, and cost triage.
             </p>
           </div>
 
@@ -56,12 +61,21 @@ export default function App() {
             >
               Architecture View
             </button>
+            <button
+              type="button"
+              className={`view-toggle-button ${viewMode === 'cost' ? 'active' : ''}`}
+              onClick={() => setViewMode('cost')}
+              role="tab"
+              aria-selected={viewMode === 'cost'}
+            >
+              Cost Insights
+            </button>
           </div>
         </div>
       </header>
 
       <Suspense fallback={<LoadingShell />}>
-        {viewMode === 'topology' ? <TopologyPage /> : <ArchitecturePage />}
+        {viewMode === 'topology' ? <TopologyPage /> : viewMode === 'architecture' ? <ArchitecturePage /> : <CostPage />}
       </Suspense>
     </>
   )
