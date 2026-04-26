@@ -198,6 +198,15 @@ export const CYTOSCAPE_STYLE = [
     },
   },
   {
+    selector: 'edge[sourceKind = "azure-explicit"]',
+    style: {
+      width: 3,
+      'line-style': 'solid',
+      'line-color': '#38bdf8',
+      'target-arrow-color': '#38bdf8',
+    },
+  },
+  {
     selector: 'edge[relationType = "secures"]',
     style: {
       'line-style': 'dashed',

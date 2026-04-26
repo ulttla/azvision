@@ -337,6 +337,8 @@ export function buildGraphElements(
       relationCategory: getRelationCategory(edge),
       sourceKind: edge.source,
       confidence: edge.confidence,
+      resolver: edge.resolver ?? '',
+      evidence: edge.evidence?.join(' • ') ?? '',
     },
   }))
 

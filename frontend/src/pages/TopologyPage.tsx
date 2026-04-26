@@ -159,6 +159,9 @@ function formatSourceLabel(value?: string) {
   if (normalized === 'azure') {
     return 'Azure live'
   }
+  if (normalized === 'azure-explicit') {
+    return 'Azure explicit'
+  }
   if (normalized === 'manual') {
     return 'Manual'
   }
@@ -194,6 +197,9 @@ function getSourceTone(value?: string) {
   if (normalized === 'azure') {
     return 'azure'
   }
+  if (normalized === 'azure-explicit') {
+    return 'azure-explicit'
+  }
   if (normalized === 'manual') {
     return 'manual'
   }
@@ -209,6 +215,8 @@ type GraphHoverCard = {
   subtitle: string
   source: string
   confidence: number
+  resolver?: string
+  evidence?: string[]
   x: number
   y: number
 }
@@ -891,6 +899,8 @@ export function TopologyPage() {
             subtitle: `${sourceNode?.display_name ?? edge.source_node_key} → ${targetNode?.display_name ?? edge.target_node_key}`,
             source: edge.source,
             confidence: edge.confidence,
+            resolver: edge.resolver,
+            evidence: edge.evidence,
             x: position.x,
             y: position.y,
           })
@@ -3318,7 +3328,13 @@ export function TopologyPage() {
                   <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(graphHoverCard.confidence)}`}>
                     {formatConfidenceLabel(graphHoverCard.confidence)}
                   </span>
+                  {graphHoverCard.resolver ? (
+                    <span className="mini-chip graph-hover-resolver-chip">{graphHoverCard.resolver}</span>
+                  ) : null}
                 </div>
+                {graphHoverCard.evidence?.length ? (
+                  <p className="graph-hover-evidence">Evidence: {graphHoverCard.evidence.slice(0, 2).join(' • ')}</p>
+                ) : null}
               </div>
             ) : null}
           </div>
