@@ -20,14 +20,21 @@ if [ ! -d "$ROOT_DIR/frontend/node_modules" ]; then
 fi
 
 cleanup() {
-  if [ -n "${BACKEND_PID:-}" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
-    kill "$BACKEND_PID" 2>/dev/null || true
+  if [ -n "${BACKEND_PID:-}" ]; then
+    pkill -P "$BACKEND_PID" 2>/dev/null || true
+    if kill -0 "$BACKEND_PID" 2>/dev/null; then
+      kill "$BACKEND_PID" 2>/dev/null || true
+    fi
   fi
-  if [ -n "${FRONTEND_PID:-}" ] && kill -0 "$FRONTEND_PID" 2>/dev/null; then
-    kill "$FRONTEND_PID" 2>/dev/null || true
+  if [ -n "${FRONTEND_PID:-}" ]; then
+    pkill -P "$FRONTEND_PID" 2>/dev/null || true
+    if kill -0 "$FRONTEND_PID" 2>/dev/null; then
+      kill "$FRONTEND_PID" 2>/dev/null || true
+    fi
   fi
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT TERM
 
 echo "Starting AzVision backend on http://$BACKEND_HOST:$BACKEND_PORT"
 (
