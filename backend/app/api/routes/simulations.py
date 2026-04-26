@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.simulations import SimulationCreateRequest, SimulationListResponse, SimulationRecord
+from app.schemas.simulations import SimulationCreateRequest, SimulationListResponse, SimulationRecord, SimulationTemplateResponse
 from app.services.simulations import SimulationNotFoundError, SimulationService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/simulations", tags=["simulations"])
@@ -23,5 +23,13 @@ def list_simulations(workspace_id: str) -> SimulationListResponse:
 def get_simulation(workspace_id: str, simulation_id: str) -> SimulationRecord:
     try:
         return service.get_simulation(workspace_id, simulation_id)
+    except SimulationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Simulation not found") from exc
+
+
+@router.get("/{simulation_id}/template", response_model=SimulationTemplateResponse)
+def get_simulation_template(workspace_id: str, simulation_id: str) -> SimulationTemplateResponse:
+    try:
+        return service.get_simulation_template(workspace_id, simulation_id)
     except SimulationNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Simulation not found") from exc

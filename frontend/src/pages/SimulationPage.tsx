@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { ApiError, createSimulation, getSimulations, type SimulationRecord } from '../lib/api'
+import { ApiError, createSimulation, getSimulationTemplate, getSimulations, type SimulationRecord, type SimulationTemplateResponse } from '../lib/api'
 
 const DEFAULT_WORKSPACE_ID = import.meta.env.VITE_DEFAULT_WORKSPACE_ID ?? 'local-demo'
 
@@ -17,6 +17,8 @@ export function SimulationPage() {
   const [description, setDescription] = useState('private web app with SQL database, backup, and monitoring')
   const [simulations, setSimulations] = useState<SimulationRecord[]>([])
   const [selectedSimulationId, setSelectedSimulationId] = useState('')
+  const [template, setTemplate] = useState<SimulationTemplateResponse | null>(null)
+  const [templateLoading, setTemplateLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -42,6 +44,35 @@ export function SimulationPage() {
   }, [selectedSimulationId, workspaceId])
 
   const selectedSimulation = simulations.find((item) => item.simulation_id === selectedSimulationId) ?? simulations[0]
+
+  useEffect(() => {
+    if (!selectedSimulation) {
+      setTemplate(null)
+      return
+    }
+    let cancelled = false
+    async function loadTemplate() {
+      setTemplateLoading(true)
+      try {
+        const result = await getSimulationTemplate(workspaceId, selectedSimulation.simulation_id)
+        if (!cancelled) {
+          setTemplate(result)
+        }
+      } catch {
+        if (!cancelled) {
+          setTemplate(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setTemplateLoading(false)
+        }
+      }
+    }
+    loadTemplate()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedSimulation, workspaceId])
 
   async function handleCreateSimulation() {
     if (!description.trim()) {
@@ -174,6 +205,23 @@ export function SimulationPage() {
                 {selectedSimulation.assumptions.map((assumption) => (
                   <p key={assumption}>{assumption}</p>
                 ))}
+              </div>
+              <div className="cost-note-box simulation-template-box">
+                <div className="cost-recommendation-heading">
+                  <h4>IaC outline</h4>
+                  <span className="mini-chip">{templateLoading ? 'loading' : template?.format ?? 'not loaded'}</span>
+                </div>
+                {template ? (
+                  <>
+                    <p className="hint">Deployable: {template.deployable ? 'yes' : 'no'} • resources: {template.resources.length}</p>
+                    <pre className="simulation-template-content">{template.content}</pre>
+                    {template.warnings.map((warning) => (
+                      <p className="hint" key={warning}>{warning}</p>
+                    ))}
+                  </>
+                ) : (
+                  <p className="hint">Template outline is not available for this simulation yet.</p>
+                )}
               </div>
             </>
           ) : (

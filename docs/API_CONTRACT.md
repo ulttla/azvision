@@ -114,6 +114,9 @@
 - `GET /workspaces/{workspace_id}/simulations`
   - workspace별로 저장된 simulation 목록 반환
 - `GET /workspaces/{workspace_id}/simulations/{simulation_id}`
+- `GET /workspaces/{workspace_id}/simulations/{simulation_id}/template`
+  - 응답: `format=bicep-outline`, `deployable=false`, `content`, `resources[]`, `warnings[]`
+  - 현재 template은 IaC planning skeleton이며 실제 배포용 템플릿이 아니다.
 
 ### Copilot (Phase 3 first-pass implemented)
 - `POST /workspaces/{workspace_id}/chat`

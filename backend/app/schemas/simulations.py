@@ -44,6 +44,24 @@ class SimulationRecord(BaseModel):
     assumptions: list[str] = Field(default_factory=list)
 
 
+class SimulationTemplateResource(BaseModel):
+    resource_type: str
+    symbolic_name: str
+    name_hint: str
+    priority: str
+
+
+class SimulationTemplateResponse(BaseModel):
+    ok: bool = True
+    workspace_id: str
+    simulation_id: str
+    format: str = "bicep-outline"
+    deployable: bool = False
+    content: str
+    resources: list[SimulationTemplateResource] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class SimulationListResponse(BaseModel):
     ok: bool = True
     workspace_id: str

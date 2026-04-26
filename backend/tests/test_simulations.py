@@ -54,6 +54,14 @@ def test_simulation_routes_create_list_and_get(client: TestClient) -> None:
     assert get_response.status_code == 200
     assert get_response.json()["simulation_id"] == created["simulation_id"]
 
+    template_response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/{created['simulation_id']}/template")
+    assert template_response.status_code == 200
+    template = template_response.json()
+    assert template["deployable"] is False
+    assert template["format"] == "bicep-outline"
+    assert "not a deployable template" in template["content"]
+    assert template["resources"]
+
 
 def test_unknown_simulation_returns_404_envelope(client: TestClient) -> None:
     response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/nope")

@@ -183,6 +183,24 @@ export type SimulationListResponse = {
   items: SimulationRecord[]
 }
 
+export type SimulationTemplateResource = {
+  resource_type: string
+  symbolic_name: string
+  name_hint: string
+  priority: string
+}
+
+export type SimulationTemplateResponse = {
+  ok: boolean
+  workspace_id: string
+  simulation_id: string
+  format: string
+  deployable: boolean
+  content: string
+  resources: SimulationTemplateResource[]
+  warnings: string[]
+}
+
 export type CostQueryOptions = {
   subscriptionId?: string
   resourceGroupName?: string
@@ -528,6 +546,10 @@ export async function createSimulation(
 
 export async function getSimulations(workspaceId: string): Promise<SimulationListResponse> {
   return fetchJson<SimulationListResponse>(`/workspaces/${workspaceId}/simulations`)
+}
+
+export async function getSimulationTemplate(workspaceId: string, simulationId: string): Promise<SimulationTemplateResponse> {
+  return fetchJson<SimulationTemplateResponse>(`/workspaces/${workspaceId}/simulations/${simulationId}/template`)
 }
 
 export async function getTopology(
