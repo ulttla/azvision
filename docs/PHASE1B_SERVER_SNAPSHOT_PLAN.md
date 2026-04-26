@@ -28,9 +28,9 @@
   - direction toggle: newest first / oldest first
   - `Recent` tab은 fixed semantics 유지를 위해 sort control 숨김
 - **2026-04-21 regression follow-up**
-  - backend regression tests로 `captured_at asc/desc`, `last_restored_at desc`, route query parsing 경로를 추가 고정
+  - backend regression tests로 `captured_at asc/desc`, `updated_at desc`, `last_restored_at desc`, route query parsing 경로를 추가 고정
   - frontend helper + `scripts/snapshot_sort_semantics_smoke.mts`를 추가해 `Saved` custom sort와 `Recent` fixed semantics를 browser 없이도 빠르게 smoke 가능하게 정리
-  - `scripts/snapshot_sort_api_smoke.sh`를 추가해 live backend 기준 `captured_at` / `last_restored_at` / `pinned_first` / `include_archived` 조합을 빠르게 재검증할 수 있게 함
+  - `scripts/snapshot_sort_api_smoke.sh`를 추가해 live backend 기준 `captured_at` / `updated_at` / `last_restored_at` / `pinned_first` / `include_archived` 조합을 빠르게 재검증할 수 있게 함
   - `scripts/snapshot_sort_visual_smoke.mjs`를 추가해 local Chrome CDP 기준 actual UI visual smoke와 `Recent` tab sort-control hidden 상태까지 재검증 가능하게 정리
   - browser tool의 local/private URL navigation policy block은 남아 있지만, same-line visual verification blocker는 해소
 - **2026-04-22 same-line UX follow-up**
