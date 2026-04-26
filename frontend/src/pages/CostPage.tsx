@@ -160,6 +160,14 @@ export function CostPage() {
           <span className="metric-label">Severity mix</span>
           <strong>{summary ? formatCountMap(summary.severity_counts) : '-'}</strong>
         </article>
+        <article className="metric-card">
+          <span className="metric-label">Cost drivers</span>
+          <strong>{summary ? formatCountMap(summary.cost_driver_counts) : '-'}</strong>
+        </article>
+        <article className="metric-card">
+          <span className="metric-label">Tag gaps</span>
+          <strong>{summary?.governance_gap_count ?? '-'}</strong>
+        </article>
       </section>
 
       <section className="panel-card cost-copilot-card">
@@ -221,6 +229,7 @@ export function CostPage() {
                 <div>
                   <strong>{resource.resource_name}</strong>
                   <p className="hint">{resource.resource_type}</p>
+                  {resource.cost_driver_labels.length ? <p className="hint">Drivers: {resource.cost_driver_labels.join(' • ')}</p> : null}
                 </div>
                 <span className="mini-chip">{resource.recommendation_count} prompts</span>
               </div>

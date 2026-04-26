@@ -48,6 +48,8 @@ def test_cost_summary_does_not_claim_actual_spend_without_cost_ingestion() -> No
     assert summary["currency"] is None
     assert summary["cost_status"] == "unknown-cost-data"
     assert summary["recommendation_count"] == len(recommendations)
+    assert summary["cost_driver_counts"] == {"compute-runtime": 1}
+    assert summary["governance_gap_count"] == 1
 
 
 def test_cost_summary_route_returns_rule_based_payload(client: TestClient) -> None:
@@ -60,6 +62,8 @@ def test_cost_summary_route_returns_rule_based_payload(client: TestClient) -> No
     assert body["summary"]["source"] == "rule-based-resource-inventory"
     assert body["summary"]["estimated_monthly_cost"] is None
     assert body["summary"]["recommendation_count"] >= 1
+    assert "cost_driver_counts" in body["summary"]
+    assert "governance_gap_count" in body["summary"]
 
 
 def test_cost_recommendations_route_returns_items(client: TestClient) -> None:
@@ -81,3 +85,4 @@ def test_cost_resources_route_returns_unknown_cost_rows(client: TestClient) -> N
     assert body["ok"] is True
     assert body["items"]
     assert body["items"][0]["cost_status"] == "unknown-cost-data"
+    assert "cost_driver_labels" in body["items"][0]

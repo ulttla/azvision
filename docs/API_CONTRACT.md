@@ -99,8 +99,9 @@
   - query: `subscription_id`, `resource_group_name`, `resource_group_limit`, `resource_limit`
   - 응답: `ok`, `workspace_id`, `mode`, `summary`
   - 현재 `summary.estimated_monthly_cost` 와 `summary.currency` 는 실제 Azure Cost Management 수집 전까지 `null` 이며, `cost_status=unknown-cost-data` 로 명시한다
+  - `summary.cost_driver_counts` 와 `summary.governance_gap_count` 로 금액 추정 없이 비용 검토 우선순위 signal을 제공한다
 - `GET /workspaces/{workspace_id}/cost/resources`
-  - 응답: `items[]` with `resource_id`, `resource_name`, `resource_type`, `cost_status`, `recommendation_count`
+  - 응답: `items[]` with `resource_id`, `resource_name`, `resource_type`, `cost_status`, `cost_driver_labels[]`, `recommendation_count`
 - `POST /workspaces/{workspace_id}/cost/recommendations`
   - 응답: rule-based recommendation `items[]` with `rule_id`, `category`, `severity`, `resource_id`, `title`, `recommendation`, `evidence`, `confidence`
   - 현재는 Azure Cost Management 금액 수집이 아니라 topology/inventory 기반 triage recommendation이다

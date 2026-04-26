@@ -77,6 +77,8 @@ export type CostSummary = {
   severity_counts: Record<string, number>
   category_counts: Record<string, number>
   top_resource_types: Record<string, number>
+  cost_driver_counts: Record<string, number>
+  governance_gap_count: number
   notes: string[]
 }
 
@@ -102,6 +104,7 @@ export type CostResourceRow = {
   currency: string | null
   estimated_monthly_cost: number | null
   cost_status: string
+  cost_driver_labels: string[]
   recommendation_count: number
 }
 

@@ -4,6 +4,20 @@ from collections import Counter, defaultdict
 from typing import Any
 
 _COST_RELEVANT_TAGS = {"costcenter", "cost_center", "environment", "owner", "application", "app"}
+_COST_DRIVER_RULES: tuple[tuple[str, str], ...] = (
+    ("microsoft.sql/managedinstances", "sql-managed-instance"),
+    ("microsoft.sql/servers/databases", "sql-database"),
+    ("microsoft.compute/virtualmachines", "compute-runtime"),
+    ("microsoft.network/applicationgateways", "network-edge"),
+    ("microsoft.network/loadbalancers", "network-edge"),
+    ("microsoft.network/publicipaddresses", "network-edge"),
+    ("microsoft.network/privateendpoints", "private-connectivity"),
+    ("microsoft.network/frontdoors", "global-edge"),
+    ("microsoft.storage/storageaccounts", "storage-retention"),
+    ("microsoft.synapse/workspaces", "analytics-capacity"),
+    ("microsoft.datafactory/factories", "pipeline-orchestration"),
+    ("microsoft.recoveryservices/vaults", "backup-retention"),
+)
 
 
 def _resource_id(resource: dict[str, Any]) -> str:
@@ -30,6 +44,11 @@ def _tags(resource: dict[str, Any]) -> dict[str, Any]:
 def _has_cost_relevant_tag(resource: dict[str, Any]) -> bool:
     tag_keys = {str(key).lower() for key in _tags(resource)}
     return bool(tag_keys & _COST_RELEVANT_TAGS)
+
+
+def _cost_driver_labels(resource: dict[str, Any]) -> list[str]:
+    resource_type = _resource_type(resource)
+    return [label for prefix, label in _COST_DRIVER_RULES if resource_type.startswith(prefix)]
 
 
 def _recommendation(
@@ -173,6 +192,7 @@ def build_cost_resource_rows(resources: list[dict[str, Any]], recommendations: l
             "currency": None,
             "estimated_monthly_cost": None,
             "cost_status": "unknown-cost-data",
+            "cost_driver_labels": _cost_driver_labels(resource),
             "recommendation_count": recommendation_counts[_resource_id(resource)],
         }
         for resource in resources
@@ -184,6 +204,12 @@ def build_cost_summary(resources: list[dict[str, Any]], recommendations: list[di
     severity_counts = Counter(str(item.get("severity") or "unknown") for item in recommendations)
     category_counts = Counter(str(item.get("category") or "unknown") for item in recommendations)
     resource_type_counts = Counter(str(resource.get("type") or "unknown") for resource in resources)
+    cost_driver_counts = Counter(
+        label
+        for resource in resources
+        for label in _cost_driver_labels(resource)
+    )
+    governance_gap_count = len([resource for resource in resources if _resource_id(resource) and not _has_cost_relevant_tag(resource)])
 
     return {
         "currency": None,
@@ -196,8 +222,11 @@ def build_cost_summary(resources: list[dict[str, Any]], recommendations: list[di
         "severity_counts": dict(severity_counts),
         "category_counts": dict(category_counts),
         "top_resource_types": dict(resource_type_counts.most_common(10)),
+        "cost_driver_counts": dict(cost_driver_counts.most_common()),
+        "governance_gap_count": governance_gap_count,
         "notes": [
             "This is a rule-based first pass. It does not yet call Azure Cost Management or emit dollar amounts.",
+            "Cost drivers identify resources that commonly need pricing/utilization review; they are not spend estimates.",
             "Use recommendations as triage prompts until actual cost ingestion is added.",
         ],
     }

@@ -13,7 +13,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
   - snapshot CRUD + restore-events endpoint 구현 완료
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
-  - rule-based Cost Intelligence first-pass endpoint(`/cost/summary`, `/cost/resources`, `/cost/recommendations`) 구현 완료. 실제 Cost Management 금액 수집 전까지 비용 금액은 `unknown-cost-data` 로 명시
+  - rule-based Cost Intelligence first-pass endpoint(`/cost/summary`, `/cost/resources`, `/cost/recommendations`) 구현 완료. 실제 Cost Management 금액 수집 전까지 비용 금액은 `unknown-cost-data` 로 명시하고 cost driver signal을 제공
   - frontend `Cost Insights` view에서 rule-based cost summary/recommendations/resource prompts 확인 가능
   - `/chat` rule-based copilot first-pass 구현 완료. 현재는 `llm_status=not_configured` 로 실제 LLM 연결 전 구조/비용/네트워크 질문에 대한 deterministic answer/suggestions를 반환
   - `/simulations` rule-based first-pass 구현 완료. workload 설명 기반 recommended resources, architecture/cost/security notes, next actions, assumptions를 생성하고 SQLite에 저장
