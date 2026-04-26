@@ -194,6 +194,20 @@ class TestManualEdgeCreate:
         assert resp.status_code in (200, 201)
         assert resp.json()["relation_type"] == "secures"
 
+    def test_create_edge_between_manual_nodes_skips_live_inventory_lookup(self, client: TestClient, monkeypatch: pytest.MonkeyPatch):
+        from app.api.routes import topology
+
+        def fail_live_lookup(*_args, **_kwargs):
+            raise AssertionError("manual-only edge validation should not call live inventory")
+
+        monkeypatch.setattr(topology, "resolve_inventory_collection", fail_live_lookup)
+        src = _create_node(client, display_name="Src")
+        tgt = _create_node(client, display_name="Tgt")
+        edge = _create_edge(client, src["node_key"], tgt["node_key"])
+
+        assert edge["source_node_key"] == src["node_key"]
+        assert edge["target_node_key"] == tgt["node_key"]
+
     def test_create_edge_unknown_node_key_returns_400(self, client: TestClient):
         src = _create_node(client, display_name="Src")
         resp = client.post(
@@ -246,6 +260,25 @@ class TestManualEdgeUpdate:
             f"/api/v1/workspaces/{WORKSPACE}/topology/manual-edges/{edge['manual_edge_ref']}",
             json={"relation_type": "routes"},
         )
+        assert resp.status_code == 200
+        assert resp.json()["relation_type"] == "routes"
+
+    def test_update_manual_only_edge_skips_live_inventory_lookup(self, client: TestClient, monkeypatch: pytest.MonkeyPatch):
+        from app.api.routes import topology
+
+        src = _create_node(client, display_name="S")
+        tgt = _create_node(client, display_name="T")
+        edge = _create_edge(client, src["node_key"], tgt["node_key"])
+
+        def fail_live_lookup(*_args, **_kwargs):
+            raise AssertionError("manual-only edge update should not call live inventory")
+
+        monkeypatch.setattr(topology, "resolve_inventory_collection", fail_live_lookup)
+        resp = client.patch(
+            f"/api/v1/workspaces/{WORKSPACE}/topology/manual-edges/{edge['manual_edge_ref']}",
+            json={"relation_type": "routes"},
+        )
+
         assert resp.status_code == 200
         assert resp.json()["relation_type"] == "routes"
 

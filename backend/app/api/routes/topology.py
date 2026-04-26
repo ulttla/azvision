@@ -723,11 +723,13 @@ def _manual_repo() -> ManualModelRepository:
     return ManualModelRepository()
 
 
-def _available_node_keys_for_manual_edges(workspace_id: str) -> set[str]:
-    node_keys = {
+def _manual_node_keys_for_edges(workspace_id: str) -> set[str]:
+    return {
         node["node_key"] for node in _manual_repo().get_manual_nodes_as_topology_nodes(workspace_id)
     }
 
+
+def _live_node_keys_for_manual_edges(workspace_id: str) -> set[str]:
     settings = get_settings()
     try:
         resolution = resolve_inventory_collection(
@@ -742,11 +744,9 @@ def _available_node_keys_for_manual_edges(workspace_id: str) -> set[str]:
             include_network_inference=False,
             collapse_managed_instance_children=False,
         )
-        node_keys.update(node["node_key"] for node in projected.get("nodes", []))
+        return {node["node_key"] for node in projected.get("nodes", [])}
     except AzureInventoryError:
-        pass
-
-    return node_keys
+        return set()
 
 
 def _validate_manual_edge_payload(workspace_id: str, payload: dict[str, Any]) -> None:
@@ -755,16 +755,18 @@ def _validate_manual_edge_payload(workspace_id: str, payload: dict[str, Any]) ->
     if not source_node_key or not target_node_key:
         raise HTTPException(status_code=400, detail="source_node_key and target_node_key are required")
 
-    available_node_keys = _available_node_keys_for_manual_edges(workspace_id)
-    missing = [
-        node_key
-        for node_key in (source_node_key, target_node_key)
-        if node_key not in available_node_keys
-    ]
+    requested_node_keys = {source_node_key, target_node_key}
+    available_node_keys = _manual_node_keys_for_edges(workspace_id)
+    missing = requested_node_keys - available_node_keys
+
+    if missing:
+        available_node_keys.update(_live_node_keys_for_manual_edges(workspace_id))
+        missing = requested_node_keys - available_node_keys
+
     if missing:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown node_key reference(s): {', '.join(missing)}",
+            detail=f"Unknown node_key reference(s): {', '.join(sorted(missing))}",
         )
 
 

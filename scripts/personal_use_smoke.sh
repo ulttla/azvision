@@ -7,6 +7,7 @@ SMOKE_WORKSPACE_ID="${AZVISION_SMOKE_WORKSPACE_ID:-personal-smoke-$(date +%Y%m%d
 RESOURCE_GROUP_LIMIT="${AZVISION_RESOURCE_GROUP_LIMIT:-50}"
 RESOURCE_LIMIT="${AZVISION_RESOURCE_LIMIT:-80}"
 SKIP_LIVE="${AZVISION_SKIP_LIVE:-0}"
+CURL_MAX_TIME="${AZVISION_CURL_MAX_TIME:-30}"
 TMP_DIR="${AZVISION_SMOKE_OUT_DIR:-/tmp/azvision-personal-smoke}"
 mkdir -p "$TMP_DIR"
 
@@ -44,9 +45,9 @@ curl_json() {
   local data="${4:-}"
   local code
   if [ -n "$data" ]; then
-    code="$(curl -sS -o "$outfile" -w '%{http_code}' -X "$method" -H 'Content-Type: application/json' --data "$data" "$url")"
+    code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$outfile" -w '%{http_code}' -X "$method" -H 'Content-Type: application/json' --data "$data" "$url")"
   else
-    code="$(curl -sS -o "$outfile" -w '%{http_code}' -X "$method" "$url")"
+    code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$outfile" -w '%{http_code}' -X "$method" "$url")"
   fi
   if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
     echo "Request failed: $method $url -> HTTP $code"
