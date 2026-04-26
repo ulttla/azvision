@@ -57,8 +57,10 @@ Run from `/Users/gun/dev/azvision`.
 ```bash
 bash scripts/check_doc_mirror.sh
 bash -n scripts/run_dev.sh
+bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
 bash -n scripts/personal_use_smoke.sh
+scripts/check_personal_use_ready.sh
 npm --prefix frontend run build
 cd backend && .venv/bin/python -m pytest -q
 ```
@@ -75,6 +77,7 @@ Expected result:
 - backend tests pass
 - frontend build passes
 - backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt`
+- readiness preflight reports local prerequisites and config booleans without printing secret values
 - docs mirror check shows only expected deferred drift
 
 ## Go / no-go rule

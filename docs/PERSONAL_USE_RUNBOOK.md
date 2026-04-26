@@ -20,7 +20,16 @@ Default URLs:
 
 Stop both processes with `Ctrl+C` in the terminal that runs `scripts/run_dev.sh`.
 
-## Health check
+## Preflight / health check
+
+Before starting the app, run the local readiness preflight:
+
+```bash
+cd /Users/gun/dev/azvision
+scripts/check_personal_use_ready.sh
+```
+
+After starting the app, verify runtime health:
 
 ```bash
 curl -fsS http://127.0.0.1:8000/healthz
@@ -82,12 +91,13 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 
 ## Daily-use checklist
 
-1. Start app: `scripts/run_dev.sh`
-2. Open UI: `http://127.0.0.1:5173`
-3. Confirm Azure read: `scripts/live_topology_probe.sh` or UI scope load
-4. Use topology/manual modeling as needed
-5. Save important states as server snapshots
-6. Before risky local cleanup, run `scripts/backup_sqlite.sh`
+1. Optional preflight: `scripts/check_personal_use_ready.sh`
+2. Start app: `scripts/run_dev.sh`
+3. Open UI: `http://127.0.0.1:5173`
+4. Confirm Azure read: `scripts/live_topology_probe.sh` or UI scope load
+5. Use topology/manual modeling as needed
+6. Save important states as server snapshots
+7. Before risky local cleanup, run `scripts/backup_sqlite.sh`
 
 ## Known personal-use limits
 

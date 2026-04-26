@@ -76,10 +76,11 @@ scripts/run_dev.sh
 - API: `http://127.0.0.1:8000`
 - UI: `http://127.0.0.1:5173`
 
-실사용 readiness smoke:
+로컬 readiness preflight와 실사용 smoke:
 
 ```bash
 cd /Users/gun/dev/azvision
+scripts/check_personal_use_ready.sh
 scripts/personal_use_smoke.sh
 ```
 
