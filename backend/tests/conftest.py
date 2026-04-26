@@ -99,15 +99,21 @@ def client(
        pick up the test DB URL and mock inventory.
     """
     from app.core.config import get_settings, Settings
+    from app.repositories.simulations import SimulationRepository
     from app.repositories.snapshots import SnapshotRepository
+    from app.services.simulations import SimulationService
     from app.services.snapshots import SnapshotService
+    import app.api.routes.simulations as sim_routes
     import app.api.routes.snapshots as snap_routes
     import app.repositories.manual_model as mm_repo_mod
 
-    # 1. Patch snapshot route service singleton
+    # 1. Patch route service singletons
     test_snap_repo = SnapshotRepository(database_url=db_url)
     test_snap_svc = SnapshotService(repository=test_snap_repo)
     monkeypatch.setattr(snap_routes, "service", test_snap_svc)
+    test_sim_repo = SimulationRepository(database_url=db_url)
+    test_sim_svc = SimulationService(repository=test_sim_repo)
+    monkeypatch.setattr(sim_routes, "service", test_sim_svc)
 
     # 2. Build test settings and patch manual_model module-level settings
     test_settings = Settings(

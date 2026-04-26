@@ -154,6 +154,25 @@ DDL_STATEMENTS = [
     CREATE INDEX IF NOT EXISTS idx_snapshots_workspace_updated_at
     ON snapshots (workspace_id, updated_at DESC, created_at DESC)
     """,
+    """
+    CREATE TABLE IF NOT EXISTS simulations (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        status TEXT NOT NULL,
+        mode TEXT NOT NULL,
+        workload_name TEXT NOT NULL,
+        environment TEXT NOT NULL,
+        description TEXT NOT NULL,
+        matched_rules_json TEXT NOT NULL DEFAULT '[]',
+        recommended_resources_json TEXT NOT NULL DEFAULT '[]',
+        assumptions_json TEXT NOT NULL DEFAULT '[]'
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_simulations_workspace_created_at
+    ON simulations (workspace_id, created_at DESC, id DESC)
+    """,
 ]
 
 

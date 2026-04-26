@@ -109,9 +109,9 @@
 - `POST /workspaces/{workspace_id}/simulations`
   - request: `workload_name`, `environment`, `description` 또는 `message`
   - 응답: `ok`, `workspace_id`, `simulation_id`, `status=generated`, `mode=rule-based`, `recommended_resources[]`, `assumptions[]`
-  - 현재는 in-process store 기반 first pass이며 DB persistence/deployment template/pricing calculation은 아직 미구현
+  - 현재는 SQLite persistence 기반 first pass이며 deployment template/pricing calculation은 아직 미구현
 - `GET /workspaces/{workspace_id}/simulations`
-  - 현재 process lifetime 안에서 생성된 simulation 목록 반환
+  - workspace별로 저장된 simulation 목록 반환
 - `GET /workspaces/{workspace_id}/simulations/{simulation_id}`
 
 ### Copilot (Phase 3 first-pass implemented)

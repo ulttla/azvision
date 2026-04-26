@@ -1,43 +1,27 @@
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException
 
-from app.services.simulation import build_simulation
+from app.schemas.simulations import SimulationCreateRequest, SimulationListResponse, SimulationRecord
+from app.services.simulations import SimulationNotFoundError, SimulationService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/simulations", tags=["simulations"])
-
-_SIMULATION_STORE: dict[str, list[dict[str, Any]]] = {}
-
-
-@router.post("")
-def create_simulation(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-    simulation = build_simulation(payload)
-    _SIMULATION_STORE.setdefault(workspace_id, []).insert(0, simulation)
-    return {
-        "ok": True,
-        "workspace_id": workspace_id,
-        **simulation,
-    }
+service = SimulationService()
 
 
-@router.get("")
-def list_simulations(workspace_id: str) -> dict[str, Any]:
-    return {
-        "ok": True,
-        "workspace_id": workspace_id,
-        "items": _SIMULATION_STORE.get(workspace_id, []),
-    }
+@router.post("", response_model=SimulationRecord)
+def create_simulation(workspace_id: str, payload: SimulationCreateRequest) -> SimulationRecord:
+    return service.create_simulation(workspace_id, payload)
 
 
-@router.get("/{simulation_id}")
-def get_simulation(workspace_id: str, simulation_id: str) -> dict[str, Any]:
-    for simulation in _SIMULATION_STORE.get(workspace_id, []):
-        if simulation.get("simulation_id") == simulation_id:
-            return {
-                "ok": True,
-                "workspace_id": workspace_id,
-                **simulation,
-            }
-    raise HTTPException(status_code=404, detail="Simulation not found")
+@router.get("", response_model=SimulationListResponse)
+def list_simulations(workspace_id: str) -> SimulationListResponse:
+    return SimulationListResponse(workspace_id=workspace_id, items=service.list_simulations(workspace_id))
+
+
+@router.get("/{simulation_id}", response_model=SimulationRecord)
+def get_simulation(workspace_id: str, simulation_id: str) -> SimulationRecord:
+    try:
+        return service.get_simulation(workspace_id, simulation_id)
+    except SimulationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Simulation not found") from exc

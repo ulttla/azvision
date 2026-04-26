@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import hashlib
 from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 
 _BASELINE_RESOURCES = [
@@ -154,9 +154,8 @@ def build_simulation(payload: dict[str, Any]) -> dict[str, Any]:
         normalized["name_hint"] = normalized["name_hint"].replace("<workload>", workload_name).replace("<env>", environment)
         normalized_items.append(normalized)
 
-    digest = hashlib.sha1(f"{workload_name}|{environment}|{description}".encode()).hexdigest()[:12]
     return {
-        "simulation_id": f"sim_{digest}",
+        "simulation_id": f"sim_{uuid4().hex[:12]}",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "generated",
         "mode": "rule-based",
