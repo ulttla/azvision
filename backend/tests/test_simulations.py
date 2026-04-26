@@ -7,6 +7,30 @@ from app.services.simulation import build_simulation
 WORKSPACE = "ws-simulation-test"
 
 
+def test_build_simulation_uses_message_when_description_is_empty() -> None:
+    simulation = build_simulation(
+        {
+            "workload_name": "api",
+            "environment": "dev",
+            "description": "",
+            "message": "private api with database",
+        }
+    )
+    resource_types = {item["resource_type"] for item in simulation["recommended_resources"]}
+
+    assert "Microsoft.Web/sites" in resource_types
+    assert "Microsoft.Sql/servers/databases" in resource_types
+    assert "Microsoft.Network/virtualNetworks" in resource_types
+    assert simulation["description"] == "private api with database"
+
+
+def test_build_simulation_empty_description_returns_baseline() -> None:
+    simulation = build_simulation({"description": ""})
+
+    assert simulation["matched_rules"] == ["baseline"]
+    assert {item["priority"] for item in simulation["recommended_resources"]} >= {"required", "recommended"}
+
+
 def test_build_simulation_recommends_resources_from_description() -> None:
     simulation = build_simulation(
         {

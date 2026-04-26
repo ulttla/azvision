@@ -32,6 +32,13 @@ def test_default_copilot_provider_uses_rule_based_contract() -> None:
     assert answer["provider"] == "rule-based"
     assert answer["llm_status"] == "not_configured"
     assert answer["context"]["resource_count"] == 0
+    assert answer["suggestions"]
+
+
+def test_rule_based_copilot_network_question_returns_network_guidance() -> None:
+    answer = build_rule_based_copilot_answer("Explain private subnet and NSG design", [])
+
+    assert any("NSG" in suggestion or "network" in suggestion for suggestion in answer["suggestions"])
 
 
 def test_copilot_chat_route_returns_contextual_answer(client: TestClient) -> None:

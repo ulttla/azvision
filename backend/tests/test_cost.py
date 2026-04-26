@@ -32,6 +32,29 @@ def test_cost_recommendations_flag_high_cost_resource_types() -> None:
     assert "tag-cost-ownership" in rule_ids
 
 
+def test_cost_recommendations_ignore_resources_without_ids() -> None:
+    resources = [
+        {
+            "name": "vm-no-id",
+            "type": "Microsoft.Compute/virtualMachines",
+            "tags": {},
+        }
+    ]
+
+    assert build_cost_recommendations(resources) == []
+
+
+def test_cost_summary_handles_empty_resource_list() -> None:
+    summary = build_cost_summary([], [], get_default_cost_ingestion_provider().get_cost_snapshot([]))
+
+    assert summary["resource_count"] == 0
+    assert summary["analyzed_resource_count"] == 0
+    assert summary["recommendation_count"] == 0
+    assert summary["cost_driver_counts"] == {}
+    assert summary["governance_gap_count"] == 0
+    assert summary["cost_status"] == "unknown-cost-data"
+
+
 def test_cost_summary_does_not_claim_actual_spend_without_cost_ingestion() -> None:
     resources = [
         {
