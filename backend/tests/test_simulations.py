@@ -62,6 +62,14 @@ def test_simulation_routes_create_list_and_get(client: TestClient) -> None:
     assert "not a deployable template" in template["content"]
     assert template["resources"]
 
+    fit_response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/{created['simulation_id']}/fit")
+    assert fit_response.status_code == 200
+    fit = fit_response.json()
+    assert fit["inventory_resource_count"] >= 1
+    assert fit["items"]
+    assert "covered_count" in fit
+    assert "missing_required_count" in fit
+
 
 def test_unknown_simulation_returns_404_envelope(client: TestClient) -> None:
     response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/nope")

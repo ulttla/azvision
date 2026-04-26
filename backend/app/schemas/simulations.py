@@ -62,6 +62,28 @@ class SimulationTemplateResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class SimulationFitResource(BaseModel):
+    resource_type: str
+    priority: str
+    status: str
+    existing_count: int = Field(default=0, ge=0)
+    sample_existing_names: list[str] = Field(default_factory=list)
+    recommendation: str
+
+
+class SimulationFitResponse(BaseModel):
+    ok: bool = True
+    workspace_id: str
+    simulation_id: str
+    mode: str | None = None
+    warning: str | None = None
+    inventory_resource_count: int = Field(default=0, ge=0)
+    covered_count: int = Field(default=0, ge=0)
+    missing_required_count: int = Field(default=0, ge=0)
+    missing_recommended_count: int = Field(default=0, ge=0)
+    items: list[SimulationFitResource] = Field(default_factory=list)
+
+
 class SimulationListResponse(BaseModel):
     ok: bool = True
     workspace_id: str

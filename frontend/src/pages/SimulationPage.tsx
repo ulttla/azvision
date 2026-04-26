@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 
-import { ApiError, createSimulation, getSimulationTemplate, getSimulations, type SimulationRecord, type SimulationTemplateResponse } from '../lib/api'
+import {
+  ApiError,
+  createSimulation,
+  getSimulationFit,
+  getSimulationTemplate,
+  getSimulations,
+  type SimulationFitResponse,
+  type SimulationRecord,
+  type SimulationTemplateResponse,
+} from '../lib/api'
 
 const DEFAULT_WORKSPACE_ID = import.meta.env.VITE_DEFAULT_WORKSPACE_ID ?? 'local-demo'
 
@@ -18,6 +27,7 @@ export function SimulationPage() {
   const [simulations, setSimulations] = useState<SimulationRecord[]>([])
   const [selectedSimulationId, setSelectedSimulationId] = useState('')
   const [template, setTemplate] = useState<SimulationTemplateResponse | null>(null)
+  const [fit, setFit] = useState<SimulationFitResponse | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -48,19 +58,25 @@ export function SimulationPage() {
   useEffect(() => {
     if (!selectedSimulation) {
       setTemplate(null)
+      setFit(null)
       return
     }
     let cancelled = false
     async function loadTemplate() {
       setTemplateLoading(true)
       try {
-        const result = await getSimulationTemplate(workspaceId, selectedSimulation.simulation_id)
+        const [templateResult, fitResult] = await Promise.all([
+          getSimulationTemplate(workspaceId, selectedSimulation.simulation_id),
+          getSimulationFit(workspaceId, selectedSimulation.simulation_id),
+        ])
         if (!cancelled) {
-          setTemplate(result)
+          setTemplate(templateResult)
+          setFit(fitResult)
         }
       } catch {
         if (!cancelled) {
           setTemplate(null)
+          setFit(null)
         }
       } finally {
         if (!cancelled) {
@@ -174,6 +190,28 @@ export function SimulationPage() {
                   </div>
                 ))}
               </div>
+              {fit ? (
+                <div className="cost-note-box simulation-fit-box">
+                  <h4>Current inventory fit</h4>
+                  <p className="hint">
+                    Inventory resources: {fit.inventory_resource_count} • covered: {fit.covered_count} • missing required: {fit.missing_required_count}
+                  </p>
+                  <div className="simulation-fit-list">
+                    {fit.items.map((item) => (
+                      <div key={`${selectedSimulation.simulation_id}-${item.resource_type}-fit`} className="simulation-fit-row">
+                        <div>
+                          <strong>{item.resource_type}</strong>
+                          <p className="hint">{item.recommendation}</p>
+                          {item.sample_existing_names.length ? <p className="hint">Existing: {item.sample_existing_names.join(' • ')}</p> : null}
+                        </div>
+                        <span className={`mini-chip ${item.status === 'covered' ? 'severity-low' : item.priority === 'required' ? 'severity-high' : 'severity-medium'}`}>
+                          {item.status} · {item.existing_count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="simulation-insight-grid">
                 <div className="cost-note-box">
                   <h4>Architecture notes</h4>

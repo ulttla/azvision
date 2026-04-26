@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
-from app.schemas.simulations import SimulationCreateRequest, SimulationListResponse, SimulationRecord, SimulationTemplateResponse
+from app.collectors.azure_inventory import resolve_resource_items
+from app.core.config import get_settings
+from app.schemas.simulations import SimulationCreateRequest, SimulationFitResponse, SimulationListResponse, SimulationRecord, SimulationTemplateResponse
 from app.services.simulations import SimulationNotFoundError, SimulationService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/simulations", tags=["simulations"])
@@ -31,5 +33,32 @@ def get_simulation(workspace_id: str, simulation_id: str) -> SimulationRecord:
 def get_simulation_template(workspace_id: str, simulation_id: str) -> SimulationTemplateResponse:
     try:
         return service.get_simulation_template(workspace_id, simulation_id)
+    except SimulationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Simulation not found") from exc
+
+
+@router.get("/{simulation_id}/fit", response_model=SimulationFitResponse)
+def get_simulation_fit(
+    workspace_id: str,
+    simulation_id: str,
+    subscription_id: str | None = Query(default=None),
+    resource_group_name: str | None = Query(default=None),
+    limit: int = Query(default=200, ge=1, le=500),
+) -> SimulationFitResponse:
+    settings = get_settings()
+    resolution = resolve_resource_items(
+        settings,
+        subscription_id=subscription_id,
+        resource_group_name=resource_group_name,
+        limit=limit,
+    )
+    try:
+        return service.compare_simulation_to_inventory(
+            workspace_id,
+            simulation_id,
+            resolution.items,
+            mode=resolution.mode,
+            warning=resolution.warning,
+        )
     except SimulationNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Simulation not found") from exc

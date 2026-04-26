@@ -117,6 +117,8 @@
 - `GET /workspaces/{workspace_id}/simulations/{simulation_id}/template`
   - 응답: `format=bicep-outline`, `deployable=false`, `content`, `resources[]`, `warnings[]`
   - 현재 template은 IaC planning skeleton이며 실제 배포용 템플릿이 아니다.
+- `GET /workspaces/{workspace_id}/simulations/{simulation_id}/fit`
+  - 현재 inventory resource type과 simulation recommended resource type을 비교해 `covered_count`, `missing_required_count`, `missing_recommended_count`, `items[]` 를 반환한다.
 
 ### Copilot (Phase 3 first-pass implemented)
 - `POST /workspaces/{workspace_id}/chat`

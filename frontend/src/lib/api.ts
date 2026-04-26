@@ -201,6 +201,28 @@ export type SimulationTemplateResponse = {
   warnings: string[]
 }
 
+export type SimulationFitResource = {
+  resource_type: string
+  priority: string
+  status: string
+  existing_count: number
+  sample_existing_names: string[]
+  recommendation: string
+}
+
+export type SimulationFitResponse = {
+  ok: boolean
+  workspace_id: string
+  simulation_id: string
+  mode?: string | null
+  warning?: string | null
+  inventory_resource_count: number
+  covered_count: number
+  missing_required_count: number
+  missing_recommended_count: number
+  items: SimulationFitResource[]
+}
+
 export type CostQueryOptions = {
   subscriptionId?: string
   resourceGroupName?: string
@@ -550,6 +572,10 @@ export async function getSimulations(workspaceId: string): Promise<SimulationLis
 
 export async function getSimulationTemplate(workspaceId: string, simulationId: string): Promise<SimulationTemplateResponse> {
   return fetchJson<SimulationTemplateResponse>(`/workspaces/${workspaceId}/simulations/${simulationId}/template`)
+}
+
+export async function getSimulationFit(workspaceId: string, simulationId: string): Promise<SimulationFitResponse> {
+  return fetchJson<SimulationFitResponse>(`/workspaces/${workspaceId}/simulations/${simulationId}/fit`)
 }
 
 export async function getTopology(
