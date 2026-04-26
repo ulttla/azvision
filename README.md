@@ -45,7 +45,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
   - `docs/MIRROR_POLICY.md` 와 `scripts/check_doc_mirror.sh` 로 repo docs와 workspace docs mirror drift를 visibility-only 방식으로 점검 가능
-  - `docs/PERSONAL_USE_RUNBOOK.md`, `scripts/run_dev.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh` 로 Gun 단독 실사용 v0.9 실행·검증·백업 경로를 점검 가능
+  - `docs/PERSONAL_USE_RUNBOOK.md`, `docs/PERSONAL_USE_READINESS_PLAN.md`, `scripts/run_dev.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh` 로 Gun 단독 실사용 v0.9 실행·검증·백업 경로를 점검 가능
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
@@ -65,7 +65,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 
 ## 개인 실사용 v0.9 빠른 실행
 
-Gun 단독 로컬 사용 기준으로는 아래 경로를 우선 사용한다. 자세한 절차는 `docs/PERSONAL_USE_RUNBOOK.md` 참고.
+Gun 단독 로컬 사용 기준으로는 아래 경로를 우선 사용한다. 자세한 절차는 `docs/PERSONAL_USE_RUNBOOK.md`, 범위/acceptance 기준은 `docs/PERSONAL_USE_READINESS_PLAN.md` 참고.
 
 ```bash
 cd /Users/gun/dev/azvision

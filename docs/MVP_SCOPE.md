@@ -3,6 +3,7 @@
 > **현재 제품 기준선:** single-user first.
 > 현재 구현은 Phase 1B server-backed snapshot/history usable baseline까지 반영됐지만, productization 기능은 아직 범위가 아니다.
 > user login / multi-user / permission model / language toggle은 보류한다.
+> Gun 단독 실사용 v0.9 기준은 `PERSONAL_USE_READINESS_PLAN.md` 와 `PERSONAL_USE_RUNBOOK.md` 를 우선 참조한다.
 > 각 Phase의 세부 범위는 `PRODUCT_VISION.md`를 참조한다.
 
 ## Phase 1A: Core Discovery MVP (현재 freeze 대상)
