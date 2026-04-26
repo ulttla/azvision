@@ -40,9 +40,16 @@ Expected personal-use baseline:
 - `/healthz` returns `{"status":"ok"}`
 - `auth/config-check` shows Azure tenant/client/certificate inputs present and certificate path exists
 
-## Personal-use smoke
+## Personal-use acceptance and smoke
 
-Run this after starting the backend. It checks backend health, live Azure read/topology, manual node/edge CRUD, snapshot create/list/detail/restore, and cleanup of smoke-created records.
+For a full v0.9 acceptance pass, run:
+
+```bash
+cd /Users/gun/dev/azvision
+scripts/personal_use_acceptance.sh
+```
+
+Run the lighter workflow smoke after starting the backend. It checks backend health, live Azure read/topology, manual node/edge CRUD, snapshot create/list/detail/restore, and cleanup of smoke-created records.
 
 ```bash
 cd /Users/gun/dev/azvision

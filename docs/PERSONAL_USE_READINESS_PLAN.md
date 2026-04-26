@@ -52,7 +52,13 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
 
 ## Acceptance checklist
 
-Run from `/Users/gun/dev/azvision`.
+Run the full acceptance wrapper from `/Users/gun/dev/azvision`.
+
+```bash
+scripts/personal_use_acceptance.sh
+```
+
+The wrapper performs the same checks as the manual sequence below:
 
 ```bash
 bash scripts/check_doc_mirror.sh
@@ -61,12 +67,13 @@ bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
 bash -n scripts/verify_sqlite_backup.sh
 bash -n scripts/personal_use_smoke.sh
+bash -n scripts/personal_use_acceptance.sh
 scripts/check_personal_use_ready.sh
 npm --prefix frontend run build
 cd backend && .venv/bin/python -m pytest -q
 ```
 
-With backend running:
+With backend running, the workflow-specific checks are:
 
 ```bash
 scripts/personal_use_smoke.sh

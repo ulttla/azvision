@@ -76,12 +76,13 @@ scripts/run_dev.sh
 - API: `http://127.0.0.1:8000`
 - UI: `http://127.0.0.1:5173`
 
-로컬 readiness preflight와 실사용 smoke:
+로컬 readiness preflight, 실사용 smoke, 전체 acceptance:
 
 ```bash
 cd /Users/gun/dev/azvision
 scripts/check_personal_use_ready.sh
 scripts/personal_use_smoke.sh
+scripts/personal_use_acceptance.sh
 ```
 
 SQLite 백업과 검증:
