@@ -109,6 +109,15 @@ class TestTopologyNetworkInference:
         resp = client.get(f"/api/v1/workspaces/{WORKSPACE}/topology")
         assert resp.json()["options"]["include_network_inference"] is False
 
+    def test_explicit_network_edges_are_included_by_default(self, client: TestClient):
+        resp = client.get(f"/api/v1/workspaces/{WORKSPACE}/topology")
+        body = resp.json()
+        explicit_edges = [edge for edge in body["edges"] if edge["source"] == "azure-explicit"]
+
+        assert explicit_edges
+        assert all(edge["confidence"] == 1.0 for edge in explicit_edges)
+        assert all(edge["resolver"] == "network-explicit-v1" for edge in explicit_edges)
+
     def test_network_inference_can_be_toggled_on(self, client: TestClient):
         resp = client.get(
             f"/api/v1/workspaces/{WORKSPACE}/topology",

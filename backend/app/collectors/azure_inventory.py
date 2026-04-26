@@ -199,6 +199,48 @@ def _mock_inventory_collection(
                 "Microsoft.Network/virtualNetworks/vnet-web-portal",
             ),
             "tags": {"environment": "mock", "tier": "network"},
+            "properties": {
+                "subnets": [
+                    {
+                        "id": _mock_resource_id(
+                            mock_subscription_id,
+                            "rg-web-platform",
+                            "Microsoft.Network/virtualNetworks/vnet-web-portal/subnets/snet-web-portal",
+                        )
+                    }
+                ]
+            },
+            "source": "mock",
+        },
+        {
+            "subscription_id": mock_subscription_id,
+            "resource_group": "rg-web-platform",
+            "name": "snet-web-portal",
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "kind": None,
+            "location": "canadacentral",
+            "id": _mock_resource_id(
+                mock_subscription_id,
+                "rg-web-platform",
+                "Microsoft.Network/virtualNetworks/vnet-web-portal/subnets/snet-web-portal",
+            ),
+            "tags": {"environment": "mock", "tier": "network"},
+            "properties": {
+                "networkSecurityGroup": {
+                    "id": _mock_resource_id(
+                        mock_subscription_id,
+                        "rg-web-platform",
+                        "Microsoft.Network/networkSecurityGroups/nsg-web-portal",
+                    )
+                },
+                "routeTable": {
+                    "id": _mock_resource_id(
+                        mock_subscription_id,
+                        "rg-web-platform",
+                        "Microsoft.Network/routeTables/rt-web-portal",
+                    )
+                },
+            },
             "source": "mock",
         },
         {
@@ -214,6 +256,17 @@ def _mock_inventory_collection(
                 "Microsoft.Network/networkSecurityGroups/nsg-web-portal",
             ),
             "tags": {"environment": "mock", "tier": "network"},
+            "properties": {
+                "subnets": [
+                    {
+                        "id": _mock_resource_id(
+                            mock_subscription_id,
+                            "rg-web-platform",
+                            "Microsoft.Network/virtualNetworks/vnet-web-portal/subnets/snet-web-portal",
+                        )
+                    }
+                ]
+            },
             "source": "mock",
         },
         {
@@ -229,6 +282,17 @@ def _mock_inventory_collection(
                 "Microsoft.Network/routeTables/rt-web-portal",
             ),
             "tags": {"environment": "mock", "tier": "network"},
+            "properties": {
+                "subnets": [
+                    {
+                        "id": _mock_resource_id(
+                            mock_subscription_id,
+                            "rg-web-platform",
+                            "Microsoft.Network/virtualNetworks/vnet-web-portal/subnets/snet-web-portal",
+                        )
+                    }
+                ]
+            },
             "source": "mock",
         },
         {
@@ -259,6 +323,26 @@ def _mock_inventory_collection(
                 "Microsoft.Network/privateEndpoints/pep-stazvisiondiag",
             ),
             "tags": {"environment": "mock", "tier": "network"},
+            "properties": {
+                "subnet": {
+                    "id": _mock_resource_id(
+                        mock_subscription_id,
+                        "rg-web-platform",
+                        "Microsoft.Network/virtualNetworks/vnet-web-portal/subnets/snet-web-portal",
+                    )
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "properties": {
+                            "privateLinkServiceId": _mock_resource_id(
+                                mock_subscription_id,
+                                "rg-web-platform",
+                                "Microsoft.Storage/storageAccounts/stazvisiondiag",
+                            )
+                        }
+                    }
+                ],
+            },
             "source": "mock",
         },
         {

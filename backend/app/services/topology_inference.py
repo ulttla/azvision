@@ -152,6 +152,13 @@ def _id_from_ref(value: Any) -> str | None:
     return None
 
 
+def _properties_from_ref(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    properties = value.get("properties")
+    return properties if isinstance(properties, dict) else {}
+
+
 def _strip_child_resource_id(resource_id: str | None) -> str | None:
     if not resource_id:
         return None
@@ -251,6 +258,52 @@ def infer_explicit_network_relationship_edges(resources: list[dict[str, Any]]) -
                     _explicit_edge(public_ip_id, current_id, relation_type="connects_to", evidence="networkInterface.ipConfigurations[].publicIPAddress.id"),
                 )
 
+        if resource_type == "microsoft.network/virtualnetworks":
+            for subnet_ref in _iter_dicts(properties.get("subnets")):
+                subnet_id = _resolve_existing_resource_id(_id_from_ref(subnet_ref), resource_ids)
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(current_id, subnet_id, relation_type="connects_to", evidence="vnet.subnets[].id"),
+                )
+
+            for peering in _iter_dicts(properties.get("virtualNetworkPeerings")):
+                peering_props = _properties_from_ref(peering)
+                remote_vnet_id = _resolve_existing_resource_id(
+                    _id_from_ref(peering_props.get("remoteVirtualNetwork")),
+                    resource_ids,
+                )
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(
+                        current_id,
+                        remote_vnet_id,
+                        relation_type="connects_to",
+                        evidence="vnet.virtualNetworkPeerings[].remoteVirtualNetwork.id",
+                    ),
+                )
+
+        if resource_type == "microsoft.network/networksecuritygroups":
+            for subnet_ref in _iter_dicts(properties.get("subnets")):
+                subnet_id = _resolve_existing_resource_id(_id_from_ref(subnet_ref), resource_ids)
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(current_id, subnet_id, relation_type="secures", evidence="nsg.subnets[].id"),
+                )
+            for nic_ref in _iter_dicts(properties.get("networkInterfaces")):
+                nic_id = _resolve_existing_resource_id(_id_from_ref(nic_ref), resource_ids)
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(current_id, nic_id, relation_type="secures", evidence="nsg.networkInterfaces[].id"),
+                )
+
+        if resource_type == "microsoft.network/routetables":
+            for subnet_ref in _iter_dicts(properties.get("subnets")):
+                subnet_id = _resolve_existing_resource_id(_id_from_ref(subnet_ref), resource_ids)
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(current_id, subnet_id, relation_type="routes", evidence="routeTable.subnets[].id"),
+                )
+
         if resource_type == "microsoft.network/virtualnetworks/subnets":
             nsg_id = _resolve_existing_resource_id(_id_from_ref(properties.get("networkSecurityGroup")), resource_ids)
             route_table_id = _resolve_existing_resource_id(_id_from_ref(properties.get("routeTable")), resource_ids)
@@ -290,14 +343,29 @@ def infer_explicit_network_relationship_edges(resources: list[dict[str, Any]]) -
 
         if resource_type in {"microsoft.network/loadbalancers", "microsoft.network/applicationgateways"}:
             for pool in _iter_dicts(properties.get("backendAddressPools")):
-                pool_props = pool.get("properties")
-                pool_props = pool_props if isinstance(pool_props, dict) else {}
+                pool_props = _properties_from_ref(pool)
                 for ip_config in _iter_dicts(pool_props.get("backendIPConfigurations")):
                     backend_id = _resolve_existing_resource_id(_id_from_ref(ip_config), resource_ids)
                     _add_explicit_edge(
                         edges,
                         _explicit_edge(current_id, backend_id, relation_type="connects_to", evidence="backendAddressPools[].backendIPConfigurations[].id"),
                     )
+
+            for frontend_ip in _iter_dicts(properties.get("frontendIPConfigurations")):
+                frontend_props = _properties_from_ref(frontend_ip)
+                subnet_id = _resolve_existing_resource_id(_id_from_ref(frontend_props.get("subnet")), resource_ids)
+                public_ip_id = _resolve_existing_resource_id(
+                    _id_from_ref(frontend_props.get("publicIPAddress")),
+                    resource_ids,
+                )
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(subnet_id, current_id, relation_type="connects_to", evidence="frontendIPConfigurations[].subnet.id"),
+                )
+                _add_explicit_edge(
+                    edges,
+                    _explicit_edge(public_ip_id, current_id, relation_type="connects_to", evidence="frontendIPConfigurations[].publicIPAddress.id"),
+                )
 
     deduped: dict[tuple[str, str, str, str], dict[str, Any]] = {}
     for edge in edges:
