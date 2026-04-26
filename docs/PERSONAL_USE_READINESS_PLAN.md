@@ -59,6 +59,7 @@ bash scripts/check_doc_mirror.sh
 bash -n scripts/run_dev.sh
 bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
+bash -n scripts/verify_sqlite_backup.sh
 bash -n scripts/personal_use_smoke.sh
 scripts/check_personal_use_ready.sh
 npm --prefix frontend run build
@@ -70,13 +71,14 @@ With backend running:
 ```bash
 scripts/personal_use_smoke.sh
 scripts/backup_sqlite.sh
+scripts/verify_sqlite_backup.sh
 ```
 
 Expected result:
 - `personal_use_smoke.sh` prints `PASS: AzVision personal-use smoke completed` and verifies smoke workspace cleanup
 - backend tests pass
 - frontend build passes
-- backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt` and records `integrity_check=ok`
+- backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt`, records `integrity_check=ok`, and passes `scripts/verify_sqlite_backup.sh`
 - readiness preflight reports required local prerequisites, optional local DB presence, and config booleans without printing secret values
 - docs mirror check shows only expected deferred drift
 

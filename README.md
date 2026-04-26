@@ -84,11 +84,12 @@ scripts/check_personal_use_ready.sh
 scripts/personal_use_smoke.sh
 ```
 
-SQLite 백업:
+SQLite 백업과 검증:
 
 ```bash
 cd /Users/gun/dev/azvision
 scripts/backup_sqlite.sh
+scripts/verify_sqlite_backup.sh
 ```
 
 ## 빠른 시작

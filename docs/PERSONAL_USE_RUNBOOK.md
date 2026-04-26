@@ -75,6 +75,19 @@ The script copies both known local DB locations if present:
 
 Each backup writes a `manifest.txt` with byte size, SHA-256, source path, backup path, and SQLite `PRAGMA integrity_check` result. When `sqlite3` is available, the script uses SQLite's `.backup` command instead of raw file copy.
 
+Verify the latest backup before relying on it:
+
+```bash
+cd /Users/gun/dev/azvision
+scripts/verify_sqlite_backup.sh
+```
+
+You can also verify a specific backup directory:
+
+```bash
+scripts/verify_sqlite_backup.sh backups/sqlite/<timestamp>
+```
+
 ## Restore SQLite state
 
 1. Stop the backend/frontend process.
