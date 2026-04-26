@@ -50,4 +50,16 @@ echo "API: http://$BACKEND_HOST:$BACKEND_PORT"
 echo "UI:  http://$FRONTEND_HOST:$FRONTEND_PORT"
 echo "Press Ctrl+C to stop both processes."
 
-wait -n "$BACKEND_PID" "$FRONTEND_PID"
+while true; do
+  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+    wait "$BACKEND_PID" || true
+    echo "Backend process exited; stopping frontend."
+    exit 1
+  fi
+  if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
+    wait "$FRONTEND_PID" || true
+    echo "Frontend process exited; stopping backend."
+    exit 1
+  fi
+  sleep 1
+done
