@@ -19,7 +19,11 @@ copy_db() {
   fi
 
   local dest="$DEST_DIR/${label}.db"
-  cp "$src" "$dest"
+  if command -v sqlite3 >/dev/null 2>&1; then
+    sqlite3 "$src" ".backup '$dest'"
+  else
+    cp "$src" "$dest"
+  fi
   local bytes
   bytes="$(wc -c < "$dest" | tr -d ' ')"
   local sha
