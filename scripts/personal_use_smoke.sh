@@ -69,6 +69,18 @@ assert_json_bool() {
   fi
 }
 
+assert_empty_items() {
+  local file="$1"
+  python3 - "$file" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding='utf-8') as f:
+    payload = json.load(f)
+items = payload.get('items')
+if items != []:
+    raise SystemExit(f"expected empty items, got {len(items) if isinstance(items, list) else items!r}")
+PY
+}
+
 cleanup() {
   set +e
   if [ -n "${EDGE_REF:-}" ]; then
@@ -154,4 +166,18 @@ assert_json_bool "$SNAP_RESTORE_JSON" id "$SNAPSHOT_ID"
 
 echo "[ok] snapshot create-list-detail-restore path"
 
+cleanup
+unset EDGE_REF SRC_REF TGT_REF SNAPSHOT_ID
+
+POST_NODES_JSON="$TMP_DIR/manual-nodes-after-cleanup.json"
+POST_EDGES_JSON="$TMP_DIR/manual-edges-after-cleanup.json"
+POST_SNAPSHOTS_JSON="$TMP_DIR/snapshots-after-cleanup.json"
+curl_json GET "$BASE_URL/workspaces/$SMOKE_WORKSPACE_ID/topology/manual-nodes" "$POST_NODES_JSON"
+curl_json GET "$BASE_URL/workspaces/$SMOKE_WORKSPACE_ID/topology/manual-edges" "$POST_EDGES_JSON"
+curl_json GET "$BASE_URL/workspaces/$SMOKE_WORKSPACE_ID/snapshots?include_archived=true" "$POST_SNAPSHOTS_JSON"
+assert_empty_items "$POST_NODES_JSON"
+assert_empty_items "$POST_EDGES_JSON"
+assert_empty_items "$POST_SNAPSHOTS_JSON"
+
+echo "[ok] smoke workspace cleanup verified"
 echo "PASS: AzVision personal-use smoke completed"

@@ -71,7 +71,7 @@ scripts/backup_sqlite.sh
 ```
 
 Expected result:
-- `personal_use_smoke.sh` prints `PASS: AzVision personal-use smoke completed`
+- `personal_use_smoke.sh` prints `PASS: AzVision personal-use smoke completed` and verifies smoke workspace cleanup
 - backend tests pass
 - frontend build passes
 - backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt`
@@ -85,6 +85,7 @@ Expected result:
 - topology smoke returns at least one node
 - manual node/edge path passes
 - snapshot create/list/detail/restore path passes
+- smoke-created manual/snapshot records are cleaned up
 - backup script creates a manifest
 
 ### No-go until fixed

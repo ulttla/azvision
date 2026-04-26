@@ -33,7 +33,7 @@ Expected personal-use baseline:
 
 ## Personal-use smoke
 
-Run this after starting the backend. It checks backend health, live Azure read/topology, manual node/edge CRUD, and snapshot create/list/detail/restore.
+Run this after starting the backend. It checks backend health, live Azure read/topology, manual node/edge CRUD, snapshot create/list/detail/restore, and cleanup of smoke-created records.
 
 ```bash
 cd /Users/gun/dev/azvision
