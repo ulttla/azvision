@@ -73,7 +73,7 @@ The script copies both known local DB locations if present:
 - `azvision.db`
 - `backend/azvision.db`
 
-Each backup writes a `manifest.txt` with byte size, SHA-256, source path, and backup path. When `sqlite3` is available, the script uses SQLite's `.backup` command instead of raw file copy.
+Each backup writes a `manifest.txt` with byte size, SHA-256, source path, backup path, and SQLite `PRAGMA integrity_check` result. When `sqlite3` is available, the script uses SQLite's `.backup` command instead of raw file copy.
 
 ## Restore SQLite state
 

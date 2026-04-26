@@ -32,7 +32,15 @@ copy_db() {
   else
     sha="sha256-unavailable"
   fi
-  echo "OK $label bytes=$bytes sha256=$sha source=$src backup=$dest" | tee -a "$MANIFEST"
+  local integrity="not-checked"
+  if command -v sqlite3 >/dev/null 2>&1; then
+    integrity="$(sqlite3 "$dest" 'PRAGMA integrity_check;')"
+    if [ "$integrity" != "ok" ]; then
+      echo "FAIL $label integrity_check=$integrity backup=$dest" | tee -a "$MANIFEST"
+      exit 1
+    fi
+  fi
+  echo "OK $label bytes=$bytes sha256=$sha integrity_check=$integrity source=$src backup=$dest" | tee -a "$MANIFEST"
 }
 
 copy_db "project-root-azvision" "$ROOT_DIR/azvision.db"

@@ -76,7 +76,7 @@ Expected result:
 - `personal_use_smoke.sh` prints `PASS: AzVision personal-use smoke completed` and verifies smoke workspace cleanup
 - backend tests pass
 - frontend build passes
-- backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt`
+- backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt` and records `integrity_check=ok`
 - readiness preflight reports required local prerequisites, optional local DB presence, and config booleans without printing secret values
 - docs mirror check shows only expected deferred drift
 
