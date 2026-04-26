@@ -10,25 +10,29 @@ ok() {
 
 warn() {
   echo "[warn] $1"
+}
+
+fail() {
+  echo "[fail] $1"
   EXIT_CODE=1
 }
 
-check_path() {
+require_path() {
   local label="$1"
   local path="$2"
   if [ -e "$path" ]; then
     ok "$label: $path"
   else
-    warn "$label missing: $path"
+    fail "$label missing: $path"
   fi
 }
 
 echo "== AzVision personal-use readiness check =="
 echo "ROOT_DIR=$ROOT_DIR"
 
-check_path "root env file" "$ROOT_DIR/.env"
-check_path "backend virtualenv" "$ROOT_DIR/backend/.venv"
-check_path "frontend dependencies" "$ROOT_DIR/frontend/node_modules"
+require_path "root env file" "$ROOT_DIR/.env"
+require_path "backend virtualenv" "$ROOT_DIR/backend/.venv"
+require_path "frontend dependencies" "$ROOT_DIR/frontend/node_modules"
 
 if [ -x "$ROOT_DIR/scripts/run_dev.sh" ]; then
   ok "run script executable"
@@ -70,7 +74,7 @@ for key, value in checks.items():
 PY
   ) || warn "backend import/config probe failed"
 else
-  warn "backend python unavailable; cannot run import/config probe"
+  fail "backend python unavailable; cannot run import/config probe"
 fi
 
 cat <<'EOF'

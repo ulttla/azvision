@@ -77,7 +77,7 @@ Expected result:
 - backend tests pass
 - frontend build passes
 - backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt`
-- readiness preflight reports local prerequisites and config booleans without printing secret values
+- readiness preflight reports required local prerequisites, optional local DB presence, and config booleans without printing secret values
 - docs mirror check shows only expected deferred drift
 
 ## Go / no-go rule
