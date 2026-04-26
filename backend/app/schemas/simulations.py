@@ -84,6 +84,16 @@ class SimulationFitResponse(BaseModel):
     items: list[SimulationFitResource] = Field(default_factory=list)
 
 
+class SimulationReportResponse(BaseModel):
+    ok: bool = True
+    workspace_id: str
+    simulation_id: str
+    report_type: str = "markdown"
+    title: str
+    content: str
+    warnings: list[str] = Field(default_factory=list)
+
+
 class SimulationListResponse(BaseModel):
     ok: bool = True
     workspace_id: str

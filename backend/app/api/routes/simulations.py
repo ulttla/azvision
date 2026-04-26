@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.collectors.azure_inventory import resolve_resource_items
 from app.core.config import get_settings
-from app.schemas.simulations import SimulationCreateRequest, SimulationFitResponse, SimulationListResponse, SimulationRecord, SimulationTemplateResponse
+from app.schemas.simulations import SimulationCreateRequest, SimulationFitResponse, SimulationListResponse, SimulationRecord, SimulationReportResponse, SimulationTemplateResponse
 from app.services.simulations import SimulationNotFoundError, SimulationService
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/simulations", tags=["simulations"])
@@ -33,6 +33,14 @@ def get_simulation(workspace_id: str, simulation_id: str) -> SimulationRecord:
 def get_simulation_template(workspace_id: str, simulation_id: str) -> SimulationTemplateResponse:
     try:
         return service.get_simulation_template(workspace_id, simulation_id)
+    except SimulationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Simulation not found") from exc
+
+
+@router.get("/{simulation_id}/report", response_model=SimulationReportResponse)
+def get_simulation_report(workspace_id: str, simulation_id: str) -> SimulationReportResponse:
+    try:
+        return service.get_simulation_report(workspace_id, simulation_id)
     except SimulationNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Simulation not found") from exc
 

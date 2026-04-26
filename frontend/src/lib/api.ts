@@ -223,6 +223,16 @@ export type SimulationFitResponse = {
   items: SimulationFitResource[]
 }
 
+export type SimulationReportResponse = {
+  ok: boolean
+  workspace_id: string
+  simulation_id: string
+  report_type: string
+  title: string
+  content: string
+  warnings: string[]
+}
+
 export type CostQueryOptions = {
   subscriptionId?: string
   resourceGroupName?: string
@@ -576,6 +586,10 @@ export async function getSimulationTemplate(workspaceId: string, simulationId: s
 
 export async function getSimulationFit(workspaceId: string, simulationId: string): Promise<SimulationFitResponse> {
   return fetchJson<SimulationFitResponse>(`/workspaces/${workspaceId}/simulations/${simulationId}/fit`)
+}
+
+export async function getSimulationReport(workspaceId: string, simulationId: string): Promise<SimulationReportResponse> {
+  return fetchJson<SimulationReportResponse>(`/workspaces/${workspaceId}/simulations/${simulationId}/report`)
 }
 
 export async function getTopology(

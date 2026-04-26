@@ -4,10 +4,12 @@ import {
   ApiError,
   createSimulation,
   getSimulationFit,
+  getSimulationReport,
   getSimulationTemplate,
   getSimulations,
   type SimulationFitResponse,
   type SimulationRecord,
+  type SimulationReportResponse,
   type SimulationTemplateResponse,
 } from '../lib/api'
 
@@ -28,6 +30,7 @@ export function SimulationPage() {
   const [selectedSimulationId, setSelectedSimulationId] = useState('')
   const [template, setTemplate] = useState<SimulationTemplateResponse | null>(null)
   const [fit, setFit] = useState<SimulationFitResponse | null>(null)
+  const [report, setReport] = useState<SimulationReportResponse | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -59,24 +62,28 @@ export function SimulationPage() {
     if (!selectedSimulation) {
       setTemplate(null)
       setFit(null)
+      setReport(null)
       return
     }
     let cancelled = false
     async function loadTemplate() {
       setTemplateLoading(true)
       try {
-        const [templateResult, fitResult] = await Promise.all([
+        const [templateResult, fitResult, reportResult] = await Promise.all([
           getSimulationTemplate(workspaceId, selectedSimulation.simulation_id),
           getSimulationFit(workspaceId, selectedSimulation.simulation_id),
+          getSimulationReport(workspaceId, selectedSimulation.simulation_id),
         ])
         if (!cancelled) {
           setTemplate(templateResult)
           setFit(fitResult)
+          setReport(reportResult)
         }
       } catch {
         if (!cancelled) {
           setTemplate(null)
           setFit(null)
+          setReport(null)
         }
       } finally {
         if (!cancelled) {
@@ -243,6 +250,22 @@ export function SimulationPage() {
                 {selectedSimulation.assumptions.map((assumption) => (
                   <p key={assumption}>{assumption}</p>
                 ))}
+              </div>
+              <div className="cost-note-box simulation-template-box">
+                <div className="cost-recommendation-heading">
+                  <h4>Markdown report</h4>
+                  <span className="mini-chip">{report?.report_type ?? 'not loaded'}</span>
+                </div>
+                {report ? (
+                  <>
+                    <pre className="simulation-template-content">{report.content}</pre>
+                    {report.warnings.map((warning) => (
+                      <p className="hint" key={warning}>{warning}</p>
+                    ))}
+                  </>
+                ) : (
+                  <p className="hint">Report is not available for this simulation yet.</p>
+                )}
               </div>
               <div className="cost-note-box simulation-template-box">
                 <div className="cost-recommendation-heading">

@@ -62,6 +62,13 @@ def test_simulation_routes_create_list_and_get(client: TestClient) -> None:
     assert "not a deployable template" in template["content"]
     assert template["resources"]
 
+    report_response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/{created['simulation_id']}/report")
+    assert report_response.status_code == 200
+    report = report_response.json()
+    assert report["report_type"] == "markdown"
+    assert "Recommended resources" in report["content"]
+    assert report["warnings"]
+
     fit_response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/{created['simulation_id']}/fit")
     assert fit_response.status_code == 200
     fit = fit_response.json()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.repositories.simulations import SimulationRepository
-from app.schemas.simulations import SimulationCreateRequest, SimulationFitResponse, SimulationRecord, SimulationTemplateResponse
+from app.schemas.simulations import SimulationCreateRequest, SimulationFitResponse, SimulationRecord, SimulationReportResponse, SimulationTemplateResponse
 from app.services.simulation import build_simulation
 
 
@@ -27,6 +27,48 @@ def _resource_name(resource: dict[str, Any]) -> str:
 
 def _normalize_resource_type(value: str) -> str:
     return str(value or "").lower()
+
+
+def _build_simulation_report(simulation: SimulationRecord) -> SimulationReportResponse:
+    lines = [
+        f"# AzVision Simulation Report — {simulation.workload_name}",
+        "",
+        f"- Simulation ID: `{simulation.simulation_id}`",
+        f"- Environment: `{simulation.environment}`",
+        f"- Mode: `{simulation.mode}`",
+        f"- Status: `{simulation.status}`",
+        "",
+        "## Description",
+        simulation.description or "No description provided.",
+        "",
+        "## Recommended resources",
+    ]
+    for item in simulation.recommended_resources:
+        lines.append(f"- **{item.resource_type}** ({item.priority}) — `{item.name_hint}`: {item.reason}")
+
+    def add_section(title: str, items: list[str]) -> None:
+        lines.extend(["", f"## {title}"])
+        if not items:
+            lines.append("- None")
+            return
+        lines.extend([f"- {item}" for item in items])
+
+    add_section("Architecture notes", simulation.architecture_notes)
+    add_section("Cost considerations", simulation.cost_considerations)
+    add_section("Security considerations", simulation.security_considerations)
+    add_section("Next actions", simulation.next_actions)
+    add_section("Assumptions", simulation.assumptions)
+
+    return SimulationReportResponse(
+        workspace_id=simulation.workspace_id,
+        simulation_id=simulation.simulation_id,
+        title=f"AzVision Simulation Report — {simulation.workload_name}",
+        content="\n".join(lines).rstrip() + "\n",
+        warnings=[
+            "This report is generated from rule-based simulation output and does not include actual Azure pricing.",
+            "Validate resource sizing, dependencies, security, and compliance before implementation.",
+        ],
+    )
 
 
 def _build_simulation_fit(
@@ -147,6 +189,10 @@ class SimulationService:
     def get_simulation_template(self, workspace_id: str, simulation_id: str) -> SimulationTemplateResponse:
         simulation = self.get_simulation(workspace_id, simulation_id)
         return _build_bicep_outline(simulation)
+
+    def get_simulation_report(self, workspace_id: str, simulation_id: str) -> SimulationReportResponse:
+        simulation = self.get_simulation(workspace_id, simulation_id)
+        return _build_simulation_report(simulation)
 
     def compare_simulation_to_inventory(
         self,
