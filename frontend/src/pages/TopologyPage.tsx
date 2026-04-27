@@ -3461,14 +3461,14 @@ export function TopologyPage() {
                   <span>Network Path Analysis</span>
                   <strong>
                     {pathAnalysisResult
-                      ? `Verdict: ${pathAnalysisResult.overall_verdict} (inbound NSG only)`
+                      ? `Verdict: ${pathAnalysisResult.overall_verdict} (NSG + route evidence)`
                       : 'Select source and destination'}
                   </strong>
                   <p className="hint detail-inline-hint">
                     Source: {pathSourceNode?.display_name ?? '-'} • Destination: {pathDestinationNode?.display_name ?? '-'}
                   </p>
                   <p className="hint detail-inline-hint">
-                    MVP note: path analysis currently evaluates inbound NSG rules only. Outbound NSG and source/destination address matching are future work.
+                    MVP note: path analysis now evaluates inbound/outbound NSG checkpoints, source/destination prefix filters, destination port, service tags, and route evidence conservatively.
                   </p>
                   <div className="search-form detail-inline-hint">
                     <input
