@@ -441,6 +441,41 @@ class TestClassifyNSGVerdict:
         rules = [NSGRule(direction="inbound", access="allow", priority=100, name="allow-spoke", source_address_prefix="10.0.0.0/16")]
         assert classify_nsg_verdict(rules, direction="inbound", source_address_prefix="10.2.0.4/32") == PathVerdict.UNKNOWN
 
+    def test_virtual_network_tag_uses_context_prefixes_when_available(self):
+        rules = [
+            NSGRule(
+                direction="inbound",
+                access="allow",
+                priority=65000,
+                name="AllowVnetInBound",
+                source_address_prefix="VirtualNetwork",
+                destination_address_prefix="VirtualNetwork",
+            ),
+            NSGRule(
+                direction="inbound",
+                access="deny",
+                priority=65500,
+                name="DenyAllInBound",
+                source_address_prefix="*",
+                destination_address_prefix="*",
+            ),
+        ]
+
+        assert classify_nsg_verdict(
+            rules,
+            direction="inbound",
+            source_address_prefix="10.0.1.25/32",
+            destination_address_prefix="10.0.2.25/32",
+            virtual_network_prefixes=("10.0.0.0/16",),
+        ) == PathVerdict.ALLOWED
+        assert classify_nsg_verdict(
+            rules,
+            direction="inbound",
+            source_address_prefix="10.9.1.25/32",
+            destination_address_prefix="10.0.2.25/32",
+            virtual_network_prefixes=("10.0.0.0/16",),
+        ) == PathVerdict.BLOCKED
+
 
 # ===========================================================================
 # Route Table Parsing
@@ -604,6 +639,45 @@ class TestAnalyzePath:
         )
         assert result.overall_verdict == PathVerdict.ALLOWED
         assert len(result.path_candidates) >= 1
+
+    def test_virtual_network_default_rule_uses_owning_vnet_scope(self):
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "addressSpace": {"addressPrefixes": ["10.0.0.0/16"]},
+                    "subnets": [{"id": SUBNET_ID}],
+                },
+            ),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID}},
+            ),
+            _nsg_resource(NSG_ID, subnets=[{"id": SUBNET_ID}]),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(
+                VM_ID,
+                "Microsoft.Compute/virtualMachines",
+                {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}},
+            ),
+        ]
+
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            source_address_prefix="10.9.1.25/32",
+            destination_address_prefix="10.0.2.25/32",
+        )
+
+        assert result.overall_verdict == PathVerdict.BLOCKED
+        assert result.path_candidates[0].hops[-1].nsg_rule_name == "DenyAllInBound"
 
     def test_path_found_with_nsg_deny_verdict(self):
         resources = [

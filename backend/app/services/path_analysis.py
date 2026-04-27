@@ -36,7 +36,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 import ipaddress
-from typing import Any
+from typing import Any, Sequence
 
 from app.services.service_tags import address_prefix_matches_tag, is_service_tag, resolve_service_tag
 
@@ -307,6 +307,7 @@ def classify_nsg_verdict(
     destination_address_prefix: str | None = None,
     source_port: int | None = None,
     destination_port: int | None = None,
+    virtual_network_prefixes: Sequence[str] | None = None,
 ) -> PathVerdict:
     """Classify the effective NSG verdict for a given direction.
 
@@ -320,7 +321,7 @@ def classify_nsg_verdict(
     if not rules:
         return PathVerdict.UNKNOWN
 
-    matching = _matching_nsg_rules(
+    top_rule = _first_effective_nsg_rule(
         rules,
         direction=direction,
         protocol=protocol,
@@ -328,17 +329,14 @@ def classify_nsg_verdict(
         destination_address_prefix=destination_address_prefix,
         source_port=source_port,
         destination_port=destination_port,
+        virtual_network_prefixes=virtual_network_prefixes,
     )
-    if not matching:
+    if top_rule is None:
         return PathVerdict.UNKNOWN
-
-    top_rule = matching[0]
-
     if top_rule.access == "allow":
         return PathVerdict.ALLOWED
     if top_rule.access == "deny":
         return PathVerdict.BLOCKED
-
     return PathVerdict.UNKNOWN
 
 
@@ -351,17 +349,82 @@ def _matching_nsg_rules(
     destination_address_prefix: str | None = None,
     source_port: int | None = None,
     destination_port: int | None = None,
+    virtual_network_prefixes: Sequence[str] | None = None,
 ) -> list[NSGRule]:
     matching = [
         r for r in rules
-        if r.direction == direction
-        and _protocol_matches(r.protocol, protocol)
-        and _address_prefix_matches(r.source_address_prefix, source_address_prefix)
-        and _address_prefix_matches(r.destination_address_prefix, destination_address_prefix)
-        and _port_matches(r.source_port_range, source_port)
-        and _port_matches(r.destination_port_range, destination_port)
+        if _nsg_rule_match_state(
+            r,
+            direction=direction,
+            protocol=protocol,
+            source_address_prefix=source_address_prefix,
+            destination_address_prefix=destination_address_prefix,
+            source_port=source_port,
+            destination_port=destination_port,
+            virtual_network_prefixes=virtual_network_prefixes,
+        ) is True
     ]
     return sorted(matching, key=lambda r: r.priority)
+
+
+def _first_effective_nsg_rule(
+    rules: list[NSGRule],
+    *,
+    direction: str,
+    protocol: str | None = None,
+    source_address_prefix: str | None = None,
+    destination_address_prefix: str | None = None,
+    source_port: int | None = None,
+    destination_port: int | None = None,
+    virtual_network_prefixes: Sequence[str] | None = None,
+) -> NSGRule | None:
+    for rule in sorted(rules, key=lambda r: r.priority):
+        state = _nsg_rule_match_state(
+            rule,
+            direction=direction,
+            protocol=protocol,
+            source_address_prefix=source_address_prefix,
+            destination_address_prefix=destination_address_prefix,
+            source_port=source_port,
+            destination_port=destination_port,
+            virtual_network_prefixes=virtual_network_prefixes,
+        )
+        if state is True:
+            return rule
+        if state is None:
+            return None
+    return None
+
+
+def _nsg_rule_match_state(
+    rule: NSGRule,
+    *,
+    direction: str,
+    protocol: str | None = None,
+    source_address_prefix: str | None = None,
+    destination_address_prefix: str | None = None,
+    source_port: int | None = None,
+    destination_port: int | None = None,
+    virtual_network_prefixes: Sequence[str] | None = None,
+) -> bool | None:
+    if rule.direction != direction:
+        return False
+    if not _protocol_matches(rule.protocol, protocol):
+        return False
+    if not _port_matches(rule.source_port_range, source_port):
+        return False
+    if not _port_matches(rule.destination_port_range, destination_port):
+        return False
+
+    source_match = _address_prefix_match_state(rule.source_address_prefix, source_address_prefix, virtual_network_prefixes=virtual_network_prefixes)
+    if source_match is False:
+        return False
+    dest_match = _address_prefix_match_state(rule.destination_address_prefix, destination_address_prefix, virtual_network_prefixes=virtual_network_prefixes)
+    if dest_match is False:
+        return False
+    if source_match is None or dest_match is None:
+        return None
+    return True
 
 
 def _protocol_matches(rule_protocol: str | None, requested_protocol: str | None) -> bool:
@@ -372,7 +435,7 @@ def _protocol_matches(rule_protocol: str | None, requested_protocol: str | None)
     return str(rule_protocol).strip().lower() == requested_protocol.strip().lower()
 
 
-def _address_prefix_matches(rule_value: Any, requested_prefix: str | None) -> bool:
+def _address_prefix_matches(rule_value: Any, requested_prefix: str | None, *, virtual_network_prefixes: Sequence[str] | None = None) -> bool:
     """Check whether a rule's address prefix matches the requested prefix.
 
     Supports:
@@ -386,6 +449,19 @@ def _address_prefix_matches(rule_value: Any, requested_prefix: str | None) -> bo
     Returns True when the rule *covers* the requested prefix, or when no
     specific prefix was requested (caller is checking direction/protocol only).
     """
+    return _address_prefix_match_state(
+        rule_value,
+        requested_prefix,
+        virtual_network_prefixes=virtual_network_prefixes,
+    ) is True
+
+
+def _address_prefix_match_state(
+    rule_value: Any,
+    requested_prefix: str | None,
+    *,
+    virtual_network_prefixes: Sequence[str] | None = None,
+) -> bool | None:
     if not requested_prefix:
         return True
     if rule_value is None:
@@ -400,19 +476,17 @@ def _address_prefix_matches(rule_value: Any, requested_prefix: str | None) -> bo
         if text in {"", "*"} or text == requested:
             return True
 
-        # --- Service tag resolution ---
-        # If the rule value is a known service tag, expand it and check
-        # whether the requested prefix falls within the tag's ranges.
         if is_service_tag(text):
-            tag_match = address_prefix_matches_tag(text, requested)
+            if text == "virtualnetwork" and virtual_network_prefixes:
+                tag_match = _prefix_is_covered_by_any(virtual_network_prefixes, requested)
+            else:
+                tag_match = address_prefix_matches_tag(text, requested)
             if tag_match is True:
                 return True
-            if tag_match is False:
-                continue  # not covered by this tag; try next value
-            # tag_match is None → unknown tag, fall through to CIDR
-            # (which will also fail), then return False at end
+            if tag_match is None:
+                return None
+            continue
 
-        # --- CIDR containment ---
         try:
             rule_network = ipaddress.ip_network(text, strict=False)
             requested_network = ipaddress.ip_network(requested, strict=False)
@@ -420,6 +494,25 @@ def _address_prefix_matches(rule_value: Any, requested_prefix: str | None) -> bo
             continue
         if rule_network.version == requested_network.version and requested_network.subnet_of(rule_network):
             return True
+    return False
+
+
+def _prefix_is_covered_by_any(prefixes: Sequence[str], requested_prefix: str) -> bool | None:
+    try:
+        requested_network = ipaddress.ip_network(requested_prefix.strip(), strict=False)
+    except ValueError:
+        return None
+    saw_parseable = False
+    for prefix in prefixes:
+        try:
+            network = ipaddress.ip_network(str(prefix).strip(), strict=False)
+        except ValueError:
+            continue
+        saw_parseable = True
+        if network.version == requested_network.version and requested_network.subnet_of(network):
+            return True
+    if not saw_parseable:
+        return None
     return False
 
 
@@ -885,6 +978,7 @@ def _evaluate_nsg_on_resource(
     for nsg_res in nsg_resources:
         nsg_name = _resource_display_name(nsg_res)
         rules = _rules_with_azure_defaults(nsg_res)
+        virtual_network_prefixes = _virtual_network_prefixes_for_resource(res, resources_by_canonical_id, resource_ids)
         verdict = classify_nsg_verdict(
             rules,
             direction=direction,
@@ -893,6 +987,7 @@ def _evaluate_nsg_on_resource(
             destination_address_prefix=nsg_params.destination_address_prefix,
             source_port=nsg_params.source_port,
             destination_port=nsg_params.destination_port,
+            virtual_network_prefixes=virtual_network_prefixes,
         )
         evaluated.append((
             verdict,
@@ -905,6 +1000,7 @@ def _evaluate_nsg_on_resource(
                 destination_address_prefix=nsg_params.destination_address_prefix,
                 source_port=nsg_params.source_port,
                 destination_port=nsg_params.destination_port,
+                virtual_network_prefixes=virtual_network_prefixes,
             ),
         ))
 
@@ -960,6 +1056,115 @@ def _associated_nsg_resources(
     return nsgs
 
 
+def _virtual_network_prefixes_for_resource(
+    res: dict[str, Any],
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+    resource_ids: dict[str, str],
+) -> tuple[str, ...]:
+    """Return the Azure VirtualNetwork tag scope for a subnet/NIC hop.
+
+    Azure's ``VirtualNetwork`` service tag is not all RFC1918 space. For an
+    NSG evaluation it covers the owning VNet address space and connected
+    peered VNets. If the owning VNet cannot be resolved, callers fall back to
+    the static service-tag approximation.
+    """
+    vnet_id = _vnet_id_for_resource(res, resources_by_canonical_id, resource_ids)
+    vnet_canonical = _canonical_resource_id(vnet_id) if vnet_id else None
+    vnet_res = resources_by_canonical_id.get(vnet_canonical) if vnet_canonical else None
+    if not vnet_res:
+        return ()
+
+    prefixes: list[str] = list(_vnet_address_prefixes(vnet_res))
+    for peer_id in _connected_peered_vnet_ids(vnet_res, resources_by_canonical_id):
+        peer_res = resources_by_canonical_id.get(peer_id)
+        if peer_res:
+            prefixes.extend(_vnet_address_prefixes(peer_res))
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for prefix in prefixes:
+        key = prefix.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            deduped.append(prefix)
+    return tuple(deduped)
+
+
+def _vnet_id_for_resource(
+    res: dict[str, Any],
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+    resource_ids: dict[str, str],
+) -> str | None:
+    resource_id = str(res.get("id") or "")
+    resource_type = _resource_type_lower(res)
+    if resource_type.startswith("microsoft.network/virtualnetworks/subnets") and "/subnets/" in resource_id.lower():
+        return resource_id[:resource_id.lower().index("/subnets/")]
+
+    if resource_type.startswith("microsoft.network/networkinterfaces"):
+        for ip_config in _iter_dicts(_properties(res).get("ipConfigurations")):
+            ip_props = ip_config.get("properties")
+            if not isinstance(ip_props, dict):
+                continue
+            subnet_id_ref = _resolve_existing_resource_id(_id_from_ref(ip_props.get("subnet")), resource_ids)
+            if subnet_id_ref and "/subnets/" in subnet_id_ref.lower():
+                return subnet_id_ref[:subnet_id_ref.lower().index("/subnets/")]
+
+    subnet_id_ref = _resolve_existing_resource_id(_id_from_ref(_properties(res).get("subnet")), resource_ids)
+    if subnet_id_ref and "/subnets/" in subnet_id_ref.lower():
+        return subnet_id_ref[:subnet_id_ref.lower().index("/subnets/")]
+    return None
+
+
+def _vnet_address_prefixes(vnet_res: dict[str, Any]) -> tuple[str, ...]:
+    address_space = _properties(vnet_res).get("addressSpace")
+    prefixes: list[str] = []
+    if isinstance(address_space, dict):
+        raw = address_space.get("addressPrefixes")
+        if isinstance(raw, list):
+            prefixes.extend(str(item) for item in raw if item)
+        elif isinstance(raw, str):
+            prefixes.append(raw)
+    raw_prefix = _properties(vnet_res).get("addressPrefix")
+    if isinstance(raw_prefix, str):
+        prefixes.append(raw_prefix)
+    return tuple(prefixes)
+
+
+def _connected_peered_vnet_ids(
+    vnet_res: dict[str, Any],
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+) -> tuple[str, ...]:
+    vnet_id = _canonical_resource_id(str(vnet_res.get("id") or ""))
+    if not vnet_id:
+        return ()
+
+    peers: set[str] = set()
+    for raw in _iter_dicts(_properties(vnet_res).get("virtualNetworkPeerings")):
+        props = raw.get("properties") if isinstance(raw.get("properties"), dict) else raw
+        state = str(props.get("peeringState") or "Connected").strip().lower()
+        if state and state != "connected":
+            continue
+        remote_id = _canonical_resource_id(_id_from_ref(props.get("remoteVirtualNetwork")))
+        if not remote_id:
+            continue
+        remote = resources_by_canonical_id.get(remote_id)
+        if remote and _has_connected_reverse_peering(remote, vnet_id):
+            peers.add(remote_id)
+    return tuple(sorted(peers))
+
+
+def _has_connected_reverse_peering(vnet_res: dict[str, Any], expected_remote_vnet_id: str) -> bool:
+    for raw in _iter_dicts(_properties(vnet_res).get("virtualNetworkPeerings")):
+        props = raw.get("properties") if isinstance(raw.get("properties"), dict) else raw
+        state = str(props.get("peeringState") or "Connected").strip().lower()
+        if state and state != "connected":
+            continue
+        remote_id = _canonical_resource_id(_id_from_ref(props.get("remoteVirtualNetwork")))
+        if remote_id == expected_remote_vnet_id:
+            return True
+    return False
+
+
 def _matching_nsg_rule_name(
     rules: list[NSGRule],
     *,
@@ -969,6 +1174,7 @@ def _matching_nsg_rule_name(
     destination_address_prefix: str | None = None,
     source_port: int | None = None,
     destination_port: int | None = None,
+    virtual_network_prefixes: Sequence[str] | None = None,
 ) -> str | None:
     matching = _matching_nsg_rules(
         rules,
@@ -978,6 +1184,7 @@ def _matching_nsg_rule_name(
         destination_address_prefix=destination_address_prefix,
         source_port=source_port,
         destination_port=destination_port,
+        virtual_network_prefixes=virtual_network_prefixes,
     )
     return matching[0].name if matching else None
 
