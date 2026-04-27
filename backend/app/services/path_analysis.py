@@ -158,9 +158,9 @@ def _parse_single_nsg_rule(raw: dict[str, Any]) -> NSGRule | None:
         access=access,
         priority=priority_int,
         name=name,
-        source_address_prefix=props.get("sourceAddressPrefix"),
+        source_address_prefix=props.get("sourceAddressPrefix") or props.get("sourceAddressPrefixes"),
         source_port_range=props.get("sourcePortRange") or props.get("sourcePortRanges"),
-        destination_address_prefix=props.get("destinationAddressPrefix"),
+        destination_address_prefix=props.get("destinationAddressPrefix") or props.get("destinationAddressPrefixes"),
         destination_port_range=props.get("destinationPortRange") or props.get("destinationPortRanges"),
         protocol=props.get("protocol"),
     )
@@ -171,6 +171,8 @@ def classify_nsg_verdict(
     *,
     direction: str,
     protocol: str | None = None,
+    source_address_prefix: str | None = None,
+    destination_address_prefix: str | None = None,
     destination_port: int | None = None,
 ) -> PathVerdict:
     """Classify the effective NSG verdict for a given direction.
@@ -189,6 +191,8 @@ def classify_nsg_verdict(
         r for r in rules
         if r.direction == direction
         and _protocol_matches(r.protocol, protocol)
+        and _address_prefix_matches(r.source_address_prefix, source_address_prefix)
+        and _address_prefix_matches(r.destination_address_prefix, destination_address_prefix)
         and _port_matches(r.destination_port_range, destination_port)
     ]
     if not matching:
@@ -212,6 +216,28 @@ def _protocol_matches(rule_protocol: str | None, requested_protocol: str | None)
     if not rule_protocol or str(rule_protocol).strip() in {"", "*"}:
         return True
     return str(rule_protocol).strip().lower() == requested_protocol.strip().lower()
+
+
+def _address_prefix_matches(rule_value: Any, requested_prefix: str | None) -> bool:
+    if not requested_prefix:
+        return True
+    if rule_value is None:
+        return True
+
+    values = rule_value if isinstance(rule_value, list) else [rule_value]
+    requested = requested_prefix.strip().lower()
+    for value in values:
+        text = str(value).strip().lower()
+        if text in {"", "*"} or text == requested:
+            return True
+        try:
+            rule_network = ipaddress.ip_network(text, strict=False)
+            requested_network = ipaddress.ip_network(requested, strict=False)
+        except ValueError:
+            continue
+        if rule_network.version == requested_network.version and requested_network.subnet_of(rule_network):
+            return True
+    return False
 
 
 def _port_matches(rule_value: Any, requested_port: int | None) -> bool:
@@ -434,6 +460,8 @@ def analyze_path(
     source_resource_id: str,
     destination_resource_id: str,
     protocol: str | None = None,
+    source_address_prefix: str | None = None,
+    destination_address_prefix: str | None = None,
     destination_port: int | None = None,
 ) -> PathAnalysisResult:
     """Analyze network path from source to destination through Azure resources.
@@ -504,6 +532,8 @@ def analyze_path(
             resources_by_canonical_id,
             resource_ids,
             protocol=protocol,
+            source_address_prefix=source_address_prefix,
+            destination_address_prefix=destination_address_prefix,
             destination_port=destination_port,
         )
         classified_hops.append(classified_hop)
@@ -645,6 +675,8 @@ def _classify_hop(
     resource_ids: dict[str, str],
     *,
     protocol: str | None = None,
+    source_address_prefix: str | None = None,
+    destination_address_prefix: str | None = None,
     destination_port: int | None = None,
 ) -> PathHop:
     """Classify a single hop by checking NSG and route data."""
@@ -687,6 +719,8 @@ def _classify_hop(
                 rules,
                 direction="inbound",
                 protocol=protocol,
+                source_address_prefix=source_address_prefix,
+                destination_address_prefix=destination_address_prefix,
                 destination_port=destination_port,
             )
             nsg_verdict = verdict
@@ -748,6 +782,8 @@ def _classify_hop(
                                     rules,
                                     direction="inbound",
                                     protocol=protocol,
+                                    source_address_prefix=source_address_prefix,
+                                    destination_address_prefix=destination_address_prefix,
                                     destination_port=destination_port,
                                 )
                                 matching_inbound = sorted(

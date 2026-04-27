@@ -72,6 +72,8 @@ def get_path_analysis(
     resource_group_name: str | None = Query(default=None),
     resource_limit: int = Query(default=500, ge=1, le=2000),
     protocol: str | None = Query(default=None, description="Optional protocol filter for NSG evaluation, e.g. Tcp"),
+    source_address_prefix: str | None = Query(default=None, description="Optional source address prefix/IP for NSG evaluation"),
+    destination_address_prefix: str | None = Query(default=None, description="Optional destination address prefix/IP for NSG evaluation"),
     destination_port: int | None = Query(default=None, ge=0, le=65535, description="Optional destination port for NSG evaluation"),
 ) -> dict[str, Any]:
     settings = get_settings()
@@ -87,6 +89,8 @@ def get_path_analysis(
         source_resource_id=source_resource_id,
         destination_resource_id=destination_resource_id,
         protocol=protocol,
+        source_address_prefix=source_address_prefix,
+        destination_address_prefix=destination_address_prefix,
         destination_port=destination_port,
     )
 

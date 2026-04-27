@@ -299,6 +299,28 @@ class TestClassifyNSGVerdict:
         rules = [NSGRule(direction="inbound", access="allow", priority=100, name="allow-https", destination_port_range="443")]
         assert classify_nsg_verdict(rules, direction="inbound", destination_port=8443) == PathVerdict.UNKNOWN
 
+    def test_address_prefix_filtering_uses_cidr_containment(self):
+        rules = [
+            NSGRule(
+                direction="inbound",
+                access="allow",
+                priority=100,
+                name="allow-spoke",
+                source_address_prefix="10.0.0.0/16",
+                destination_address_prefix="10.1.0.0/16",
+            )
+        ]
+        assert classify_nsg_verdict(
+            rules,
+            direction="inbound",
+            source_address_prefix="10.0.2.4/32",
+            destination_address_prefix="10.1.3.5/32",
+        ) == PathVerdict.ALLOWED
+
+    def test_address_prefix_filtering_returns_unknown_without_match(self):
+        rules = [NSGRule(direction="inbound", access="allow", priority=100, name="allow-spoke", source_address_prefix="10.0.0.0/16")]
+        assert classify_nsg_verdict(rules, direction="inbound", source_address_prefix="10.2.0.4/32") == PathVerdict.UNKNOWN
+
 
 # ===========================================================================
 # Route Table Parsing

@@ -85,6 +85,8 @@ class TestPathAnalysisGet:
                 "source_resource_id": resource_nodes[0]["node_ref"],
                 "destination_resource_id": resource_nodes[1]["node_ref"],
                 "protocol": "Tcp",
+                "source_address_prefix": "10.0.0.4/32",
+                "destination_address_prefix": "10.1.0.5/32",
                 "destination_port": "443",
             },
         )

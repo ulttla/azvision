@@ -269,6 +269,8 @@ export function TopologyPage() {
   const [pathSourceNodeRef, setPathSourceNodeRef] = useState('')
   const [pathDestinationNodeRef, setPathDestinationNodeRef] = useState('')
   const [pathProtocolInput, setPathProtocolInput] = useState('Tcp')
+  const [pathSourceAddressInput, setPathSourceAddressInput] = useState('')
+  const [pathDestinationAddressInput, setPathDestinationAddressInput] = useState('')
   const [pathDestinationPortInput, setPathDestinationPortInput] = useState('443')
   const [pathAnalysisResult, setPathAnalysisResult] = useState<PathAnalysisResponse | null>(null)
   const [pathAnalysisLoading, setPathAnalysisLoading] = useState(false)
@@ -815,6 +817,8 @@ export function TopologyPage() {
           resourceGroupName: focusedResourceGroupName || undefined,
           resourceLimit: 1000,
           protocol: pathProtocolInput.trim() || undefined,
+          sourceAddressPrefix: pathSourceAddressInput.trim() || undefined,
+          destinationAddressPrefix: pathDestinationAddressInput.trim() || undefined,
           destinationPort: pathDestinationPortInput.trim() ? Number(pathDestinationPortInput) : undefined,
         },
       )
@@ -3474,6 +3478,22 @@ export function TopologyPage() {
                       onChange={(event) => setPathProtocolInput(event.target.value)}
                       placeholder="Protocol, e.g. Tcp"
                       aria-label="Path analysis protocol"
+                    />
+                    <input
+                      className="search-input"
+                      type="text"
+                      value={pathSourceAddressInput}
+                      onChange={(event) => setPathSourceAddressInput(event.target.value)}
+                      placeholder="Source prefix/IP, optional"
+                      aria-label="Path analysis source address prefix"
+                    />
+                    <input
+                      className="search-input"
+                      type="text"
+                      value={pathDestinationAddressInput}
+                      onChange={(event) => setPathDestinationAddressInput(event.target.value)}
+                      placeholder="Destination prefix/IP, optional"
+                      aria-label="Path analysis destination address prefix"
                     />
                     <input
                       className="search-input"
