@@ -1186,6 +1186,36 @@ class TestServiceTagInNSGVerdict:
         # The NSG rule has sourceAddressPrefix=VirtualNetwork which matches
         assert result.overall_verdict in (PathVerdict.ALLOWED, PathVerdict.UNKNOWN)
 
+    def test_nsg_rule_name_reports_actual_winning_rule(self):
+        """Evidence should name the rule that actually matched the filters."""
+        nsg = _nsg_resource(
+            NSG_ID,
+            security_rules=[
+                _deny_rule("deny-public-in", priority=100, source_prefix="203.0.113.0/24"),
+            ],
+        )
+        resources = [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {"networkSecurityGroup": {"id": NSG_ID}}),
+            nsg,
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            source_address_prefix="10.0.2.4/32",
+            destination_address_prefix="10.0.2.5/32",
+        )
+        subnet_hop = next(h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID)
+        assert subnet_hop.nsg_verdict == PathVerdict.ALLOWED
+        assert subnet_hop.nsg_rule_name == "AllowVnetInBound"
+
     def test_nsg_rule_with_internet_tag_blocks_internet_source(self):
         """NSG deny rule with Internet source prefix should match any public IP."""
         nsg = _nsg_resource(

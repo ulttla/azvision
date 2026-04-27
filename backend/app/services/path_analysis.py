@@ -302,19 +302,17 @@ def classify_nsg_verdict(
     if not rules:
         return PathVerdict.UNKNOWN
 
-    matching = [
-        r for r in rules
-        if r.direction == direction
-        and _protocol_matches(r.protocol, protocol)
-        and _address_prefix_matches(r.source_address_prefix, source_address_prefix)
-        and _address_prefix_matches(r.destination_address_prefix, destination_address_prefix)
-        and _port_matches(r.destination_port_range, destination_port)
-    ]
+    matching = _matching_nsg_rules(
+        rules,
+        direction=direction,
+        protocol=protocol,
+        source_address_prefix=source_address_prefix,
+        destination_address_prefix=destination_address_prefix,
+        destination_port=destination_port,
+    )
     if not matching:
         return PathVerdict.UNKNOWN
 
-    # Sort by priority (lower = higher precedence)
-    matching.sort(key=lambda r: r.priority)
     top_rule = matching[0]
 
     if top_rule.access == "allow":
@@ -323,6 +321,26 @@ def classify_nsg_verdict(
         return PathVerdict.BLOCKED
 
     return PathVerdict.UNKNOWN
+
+
+def _matching_nsg_rules(
+    rules: list[NSGRule],
+    *,
+    direction: str,
+    protocol: str | None = None,
+    source_address_prefix: str | None = None,
+    destination_address_prefix: str | None = None,
+    destination_port: int | None = None,
+) -> list[NSGRule]:
+    matching = [
+        r for r in rules
+        if r.direction == direction
+        and _protocol_matches(r.protocol, protocol)
+        and _address_prefix_matches(r.source_address_prefix, source_address_prefix)
+        and _address_prefix_matches(r.destination_address_prefix, destination_address_prefix)
+        and _port_matches(r.destination_port_range, destination_port)
+    ]
+    return sorted(matching, key=lambda r: r.priority)
 
 
 def _protocol_matches(rule_protocol: str | None, requested_protocol: str | None) -> bool:
@@ -791,7 +809,18 @@ def _evaluate_nsg_on_resource(
             destination_address_prefix=nsg_params.destination_address_prefix,
             destination_port=nsg_params.destination_port,
         )
-        evaluated.append((verdict, nsg_name, _matching_nsg_rule_name(rules, direction)))
+        evaluated.append((
+            verdict,
+            nsg_name,
+            _matching_nsg_rule_name(
+                rules,
+                direction=direction,
+                protocol=nsg_params.protocol,
+                source_address_prefix=nsg_params.source_address_prefix,
+                destination_address_prefix=nsg_params.destination_address_prefix,
+                destination_port=nsg_params.destination_port,
+            ),
+        ))
 
     for verdict, nsg_name, rule_name in evaluated:
         if verdict == PathVerdict.BLOCKED:
@@ -845,9 +874,24 @@ def _associated_nsg_resources(
     return nsgs
 
 
-def _matching_nsg_rule_name(rules: list[NSGRule], direction: str) -> str | None:
-    matching_dir = sorted((r for r in rules if r.direction == direction), key=lambda r: r.priority)
-    return matching_dir[0].name if matching_dir else None
+def _matching_nsg_rule_name(
+    rules: list[NSGRule],
+    *,
+    direction: str,
+    protocol: str | None = None,
+    source_address_prefix: str | None = None,
+    destination_address_prefix: str | None = None,
+    destination_port: int | None = None,
+) -> str | None:
+    matching = _matching_nsg_rules(
+        rules,
+        direction=direction,
+        protocol=protocol,
+        source_address_prefix=source_address_prefix,
+        destination_address_prefix=destination_address_prefix,
+        destination_port=destination_port,
+    )
+    return matching[0].name if matching else None
 
 
 def _classify_hop(
