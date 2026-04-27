@@ -40,6 +40,7 @@ def build_rule_based_copilot_answer(message: str, resources: list[dict[str, Any]
 
     cost_like = any(token in normalized for token in ("cost", "save", "saving", "cheap", "spend", "money", "비용", "절감"))
     network_like = any(token in normalized for token in ("network", "vnet", "subnet", "nsg", "route", "private", "네트워크"))
+    path_like = any(token in normalized for token in ("path", "traffic", "reach", "reachable", "allowed", "blocked", "통신", "경로", "차단", "허용"))
     project_like = any(token in normalized for token in ("project", "add", "design", "resource", "구성", "추가", "프로젝트"))
 
     answer_lines = [
@@ -63,6 +64,10 @@ def build_rule_based_copilot_answer(message: str, resources: list[dict[str, Any]
                 "Check NSG, route table, NIC, subnet, private endpoint, and VM edge evidence before trusting the diagram.",
             ]
         )
+        if path_like:
+            suggestions.append(
+                "Use the path-analysis endpoint with source_resource_id and destination_resource_id to get an allowed/blocked/unknown MVP verdict."
+            )
 
     if project_like:
         suggestions.extend(

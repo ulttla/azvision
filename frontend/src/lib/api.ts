@@ -325,6 +325,38 @@ export type TopologyNodeDetail = {
   details?: Record<string, unknown>
 }
 
+export type PathAnalysisVerdict = 'allowed' | 'blocked' | 'unknown'
+
+export type PathAnalysisHop = {
+  resource_id: string
+  resource_type: string
+  hop_type: string
+  display_name: string
+  nsg_verdict?: PathAnalysisVerdict
+  nsg_name?: string
+  nsg_rule_name?: string
+  route_verdict?: PathAnalysisVerdict
+  route_table_name?: string
+  route_name?: string
+}
+
+export type PathAnalysisCandidate = {
+  source_resource_id: string
+  destination_resource_id: string
+  verdict: PathAnalysisVerdict
+  hops: PathAnalysisHop[]
+  reason: string
+}
+
+export type PathAnalysisResponse = {
+  ok: boolean
+  source_resource_id: string
+  destination_resource_id: string
+  overall_verdict: PathAnalysisVerdict
+  path_candidates: PathAnalysisCandidate[]
+  warnings: string[]
+}
+
 export type ExportItem = {
   id: string
   workspace_id: string
@@ -665,6 +697,32 @@ export async function getTopologyNodeDetail(
 
   return fetchJson<TopologyNodeDetail>(
     `/workspaces/${workspaceId}/topology/node-detail?${search.toString()}`,
+  )
+}
+
+export async function getPathAnalysis(
+  workspaceId: string,
+  sourceResourceId: string,
+  destinationResourceId: string,
+  options?: CostQueryOptions,
+): Promise<PathAnalysisResponse> {
+  const search = new URLSearchParams({
+    source_resource_id: sourceResourceId,
+    destination_resource_id: destinationResourceId,
+  })
+
+  if (options?.subscriptionId) {
+    search.set('subscription_id', options.subscriptionId)
+  }
+  if (options?.resourceGroupName) {
+    search.set('resource_group_name', options.resourceGroupName)
+  }
+  if (options?.resourceLimit) {
+    search.set('resource_limit', String(options.resourceLimit))
+  }
+
+  return fetchJson<PathAnalysisResponse>(
+    `/workspaces/${workspaceId}/path-analysis?${search.toString()}`,
   )
 }
 

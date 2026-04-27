@@ -41,6 +41,12 @@ def test_rule_based_copilot_network_question_returns_network_guidance() -> None:
     assert any("NSG" in suggestion or "network" in suggestion for suggestion in answer["suggestions"])
 
 
+def test_rule_based_copilot_path_question_mentions_path_analysis_endpoint() -> None:
+    answer = build_rule_based_copilot_answer("Is VM traffic blocked by NSG or route table?", [])
+
+    assert any("path-analysis" in suggestion for suggestion in answer["suggestions"])
+
+
 def test_copilot_chat_route_returns_contextual_answer(client: TestClient) -> None:
     response = client.post(
         f"/api/v1/workspaces/{WORKSPACE}/chat",
