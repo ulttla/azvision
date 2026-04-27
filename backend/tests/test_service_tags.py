@@ -127,10 +127,13 @@ class TestAddressPrefixMatchesTag:
         result = address_prefix_matches_tag("VirtualNetwork", "4.2.0.0/16")
         assert result is False
 
-    def test_any_ip_in_internet(self):
-        # Internet tag = 0.0.0.0/0 catch-all
-        result = address_prefix_matches_tag("Internet", "1.2.3.4/32")
+    def test_public_ip_in_internet(self):
+        result = address_prefix_matches_tag("Internet", "8.8.8.8/32")
         assert result is True
+
+    def test_private_ip_not_in_internet(self):
+        result = address_prefix_matches_tag("Internet", "10.0.0.4/32")
+        assert result is False
 
     def test_rfc1918_not_in_storage(self):
         # Storage tag covers Azure public ranges, not RFC1918

@@ -139,7 +139,8 @@ def address_prefix_matches_tag(
         False – the requested_prefix is definitely *not* covered
         None  – the tag is unknown, so the match is ambiguous
     """
-    networks = resolve_service_tag(tag)
+    canonical = tag.strip().lower()
+    networks = resolve_service_tag(canonical)
     if networks is None:
         return None  # unknown tag → ambiguous
 
@@ -147,6 +148,13 @@ def address_prefix_matches_tag(
         requested = ipaddress.ip_network(requested_prefix.strip(), strict=False)
     except ValueError:
         return None  # unparseable prefix → ambiguous
+
+    if canonical == "internet":
+        # Azure's Internet tag represents public internet address space, not
+        # private/RFC1918 or other non-global ranges. A catch-all 0.0.0.0/0 is
+        # kept in the static table for route-prefix containment, but NSG rule
+        # matching should not let Internet match private traffic.
+        return requested.is_global
 
     for net in networks:
         if net.version == requested.version and requested.subnet_of(net):

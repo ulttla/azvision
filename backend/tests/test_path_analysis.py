@@ -1233,7 +1233,7 @@ class TestServiceTagInNSGVerdict:
             resources,
             source_resource_id=VM_ID,
             destination_resource_id=SUBNET_ID,
-            source_address_prefix="203.0.113.5/32",
+            source_address_prefix="8.8.8.8/32",
         )
         # Internet tag matches any IP (0.0.0.0/0), so the deny rule applies
         assert result.overall_verdict == PathVerdict.BLOCKED
