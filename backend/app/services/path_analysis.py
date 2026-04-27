@@ -106,7 +106,7 @@ class PathHop:
     # Which NSG direction was evaluated for the primary verdict
     nsg_direction: str | None = None   # "inbound" | "outbound" | None
 
-    # Outbound NSG verdict (evaluated on the source-side hop)
+    # Outbound NSG verdict (evaluated on each NSG-bearing hop)
     nsg_outbound_verdict: PathVerdict | None = None
     nsg_outbound_name: str | None = None
     nsg_outbound_rule_name: str | None = None
