@@ -3444,11 +3444,14 @@ export function TopologyPage() {
                   <span>Network Path Analysis</span>
                   <strong>
                     {pathAnalysisResult
-                      ? `Verdict: ${pathAnalysisResult.overall_verdict}`
+                      ? `Verdict: ${pathAnalysisResult.overall_verdict} (inbound NSG only)`
                       : 'Select source and destination'}
                   </strong>
                   <p className="hint detail-inline-hint">
                     Source: {pathSourceNode?.display_name ?? '-'} • Destination: {pathDestinationNode?.display_name ?? '-'}
+                  </p>
+                  <p className="hint detail-inline-hint">
+                    MVP note: path analysis currently evaluates inbound NSG rules only. Outbound NSG, port/protocol, and full CIDR matching are future work.
                   </p>
                   <div className="button-row detail-button-row">
                     <button
@@ -3487,11 +3490,22 @@ export function TopologyPage() {
                       </p>
                       {pathAnalysisResult.path_candidates[0]?.hops.length ? (
                         <div className="sample-chip-list">
-                          {pathAnalysisResult.path_candidates[0].hops.slice(0, 6).map((hop) => (
-                            <span key={hop.resource_id} className="sample-chip">
+                          {pathAnalysisResult.path_candidates[0].hops.slice(0, 6).map((hop, index) => (
+                            <span key={`${hop.resource_id}-${index}`} className="sample-chip">
                               {hop.display_name} • {hop.hop_type}
+                              {hop.nsg_verdict ? (
+                                <span className="mini-chip">NSG: {hop.nsg_verdict}</span>
+                              ) : null}
+                              {hop.route_verdict ? (
+                                <span className="mini-chip">Route: {hop.route_verdict}</span>
+                              ) : null}
                             </span>
                           ))}
+                          {pathAnalysisResult.path_candidates[0].hops.length > 6 ? (
+                            <span className="sample-chip">
+                              +{pathAnalysisResult.path_candidates[0].hops.length - 6} more hops
+                            </span>
+                          ) : null}
                         </div>
                       ) : null}
                       {pathAnalysisResult.warnings.length ? (
