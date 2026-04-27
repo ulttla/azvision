@@ -73,7 +73,7 @@ class TestPathAnalysisGet:
         assert body["overall_verdict"] in ("allowed", "blocked", "unknown")
 
     def test_protocol_and_port_query_params_are_accepted(self, client: TestClient):
-        """Optional protocol/port filters are part of the API contract."""
+        """Optional protocol/source/destination port filters are part of the API contract."""
         topo = client.get(f"/api/v1/workspaces/{WORKSPACE}/topology").json()
         resource_nodes = [n for n in topo["nodes"] if n["node_type"] == "resource"]
         if len(resource_nodes) < 2:
@@ -87,6 +87,7 @@ class TestPathAnalysisGet:
                 "protocol": "Tcp",
                 "source_address_prefix": "10.0.0.4/32",
                 "destination_address_prefix": "10.1.0.5/32",
+                "source_port": "50000",
                 "destination_port": "443",
             },
         )
