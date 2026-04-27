@@ -72,6 +72,25 @@ class TestPathAnalysisGet:
         body = resp.json()
         assert body["overall_verdict"] in ("allowed", "blocked", "unknown")
 
+    def test_protocol_and_port_query_params_are_accepted(self, client: TestClient):
+        """Optional protocol/port filters are part of the API contract."""
+        topo = client.get(f"/api/v1/workspaces/{WORKSPACE}/topology").json()
+        resource_nodes = [n for n in topo["nodes"] if n["node_type"] == "resource"]
+        if len(resource_nodes) < 2:
+            pytest.skip("Not enough mock resources")
+
+        resp = client.get(
+            f"/api/v1/workspaces/{WORKSPACE}/path-analysis",
+            params={
+                "source_resource_id": resource_nodes[0]["node_ref"],
+                "destination_resource_id": resource_nodes[1]["node_ref"],
+                "protocol": "Tcp",
+                "destination_port": "443",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["overall_verdict"] in ("allowed", "blocked", "unknown")
+
     def test_hop_structure_when_path_found(self, client: TestClient):
         """When a path is found, hops have the expected structure."""
         topo = client.get(f"/api/v1/workspaces/{WORKSPACE}/topology").json()

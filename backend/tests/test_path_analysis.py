@@ -281,6 +281,24 @@ class TestClassifyNSGVerdict:
         rules = [NSGRule(direction="outbound", access="allow", priority=100, name="out-allow")]
         assert classify_nsg_verdict(rules, direction="inbound") == PathVerdict.UNKNOWN
 
+    def test_protocol_filtering_returns_matching_rule(self):
+        rules = [
+            NSGRule(direction="inbound", access="deny", priority=100, name="deny-udp", protocol="Udp"),
+            NSGRule(direction="inbound", access="allow", priority=200, name="allow-tcp", protocol="Tcp"),
+        ]
+        assert classify_nsg_verdict(rules, direction="inbound", protocol="Tcp") == PathVerdict.ALLOWED
+
+    def test_destination_port_filtering_supports_ranges(self):
+        rules = [
+            NSGRule(direction="inbound", access="deny", priority=100, name="deny-admin", destination_port_range="3389"),
+            NSGRule(direction="inbound", access="allow", priority=200, name="allow-web", destination_port_range="80-443"),
+        ]
+        assert classify_nsg_verdict(rules, direction="inbound", destination_port=443) == PathVerdict.ALLOWED
+
+    def test_destination_port_filtering_returns_unknown_without_match(self):
+        rules = [NSGRule(direction="inbound", access="allow", priority=100, name="allow-https", destination_port_range="443")]
+        assert classify_nsg_verdict(rules, direction="inbound", destination_port=8443) == PathVerdict.UNKNOWN
+
 
 # ===========================================================================
 # Route Table Parsing

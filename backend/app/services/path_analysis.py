@@ -170,6 +170,8 @@ def classify_nsg_verdict(
     rules: list[NSGRule],
     *,
     direction: str,
+    protocol: str | None = None,
+    destination_port: int | None = None,
 ) -> PathVerdict:
     """Classify the effective NSG verdict for a given direction.
 
@@ -183,7 +185,12 @@ def classify_nsg_verdict(
     if not rules:
         return PathVerdict.UNKNOWN
 
-    matching = [r for r in rules if r.direction == direction]
+    matching = [
+        r for r in rules
+        if r.direction == direction
+        and _protocol_matches(r.protocol, protocol)
+        and _port_matches(r.destination_port_range, destination_port)
+    ]
     if not matching:
         return PathVerdict.UNKNOWN
 
@@ -197,6 +204,41 @@ def classify_nsg_verdict(
         return PathVerdict.BLOCKED
 
     return PathVerdict.UNKNOWN
+
+
+def _protocol_matches(rule_protocol: str | None, requested_protocol: str | None) -> bool:
+    if not requested_protocol:
+        return True
+    if not rule_protocol or str(rule_protocol).strip() in {"", "*"}:
+        return True
+    return str(rule_protocol).strip().lower() == requested_protocol.strip().lower()
+
+
+def _port_matches(rule_value: Any, requested_port: int | None) -> bool:
+    if requested_port is None:
+        return True
+    if rule_value is None:
+        return True
+
+    values = rule_value if isinstance(rule_value, list) else [rule_value]
+    for value in values:
+        text = str(value).strip()
+        if text in {"", "*"}:
+            return True
+        if "-" in text:
+            start_text, end_text = text.split("-", 1)
+            try:
+                if int(start_text) <= requested_port <= int(end_text):
+                    return True
+            except ValueError:
+                continue
+            continue
+        try:
+            if int(text) == requested_port:
+                return True
+        except ValueError:
+            continue
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -391,6 +433,8 @@ def analyze_path(
     *,
     source_resource_id: str,
     destination_resource_id: str,
+    protocol: str | None = None,
+    destination_port: int | None = None,
 ) -> PathAnalysisResult:
     """Analyze network path from source to destination through Azure resources.
 
@@ -455,7 +499,13 @@ def analyze_path(
     # Classify each hop
     classified_hops: list[PathHop] = []
     for hop in path_hops:
-        classified_hop = _classify_hop(hop, resources_by_canonical_id, resource_ids)
+        classified_hop = _classify_hop(
+            hop,
+            resources_by_canonical_id,
+            resource_ids,
+            protocol=protocol,
+            destination_port=destination_port,
+        )
         classified_hops.append(classified_hop)
 
     # Build path candidate
@@ -593,6 +643,9 @@ def _classify_hop(
     hop: PathHop,
     resources_by_canonical_id: dict[str, dict[str, Any]],
     resource_ids: dict[str, str],
+    *,
+    protocol: str | None = None,
+    destination_port: int | None = None,
 ) -> PathHop:
     """Classify a single hop by checking NSG and route data."""
     hop_canonical = _canonical_resource_id(hop.resource_id)
@@ -630,7 +683,12 @@ def _classify_hop(
             # MVP scope: evaluate inbound NSG direction only. Outbound direction,
             # port/protocol/address-prefix matching, and dual NIC+subnet effective
             # rule combination are future path-analysis hardening items.
-            verdict = classify_nsg_verdict(rules, direction="inbound")
+            verdict = classify_nsg_verdict(
+                rules,
+                direction="inbound",
+                protocol=protocol,
+                destination_port=destination_port,
+            )
             nsg_verdict = verdict
             if rules:
                 matching_inbound = sorted(
@@ -686,7 +744,12 @@ def _classify_hop(
                                 nsg_name = _resource_display_name(subnet_nsg_res)
                                 rules = parse_nsg_rules(subnet_nsg_res)
                                 # MVP scope: evaluate inbound NSG direction only.
-                                nsg_verdict = classify_nsg_verdict(rules, direction="inbound")
+                                nsg_verdict = classify_nsg_verdict(
+                                    rules,
+                                    direction="inbound",
+                                    protocol=protocol,
+                                    destination_port=destination_port,
+                                )
                                 matching_inbound = sorted(
                                     [r for r in rules if r.direction == "inbound"],
                                     key=lambda r: r.priority,

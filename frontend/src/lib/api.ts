@@ -704,7 +704,7 @@ export async function getPathAnalysis(
   workspaceId: string,
   sourceResourceId: string,
   destinationResourceId: string,
-  options?: CostQueryOptions,
+  options?: CostQueryOptions & { protocol?: string; destinationPort?: number },
 ): Promise<PathAnalysisResponse> {
   const search = new URLSearchParams({
     source_resource_id: sourceResourceId,
@@ -719,6 +719,12 @@ export async function getPathAnalysis(
   }
   if (options?.resourceLimit) {
     search.set('resource_limit', String(options.resourceLimit))
+  }
+  if (options?.protocol) {
+    search.set('protocol', options.protocol)
+  }
+  if (options?.destinationPort !== undefined) {
+    search.set('destination_port', String(options.destinationPort))
   }
 
   return fetchJson<PathAnalysisResponse>(
