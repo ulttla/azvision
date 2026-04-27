@@ -840,6 +840,44 @@ class TestAnalyzePathEdgeCases:
         )
         assert result.overall_verdict == PathVerdict.BLOCKED
 
+    def test_route_name_reports_actual_winning_route(self):
+        """Route evidence should name the route that determined the verdict."""
+        resources = [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {
+                    "networkSecurityGroup": {"id": NSG_ID},
+                    "routeTable": {"id": RT_ID},
+                },
+            ),
+            _nsg_resource(NSG_ID, security_rules=[_allow_rule()], subnets=[{"id": SUBNET_ID}]),
+            _route_table_resource(
+                RT_ID,
+                routes=[
+                    _route_entry("non-matching-allow", address_prefix="172.16.0.0/16", next_hop_type="Internet"),
+                    _blackhole_route("drop-destination", address_prefix="10.0.0.0/8"),
+                ],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            destination_address_prefix="10.0.1.25/32",
+        )
+        subnet_hop = next(h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID)
+        assert result.overall_verdict == PathVerdict.BLOCKED
+        assert subnet_hop.route_name == "drop-destination"
+
     def test_path_trace_does_not_treat_nsg_attachment_as_traffic_path(self):
         """NSG secures edge alone should not become a source/destination traffic path."""
         resources = [

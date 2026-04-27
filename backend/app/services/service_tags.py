@@ -151,10 +151,17 @@ def address_prefix_matches_tag(
 
     if canonical == "internet":
         # Azure's Internet tag represents public internet address space, not
-        # private/RFC1918 or other non-global ranges. A catch-all 0.0.0.0/0 is
-        # kept in the static table for route-prefix containment, but NSG rule
-        # matching should not let Internet match private traffic.
-        return requested.is_global
+        # private/RFC1918/ULA or other special-use ranges. Avoid relying on
+        # ``is_global`` alone because it is intentionally tied to IANA special
+        # registries and can be too narrow for our coarse service-tag matching.
+        return not any((
+            requested.is_private,
+            requested.is_link_local,
+            requested.is_loopback,
+            requested.is_multicast,
+            requested.is_reserved,
+            requested.is_unspecified,
+        ))
 
     for net in networks:
         if net.version == requested.version and requested.subnet_of(net):

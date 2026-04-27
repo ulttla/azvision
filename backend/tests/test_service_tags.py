@@ -135,6 +135,14 @@ class TestAddressPrefixMatchesTag:
         result = address_prefix_matches_tag("Internet", "10.0.0.4/32")
         assert result is False
 
+    def test_public_ipv6_in_internet(self):
+        result = address_prefix_matches_tag("Internet", "2606:4700:4700::1111/128")
+        assert result is True
+
+    def test_ula_ipv6_not_in_internet(self):
+        result = address_prefix_matches_tag("Internet", "fd00::/48")
+        assert result is False
+
     def test_rfc1918_not_in_storage(self):
         # Storage tag covers Azure public ranges, not RFC1918
         result = address_prefix_matches_tag("Storage", "10.0.0.0/16")

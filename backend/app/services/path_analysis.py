@@ -467,12 +467,28 @@ def _parse_single_route(raw: dict[str, Any]) -> RouteEntry | None:
     )
 
 
+@dataclass(frozen=True)
+class RouteVerdictDetail:
+    """Route verdict with the route that determined it, when known."""
+    verdict: PathVerdict
+    route: RouteEntry | None = None
+
+
 def classify_route_verdict(
     routes: list[RouteEntry],
     *,
     destination_prefix: str | None = None,
 ) -> PathVerdict:
-    """Classify route table verdict for reaching a destination.
+    """Classify route table verdict for reaching a destination."""
+    return classify_route_verdict_detail(routes, destination_prefix=destination_prefix).verdict
+
+
+def classify_route_verdict_detail(
+    routes: list[RouteEntry],
+    *,
+    destination_prefix: str | None = None,
+) -> RouteVerdictDetail:
+    """Classify route verdict and preserve the route that determined it.
 
     Conservative route semantics:
     - No routes → UNKNOWN
@@ -483,27 +499,29 @@ def classify_route_verdict(
     - Existing routes that do not match the destination do not block the path
     """
     if not routes:
-        return PathVerdict.UNKNOWN
+        return RouteVerdictDetail(PathVerdict.UNKNOWN)
 
     candidate_routes = [
         route for route in routes
         if not destination_prefix or not route.address_prefix or _prefix_covers(route.address_prefix, destination_prefix)
     ]
     if not candidate_routes:
-        return PathVerdict.ALLOWED
+        return RouteVerdictDetail(PathVerdict.ALLOWED)
 
     for route in candidate_routes:
         next_hop = (route.next_hop_type or "").strip().lower()
         if next_hop == "none":
-            return PathVerdict.BLOCKED
+            return RouteVerdictDetail(PathVerdict.BLOCKED, route)
 
-    if any(_route_next_hop_is_ambiguous(route.next_hop_type) for route in candidate_routes):
-        return PathVerdict.UNKNOWN
+    for route in candidate_routes:
+        if _route_next_hop_is_ambiguous(route.next_hop_type):
+            return RouteVerdictDetail(PathVerdict.UNKNOWN, route)
 
-    if any(_route_next_hop_is_allowed(route.next_hop_type) for route in candidate_routes):
-        return PathVerdict.ALLOWED
+    for route in candidate_routes:
+        if _route_next_hop_is_allowed(route.next_hop_type):
+            return RouteVerdictDetail(PathVerdict.ALLOWED, route)
 
-    return PathVerdict.UNKNOWN
+    return RouteVerdictDetail(PathVerdict.UNKNOWN, candidate_routes[0] if candidate_routes else None)
 
 
 def _route_next_hop_is_ambiguous(next_hop_type: str | None) -> bool:
@@ -519,7 +537,6 @@ def _route_next_hop_is_allowed(next_hop_type: str | None) -> bool:
         "vnetlocal",
         "virtualnetwork",
     }
-
 
 def _prefix_covers(route_prefix: str, destination_prefix: str) -> bool:
     """Check if route_prefix covers destination_prefix.
@@ -926,14 +943,14 @@ def _classify_hop(
     if not res:
         return hop
 
-    # --- Determine which NSG direction to evaluate at this hop ---
-    # The source hop (index 0) evaluates outbound NSG.
-    # The destination hop (last index) evaluates inbound NSG.
-    # Intermediate hops evaluate both directions.
-    is_source_side = hop_index == 0
-    is_dest_side = hop_index == len(path_hops) - 1
+    # NSG-bearing hops may appear anywhere in the traced path (for example,
+    # a source VM's subnet is usually not index 0). Evaluate both directions
+    # on every NSG-bearing subnet/NIC and let the overall verdict remain
+    # conservative: any block blocks, any unknown prevents a partial allow from
+    # becoming allowed.
+    _ = path_hops, hop_index
 
-    # Inbound verdict (destination-side NSG)
+    # Inbound verdict
     nsg_inbound_verdict: PathVerdict | None = None
     nsg_name: str | None = None
     nsg_rule_name: str | None = None
@@ -944,33 +961,29 @@ def _classify_hop(
     nsg_outbound_name: str | None = None
     nsg_outbound_rule_name: str | None = None
 
-    if is_dest_side or (not is_source_side and not is_dest_side):
-        # Evaluate inbound NSG on destination-side / intermediate hops
-        inbound_v, inbound_name, inbound_rule = _evaluate_nsg_on_resource(
-            res, resources_by_canonical_id, resource_ids,
-            direction="inbound", nsg_params=nsg_params,
-        )
-        nsg_inbound_verdict = inbound_v
-        nsg_name = inbound_name
-        nsg_rule_name = inbound_rule
-        if inbound_v is not None:
-            nsg_direction = "inbound"
+    inbound_v, inbound_name, inbound_rule = _evaluate_nsg_on_resource(
+        res, resources_by_canonical_id, resource_ids,
+        direction="inbound", nsg_params=nsg_params,
+    )
+    nsg_inbound_verdict = inbound_v
+    nsg_name = inbound_name
+    nsg_rule_name = inbound_rule
+    if inbound_v is not None:
+        nsg_direction = "inbound"
 
-    if is_source_side or (not is_source_side and not is_dest_side):
-        # Evaluate outbound NSG on source-side / intermediate hops
-        outbound_v, outbound_name, outbound_rule = _evaluate_nsg_on_resource(
-            res, resources_by_canonical_id, resource_ids,
-            direction="outbound", nsg_params=nsg_params,
-        )
-        nsg_outbound_verdict = outbound_v
-        nsg_outbound_name = outbound_name
-        nsg_outbound_rule_name = outbound_rule
-        # If no inbound was set but outbound is, use outbound as primary
-        if nsg_inbound_verdict is None and outbound_v is not None:
-            nsg_direction = "outbound"
-            nsg_name = outbound_name
-            nsg_rule_name = outbound_rule
-            nsg_inbound_verdict = outbound_v
+    outbound_v, outbound_name, outbound_rule = _evaluate_nsg_on_resource(
+        res, resources_by_canonical_id, resource_ids,
+        direction="outbound", nsg_params=nsg_params,
+    )
+    nsg_outbound_verdict = outbound_v
+    nsg_outbound_name = outbound_name
+    nsg_outbound_rule_name = outbound_rule
+    # If no inbound was set but outbound is, use outbound as primary
+    if nsg_inbound_verdict is None and outbound_v is not None:
+        nsg_direction = "outbound"
+        nsg_name = outbound_name
+        nsg_rule_name = outbound_rule
+        nsg_inbound_verdict = outbound_v
 
     # For simple source→dest paths where source == index 0 and dest == last,
     # assign the primary nsg_verdict to inbound (dest side) and track outbound
@@ -1021,9 +1034,10 @@ def _classify_hop(
         if rt_res:
             route_table_name = _resource_display_name(rt_res)
             routes = parse_route_table_routes(rt_res)
-            route_verdict = classify_route_verdict(routes, destination_prefix=nsg_params.destination_address_prefix)
-            if routes:
-                route_name = routes[0].name
+            route_detail = classify_route_verdict_detail(routes, destination_prefix=nsg_params.destination_address_prefix)
+            route_verdict = route_detail.verdict
+            if route_detail.route:
+                route_name = route_detail.route.name
 
     return PathHop(
         resource_id=hop.resource_id,
