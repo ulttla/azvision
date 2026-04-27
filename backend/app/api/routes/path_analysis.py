@@ -37,6 +37,14 @@ def _path_analysis_to_dict(result: Any) -> dict[str, Any]:
                 hop_dict["nsg_name"] = hop.nsg_name
             if hop.nsg_rule_name is not None:
                 hop_dict["nsg_rule_name"] = hop.nsg_rule_name
+            if hop.nsg_direction is not None:
+                hop_dict["nsg_direction"] = hop.nsg_direction
+            if hop.nsg_outbound_verdict is not None:
+                hop_dict["nsg_outbound_verdict"] = hop.nsg_outbound_verdict.value if hasattr(hop.nsg_outbound_verdict, "value") else str(hop.nsg_outbound_verdict)
+            if hop.nsg_outbound_name is not None:
+                hop_dict["nsg_outbound_name"] = hop.nsg_outbound_name
+            if hop.nsg_outbound_rule_name is not None:
+                hop_dict["nsg_outbound_rule_name"] = hop.nsg_outbound_rule_name
             if hop.route_verdict is not None:
                 hop_dict["route_verdict"] = hop.route_verdict.value if hasattr(hop.route_verdict, "value") else str(hop.route_verdict)
             if hop.route_table_name is not None:

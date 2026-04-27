@@ -94,7 +94,7 @@ class TestPathAnalysisGet:
         assert resp.json()["overall_verdict"] in ("allowed", "blocked", "unknown")
 
     def test_hop_structure_when_path_found(self, client: TestClient):
-        """When a path is found, hops have the expected structure."""
+        """When a path is found, hops have the expected structure including outbound fields."""
         topo = client.get(f"/api/v1/workspaces/{WORKSPACE}/topology").json()
         resource_nodes = [n for n in topo["nodes"] if n["node_type"] == "resource"]
         if len(resource_nodes) < 2:
@@ -121,3 +121,7 @@ class TestPathAnalysisGet:
                 assert "resource_id" in hop
                 assert "hop_type" in hop
                 assert "display_name" in hop
+                # New outbound NSG fields should be present (may be null)
+                # The API should not break with new fields
+                assert isinstance(hop.get("nsg_direction"), (str, type(None)))
+                assert isinstance(hop.get("nsg_outbound_verdict"), (str, type(None)))

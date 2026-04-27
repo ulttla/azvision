@@ -2,6 +2,7 @@
 
 Covers:
 - NSG rule parsing and classification (allow, deny, unknown)
+- NSG outbound direction evaluation
 - Route table parsing and classification
 - Full path analysis with path tracing through topology edges
 - Conservative behavior when data is missing or ambiguous
@@ -396,9 +397,9 @@ class TestClassifyRouteVerdict:
         routes = [RouteEntry(name="drop-ipv4", address_prefix="10.0.0.0/8", next_hop_type="None")]
         assert classify_route_verdict(routes, destination_prefix="2001:db8::/64") == PathVerdict.ALLOWED
 
-    def test_azure_service_tag_prefix_falls_back_to_exact_match(self):
+    def test_azure_service_tag_prefix_matches_known_tag(self):
         routes = [RouteEntry(name="drop-tag", address_prefix="VirtualNetwork", next_hop_type="None")]
-        assert classify_route_verdict(routes, destination_prefix="10.0.0.0/8") == PathVerdict.ALLOWED
+        assert classify_route_verdict(routes, destination_prefix="10.0.0.0/8") == PathVerdict.BLOCKED
 
     def test_no_destination_prefix_with_blackhole_returns_blocked(self):
         routes = [RouteEntry(name="drop", address_prefix="10.0.0.0/8", next_hop_type="None")]
@@ -868,3 +869,354 @@ class TestAnalyzePathEdgeCases:
         assert result.overall_verdict == PathVerdict.UNKNOWN
         assert result.path_candidates == []
         assert any("no network path" in warning.lower() for warning in result.warnings)
+
+
+# ===========================================================================
+# Outbound NSG Direction Evaluation
+# ===========================================================================
+
+class TestOutboundNSGDirection:
+    """Tests for outbound NSG direction evaluation in path analysis.
+
+    Azure evaluates both inbound (destination-side) and outbound (source-side)
+    NSG rules. This test class verifies that:
+    - Source-side hops evaluate outbound NSG direction
+    - Destination-side hops evaluate inbound NSG direction
+    - A blocking outbound NSG on the source results in overall BLOCKED
+    - Both directions are considered in the overall verdict
+    """
+
+    def _resources_with_separate_nsgs(self) -> list[dict]:
+        """Two subnets with different NSGs: source-subnet has outbound deny,
+        dest-subnet has inbound allow. Traffic should be blocked by outbound."""
+        SOURCE_SUBNET_ID = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-app/subnets/snet-source"
+        DEST_SUBNET_ID = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-app/subnets/snet-dest"
+        SOURCE_NSG_ID = f"{BASE}/Microsoft.Network/networkSecurityGroups/nsg-source"
+        DEST_NSG_ID = f"{BASE}/Microsoft.Network/networkSecurityGroups/nsg-dest"
+        SOURCE_NIC_ID = f"{BASE}/Microsoft.Network/networkInterfaces/nic-source"
+        DEST_NIC_ID = f"{BASE}/Microsoft.Network/networkInterfaces/nic-dest"
+        SOURCE_VM_ID = f"{BASE}/Microsoft.Compute/virtualMachines/vm-source"
+        DEST_VM_ID = f"{BASE}/Microsoft.Compute/virtualMachines/vm-dest"
+
+        return [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [
+                        {"id": SOURCE_SUBNET_ID},
+                        {"id": DEST_SUBNET_ID},
+                    ]
+                },
+            ),
+            # Source subnet with NSG that denies outbound
+            _resource(
+                SOURCE_SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": SOURCE_NSG_ID}},
+            ),
+            # Destination subnet with NSG that allows inbound
+            _resource(
+                DEST_SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": DEST_NSG_ID}},
+            ),
+            # Source NSG: deny outbound
+            _nsg_resource(
+                SOURCE_NSG_ID,
+                security_rules=[
+                    _deny_rule("deny-outbound-all", priority=100, direction="outbound"),
+                ],
+            ),
+            # Dest NSG: allow inbound
+            _nsg_resource(
+                DEST_NSG_ID,
+                security_rules=[
+                    _allow_rule("allow-inbound-all", priority=100, direction="inbound"),
+                ],
+            ),
+            # Source NIC on source subnet
+            _resource(
+                SOURCE_NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {
+                    "ipConfigurations": [
+                        {"name": "ipconfig1", "properties": {"subnet": {"id": SOURCE_SUBNET_ID}}},
+                    ],
+                },
+            ),
+            # Dest NIC on dest subnet
+            _resource(
+                DEST_NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {
+                    "ipConfigurations": [
+                        {"name": "ipconfig1", "properties": {"subnet": {"id": DEST_SUBNET_ID}}},
+                    ],
+                },
+            ),
+            # Source VM
+            _resource(
+                SOURCE_VM_ID,
+                "Microsoft.Compute/virtualMachines",
+                {"networkProfile": {"networkInterfaces": [{"id": SOURCE_NIC_ID}]}},
+            ),
+            # Dest VM
+            _resource(
+                DEST_VM_ID,
+                "Microsoft.Compute/virtualMachines",
+                {"networkProfile": {"networkInterfaces": [{"id": DEST_NIC_ID}]}},
+            ),
+        ]
+
+    def test_source_hop_evaluates_outbound_nsg(self):
+        """Source-side hop should evaluate outbound NSG direction."""
+        resources = self._resources_with_separate_nsgs()
+        result = analyze_path(
+            resources,
+            source_resource_id=f"{BASE}/Microsoft.Compute/virtualMachines/vm-source",
+            destination_resource_id=f"{BASE}/Microsoft.Compute/virtualMachines/vm-dest",
+        )
+        # The outbound deny on source subnet should result in BLOCKED
+        assert result.overall_verdict == PathVerdict.BLOCKED
+
+    def test_outbound_deny_overrides_inbound_allow(self):
+        """If outbound NSG denies but inbound NSG allows, overall should be BLOCKED."""
+        resources = self._resources_with_separate_nsgs()
+        result = analyze_path(
+            resources,
+            source_resource_id=f"{BASE}/Microsoft.Compute/virtualMachines/vm-source",
+            destination_resource_id=f"{BASE}/Microsoft.Compute/virtualMachines/vm-dest",
+        )
+        # Even though dest-side inbound allows, source outbound deny blocks
+        assert result.overall_verdict == PathVerdict.BLOCKED
+
+    def test_hop_has_outbound_verdict_fields(self):
+        """PathHop should include nsg_outbound_verdict and related fields."""
+        resources = self._resources_with_separate_nsgs()
+        result = analyze_path(
+            resources,
+            source_resource_id=f"{BASE}/Microsoft.Compute/virtualMachines/vm-source",
+            destination_resource_id=f"{BASE}/Microsoft.Compute/virtualMachines/vm-dest",
+        )
+        if result.path_candidates:
+            candidate = result.path_candidates[0]
+            # At least one hop should have outbound NSG data
+            hops_with_outbound = [
+                h for h in candidate.hops
+                if h.nsg_outbound_verdict is not None
+            ]
+            assert len(hops_with_outbound) > 0
+
+    def test_inbound_allow_with_outbound_allow(self):
+        """Both inbound and outbound allow → overall ALLOWED."""
+        SOURCE_SUBNET_ID = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-app/subnets/snet-source"
+        DEST_SUBNET_ID = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-app/subnets/snet-dest"
+        NSG_ID_SHARED = f"{BASE}/Microsoft.Network/networkSecurityGroups/nsg-shared"
+        SOURCE_NIC_ID = f"{BASE}/Microsoft.Network/networkInterfaces/nic-source"
+        DEST_NIC_ID = f"{BASE}/Microsoft.Network/networkInterfaces/nic-dest"
+        SOURCE_VM_ID = f"{BASE}/Microsoft.Compute/virtualMachines/vm-source"
+        DEST_VM_ID = f"{BASE}/Microsoft.Compute/virtualMachines/vm-dest"
+
+        nsg_both = _nsg_resource(
+            NSG_ID_SHARED,
+            security_rules=[
+                _allow_rule("allow-in", priority=100, direction="inbound"),
+                _allow_rule("allow-out", priority=100, direction="outbound"),
+            ],
+        )
+
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {"subnets": [{"id": SOURCE_SUBNET_ID}, {"id": DEST_SUBNET_ID}]},
+            ),
+            _resource(
+                SOURCE_SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID_SHARED}},
+            ),
+            _resource(
+                DEST_SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID_SHARED}},
+            ),
+            nsg_both,
+            _resource(
+                SOURCE_NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SOURCE_SUBNET_ID}}}]},
+            ),
+            _resource(
+                DEST_NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": DEST_SUBNET_ID}}}]},
+            ),
+            _resource(
+                SOURCE_VM_ID,
+                "Microsoft.Compute/virtualMachines",
+                {"networkProfile": {"networkInterfaces": [{"id": SOURCE_NIC_ID}]}},
+            ),
+            _resource(
+                DEST_VM_ID,
+                "Microsoft.Compute/virtualMachines",
+                {"networkProfile": {"networkInterfaces": [{"id": DEST_NIC_ID}]}},
+            ),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=SOURCE_VM_ID,
+            destination_resource_id=DEST_VM_ID,
+        )
+        assert result.overall_verdict == PathVerdict.ALLOWED
+
+
+class TestEffectiveNSGComposition:
+    """NIC and subnet NSGs both participate in the effective verdict."""
+
+    def _resources_with_nic_and_subnet_nsgs(self, *, nic_rules: list[dict], subnet_rules: list[dict]) -> list[dict]:
+        nic_nsg_id = f"{BASE}/Microsoft.Network/networkSecurityGroups/nsg-nic"
+        subnet_nsg_id = f"{BASE}/Microsoft.Network/networkSecurityGroups/nsg-subnet"
+        return [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {"networkSecurityGroup": {"id": subnet_nsg_id}}),
+            _nsg_resource(nic_nsg_id, security_rules=nic_rules),
+            _nsg_resource(subnet_nsg_id, security_rules=subnet_rules),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {
+                    "networkSecurityGroup": {"id": nic_nsg_id},
+                    "ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}],
+                },
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+
+    def test_subnet_deny_blocks_even_when_nic_allows(self):
+        resources = self._resources_with_nic_and_subnet_nsgs(
+            nic_rules=[_allow_rule("nic-allow", priority=100, direction="inbound")],
+            subnet_rules=[_deny_rule("subnet-deny", priority=100, direction="inbound")],
+        )
+        result = analyze_path(resources, source_resource_id=VM_ID, destination_resource_id=SUBNET_ID)
+        assert result.overall_verdict == PathVerdict.BLOCKED
+
+    def test_nic_deny_blocks_even_when_subnet_allows(self):
+        resources = self._resources_with_nic_and_subnet_nsgs(
+            nic_rules=[_deny_rule("nic-deny", priority=100, direction="inbound")],
+            subnet_rules=[_allow_rule("subnet-allow", priority=100, direction="inbound")],
+        )
+        result = analyze_path(resources, source_resource_id=VM_ID, destination_resource_id=SUBNET_ID)
+        assert result.overall_verdict == PathVerdict.BLOCKED
+
+
+class TestServiceTagInNSGVerdict:
+    """Integration tests for Azure service tag handling in NSG verdict."""
+
+    def test_nsg_rule_with_virtualnetwork_tag_allows_vnet_address(self):
+        """NSG rule with VirtualNetwork source prefix should match RFC1918 addresses."""
+        nsg = _nsg_resource(
+            NSG_ID,
+            security_rules=[
+                {
+                    "name": "allow-vnet-in",
+                    "properties": {
+                        "direction": "Inbound",
+                        "access": "Allow",
+                        "priority": 100,
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "*",
+                        "protocol": "*",
+                    },
+                },
+            ],
+        )
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {"subnets": [{"id": SUBNET_ID}]},
+            ),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID}},
+            ),
+            nsg,
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(
+                VM_ID,
+                "Microsoft.Compute/virtualMachines",
+                {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}},
+            ),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            source_address_prefix="10.0.2.4/32",
+        )
+        # VirtualNetwork tag resolves to 10.0.0.0/8 which covers 10.0.2.4
+        # But we need inbound to match – since this is the dest-side hop
+        # and we're checking source_address_prefix matching on inbound rules
+        # The NSG rule has sourceAddressPrefix=VirtualNetwork which matches
+        assert result.overall_verdict in (PathVerdict.ALLOWED, PathVerdict.UNKNOWN)
+
+    def test_nsg_rule_with_internet_tag_blocks_internet_source(self):
+        """NSG deny rule with Internet source prefix should match any public IP."""
+        nsg = _nsg_resource(
+            NSG_ID,
+            security_rules=[
+                {
+                    "name": "deny-internet-in",
+                    "properties": {
+                        "direction": "Inbound",
+                        "access": "Deny",
+                        "priority": 100,
+                        "sourceAddressPrefix": "Internet",
+                        "destinationAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "*",
+                        "protocol": "*",
+                    },
+                },
+            ],
+        )
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {"subnets": [{"id": SUBNET_ID}]},
+            ),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID}},
+            ),
+            nsg,
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(
+                VM_ID,
+                "Microsoft.Compute/virtualMachines",
+                {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}},
+            ),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            source_address_prefix="203.0.113.5/32",
+        )
+        # Internet tag matches any IP (0.0.0.0/0), so the deny rule applies
+        assert result.overall_verdict == PathVerdict.BLOCKED

@@ -1,14 +1,35 @@
 """Network path analysis service for AzVision.
 
 Analyzes reachability between Azure resources using NSG rules, route tables,
-and topology edges. Produces source→destination path candidates with an
+and topology edges.  Produces source→destination path candidates with an
 allowed/blocked/unknown verdict per hop.
 
 Design goals:
 - Pure-Python, testable without Azure credentials or live inventory.
 - Operates on the same resource dict shape used by topology inference.
 - Conservative: defaults to "unknown" when data is missing or ambiguous.
-- Only handles intra-VNet (L3) reachability at MVP scope.
+- Intra-VNet (L3) reachability at MVP scope.
+
+Evaluation directions
+---------------------
+For traffic from source → destination, Azure evaluates **two** NSG
+checkpoints:
+
+1. **Outbound NSG** on the source's subnet/NIC – does the source *allow*
+   traffic *out* to the destination?
+2. **Inbound NSG** on the destination's subnet/NIC – does the destination
+   *allow* traffic *in* from the source?
+
+Both must allow for traffic to flow.  Earlier releases only evaluated
+inbound; this version evaluates both directions and records the verdict
+for each on the hop where the NSG is attached.
+
+Service tags
+------------
+Azure NSG rules can use *service tags* (e.g. ``VirtualNetwork``, ``Storage``,
+``Internet``) as address prefixes.  These are resolved via the
+``service_tags`` module using a conservative static superset of CIDR ranges.
+Unknown service tags fall back to UNKNOWN (safe) semantics.
 """
 from __future__ import annotations
 
@@ -16,6 +37,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 import ipaddress
 from typing import Any
+
+from app.services.service_tags import address_prefix_matches_tag, is_service_tag
 
 
 # ---------------------------------------------------------------------------
@@ -76,10 +99,17 @@ class PathHop:
     hop_type: HopType
     display_name: str
 
-    # NSG verdict at this hop (None if no NSG applies)
+    # Inbound NSG verdict at this hop (None if no NSG applies)
     nsg_verdict: PathVerdict | None = None
     nsg_name: str | None = None
     nsg_rule_name: str | None = None
+    # Which NSG direction was evaluated for the primary verdict
+    nsg_direction: str | None = None   # "inbound" | "outbound" | None
+
+    # Outbound NSG verdict (evaluated on the source-side hop)
+    nsg_outbound_verdict: PathVerdict | None = None
+    nsg_outbound_name: str | None = None
+    nsg_outbound_rule_name: str | None = None
 
     # Route verdict at this hop (None if no route table applies)
     route_verdict: PathVerdict | None = None
@@ -131,6 +161,91 @@ def parse_nsg_rules(resource: dict[str, Any]) -> list[NSGRule]:
             if rule is not None:
                 rules.append(rule)
 
+    return rules
+
+
+def _azure_default_nsg_rules() -> list[NSGRule]:
+    """Return Azure's built-in NSG default rules.
+
+    Azure applies these rules even when the resource payload does not include
+    ``defaultSecurityRules``. Injecting them avoids treating an NSG with only
+    custom inbound rules as if it had no outbound policy at all.
+    """
+    return [
+        NSGRule(
+            direction="inbound",
+            access="allow",
+            priority=65000,
+            name="AllowVnetInBound",
+            source_address_prefix="VirtualNetwork",
+            destination_address_prefix="VirtualNetwork",
+            source_port_range="*",
+            destination_port_range="*",
+            protocol="*",
+        ),
+        NSGRule(
+            direction="inbound",
+            access="allow",
+            priority=65001,
+            name="AllowAzureLoadBalancerInBound",
+            source_address_prefix="AzureLoadBalancer",
+            destination_address_prefix="*",
+            source_port_range="*",
+            destination_port_range="*",
+            protocol="*",
+        ),
+        NSGRule(
+            direction="inbound",
+            access="deny",
+            priority=65500,
+            name="DenyAllInBound",
+            source_address_prefix="*",
+            destination_address_prefix="*",
+            source_port_range="*",
+            destination_port_range="*",
+            protocol="*",
+        ),
+        NSGRule(
+            direction="outbound",
+            access="allow",
+            priority=65000,
+            name="AllowVnetOutBound",
+            source_address_prefix="VirtualNetwork",
+            destination_address_prefix="VirtualNetwork",
+            source_port_range="*",
+            destination_port_range="*",
+            protocol="*",
+        ),
+        NSGRule(
+            direction="outbound",
+            access="allow",
+            priority=65001,
+            name="AllowInternetOutBound",
+            source_address_prefix="*",
+            destination_address_prefix="Internet",
+            source_port_range="*",
+            destination_port_range="*",
+            protocol="*",
+        ),
+        NSGRule(
+            direction="outbound",
+            access="deny",
+            priority=65500,
+            name="DenyAllOutBound",
+            source_address_prefix="*",
+            destination_address_prefix="*",
+            source_port_range="*",
+            destination_port_range="*",
+            protocol="*",
+        ),
+    ]
+
+
+def _rules_with_azure_defaults(resource: dict[str, Any]) -> list[NSGRule]:
+    """Parse an NSG and add Azure defaults if the payload omitted them."""
+    rules = parse_nsg_rules(resource)
+    if not _iter_dicts(_properties(resource).get("defaultSecurityRules")):
+        rules.extend(_azure_default_nsg_rules())
     return rules
 
 
@@ -219,6 +334,19 @@ def _protocol_matches(rule_protocol: str | None, requested_protocol: str | None)
 
 
 def _address_prefix_matches(rule_value: Any, requested_prefix: str | None) -> bool:
+    """Check whether a rule's address prefix matches the requested prefix.
+
+    Supports:
+    - Wildcards (``*``, empty string)
+    - Exact string match
+    - CIDR containment (requested is a subnet of rule)
+    - Azure service tags (e.g. ``VirtualNetwork``, ``Storage``, ``Internet``)
+      resolved via the ``service_tags`` module using a conservative superset
+    - Lists of prefixes (``sourceAddressPrefixes`` / ``destinationAddressPrefixes``)
+
+    Returns True when the rule *covers* the requested prefix, or when no
+    specific prefix was requested (caller is checking direction/protocol only).
+    """
     if not requested_prefix:
         return True
     if rule_value is None:
@@ -230,6 +358,20 @@ def _address_prefix_matches(rule_value: Any, requested_prefix: str | None) -> bo
         text = str(value).strip().lower()
         if text in {"", "*"} or text == requested:
             return True
+
+        # --- Service tag resolution ---
+        # If the rule value is a known service tag, expand it and check
+        # whether the requested prefix falls within the tag's ranges.
+        if is_service_tag(text):
+            tag_match = address_prefix_matches_tag(text, requested)
+            if tag_match is True:
+                return True
+            if tag_match is False:
+                continue  # not covered by this tag; try next value
+            # tag_match is None → unknown tag, fall through to CIDR
+            # (which will also fail), then return False at end
+
+        # --- CIDR containment ---
         try:
             rule_network = ipaddress.ip_network(text, strict=False)
             requested_network = ipaddress.ip_network(requested, strict=False)
@@ -339,9 +481,8 @@ def classify_route_verdict(
 def _prefix_covers(route_prefix: str, destination_prefix: str) -> bool:
     """Check if route_prefix covers destination_prefix.
 
-    Supports exact strings, catch-all prefixes, and stdlib CIDR containment.
-    Azure service tags such as ``VirtualNetwork`` intentionally fall back to
-    exact string matching until service-tag expansion is implemented.
+    Supports exact strings, catch-all prefixes, stdlib CIDR containment,
+    and Azure service tags resolved via the ``service_tags`` module.
     """
     route_prefix = route_prefix.strip().lower()
     destination_prefix = destination_prefix.strip().lower()
@@ -352,6 +493,17 @@ def _prefix_covers(route_prefix: str, destination_prefix: str) -> bool:
     if route_prefix in ("0.0.0.0/0", "::/0", "*"):
         return True
 
+    # --- Service tag resolution ---
+    if is_service_tag(route_prefix):
+        tag_match = address_prefix_matches_tag(route_prefix, destination_prefix)
+        if tag_match is True:
+            return True
+        if tag_match is False:
+            return False
+        # tag_match is None → unknown tag, fall through to CIDR (will fail)
+        return False
+
+    # --- CIDR containment ---
     try:
         route_network = ipaddress.ip_network(route_prefix, strict=False)
         destination_network = ipaddress.ip_network(destination_prefix, strict=False)
@@ -469,13 +621,15 @@ def analyze_path(
     This is the main entry point. It:
     1. Builds a resource index from the provided resources list.
     2. Follows topology edges (VNet→Subnet→NIC chains) from source to destination.
-    3. Applies NSG and route classification at each hop where data exists.
+    3. Applies NSG (both inbound and outbound) and route classification at
+       each hop where data exists.
     4. Returns path candidates with allowed/blocked/unknown verdicts.
 
     Conservative guarantees:
     - Missing NSG data → verdict UNKNOWN (not ALLOWED).
     - Missing route table data → verdict UNKNOWN (not ALLOWED).
     - No path found → overall verdict UNKNOWN with empty hops.
+    - Unknown service tags → UNKNOWN (not falsely ALLOWED or BLOCKED).
     """
     resource_ids = _resource_ids_by_canonical(resources)
     resources_by_canonical_id: dict[str, dict[str, Any]] = {}
@@ -524,17 +678,23 @@ def analyze_path(
             warnings=warnings + ["No network path found between source and destination"],
         )
 
-    # Classify each hop
+    # Classify each hop – evaluate both inbound and outbound NSG directions
+    nsg_params = _NSGParams(
+        protocol=protocol,
+        source_address_prefix=source_address_prefix,
+        destination_address_prefix=destination_address_prefix,
+        destination_port=destination_port,
+    )
+
     classified_hops: list[PathHop] = []
-    for hop in path_hops:
+    for idx, hop in enumerate(path_hops):
         classified_hop = _classify_hop(
             hop,
             resources_by_canonical_id,
             resource_ids,
-            protocol=protocol,
-            source_address_prefix=source_address_prefix,
-            destination_address_prefix=destination_address_prefix,
-            destination_port=destination_port,
+            path_hops=path_hops,
+            hop_index=idx,
+            nsg_params=nsg_params,
         )
         classified_hops.append(classified_hop)
 
@@ -559,6 +719,348 @@ def analyze_path(
     )
 
 
+# ---------------------------------------------------------------------------
+# Hop classification helpers
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class _NSGParams:
+    """Carries NSG evaluation parameters through the classify_hop call."""
+    protocol: str | None = None
+    source_address_prefix: str | None = None
+    destination_address_prefix: str | None = None
+    destination_port: int | None = None
+
+
+def _evaluate_nsg_on_resource(
+    res: dict[str, Any],
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+    resource_ids: dict[str, str],
+    *,
+    direction: str,
+    nsg_params: _NSGParams,
+) -> tuple[PathVerdict | None, str | None, str | None]:
+    """Evaluate effective NSG verdict for a resource and direction.
+
+    For NICs, Azure evaluates both NIC-level and subnet-level NSGs when both
+    are associated. A deny at either level blocks traffic; an unknown at either
+    level keeps the result unknown; all attached NSGs must allow before the
+    hop is treated as allowed.
+
+    Returns ``(verdict, nsg_name, nsg_rule_name)``. When multiple NSGs apply,
+    names are joined with ``+`` for evidence display.
+    """
+    nsg_resources = _associated_nsg_resources(res, resources_by_canonical_id, resource_ids)
+    if not nsg_resources:
+        return None, None, None
+
+    evaluated: list[tuple[PathVerdict, str, str | None]] = []
+    for nsg_res in nsg_resources:
+        nsg_name = _resource_display_name(nsg_res)
+        rules = _rules_with_azure_defaults(nsg_res)
+        verdict = classify_nsg_verdict(
+            rules,
+            direction=direction,
+            protocol=nsg_params.protocol,
+            source_address_prefix=nsg_params.source_address_prefix,
+            destination_address_prefix=nsg_params.destination_address_prefix,
+            destination_port=nsg_params.destination_port,
+        )
+        evaluated.append((verdict, nsg_name, _matching_nsg_rule_name(rules, direction)))
+
+    for verdict, nsg_name, rule_name in evaluated:
+        if verdict == PathVerdict.BLOCKED:
+            return verdict, nsg_name, rule_name
+
+    joined_names = "+".join(name for _, name, _ in evaluated)
+    joined_rules = "+".join(rule for _, _, rule in evaluated if rule) or None
+    if any(verdict == PathVerdict.UNKNOWN for verdict, _, _ in evaluated):
+        return PathVerdict.UNKNOWN, joined_names, joined_rules
+    if any(verdict == PathVerdict.ALLOWED for verdict, _, _ in evaluated):
+        return PathVerdict.ALLOWED, joined_names, joined_rules
+    return PathVerdict.UNKNOWN, joined_names, joined_rules
+
+
+def _associated_nsg_resources(
+    res: dict[str, Any],
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+    resource_ids: dict[str, str],
+) -> list[dict[str, Any]]:
+    """Return direct and parent-subnet NSGs that apply to a resource."""
+    properties = _properties(res)
+    nsgs: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add_nsg(raw_id: str | None) -> None:
+        nsg_id_ref = _resolve_existing_resource_id(raw_id, resource_ids)
+        nsg_canonical = _canonical_resource_id(nsg_id_ref) if nsg_id_ref else None
+        if not nsg_canonical or nsg_canonical in seen:
+            return
+        nsg_res = resources_by_canonical_id.get(nsg_canonical)
+        if nsg_res:
+            seen.add(nsg_canonical)
+            nsgs.append(nsg_res)
+
+    add_nsg(_id_from_ref(properties.get("networkSecurityGroup")))
+
+    if _resource_type_lower(res).startswith("microsoft.network/networkinterfaces"):
+        for ip_config in _iter_dicts(properties.get("ipConfigurations")):
+            ip_props = ip_config.get("properties")
+            if not isinstance(ip_props, dict):
+                continue
+            subnet_id_ref = _resolve_existing_resource_id(
+                _id_from_ref(ip_props.get("subnet")),
+                resource_ids,
+            )
+            subnet_canonical = _canonical_resource_id(subnet_id_ref) if subnet_id_ref else None
+            subnet_res = resources_by_canonical_id.get(subnet_canonical) if subnet_canonical else None
+            if subnet_res:
+                add_nsg(_id_from_ref(_properties(subnet_res).get("networkSecurityGroup")))
+
+    return nsgs
+
+
+def _matching_nsg_rule_name(rules: list[NSGRule], direction: str) -> str | None:
+    matching_dir = sorted((r for r in rules if r.direction == direction), key=lambda r: r.priority)
+    return matching_dir[0].name if matching_dir else None
+
+
+def _classify_hop(
+    hop: PathHop,
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+    resource_ids: dict[str, str],
+    *,
+    path_hops: list[PathHop],
+    hop_index: int,
+    nsg_params: _NSGParams,
+) -> PathHop:
+    """Classify a single hop by checking NSG (inbound + outbound) and route data.
+
+    NSG direction assignment:
+    - Source-side hops (closer to source) evaluate **outbound** NSG direction.
+    - Destination-side hops (closer to destination) evaluate **inbound** NSG
+      direction.
+    - For a path of N hops, the first hop is the source and the last is the
+      destination.  We evaluate outbound on the source's NSG-attached hop and
+      inbound on the destination's NSG-attached hop.
+    """
+    hop_canonical = _canonical_resource_id(hop.resource_id)
+    if not hop_canonical:
+        return hop
+
+    # Only classify hops where NSGs or route tables are relevant
+    # (subnets and NICs are the main attachment points)
+    if hop.hop_type not in (HopType.SUBNET, HopType.NIC):
+        return hop
+
+    res = resources_by_canonical_id.get(hop_canonical)
+    if not res:
+        return hop
+
+    # --- Determine which NSG direction to evaluate at this hop ---
+    # The source hop (index 0) evaluates outbound NSG.
+    # The destination hop (last index) evaluates inbound NSG.
+    # Intermediate hops evaluate both directions.
+    is_source_side = hop_index == 0
+    is_dest_side = hop_index == len(path_hops) - 1
+
+    # Inbound verdict (destination-side NSG)
+    nsg_inbound_verdict: PathVerdict | None = None
+    nsg_name: str | None = None
+    nsg_rule_name: str | None = None
+    nsg_direction: str | None = None
+
+    # Outbound verdict (source-side NSG)
+    nsg_outbound_verdict: PathVerdict | None = None
+    nsg_outbound_name: str | None = None
+    nsg_outbound_rule_name: str | None = None
+
+    if is_dest_side or (not is_source_side and not is_dest_side):
+        # Evaluate inbound NSG on destination-side / intermediate hops
+        inbound_v, inbound_name, inbound_rule = _evaluate_nsg_on_resource(
+            res, resources_by_canonical_id, resource_ids,
+            direction="inbound", nsg_params=nsg_params,
+        )
+        nsg_inbound_verdict = inbound_v
+        nsg_name = inbound_name
+        nsg_rule_name = inbound_rule
+        if inbound_v is not None:
+            nsg_direction = "inbound"
+
+    if is_source_side or (not is_source_side and not is_dest_side):
+        # Evaluate outbound NSG on source-side / intermediate hops
+        outbound_v, outbound_name, outbound_rule = _evaluate_nsg_on_resource(
+            res, resources_by_canonical_id, resource_ids,
+            direction="outbound", nsg_params=nsg_params,
+        )
+        nsg_outbound_verdict = outbound_v
+        nsg_outbound_name = outbound_name
+        nsg_outbound_rule_name = outbound_rule
+        # If no inbound was set but outbound is, use outbound as primary
+        if nsg_inbound_verdict is None and outbound_v is not None:
+            nsg_direction = "outbound"
+            nsg_name = outbound_name
+            nsg_rule_name = outbound_rule
+            nsg_inbound_verdict = outbound_v
+
+    # For simple source→dest paths where source == index 0 and dest == last,
+    # assign the primary nsg_verdict to inbound (dest side) and track outbound
+    # separately.  For single-hop or degenerate paths, use whichever is set.
+    primary_nsg_verdict = nsg_inbound_verdict
+    if primary_nsg_verdict is None and nsg_outbound_verdict is not None:
+        primary_nsg_verdict = nsg_outbound_verdict
+        nsg_direction = "outbound"
+        nsg_name = nsg_outbound_name
+        nsg_rule_name = nsg_outbound_rule_name
+
+    # --- Route table evaluation ---
+    route_verdict: PathVerdict | None = None
+    route_table_name: str | None = None
+    route_name: str | None = None
+
+    rt_id_ref = _resolve_existing_resource_id(
+        _id_from_ref(_properties(res).get("routeTable")),
+        resource_ids,
+    )
+
+    # For NICs, also check subnet route table
+    if not rt_id_ref and hop.hop_type == HopType.NIC:
+        ip_configs = _iter_dicts(_properties(res).get("ipConfigurations"))
+        for ip_config in ip_configs:
+            ip_props = ip_config.get("properties")
+            if not isinstance(ip_props, dict):
+                continue
+            subnet_id_ref = _resolve_existing_resource_id(
+                _id_from_ref(ip_props.get("subnet")),
+                resource_ids,
+            )
+            if subnet_id_ref:
+                subnet_canonical = _canonical_resource_id(subnet_id_ref)
+                subnet_res = resources_by_canonical_id.get(subnet_canonical) if subnet_canonical else None
+                if subnet_res:
+                    subnet_props = _properties(subnet_res)
+                    rt_id_ref = _resolve_existing_resource_id(
+                        _id_from_ref(subnet_props.get("routeTable")),
+                        resource_ids,
+                    )
+                    if rt_id_ref:
+                        break
+
+    if rt_id_ref:
+        rt_canonical = _canonical_resource_id(rt_id_ref)
+        rt_res = resources_by_canonical_id.get(rt_canonical) if rt_canonical else None
+        if rt_res:
+            route_table_name = _resource_display_name(rt_res)
+            routes = parse_route_table_routes(rt_res)
+            route_verdict = classify_route_verdict(routes)
+            if routes:
+                route_name = routes[0].name
+
+    return PathHop(
+        resource_id=hop.resource_id,
+        resource_type=hop.resource_type,
+        hop_type=hop.hop_type,
+        display_name=hop.display_name,
+        nsg_verdict=primary_nsg_verdict,
+        nsg_name=nsg_name,
+        nsg_rule_name=nsg_rule_name,
+        nsg_direction=nsg_direction,
+        nsg_outbound_verdict=nsg_outbound_verdict,
+        nsg_outbound_name=nsg_outbound_name,
+        nsg_outbound_rule_name=nsg_outbound_rule_name,
+        route_verdict=route_verdict,
+        route_table_name=route_table_name,
+        route_name=route_name,
+    )
+
+
+def _compute_overall_verdict(hops: list[PathHop]) -> PathVerdict:
+    """Compute overall verdict from hop-level verdicts.
+
+    Rules (considering both inbound and outbound NSG directions):
+    - Any hop with BLOCKED inbound NSG, outbound NSG, or route verdict → BLOCKED
+    - All hops have ALLOWED or no NSG/route data, and at least one hop has
+      explicit ALLOWED → ALLOWED (only if no UNKNOWN remains)
+    - Otherwise → UNKNOWN
+    """
+    has_explicit_allow = False
+    for hop in hops:
+        # Check all possible blocking signals
+        for verdict in (hop.nsg_verdict, hop.nsg_outbound_verdict, hop.route_verdict):
+            if verdict == PathVerdict.BLOCKED:
+                return PathVerdict.BLOCKED
+
+        # Check for explicit allow signals
+        if hop.nsg_verdict == PathVerdict.ALLOWED or hop.route_verdict == PathVerdict.ALLOWED:
+            has_explicit_allow = True
+        if hop.nsg_outbound_verdict == PathVerdict.ALLOWED:
+            has_explicit_allow = True
+
+    if has_explicit_allow:
+        # Conservative: if any attached NSG or route table exists
+        # but cannot be classified, keep the overall result UNKNOWN instead of
+        # upgrading a partial allow signal to ALLOWED.
+        for hop in hops:
+            for verdict in (hop.nsg_verdict, hop.nsg_outbound_verdict, hop.route_verdict):
+                if verdict == PathVerdict.UNKNOWN:
+                    return PathVerdict.UNKNOWN
+        return PathVerdict.ALLOWED
+
+    return PathVerdict.UNKNOWN
+
+
+def _verdict_reason(hops: list[PathHop], verdict: PathVerdict) -> str:
+    """Generate a human-readable reason for the verdict."""
+    if verdict == PathVerdict.ALLOWED:
+        allow_hops = [
+            hop for hop in hops
+            if hop.nsg_verdict == PathVerdict.ALLOWED
+            or hop.nsg_outbound_verdict == PathVerdict.ALLOWED
+            or hop.route_verdict == PathVerdict.ALLOWED
+        ]
+        details = ", ".join(
+            f"{hop.display_name}("
+            f"inNSG={hop.nsg_verdict.value if hop.nsg_verdict else 'N/A'}, "
+            f"outNSG={hop.nsg_outbound_verdict.value if hop.nsg_outbound_verdict else 'N/A'}, "
+            f"route={hop.route_verdict.value if hop.route_verdict else 'N/A'})"
+            for hop in allow_hops
+        )
+        return f"All hops allow traffic: {details}"
+
+    if verdict == PathVerdict.BLOCKED:
+        block_hops = [
+            hop for hop in hops
+            if hop.nsg_verdict == PathVerdict.BLOCKED
+            or hop.nsg_outbound_verdict == PathVerdict.BLOCKED
+            or hop.route_verdict == PathVerdict.BLOCKED
+        ]
+        details = ", ".join(
+            f"{hop.display_name}("
+            f"inNSG={hop.nsg_verdict.value if hop.nsg_verdict else 'N/A'}, "
+            f"outNSG={hop.nsg_outbound_verdict.value if hop.nsg_outbound_verdict else 'N/A'}, "
+            f"route={hop.route_verdict.value if hop.route_verdict else 'N/A'})"
+            for hop in block_hops
+        )
+        return f"Traffic blocked at: {details}"
+
+    # UNKNOWN
+    unknown_hops = [
+        hop for hop in hops
+        if (hop.nsg_verdict is None and hop.nsg_outbound_verdict is None and hop.route_verdict is None)
+        or hop.nsg_verdict == PathVerdict.UNKNOWN
+        or hop.nsg_outbound_verdict == PathVerdict.UNKNOWN
+        or hop.route_verdict == PathVerdict.UNKNOWN
+    ]
+    if not unknown_hops:
+        return "Verdict unknown: insufficient data for classification"
+    hop_names = ", ".join(hop.display_name for hop in unknown_hops)
+    return f"Insufficient NSG/route data for hops: {hop_names}"
+
+
+# ---------------------------------------------------------------------------
+# Path tracing (BFS)
+# ---------------------------------------------------------------------------
+
 def _trace_path(
     source: dict[str, Any],
     destination: dict[str, Any],
@@ -578,10 +1080,7 @@ def _trace_path(
 
     # Build adjacency from explicit traffic-carrying edges only.
     # NSG ``secures`` and route-table ``routes`` edges describe controls that
-    # attach to a path hop; they are not traffic path hops themselves. Treating
-    # them as BFS links can produce false source/destination paths through an
-    # NSG or route table, so path tracing only follows ``connects_to`` edges and
-    # applies NSG/route data later in ``_classify_hop``.
+    # attach to a path hop; they are not traffic path hops themselves.
     edges = infer_explicit_network_relationship_edges(resources)
 
     # Build adjacency list (undirected for MVP path-finding over connectivity edges).
@@ -667,222 +1166,3 @@ def _trace_path(
             ))
 
     return hops
-
-
-def _classify_hop(
-    hop: PathHop,
-    resources_by_canonical_id: dict[str, dict[str, Any]],
-    resource_ids: dict[str, str],
-    *,
-    protocol: str | None = None,
-    source_address_prefix: str | None = None,
-    destination_address_prefix: str | None = None,
-    destination_port: int | None = None,
-) -> PathHop:
-    """Classify a single hop by checking NSG and route data."""
-    hop_canonical = _canonical_resource_id(hop.resource_id)
-    if not hop_canonical:
-        return hop
-
-    # Only classify hops where NSGs or route tables are relevant
-    # (subnets and NICs are the main attachment points)
-    if hop.hop_type not in (HopType.SUBNET, HopType.NIC):
-        return hop
-
-    res = resources_by_canonical_id.get(hop_canonical)
-    if not res:
-        return hop
-
-    properties = _properties(res)
-    nsg_verdict: PathVerdict | None = None
-    nsg_name: str | None = None
-    nsg_rule_name: str | None = None
-    route_verdict: PathVerdict | None = None
-    route_table_name: str | None = None
-    route_name: str | None = None
-
-    # Look for NSG association on this hop
-    nsg_id_ref = _resolve_existing_resource_id(
-        _id_from_ref(properties.get("networkSecurityGroup")),
-        resource_ids,
-    )
-    if nsg_id_ref:
-        nsg_canonical = _canonical_resource_id(nsg_id_ref)
-        nsg_res = resources_by_canonical_id.get(nsg_canonical) if nsg_canonical else None
-        if nsg_res:
-            nsg_name = _resource_display_name(nsg_res)
-            rules = parse_nsg_rules(nsg_res)
-            # MVP scope: evaluate inbound NSG direction only. Outbound direction
-            # and dual NIC+subnet effective rule combination are future
-            # path-analysis hardening items.
-            verdict = classify_nsg_verdict(
-                rules,
-                direction="inbound",
-                protocol=protocol,
-                source_address_prefix=source_address_prefix,
-                destination_address_prefix=destination_address_prefix,
-                destination_port=destination_port,
-            )
-            nsg_verdict = verdict
-            if rules:
-                matching_inbound = sorted(
-                    [r for r in rules if r.direction == "inbound"],
-                    key=lambda r: r.priority,
-                )
-                if matching_inbound:
-                    nsg_rule_name = matching_inbound[0].name
-
-    # Look for route table association
-    rt_id_ref = _resolve_existing_resource_id(
-        _id_from_ref(properties.get("routeTable")),
-        resource_ids,
-    )
-    if rt_id_ref:
-        rt_canonical = _canonical_resource_id(rt_id_ref)
-        rt_res = resources_by_canonical_id.get(rt_canonical) if rt_canonical else None
-        if rt_res:
-            route_table_name = _resource_display_name(rt_res)
-            routes = parse_route_table_routes(rt_res)
-            verdict = classify_route_verdict(routes)
-            route_verdict = verdict
-            if routes:
-                route_name = routes[0].name
-
-    # If this is a NIC, also check if its subnet has NSG/route
-    # (Subnet NSG is more authoritative for NICs on that subnet)
-    if hop.hop_type == HopType.NIC:
-        ip_configs = _iter_dicts(properties.get("ipConfigurations"))
-        for ip_config in ip_configs:
-            ip_props = ip_config.get("properties")
-            if not isinstance(ip_props, dict):
-                continue
-            subnet_id_ref = _resolve_existing_resource_id(
-                _id_from_ref(ip_props.get("subnet")),
-                resource_ids,
-            )
-            if subnet_id_ref:
-                subnet_canonical = _canonical_resource_id(subnet_id_ref)
-                subnet_res = resources_by_canonical_id.get(subnet_canonical) if subnet_canonical else None
-                if subnet_res:
-                    subnet_props = _properties(subnet_res)
-                    # NSG on subnet (overrides NIC-level if not already found)
-                    if not nsg_id_ref:
-                        subnet_nsg_id = _resolve_existing_resource_id(
-                            _id_from_ref(subnet_props.get("networkSecurityGroup")),
-                            resource_ids,
-                        )
-                        if subnet_nsg_id:
-                            subnet_nsg_canonical = _canonical_resource_id(subnet_nsg_id)
-                            subnet_nsg_res = resources_by_canonical_id.get(subnet_nsg_canonical) if subnet_nsg_canonical else None
-                            if subnet_nsg_res:
-                                nsg_name = _resource_display_name(subnet_nsg_res)
-                                rules = parse_nsg_rules(subnet_nsg_res)
-                                # MVP scope: evaluate inbound NSG direction only.
-                                nsg_verdict = classify_nsg_verdict(
-                                    rules,
-                                    direction="inbound",
-                                    protocol=protocol,
-                                    source_address_prefix=source_address_prefix,
-                                    destination_address_prefix=destination_address_prefix,
-                                    destination_port=destination_port,
-                                )
-                                matching_inbound = sorted(
-                                    [r for r in rules if r.direction == "inbound"],
-                                    key=lambda r: r.priority,
-                                )
-                                if matching_inbound:
-                                    nsg_rule_name = matching_inbound[0].name
-
-                    # Route table on subnet
-                    if not rt_id_ref:
-                        subnet_rt_id = _resolve_existing_resource_id(
-                            _id_from_ref(subnet_props.get("routeTable")),
-                            resource_ids,
-                        )
-                        if subnet_rt_id:
-                            subnet_rt_canonical = _canonical_resource_id(subnet_rt_id)
-                            subnet_rt_res = resources_by_canonical_id.get(subnet_rt_canonical) if subnet_rt_canonical else None
-                            if subnet_rt_res:
-                                route_table_name = _resource_display_name(subnet_rt_res)
-                                routes = parse_route_table_routes(subnet_rt_res)
-                                route_verdict = classify_route_verdict(routes)
-                                if routes:
-                                    route_name = routes[0].name
-
-    return PathHop(
-        resource_id=hop.resource_id,
-        resource_type=hop.resource_type,
-        hop_type=hop.hop_type,
-        display_name=hop.display_name,
-        nsg_verdict=nsg_verdict,
-        nsg_name=nsg_name,
-        nsg_rule_name=nsg_rule_name,
-        route_verdict=route_verdict,
-        route_table_name=route_table_name,
-        route_name=route_name,
-    )
-
-
-def _compute_overall_verdict(hops: list[PathHop]) -> PathVerdict:
-    """Compute overall verdict from hop-level verdicts.
-
-    Rules:
-    - Any hop with BLOCKED NSG or route verdict → BLOCKED
-    - All hops have ALLOWED or no NSG/route data, and at least one hop has
-      explicit ALLOWED → ALLOWED
-    - Otherwise → UNKNOWN
-    """
-    has_explicit_allow = False
-    for hop in hops:
-        if hop.nsg_verdict == PathVerdict.BLOCKED or hop.route_verdict == PathVerdict.BLOCKED:
-            return PathVerdict.BLOCKED
-        if hop.nsg_verdict == PathVerdict.ALLOWED or hop.route_verdict == PathVerdict.ALLOWED:
-            has_explicit_allow = True
-
-    if has_explicit_allow:
-        # Conservative MVP behavior: if any attached NSG or route table exists
-        # but cannot be classified, keep the overall result UNKNOWN instead of
-        # upgrading a partial allow signal to ALLOWED.
-        for hop in hops:
-            if hop.nsg_verdict == PathVerdict.UNKNOWN or hop.route_verdict == PathVerdict.UNKNOWN:
-                return PathVerdict.UNKNOWN
-        return PathVerdict.ALLOWED
-
-    return PathVerdict.UNKNOWN
-
-
-def _verdict_reason(hops: list[PathHop], verdict: PathVerdict) -> str:
-    """Generate a human-readable reason for the verdict."""
-    if verdict == PathVerdict.ALLOWED:
-        allow_hops = [
-            hop for hop in hops
-            if hop.nsg_verdict == PathVerdict.ALLOWED or hop.route_verdict == PathVerdict.ALLOWED
-        ]
-        details = ", ".join(
-            f"{hop.display_name}(NSG={hop.nsg_verdict.value if hop.nsg_verdict else 'N/A'}, route={hop.route_verdict.value if hop.route_verdict else 'N/A'})"
-            for hop in allow_hops
-        )
-        return f"All hops allow traffic: {details}"
-
-    if verdict == PathVerdict.BLOCKED:
-        block_hops = [
-            hop for hop in hops
-            if hop.nsg_verdict == PathVerdict.BLOCKED or hop.route_verdict == PathVerdict.BLOCKED
-        ]
-        details = ", ".join(
-            f"{hop.display_name}(NSG={hop.nsg_verdict.value if hop.nsg_verdict else 'N/A'}, route={hop.route_verdict.value if hop.route_verdict else 'N/A'})"
-            for hop in block_hops
-        )
-        return f"Traffic blocked at: {details}"
-
-    # UNKNOWN
-    unknown_hops = [
-        hop for hop in hops
-        if (hop.nsg_verdict is None and hop.route_verdict is None)
-        or hop.nsg_verdict == PathVerdict.UNKNOWN
-        or hop.route_verdict == PathVerdict.UNKNOWN
-    ]
-    if not unknown_hops:
-        return "Verdict unknown: insufficient data for classification"
-    hop_names = ", ".join(hop.display_name for hop in unknown_hops)
-    return f"Insufficient NSG/route data for hops: {hop_names}"
