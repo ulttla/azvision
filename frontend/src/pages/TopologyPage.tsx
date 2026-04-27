@@ -268,6 +268,8 @@ export function TopologyPage() {
   const [graphRuntimeLoading, setGraphRuntimeLoading] = useState(false)
   const [pathSourceNodeRef, setPathSourceNodeRef] = useState('')
   const [pathDestinationNodeRef, setPathDestinationNodeRef] = useState('')
+  const [pathProtocolInput, setPathProtocolInput] = useState('Tcp')
+  const [pathDestinationPortInput, setPathDestinationPortInput] = useState('443')
   const [pathAnalysisResult, setPathAnalysisResult] = useState<PathAnalysisResponse | null>(null)
   const [pathAnalysisLoading, setPathAnalysisLoading] = useState(false)
   const [pathAnalysisMessage, setPathAnalysisMessage] = useState('')
@@ -786,9 +788,18 @@ export function TopologyPage() {
     void loadNodeDetail()
   }, [selectedNode, selectedWorkspaceId])
 
+  const hasPathDestinationPortInput = Boolean(pathDestinationPortInput.trim())
+  const pathDestinationPortNumber = hasPathDestinationPortInput
+    ? Number(pathDestinationPortInput)
+    : undefined
+
   async function runPathAnalysis() {
     if (!selectedWorkspaceId || !pathSourceNodeRef || !pathDestinationNodeRef) {
       setPathAnalysisMessage('Select both source and destination resource nodes first.')
+      return
+    }
+    if (hasPathDestinationPortInput && (!Number.isInteger(pathDestinationPortNumber) || Number(pathDestinationPortNumber) < 0 || Number(pathDestinationPortNumber) > 65535)) {
+      setPathAnalysisMessage('Destination port must be an integer between 0 and 65535.')
       return
     }
 
@@ -803,6 +814,8 @@ export function TopologyPage() {
           subscriptionId: selectedSubscriptionId || undefined,
           resourceGroupName: focusedResourceGroupName || undefined,
           resourceLimit: 1000,
+          protocol: pathProtocolInput.trim() || undefined,
+          destinationPort: pathDestinationPortInput.trim() ? Number(pathDestinationPortInput) : undefined,
         },
       )
       setPathAnalysisResult(result)
@@ -3451,8 +3464,28 @@ export function TopologyPage() {
                     Source: {pathSourceNode?.display_name ?? '-'} • Destination: {pathDestinationNode?.display_name ?? '-'}
                   </p>
                   <p className="hint detail-inline-hint">
-                    MVP note: path analysis currently evaluates inbound NSG rules only. Outbound NSG, port/protocol, and full CIDR matching are future work.
+                    MVP note: path analysis currently evaluates inbound NSG rules only. Outbound NSG and source/destination address matching are future work.
                   </p>
+                  <div className="search-form detail-inline-hint">
+                    <input
+                      className="search-input"
+                      type="text"
+                      value={pathProtocolInput}
+                      onChange={(event) => setPathProtocolInput(event.target.value)}
+                      placeholder="Protocol, e.g. Tcp"
+                      aria-label="Path analysis protocol"
+                    />
+                    <input
+                      className="search-input"
+                      type="number"
+                      min="0"
+                      max="65535"
+                      value={pathDestinationPortInput}
+                      onChange={(event) => setPathDestinationPortInput(event.target.value)}
+                      placeholder="Destination port, e.g. 443"
+                      aria-label="Path analysis destination port"
+                    />
+                  </div>
                   <div className="button-row detail-button-row">
                     <button
                       type="button"
