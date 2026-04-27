@@ -300,6 +300,18 @@ class TestClassifyNSGVerdict:
         rules = [NSGRule(direction="inbound", access="allow", priority=100, name="allow-https", destination_port_range="443")]
         assert classify_nsg_verdict(rules, direction="inbound", destination_port=8443) == PathVerdict.UNKNOWN
 
+    def test_source_port_filtering_supports_ranges(self):
+        rules = [
+            NSGRule(direction="inbound", access="deny", priority=100, name="deny-admin-source", source_port_range="3389"),
+            NSGRule(direction="inbound", access="allow", priority=200, name="allow-ephemeral", source_port_range="49152-65535"),
+        ]
+        assert classify_nsg_verdict(rules, direction="inbound", source_port=50000) == PathVerdict.ALLOWED
+        assert classify_nsg_verdict(rules, direction="inbound", source_port=3389) == PathVerdict.BLOCKED
+
+    def test_source_port_filtering_returns_unknown_without_match(self):
+        rules = [NSGRule(direction="inbound", access="allow", priority=100, name="allow-ephemeral", source_port_range="49152-65535")]
+        assert classify_nsg_verdict(rules, direction="inbound", source_port=12345) == PathVerdict.UNKNOWN
+
     def test_destination_port_filtering_supports_comma_separated_ranges(self):
         rules = [
             NSGRule(

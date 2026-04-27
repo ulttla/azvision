@@ -712,6 +712,7 @@ export async function getPathAnalysis(
     protocol?: string
     sourceAddressPrefix?: string
     destinationAddressPrefix?: string
+    sourcePort?: number
     destinationPort?: number
   },
 ): Promise<PathAnalysisResponse> {
@@ -737,6 +738,9 @@ export async function getPathAnalysis(
   }
   if (options?.destinationAddressPrefix) {
     search.set('destination_address_prefix', options.destinationAddressPrefix)
+  }
+  if (options?.sourcePort !== undefined) {
+    search.set('source_port', String(options.sourcePort))
   }
   if (options?.destinationPort !== undefined) {
     search.set('destination_port', String(options.destinationPort))

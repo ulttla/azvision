@@ -271,6 +271,7 @@ export function TopologyPage() {
   const [pathProtocolInput, setPathProtocolInput] = useState('Tcp')
   const [pathSourceAddressInput, setPathSourceAddressInput] = useState('')
   const [pathDestinationAddressInput, setPathDestinationAddressInput] = useState('')
+  const [pathSourcePortInput, setPathSourcePortInput] = useState('')
   const [pathDestinationPortInput, setPathDestinationPortInput] = useState('443')
   const [pathAnalysisResult, setPathAnalysisResult] = useState<PathAnalysisResponse | null>(null)
   const [pathAnalysisLoading, setPathAnalysisLoading] = useState(false)
@@ -790,6 +791,10 @@ export function TopologyPage() {
     void loadNodeDetail()
   }, [selectedNode, selectedWorkspaceId])
 
+  const hasPathSourcePortInput = Boolean(pathSourcePortInput.trim())
+  const pathSourcePortNumber = hasPathSourcePortInput
+    ? Number(pathSourcePortInput)
+    : undefined
   const hasPathDestinationPortInput = Boolean(pathDestinationPortInput.trim())
   const pathDestinationPortNumber = hasPathDestinationPortInput
     ? Number(pathDestinationPortInput)
@@ -798,6 +803,10 @@ export function TopologyPage() {
   async function runPathAnalysis() {
     if (!selectedWorkspaceId || !pathSourceNodeRef || !pathDestinationNodeRef) {
       setPathAnalysisMessage('Select both source and destination resource nodes first.')
+      return
+    }
+    if (hasPathSourcePortInput && (!Number.isInteger(pathSourcePortNumber) || Number(pathSourcePortNumber) < 0 || Number(pathSourcePortNumber) > 65535)) {
+      setPathAnalysisMessage('Source port must be an integer between 0 and 65535.')
       return
     }
     if (hasPathDestinationPortInput && (!Number.isInteger(pathDestinationPortNumber) || Number(pathDestinationPortNumber) < 0 || Number(pathDestinationPortNumber) > 65535)) {
@@ -819,6 +828,7 @@ export function TopologyPage() {
           protocol: pathProtocolInput.trim() || undefined,
           sourceAddressPrefix: pathSourceAddressInput.trim() || undefined,
           destinationAddressPrefix: pathDestinationAddressInput.trim() || undefined,
+          sourcePort: pathSourcePortInput.trim() ? Number(pathSourcePortInput) : undefined,
           destinationPort: pathDestinationPortInput.trim() ? Number(pathDestinationPortInput) : undefined,
         },
       )
@@ -3494,6 +3504,16 @@ export function TopologyPage() {
                       onChange={(event) => setPathDestinationAddressInput(event.target.value)}
                       placeholder="Destination prefix/IP, optional"
                       aria-label="Path analysis destination address prefix"
+                    />
+                    <input
+                      className="search-input"
+                      type="number"
+                      min="0"
+                      max="65535"
+                      value={pathSourcePortInput}
+                      onChange={(event) => setPathSourcePortInput(event.target.value)}
+                      placeholder="Source port, optional"
+                      aria-label="Path analysis source port"
                     />
                     <input
                       className="search-input"

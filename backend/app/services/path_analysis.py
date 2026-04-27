@@ -288,6 +288,7 @@ def classify_nsg_verdict(
     protocol: str | None = None,
     source_address_prefix: str | None = None,
     destination_address_prefix: str | None = None,
+    source_port: int | None = None,
     destination_port: int | None = None,
 ) -> PathVerdict:
     """Classify the effective NSG verdict for a given direction.
@@ -308,6 +309,7 @@ def classify_nsg_verdict(
         protocol=protocol,
         source_address_prefix=source_address_prefix,
         destination_address_prefix=destination_address_prefix,
+        source_port=source_port,
         destination_port=destination_port,
     )
     if not matching:
@@ -330,6 +332,7 @@ def _matching_nsg_rules(
     protocol: str | None = None,
     source_address_prefix: str | None = None,
     destination_address_prefix: str | None = None,
+    source_port: int | None = None,
     destination_port: int | None = None,
 ) -> list[NSGRule]:
     matching = [
@@ -338,6 +341,7 @@ def _matching_nsg_rules(
         and _protocol_matches(r.protocol, protocol)
         and _address_prefix_matches(r.source_address_prefix, source_address_prefix)
         and _address_prefix_matches(r.destination_address_prefix, destination_address_prefix)
+        and _port_matches(r.source_port_range, source_port)
         and _port_matches(r.destination_port_range, destination_port)
     ]
     return sorted(matching, key=lambda r: r.priority)
@@ -674,6 +678,7 @@ def analyze_path(
     protocol: str | None = None,
     source_address_prefix: str | None = None,
     destination_address_prefix: str | None = None,
+    source_port: int | None = None,
     destination_port: int | None = None,
 ) -> PathAnalysisResult:
     """Analyze network path from source to destination through Azure resources.
@@ -743,6 +748,7 @@ def analyze_path(
         protocol=protocol,
         source_address_prefix=source_address_prefix,
         destination_address_prefix=destination_address_prefix,
+        source_port=source_port,
         destination_port=destination_port,
     )
 
@@ -789,6 +795,7 @@ class _NSGParams:
     protocol: str | None = None
     source_address_prefix: str | None = None
     destination_address_prefix: str | None = None
+    source_port: int | None = None
     destination_port: int | None = None
 
 
@@ -824,6 +831,7 @@ def _evaluate_nsg_on_resource(
             protocol=nsg_params.protocol,
             source_address_prefix=nsg_params.source_address_prefix,
             destination_address_prefix=nsg_params.destination_address_prefix,
+            source_port=nsg_params.source_port,
             destination_port=nsg_params.destination_port,
         )
         evaluated.append((
@@ -835,6 +843,7 @@ def _evaluate_nsg_on_resource(
                 protocol=nsg_params.protocol,
                 source_address_prefix=nsg_params.source_address_prefix,
                 destination_address_prefix=nsg_params.destination_address_prefix,
+                source_port=nsg_params.source_port,
                 destination_port=nsg_params.destination_port,
             ),
         ))
@@ -898,6 +907,7 @@ def _matching_nsg_rule_name(
     protocol: str | None = None,
     source_address_prefix: str | None = None,
     destination_address_prefix: str | None = None,
+    source_port: int | None = None,
     destination_port: int | None = None,
 ) -> str | None:
     matching = _matching_nsg_rules(
@@ -906,6 +916,7 @@ def _matching_nsg_rule_name(
         protocol=protocol,
         source_address_prefix=source_address_prefix,
         destination_address_prefix=destination_address_prefix,
+        source_port=source_port,
         destination_port=destination_port,
     )
     return matching[0].name if matching else None
