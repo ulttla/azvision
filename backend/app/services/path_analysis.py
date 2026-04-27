@@ -712,9 +712,9 @@ def _classify_hop(
         if nsg_res:
             nsg_name = _resource_display_name(nsg_res)
             rules = parse_nsg_rules(nsg_res)
-            # MVP scope: evaluate inbound NSG direction only. Outbound direction,
-            # port/protocol/address-prefix matching, and dual NIC+subnet effective
-            # rule combination are future path-analysis hardening items.
+            # MVP scope: evaluate inbound NSG direction only. Outbound direction
+            # and dual NIC+subnet effective rule combination are future
+            # path-analysis hardening items.
             verdict = classify_nsg_verdict(
                 rules,
                 direction="inbound",
