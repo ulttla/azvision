@@ -68,7 +68,7 @@
   - NSG rule은 source 쪽 outbound와 destination 쪽 inbound를 모두 평가한다. NIC와 subnet에 NSG가 함께 연결된 경우 둘 다 effective NSG evidence로 반영하며, 둘 중 하나라도 `blocked`면 path를 `blocked`로 본다. `defaultSecurityRules`가 inventory payload에 없으면 Azure 기본 NSG rule을 내부적으로 보강한다.
   - optional `protocol` / `source_address_prefix` / `destination_address_prefix` / `destination_port`가 들어오면 rule의 protocol, source/destination prefix, destination port/range를 보수적으로 필터링한다. hop 응답에는 기존 `nsg_verdict` 외에 `nsg_direction`, `nsg_outbound_verdict`, `nsg_outbound_name`, `nsg_outbound_rule_name`가 포함될 수 있다.
   - Azure service tag는 `VirtualNetwork`, `Internet`, `AzureLoadBalancer`, `Storage` 등 주요 tag에 대해 static approximation으로 해석한다. 모르는 tag나 해석 불가능한 prefix는 `unknown` 쪽으로 남긴다.
-  - route table은 `properties.routes[]`를 읽고 `nextHopType=None` black-hole route를 `blocked`로 본다. CIDR 포함 관계는 Python stdlib `ipaddress` 기반으로 해석하며, route table address prefix의 주요 Azure service tag도 같은 방식으로 해석한다. 고급 next-hop semantics는 future work이다.
+  - route table은 `properties.routes[]`를 읽고 `nextHopType=None` black-hole route를 `blocked`로 본다. `Internet`, `VnetLocal`, `VirtualNetwork`는 단순 허용 후보로 보지만, `VirtualAppliance`, `VirtualNetworkGateway`는 방화벽/게이트웨이 내부 상태를 모르면 확정할 수 없어 `unknown`으로 둔다. CIDR 포함 관계는 Python stdlib `ipaddress` 기반으로 해석하며, route table address prefix의 주요 Azure service tag도 같은 방식으로 해석한다.
   - source/destination 미발견, path 미발견, NSG/route data 부족 또는 해석 불확실성은 `unknown`으로 반환한다. 즉, 데이터가 없을 때 `allowed`로 가정하지 않는다.
 
 ### Export

@@ -147,7 +147,7 @@ def _route_entry(
     name: str = "route-to-hub",
     *,
     address_prefix: str = "10.0.0.0/8",
-    next_hop_type: str = "VirtualAppliance",
+    next_hop_type: str = "Internet",
     next_hop_ip: str | None = None,
 ) -> dict:
     props: dict = {
@@ -339,7 +339,7 @@ class TestParseRouteTableRoutes:
         assert len(routes) == 1
         assert routes[0].name == "route-to-hub"
         assert routes[0].address_prefix == "10.0.0.0/8"
-        assert routes[0].next_hop_type == "VirtualAppliance"
+        assert routes[0].next_hop_type == "Internet"
 
     def test_multiple_routes_parsed(self):
         route_data = [
@@ -374,8 +374,12 @@ class TestClassifyRouteVerdict:
         assert classify_route_verdict([], destination_prefix="10.0.0.0/8") == PathVerdict.UNKNOWN
 
     def test_normal_routes_return_allowed(self):
-        routes = [RouteEntry(name="to-hub", address_prefix="10.0.0.0/8", next_hop_type="VirtualAppliance")]
+        routes = [RouteEntry(name="to-internet", address_prefix="10.0.0.0/8", next_hop_type="Internet")]
         assert classify_route_verdict(routes) == PathVerdict.ALLOWED
+
+    def test_virtual_appliance_route_returns_unknown(self):
+        routes = [RouteEntry(name="to-firewall", address_prefix="10.0.0.0/8", next_hop_type="VirtualAppliance")]
+        assert classify_route_verdict(routes, destination_prefix="10.0.0.5/32") == PathVerdict.UNKNOWN
 
     def test_blackhole_route_returns_blocked(self):
         routes = [RouteEntry(name="drop", address_prefix="10.0.0.0/8", next_hop_type="None")]

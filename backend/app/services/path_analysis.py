@@ -453,29 +453,51 @@ def classify_route_verdict(
 ) -> PathVerdict:
     """Classify route table verdict for reaching a destination.
 
-    MVP scope:
-    - If routes exist and none override the destination prefix with a
-      black-hole (nextHopType=None) → ALLOWED
-    - If a black-hole route matches → BLOCKED
+    Conservative route semantics:
     - No routes → UNKNOWN
+    - Matching ``nextHopType=None`` black-hole route → BLOCKED
+    - Matching appliance/gateway next-hop → UNKNOWN because reachability depends
+      on a firewall/gateway configuration that path analysis has not modelled
+    - Matching direct/simple next-hop types → ALLOWED
+    - Existing routes that do not match the destination do not block the path
     """
     if not routes:
         return PathVerdict.UNKNOWN
 
-    # Check for black-hole routes (nextHopType == "None")
-    for route in routes:
-        next_hop = route.next_hop_type
-        if next_hop and next_hop.lower() == "none":
-            # This is a route that drops traffic
-            if destination_prefix and route.address_prefix:
-                # Simple prefix matching: exact match or wider prefix covers it
-                if _prefix_covers(route.address_prefix, destination_prefix):
-                    return PathVerdict.BLOCKED
-            elif not destination_prefix:
-                # Black-hole without specific destination prefix → uncertain
-                return PathVerdict.BLOCKED
+    candidate_routes = [
+        route for route in routes
+        if not destination_prefix or not route.address_prefix or _prefix_covers(route.address_prefix, destination_prefix)
+    ]
+    if not candidate_routes:
+        return PathVerdict.ALLOWED
 
-    return PathVerdict.ALLOWED
+    for route in candidate_routes:
+        next_hop = (route.next_hop_type or "").strip().lower()
+        if next_hop == "none":
+            return PathVerdict.BLOCKED
+
+    if any(_route_next_hop_is_ambiguous(route.next_hop_type) for route in candidate_routes):
+        return PathVerdict.UNKNOWN
+
+    if any(_route_next_hop_is_allowed(route.next_hop_type) for route in candidate_routes):
+        return PathVerdict.ALLOWED
+
+    return PathVerdict.UNKNOWN
+
+
+def _route_next_hop_is_ambiguous(next_hop_type: str | None) -> bool:
+    return (next_hop_type or "").strip().lower() in {
+        "virtualappliance",
+        "virtualnetworkgateway",
+    }
+
+
+def _route_next_hop_is_allowed(next_hop_type: str | None) -> bool:
+    return (next_hop_type or "").strip().lower() in {
+        "internet",
+        "vnetlocal",
+        "virtualnetwork",
+    }
 
 
 def _prefix_covers(route_prefix: str, destination_prefix: str) -> bool:
@@ -952,7 +974,7 @@ def _classify_hop(
         if rt_res:
             route_table_name = _resource_display_name(rt_res)
             routes = parse_route_table_routes(rt_res)
-            route_verdict = classify_route_verdict(routes)
+            route_verdict = classify_route_verdict(routes, destination_prefix=nsg_params.destination_address_prefix)
             if routes:
                 route_name = routes[0].name
 
