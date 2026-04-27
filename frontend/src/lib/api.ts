@@ -335,6 +335,10 @@ export type PathAnalysisHop = {
   nsg_verdict?: PathAnalysisVerdict
   nsg_name?: string
   nsg_rule_name?: string
+  nsg_direction?: 'inbound' | 'outbound'
+  nsg_outbound_verdict?: PathAnalysisVerdict
+  nsg_outbound_name?: string
+  nsg_outbound_rule_name?: string
   route_verdict?: PathAnalysisVerdict
   route_table_name?: string
   route_name?: string

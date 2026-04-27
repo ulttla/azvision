@@ -3547,7 +3547,12 @@ export function TopologyPage() {
                             <span key={`${hop.resource_id}-${index}`} className="sample-chip">
                               {hop.display_name} • {hop.hop_type}
                               {hop.nsg_verdict ? (
-                                <span className="mini-chip">NSG: {hop.nsg_verdict}</span>
+                                <span className="mini-chip">
+                                  NSG{hop.nsg_direction ? ` ${hop.nsg_direction}` : ''}: {hop.nsg_verdict}
+                                </span>
+                              ) : null}
+                              {hop.nsg_outbound_verdict ? (
+                                <span className="mini-chip">NSG outbound: {hop.nsg_outbound_verdict}</span>
                               ) : null}
                               {hop.route_verdict ? (
                                 <span className="mini-chip">Route: {hop.route_verdict}</span>
