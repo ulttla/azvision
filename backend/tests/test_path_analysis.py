@@ -769,3 +769,26 @@ class TestAnalyzePathEdgeCases:
             destination_resource_id=SUBNET_ID,
         )
         assert result.overall_verdict == PathVerdict.BLOCKED
+
+    def test_path_trace_does_not_treat_nsg_attachment_as_traffic_path(self):
+        """NSG secures edge alone should not become a source/destination traffic path."""
+        resources = [
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID}},
+            ),
+            _nsg_resource(
+                NSG_ID,
+                security_rules=[_allow_rule()],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=NSG_ID,
+            destination_resource_id=SUBNET_ID,
+        )
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert any("no network path" in warning.lower() for warning in result.warnings)

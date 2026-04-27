@@ -486,12 +486,19 @@ def _trace_path(
     source_id = source.get("id", "")
     dest_id = destination.get("id", "")
 
-    # Build adjacency from explicit edges
+    # Build adjacency from explicit traffic-carrying edges only.
+    # NSG ``secures`` and route-table ``routes`` edges describe controls that
+    # attach to a path hop; they are not traffic path hops themselves. Treating
+    # them as BFS links can produce false source/destination paths through an
+    # NSG or route table, so path tracing only follows ``connects_to`` edges and
+    # applies NSG/route data later in ``_classify_hop``.
     edges = infer_explicit_network_relationship_edges(resources)
 
-    # Build adjacency list (undirected for path-finding)
+    # Build adjacency list (undirected for MVP path-finding over connectivity edges).
     adjacency: dict[str, list[str]] = {}
     for edge in edges:
+        if edge.get("relation_type") != "connects_to":
+            continue
         src_key = edge["source_node_key"]
         tgt_key = edge["target_node_key"]
         # Strip "resource:" prefix for adjacency
