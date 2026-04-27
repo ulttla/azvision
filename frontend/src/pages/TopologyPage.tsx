@@ -826,6 +826,13 @@ export function TopologyPage() {
   const pathDestinationPortNumber = hasPathDestinationPortInput
     ? Number(pathDestinationPortInput)
     : undefined
+  const pathAnalysisFilterSummary = [
+    pathProtocolInput.trim() ? `Protocol ${pathProtocolInput.trim()}` : null,
+    pathSourceAddressInput.trim() ? `Source ${pathSourceAddressInput.trim()}` : null,
+    pathDestinationAddressInput.trim() ? `Destination ${pathDestinationAddressInput.trim()}` : null,
+    hasPathSourcePortInput ? `Source port ${pathSourcePortInput.trim()}` : null,
+    hasPathDestinationPortInput ? `Destination port ${pathDestinationPortInput.trim()}` : null,
+  ].filter((item): item is string => Boolean(item))
 
   async function runPathAnalysis() {
     if (!selectedWorkspaceId || !pathSourceNodeRef || !pathDestinationNodeRef) {
@@ -3504,6 +3511,11 @@ export function TopologyPage() {
                   <p className="hint detail-inline-hint">
                     Source: {pathSourceNode?.display_name ?? '-'} • Destination: {pathDestinationNode?.display_name ?? '-'}
                   </p>
+                  {pathAnalysisFilterSummary.length ? (
+                    <p className="hint detail-inline-hint">
+                      Active filters: {pathAnalysisFilterSummary.join(' • ')}
+                    </p>
+                  ) : null}
                   <p className="hint detail-inline-hint">
                     MVP note: path analysis now evaluates inbound/outbound NSG checkpoints, source/destination prefix filters, source/destination ports, service tags, and route evidence conservatively. Source port filtering is rarely needed; specify it only when you want stricter NSG matching.
                   </p>
