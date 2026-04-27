@@ -66,7 +66,7 @@
   - `overall_verdict`: `allowed` | `blocked` | `unknown`
   - 현재 MVP는 Azure explicit topology edge 중 traffic-carrying `connects_to` 관계만 path tracing에 사용하고, NSG `secures` / route table `routes` 관계는 hop classification의 control data로만 사용한다.
   - NSG rule은 현재 MVP에서 inbound 방향을 우선 해석한다. outbound 방향 평가와 source/destination prefix, port, protocol 단위의 정확한 match engine은 아직 future work이다.
-  - route table은 `properties.routes[]`를 읽고 `nextHopType=None` black-hole route를 `blocked`로 본다. CIDR 포함 관계는 아직 exact/catch-all 중심 MVP 해석이다.
+  - route table은 `properties.routes[]`를 읽고 `nextHopType=None` black-hole route를 `blocked`로 본다. CIDR 포함 관계는 Python stdlib `ipaddress` 기반으로 해석하며, Azure service tag 확장은 future work이다.
   - source/destination 미발견, path 미발견, NSG/route data 부족 또는 해석 불확실성은 `unknown`으로 반환한다. 즉, 데이터가 없을 때 `allowed`로 가정하지 않는다.
 
 ### Export

@@ -348,6 +348,18 @@ class TestClassifyRouteVerdict:
         routes = [RouteEntry(name="drop-10", address_prefix="10.0.0.0/8", next_hop_type="None")]
         assert classify_route_verdict(routes, destination_prefix="172.16.0.0/16") == PathVerdict.ALLOWED
 
+    def test_blackhole_route_uses_cidr_containment(self):
+        routes = [RouteEntry(name="drop-spoke", address_prefix="10.0.0.0/16", next_hop_type="None")]
+        assert classify_route_verdict(routes, destination_prefix="10.0.1.25/32") == PathVerdict.BLOCKED
+
+    def test_blackhole_route_does_not_cross_ip_versions(self):
+        routes = [RouteEntry(name="drop-ipv4", address_prefix="10.0.0.0/8", next_hop_type="None")]
+        assert classify_route_verdict(routes, destination_prefix="2001:db8::/64") == PathVerdict.ALLOWED
+
+    def test_azure_service_tag_prefix_falls_back_to_exact_match(self):
+        routes = [RouteEntry(name="drop-tag", address_prefix="VirtualNetwork", next_hop_type="None")]
+        assert classify_route_verdict(routes, destination_prefix="10.0.0.0/8") == PathVerdict.ALLOWED
+
     def test_no_destination_prefix_with_blackhole_returns_blocked(self):
         routes = [RouteEntry(name="drop", address_prefix="10.0.0.0/8", next_hop_type="None")]
         assert classify_route_verdict(routes, destination_prefix=None) == PathVerdict.BLOCKED

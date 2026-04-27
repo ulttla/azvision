@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import ipaddress
 from typing import Any
 
 
@@ -268,19 +269,28 @@ def classify_route_verdict(
 
 
 def _prefix_covers(route_prefix: str, destination_prefix: str) -> bool:
-    """Check if route_prefix covers destination_prefix (simple string match at MVP)."""
-    # MVP: simple exact or wider-prefix check
+    """Check if route_prefix covers destination_prefix.
+
+    Supports exact strings, catch-all prefixes, and stdlib CIDR containment.
+    Azure service tags such as ``VirtualNetwork`` intentionally fall back to
+    exact string matching until service-tag expansion is implemented.
+    """
     route_prefix = route_prefix.strip().lower()
     destination_prefix = destination_prefix.strip().lower()
 
     if route_prefix == destination_prefix:
         return True
 
-    # Catch-all
     if route_prefix in ("0.0.0.0/0", "::/0", "*"):
         return True
 
-    return False
+    try:
+        route_network = ipaddress.ip_network(route_prefix, strict=False)
+        destination_network = ipaddress.ip_network(destination_prefix, strict=False)
+    except ValueError:
+        return False
+
+    return route_network.version == destination_network.version and destination_network.subnet_of(route_network)
 
 
 # ---------------------------------------------------------------------------
