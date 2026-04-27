@@ -10,6 +10,7 @@ import {
   updateManualEdge,
   updateManualNode,
   getAuthConfigCheck,
+  getPathAnalysis,
   getTopology,
   getTopologyNodeDetail,
   getTopologySnapshot,
@@ -27,6 +28,7 @@ import {
   type InventorySummaryResponse,
   type ManualEdge,
   type ManualNode,
+  type PathAnalysisResponse,
   type UpdateManualEdgeRequest,
   type UpdateManualNodeRequest,
   type TopologyEdge,
@@ -264,6 +266,11 @@ export function TopologyPage() {
   const [topologyLoading, setTopologyLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [graphRuntimeLoading, setGraphRuntimeLoading] = useState(false)
+  const [pathSourceNodeRef, setPathSourceNodeRef] = useState('')
+  const [pathDestinationNodeRef, setPathDestinationNodeRef] = useState('')
+  const [pathAnalysisResult, setPathAnalysisResult] = useState<PathAnalysisResponse | null>(null)
+  const [pathAnalysisLoading, setPathAnalysisLoading] = useState(false)
+  const [pathAnalysisMessage, setPathAnalysisMessage] = useState('')
   const [exportLoading, setExportLoading] = useState(false)
   const [lastExport, setLastExport] = useState<ExportItem | null>(null)
   const [exportMessage, setExportMessage] = useState<string>('')
@@ -720,6 +727,14 @@ export function TopologyPage() {
     () => filteredTopology.nodes.find((node) => node.node_key === selectedNodeKey) ?? null,
     [filteredTopology.nodes, selectedNodeKey],
   )
+  const pathSourceNode = useMemo(
+    () => filteredTopology.nodes.find((node) => node.node_ref === pathSourceNodeRef) ?? null,
+    [filteredTopology.nodes, pathSourceNodeRef],
+  )
+  const pathDestinationNode = useMemo(
+    () => filteredTopology.nodes.find((node) => node.node_ref === pathDestinationNodeRef) ?? null,
+    [filteredTopology.nodes, pathDestinationNodeRef],
+  )
   const selectedParentNode = useMemo(() => {
     const parentNode = getParentNode(selectedNode, topologyNodesByRef)
     return isManagedInstanceNode(parentNode) ? parentNode : null
@@ -770,6 +785,34 @@ export function TopologyPage() {
 
     void loadNodeDetail()
   }, [selectedNode, selectedWorkspaceId])
+
+  async function runPathAnalysis() {
+    if (!selectedWorkspaceId || !pathSourceNodeRef || !pathDestinationNodeRef) {
+      setPathAnalysisMessage('Select both source and destination resource nodes first.')
+      return
+    }
+
+    try {
+      setPathAnalysisLoading(true)
+      setPathAnalysisMessage('')
+      const result = await getPathAnalysis(
+        selectedWorkspaceId,
+        pathSourceNodeRef,
+        pathDestinationNodeRef,
+        {
+          subscriptionId: selectedSubscriptionId || undefined,
+          resourceGroupName: focusedResourceGroupName || undefined,
+          resourceLimit: 1000,
+        },
+      )
+      setPathAnalysisResult(result)
+    } catch (err) {
+      setPathAnalysisResult(null)
+      setPathAnalysisMessage(err instanceof Error ? err.message : 'Path analysis failed')
+    } finally {
+      setPathAnalysisLoading(false)
+    }
+  }
 
   const graphElements = useMemo(
     () =>
@@ -3395,6 +3438,56 @@ export function TopologyPage() {
                   <strong>{selectedNode.location ?? '-'}</strong>
                 </div>
               </div>
+
+              {selectedNode.node_type === 'resource' ? (
+                <div className="detail-item">
+                  <span>Network Path Analysis</span>
+                  <strong>
+                    {pathAnalysisResult
+                      ? `Verdict: ${pathAnalysisResult.overall_verdict}`
+                      : 'Select source and destination'}
+                  </strong>
+                  <p className="hint detail-inline-hint">
+                    Source: {pathSourceNode?.display_name ?? '-'} • Destination: {pathDestinationNode?.display_name ?? '-'}
+                  </p>
+                  <div className="button-row detail-button-row">
+                    <button
+                      type="button"
+                      className="toolbar-button"
+                      onClick={() => {
+                        setPathSourceNodeRef(selectedNode.node_ref)
+                        setPathAnalysisResult(null)
+                      }}
+                    >
+                      Set as source
+                    </button>
+                    <button
+                      type="button"
+                      className="toolbar-button"
+                      onClick={() => {
+                        setPathDestinationNodeRef(selectedNode.node_ref)
+                        setPathAnalysisResult(null)
+                      }}
+                    >
+                      Set as destination
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => void runPathAnalysis()}
+                      disabled={pathAnalysisLoading || !pathSourceNodeRef || !pathDestinationNodeRef}
+                    >
+                      {pathAnalysisLoading ? 'Analyzing...' : 'Analyze path'}
+                    </button>
+                  </div>
+                  {pathAnalysisResult ? (
+                    <p className="hint detail-inline-hint">
+                      {pathAnalysisResult.path_candidates[0]?.reason ?? pathAnalysisResult.warnings[0] ?? 'No path candidate returned.'}
+                    </p>
+                  ) : null}
+                  {pathAnalysisMessage ? <p className="hint detail-inline-hint">{pathAnalysisMessage}</p> : null}
+                </div>
+              ) : null}
 
               {hasDetailScopeContext ? (
                 <div className="detail-item">
