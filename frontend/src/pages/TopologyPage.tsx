@@ -3481,9 +3481,23 @@ export function TopologyPage() {
                     </button>
                   </div>
                   {pathAnalysisResult ? (
-                    <p className="hint detail-inline-hint">
-                      {pathAnalysisResult.path_candidates[0]?.reason ?? pathAnalysisResult.warnings[0] ?? 'No path candidate returned.'}
-                    </p>
+                    <div className="detail-inline-hint">
+                      <p className="hint">
+                        {pathAnalysisResult.path_candidates[0]?.reason ?? pathAnalysisResult.warnings[0] ?? 'No path candidate returned.'}
+                      </p>
+                      {pathAnalysisResult.path_candidates[0]?.hops.length ? (
+                        <div className="sample-chip-list">
+                          {pathAnalysisResult.path_candidates[0].hops.slice(0, 6).map((hop) => (
+                            <span key={hop.resource_id} className="sample-chip">
+                              {hop.display_name} • {hop.hop_type}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {pathAnalysisResult.warnings.length ? (
+                        <p className="hint">Warning: {pathAnalysisResult.warnings.join('; ')}</p>
+                      ) : null}
+                    </div>
                   ) : null}
                   {pathAnalysisMessage ? <p className="hint detail-inline-hint">{pathAnalysisMessage}</p> : null}
                 </div>
