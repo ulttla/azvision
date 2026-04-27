@@ -16,6 +16,7 @@ from app.api.routes.inventory import router as inventory_router
 from app.api.routes.scans import router as scans_router
 from app.api.routes.simulations import router as simulations_router
 from app.api.routes.snapshots import router as snapshots_router
+from app.api.routes.path_analysis import router as path_analysis_router
 from app.api.routes.topology import router as topology_router
 from app.api.routes.workspaces import router as workspaces_router
 from app.core.config import get_settings
@@ -52,6 +53,7 @@ app.include_router(scans_router, prefix=settings.api_v1_prefix)
 app.include_router(simulations_router, prefix=settings.api_v1_prefix)
 app.include_router(snapshots_router, prefix=settings.api_v1_prefix)
 app.include_router(topology_router, prefix=settings.api_v1_prefix)
+app.include_router(path_analysis_router, prefix=settings.api_v1_prefix)
 app.include_router(exports_router, prefix=settings.api_v1_prefix)
 app.include_router(cost_router, prefix=settings.api_v1_prefix)
 app.include_router(copilot_router, prefix=settings.api_v1_prefix)
