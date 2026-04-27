@@ -300,6 +300,19 @@ class TestClassifyNSGVerdict:
         rules = [NSGRule(direction="inbound", access="allow", priority=100, name="allow-https", destination_port_range="443")]
         assert classify_nsg_verdict(rules, direction="inbound", destination_port=8443) == PathVerdict.UNKNOWN
 
+    def test_destination_port_filtering_supports_comma_separated_ranges(self):
+        rules = [
+            NSGRule(
+                direction="inbound",
+                access="allow",
+                priority=100,
+                name="allow-web-admin",
+                destination_port_range="80,443,1000-1002",
+            )
+        ]
+        assert classify_nsg_verdict(rules, direction="inbound", destination_port=443) == PathVerdict.ALLOWED
+        assert classify_nsg_verdict(rules, direction="inbound", destination_port=1001) == PathVerdict.ALLOWED
+
     def test_address_prefix_filtering_uses_cidr_containment(self):
         rules = [
             NSGRule(

@@ -388,9 +388,12 @@ def _port_matches(rule_value: Any, requested_port: int | None) -> bool:
     if rule_value is None:
         return True
 
-    values = rule_value if isinstance(rule_value, list) else [rule_value]
-    for value in values:
-        text = str(value).strip()
+    raw_values = rule_value if isinstance(rule_value, list) else [rule_value]
+    values: list[str] = []
+    for value in raw_values:
+        values.extend(part.strip() for part in str(value).split(","))
+
+    for text in values:
         if text in {"", "*"}:
             return True
         if "-" in text:
