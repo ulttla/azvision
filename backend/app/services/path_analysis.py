@@ -617,6 +617,9 @@ def _classify_hop(
         if nsg_res:
             nsg_name = _resource_display_name(nsg_res)
             rules = parse_nsg_rules(nsg_res)
+            # MVP scope: evaluate inbound NSG direction only. Outbound direction,
+            # port/protocol/address-prefix matching, and dual NIC+subnet effective
+            # rule combination are future path-analysis hardening items.
             verdict = classify_nsg_verdict(rules, direction="inbound")
             nsg_verdict = verdict
             if rules:
@@ -672,6 +675,7 @@ def _classify_hop(
                             if subnet_nsg_res:
                                 nsg_name = _resource_display_name(subnet_nsg_res)
                                 rules = parse_nsg_rules(subnet_nsg_res)
+                                # MVP scope: evaluate inbound NSG direction only.
                                 nsg_verdict = classify_nsg_verdict(rules, direction="inbound")
                                 matching_inbound = sorted(
                                     [r for r in rules if r.direction == "inbound"],
@@ -727,7 +731,9 @@ def _compute_overall_verdict(hops: list[PathHop]) -> PathVerdict:
             has_explicit_allow = True
 
     if has_explicit_allow:
-        # Check if any hop has UNKNOWN verdict (meaning missing data)
+        # Conservative MVP behavior: if any attached NSG or route table exists
+        # but cannot be classified, keep the overall result UNKNOWN instead of
+        # upgrading a partial allow signal to ALLOWED.
         for hop in hops:
             if hop.nsg_verdict == PathVerdict.UNKNOWN or hop.route_verdict == PathVerdict.UNKNOWN:
                 return PathVerdict.UNKNOWN

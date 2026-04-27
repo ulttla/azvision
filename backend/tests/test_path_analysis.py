@@ -792,3 +792,27 @@ class TestAnalyzePathEdgeCases:
         assert result.overall_verdict == PathVerdict.UNKNOWN
         assert result.path_candidates == []
         assert any("no network path" in warning.lower() for warning in result.warnings)
+
+
+    def test_path_trace_does_not_treat_route_table_attachment_as_traffic_path(self):
+        """Route table routes edge alone should not become a traffic path."""
+        resources = [
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"routeTable": {"id": RT_ID}},
+            ),
+            _route_table_resource(
+                RT_ID,
+                routes=[_route_entry()],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=RT_ID,
+            destination_resource_id=SUBNET_ID,
+        )
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert any("no network path" in warning.lower() for warning in result.warnings)
