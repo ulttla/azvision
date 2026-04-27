@@ -1155,6 +1155,49 @@ class TestAnalyzePathEdgeCases:
         assert result.path_candidates == []
         assert "No network path found" in result.warnings[-1]
 
+    def test_disconnected_vnet_peering_does_not_create_path(self):
+        """VNet peering must be connected on both sides before traversal."""
+        remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
+        remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
+        remote_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-remote"
+        remote_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-remote"
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": remote_vnet_id}, "peeringState": "Disconnected"}},
+                    ],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": remote_subnet_id}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": VNET_ID}, "peeringState": "Connected"}},
+                    ],
+                },
+            ),
+            _resource(remote_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": remote_subnet_id}}}]},
+            ),
+            _resource(remote_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": remote_nic_id}]}}),
+        ]
+
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert "No network path found" in result.warnings[-1]
+
     def test_reciprocal_vnet_peering_allows_path_traversal(self):
         """Reciprocal VNet peering evidence can be traversed as network connectivity."""
         remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"

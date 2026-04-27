@@ -1504,6 +1504,8 @@ def _trace_path(
         if "virtualNetworkPeerings" not in str(edge.get("evidence") or ""):
             continue
         src_rid, tgt_rid = _edge_resource_ids(edge)
+        if not _peering_edge_is_connected(src_rid, tgt_rid, resources_by_canonical_id):
+            continue
         peering_pairs.add((
             (_canonical_resource_id(src_rid) or src_rid),
             (_canonical_resource_id(tgt_rid) or tgt_rid),
@@ -1516,7 +1518,7 @@ def _trace_path(
                 (_canonical_resource_id(src_rid) or src_rid),
                 (_canonical_resource_id(tgt_rid) or tgt_rid),
             )
-            if (canonical_pair[1], canonical_pair[0]) not in peering_pairs:
+            if canonical_pair not in peering_pairs or (canonical_pair[1], canonical_pair[0]) not in peering_pairs:
                 continue
         adjacency.setdefault(src_rid, []).append(tgt_rid)
         adjacency.setdefault(tgt_rid, []).append(src_rid)
@@ -1591,3 +1593,23 @@ def _trace_path(
             ))
 
     return hops
+
+
+def _peering_edge_is_connected(
+    source_vnet_id: str,
+    target_vnet_id: str,
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+) -> bool:
+    source = resources_by_canonical_id.get(_canonical_resource_id(source_vnet_id) or "")
+    target_canonical = _canonical_resource_id(target_vnet_id)
+    if not source or not target_canonical:
+        return False
+
+    for raw in _iter_dicts(_properties(source).get("virtualNetworkPeerings")):
+        props = raw.get("properties") if isinstance(raw.get("properties"), dict) else raw
+        remote_id = _canonical_resource_id(_id_from_ref(props.get("remoteVirtualNetwork")))
+        if remote_id != target_canonical:
+            continue
+        state = str(props.get("peeringState") or "Connected").strip().lower()
+        return state == "connected"
+    return False
