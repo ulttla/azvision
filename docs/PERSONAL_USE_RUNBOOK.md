@@ -49,7 +49,7 @@ cd /Users/gun/dev/azvision
 scripts/personal_use_acceptance.sh
 ```
 
-Run the lighter workflow smoke after starting the backend. It checks backend health, live Azure read/topology, manual node/edge CRUD, snapshot create/list/detail/restore, and cleanup of smoke-created records.
+Run the lighter workflow smoke after starting the backend. It checks backend health, live Azure read/topology, Network Path Analysis on live topology resources when possible, manual node/edge CRUD, snapshot create/list/detail/restore, and cleanup of smoke-created records.
 
 ```bash
 cd /Users/gun/dev/azvision
@@ -115,9 +115,10 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 2. Start app: `scripts/run_dev.sh`
 3. Open UI: `http://127.0.0.1:5173`
 4. Confirm Azure read: `scripts/live_topology_probe.sh` or UI scope load
-5. Use topology/manual modeling as needed
-6. Save important states as server snapshots
-7. Before risky local cleanup, run `scripts/backup_sqlite.sh`
+5. For network troubleshooting, select source/destination resource nodes and run Network Path Analysis with only the filters you need (`source_port` is usually optional)
+6. Use topology/manual modeling as needed
+7. Save important states as server snapshots
+8. Before risky local cleanup, run `scripts/backup_sqlite.sh`
 
 ## Known personal-use limits
 

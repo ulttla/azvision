@@ -16,6 +16,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - frontend dev server root response
 - Azure config/read-test
 - live topology projection with network inference
+- Network Path Analysis endpoint smoke on live topology resources when available
 - manual node/edge create-update-cleanup path
 - snapshot create/list/detail/restore-cleanup path
 - backend full test suite
@@ -43,6 +44,7 @@ Use it:
 
 - This remains local/dev single-user use, not external product deployment.
 - Snapshot stores view state and metadata, not a full Azure inventory archive.
+- Network Path Analysis is conservative: missing/ambiguous NSG or route data remains `unknown` rather than assumed allowed.
 - Thumbnail preview is optional and may be removed by guard checks.
 - Azure live smoke depends on local credentials, certificate path, and network access.
 - Product-track items remain deferred: login, multi-user permissions, object storage thumbnails, cost intelligence, simulation, AI copilot.

@@ -26,8 +26,10 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
    - Azure credential/config check
    - live read-test
    - topology probe with network inference
+   - network path analysis smoke on live topology resources when at least two resource nodes are available
 3. Core workflow readiness
    - topology view usable baseline
+   - Network Path Analysis usable baseline with conservative NSG/route evidence
    - manual node/edge create/update path
    - snapshot create/list/detail/restore path
 4. Data safety
@@ -95,6 +97,7 @@ Expected result:
 - health check passes
 - Azure read-test passes or live dependency is explicitly skipped for offline work
 - topology smoke returns at least one node
+- network path analysis smoke passes when at least two resource nodes are available
 - manual node/edge path passes
 - snapshot create/list/detail/restore path passes
 - smoke-created manual/snapshot records are cleaned up

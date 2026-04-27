@@ -120,15 +120,46 @@ if [ "$SKIP_LIVE" != "1" ]; then
   curl_json GET "$BASE_URL/auth/read-test" "$READ_JSON"
   assert_json_bool "$READ_JSON" ok True
   curl_json GET "$BASE_URL/workspaces/$WORKSPACE_ID/topology?include_network_inference=true&resource_group_limit=$RESOURCE_GROUP_LIMIT&resource_limit=$RESOURCE_LIMIT" "$TOPOLOGY_JSON"
-  python3 - "$TOPOLOGY_JSON" <<'PY'
-import json, sys
+  PATH_NODES_ENV="$TMP_DIR/path-analysis-nodes.env"
+  python3 - "$TOPOLOGY_JSON" "$PATH_NODES_ENV" <<'PY'
+import json, shlex, sys
 with open(sys.argv[1], encoding='utf-8') as f:
     data = json.load(f)
 summary = data.get('summary') or {}
 if int(summary.get('node_count') or 0) < 1:
     raise SystemExit('topology node_count is empty')
 print('[ok] live topology', {'node_count': summary.get('node_count'), 'edge_count': summary.get('edge_count')})
+resource_refs = [
+    node.get('node_ref')
+    for node in data.get('nodes') or []
+    if node.get('node_type') == 'resource' and node.get('node_ref')
+]
+with open(sys.argv[2], 'w', encoding='utf-8') as out:
+    if len(resource_refs) >= 2:
+        out.write(f"PATH_SOURCE_REF={shlex.quote(resource_refs[0])}\n")
+        out.write(f"PATH_DEST_REF={shlex.quote(resource_refs[1])}\n")
 PY
+
+  if [ -s "$PATH_NODES_ENV" ]; then
+    # shellcheck disable=SC1090
+    . "$PATH_NODES_ENV"
+    PATH_ANALYSIS_JSON="$TMP_DIR/path-analysis.json"
+    code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$PATH_ANALYSIS_JSON" -w '%{http_code}' -G \
+      --data-urlencode "source_resource_id=$PATH_SOURCE_REF" \
+      --data-urlencode "destination_resource_id=$PATH_DEST_REF" \
+      --data-urlencode "protocol=Tcp" \
+      --data-urlencode "destination_port=443" \
+      "$BASE_URL/workspaces/$WORKSPACE_ID/path-analysis")"
+    if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+      echo "Request failed: GET $BASE_URL/workspaces/$WORKSPACE_ID/path-analysis -> HTTP $code"
+      cat "$PATH_ANALYSIS_JSON" || true
+      exit 1
+    fi
+    assert_json_bool "$PATH_ANALYSIS_JSON" ok True
+    echo "[ok] network path analysis smoke"
+  else
+    echo "[skip] network path analysis smoke skipped because fewer than two resource nodes were available"
+  fi
 else
   echo "[skip] live Azure read/topology smoke skipped because AZVISION_SKIP_LIVE=1"
 fi
