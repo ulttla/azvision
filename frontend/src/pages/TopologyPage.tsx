@@ -3547,15 +3547,21 @@ export function TopologyPage() {
                             <span key={`${hop.resource_id}-${index}`} className="sample-chip">
                               {hop.display_name} • {hop.hop_type}
                               {hop.nsg_verdict ? (
-                                <span className="mini-chip">
+                                <span className="mini-chip" title={[hop.nsg_name, hop.nsg_rule_name].filter(Boolean).join(' / ') || undefined}>
                                   NSG{hop.nsg_direction ? ` ${hop.nsg_direction}` : ''}: {hop.nsg_verdict}
+                                  {hop.nsg_rule_name ? ` (${hop.nsg_rule_name})` : ''}
                                 </span>
                               ) : null}
                               {hop.nsg_outbound_verdict ? (
-                                <span className="mini-chip">NSG outbound: {hop.nsg_outbound_verdict}</span>
+                                <span className="mini-chip" title={[hop.nsg_outbound_name, hop.nsg_outbound_rule_name].filter(Boolean).join(' / ') || undefined}>
+                                  NSG outbound: {hop.nsg_outbound_verdict}
+                                  {hop.nsg_outbound_rule_name ? ` (${hop.nsg_outbound_rule_name})` : ''}
+                                </span>
                               ) : null}
                               {hop.route_verdict ? (
-                                <span className="mini-chip">Route: {hop.route_verdict}</span>
+                                <span className="mini-chip" title={[hop.route_table_name, hop.route_name].filter(Boolean).join(' / ') || undefined}>
+                                  Route: {hop.route_verdict}{hop.route_name ? ` (${hop.route_name})` : ''}
+                                </span>
                               ) : null}
                             </span>
                           ))}
