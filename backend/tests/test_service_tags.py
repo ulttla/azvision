@@ -135,6 +135,10 @@ class TestAddressPrefixMatchesTag:
         result = address_prefix_matches_tag("Internet", "10.0.0.4/32")
         assert result is False
 
+    def test_cgnat_shared_space_not_in_internet(self):
+        result = address_prefix_matches_tag("Internet", "100.64.1.1/32")
+        assert result is False
+
     def test_public_ipv6_in_internet(self):
         result = address_prefix_matches_tag("Internet", "2606:4700:4700::1111/128")
         assert result is True

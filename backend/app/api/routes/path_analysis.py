@@ -51,6 +51,10 @@ def _path_analysis_to_dict(result: Any) -> dict[str, Any]:
                 hop_dict["route_table_name"] = hop.route_table_name
             if hop.route_name is not None:
                 hop_dict["route_name"] = hop.route_name
+            if hop.route_next_hop_type is not None:
+                hop_dict["route_next_hop_type"] = hop.route_next_hop_type
+            if hop.route_next_hop_ip is not None:
+                hop_dict["route_next_hop_ip"] = hop.route_next_hop_ip
             hops.append(hop_dict)
 
         path_candidates.append({

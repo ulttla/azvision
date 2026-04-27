@@ -38,7 +38,7 @@ from enum import Enum
 import ipaddress
 from typing import Any
 
-from app.services.service_tags import address_prefix_matches_tag, is_service_tag
+from app.services.service_tags import address_prefix_matches_tag, is_service_tag, resolve_service_tag
 
 
 # ---------------------------------------------------------------------------
@@ -115,6 +115,8 @@ class PathHop:
     route_verdict: PathVerdict | None = None
     route_table_name: str | None = None
     route_name: str | None = None
+    route_next_hop_type: str | None = None
+    route_next_hop_ip: str | None = None
 
 
 @dataclass(frozen=True)
@@ -242,10 +244,25 @@ def _azure_default_nsg_rules() -> list[NSGRule]:
 
 
 def _rules_with_azure_defaults(resource: dict[str, Any]) -> list[NSGRule]:
-    """Parse an NSG and add Azure defaults if the payload omitted them."""
+    """Parse an NSG and add any Azure default rules missing from the payload.
+
+    Some export/API shapes include only a partial ``defaultSecurityRules`` list.
+    Azure still applies the full default set, so missing defaults must be
+    backfilled instead of treating the partial payload as authoritative.
+    """
     rules = parse_nsg_rules(resource)
-    if not _iter_dicts(_properties(resource).get("defaultSecurityRules")):
-        rules.extend(_azure_default_nsg_rules())
+    default_items = _iter_dicts(_properties(resource).get("defaultSecurityRules"))
+    existing_default_names: set[str] = set()
+    for item in default_items:
+        props = item.get("properties")
+        if not isinstance(props, dict):
+            props = {}
+        name = str(item.get("name") or props.get("name") or "").strip().lower()
+        if name:
+            existing_default_names.add(name)
+    for default_rule in _azure_default_nsg_rules():
+        if not default_items or default_rule.name.lower() not in existing_default_names:
+            rules.append(default_rule)
     return rules
 
 
@@ -375,6 +392,8 @@ def _address_prefix_matches(rule_value: Any, requested_prefix: str | None) -> bo
         return True
 
     values = rule_value if isinstance(rule_value, list) else [rule_value]
+    if isinstance(rule_value, list) and not values:
+        return True
     requested = requested_prefix.strip().lower()
     for value in values:
         text = str(value).strip().lower()
@@ -411,6 +430,8 @@ def _port_matches(rule_value: Any, requested_port: int | None) -> bool:
         return True
 
     raw_values = rule_value if isinstance(rule_value, list) else [rule_value]
+    if isinstance(rule_value, list) and not raw_values:
+        return True
     values: list[str] = []
     for value in raw_values:
         values.extend(part.strip() for part in str(value).split(","))
@@ -512,6 +533,16 @@ def classify_route_verdict_detail(
     if not candidate_routes:
         return RouteVerdictDetail(PathVerdict.ALLOWED)
 
+    if destination_prefix:
+        max_specificity = max(
+            _route_prefix_specificity(route.address_prefix, destination_prefix)
+            for route in candidate_routes
+        )
+        candidate_routes = [
+            route for route in candidate_routes
+            if _route_prefix_specificity(route.address_prefix, destination_prefix) == max_specificity
+        ]
+
     for route in candidate_routes:
         next_hop = (route.next_hop_type or "").strip().lower()
         if next_hop == "none":
@@ -541,6 +572,35 @@ def _route_next_hop_is_allowed(next_hop_type: str | None) -> bool:
         "vnetlocal",
         "virtualnetwork",
     }
+
+def _route_prefix_specificity(route_prefix: str | None, destination_prefix: str) -> int:
+    """Return prefix length for Azure longest-prefix-match ordering."""
+    if not route_prefix:
+        return 0
+
+    route_text = route_prefix.strip().lower()
+    destination_text = destination_prefix.strip().lower()
+    if route_text in {"*", "0.0.0.0/0", "::/0"}:
+        return 0
+
+    if is_service_tag(route_text):
+        try:
+            destination_network = ipaddress.ip_network(destination_text, strict=False)
+        except ValueError:
+            return 0
+        networks = resolve_service_tag(route_text) or ()
+        matching_lengths = [
+            network.prefixlen
+            for network in networks
+            if network.version == destination_network.version and destination_network.subnet_of(network)
+        ]
+        return max(matching_lengths, default=0)
+
+    try:
+        return ipaddress.ip_network(route_text, strict=False).prefixlen
+    except ValueError:
+        return 0
+
 
 def _prefix_covers(route_prefix: str, destination_prefix: str) -> bool:
     """Check if route_prefix covers destination_prefix.
@@ -1010,6 +1070,8 @@ def _classify_hop(
     route_verdict: PathVerdict | None = None
     route_table_name: str | None = None
     route_name: str | None = None
+    route_next_hop_type: str | None = None
+    route_next_hop_ip: str | None = None
 
     rt_id_ref = _resolve_existing_resource_id(
         _id_from_ref(_properties(res).get("routeTable")),
@@ -1049,6 +1111,8 @@ def _classify_hop(
             route_verdict = route_detail.verdict
             if route_detail.route:
                 route_name = route_detail.route.name
+                route_next_hop_type = route_detail.route.next_hop_type
+                route_next_hop_ip = route_detail.route.next_hop_ip
 
     return PathHop(
         resource_id=hop.resource_id,
@@ -1065,6 +1129,8 @@ def _classify_hop(
         route_verdict=route_verdict,
         route_table_name=route_table_name,
         route_name=route_name,
+        route_next_hop_type=route_next_hop_type,
+        route_next_hop_ip=route_next_hop_ip,
     )
 
 
@@ -1103,6 +1169,47 @@ def _compute_overall_verdict(hops: list[PathHop]) -> PathVerdict:
     return PathVerdict.UNKNOWN
 
 
+def _route_next_hop_label(next_hop_type: str, next_hop_ip: str | None = None) -> str:
+    """Return user-facing wording for Azure route next-hop evidence."""
+    normalized = next_hop_type.strip().lower()
+    if normalized == "vnetlocal":
+        return "direct within VNet"
+    if normalized == "virtualnetwork":
+        return "direct within virtual network"
+    if normalized == "internet":
+        return "internet-bound"
+    if normalized == "virtualappliance":
+        return f"via appliance {next_hop_ip}" if next_hop_ip else "via appliance"
+    if normalized == "virtualnetworkgateway":
+        return "via virtual network gateway"
+    if normalized == "none":
+        return "black hole dropped"
+    return f"via {next_hop_type}{f' {next_hop_ip}' if next_hop_ip else ''}"
+
+
+def _verdict_reason_hop_detail(hop: PathHop) -> str:
+    """Format a single hop's verdict detail for the reason string, including next-hop evidence."""
+    parts = [hop.display_name]
+
+    nsg_parts: list[str] = []
+    if hop.nsg_verdict is not None:
+        nsg_parts.append(f"inNSG={hop.nsg_verdict.value}")
+    if hop.nsg_outbound_verdict is not None:
+        nsg_parts.append(f"outNSG={hop.nsg_outbound_verdict.value}")
+    if nsg_parts:
+        parts.append("(" + ", ".join(nsg_parts) + ")")
+
+    route_parts: list[str] = []
+    if hop.route_verdict is not None:
+        route_parts.append(f"route={hop.route_verdict.value}")
+    if hop.route_next_hop_type is not None:
+        route_parts.append(_route_next_hop_label(hop.route_next_hop_type, hop.route_next_hop_ip))
+    if route_parts:
+        parts.append("(" + ", ".join(route_parts) + ")")
+
+    return " ".join(parts)
+
+
 def _verdict_reason(hops: list[PathHop], verdict: PathVerdict) -> str:
     """Generate a human-readable reason for the verdict."""
     if verdict == PathVerdict.ALLOWED:
@@ -1113,10 +1220,7 @@ def _verdict_reason(hops: list[PathHop], verdict: PathVerdict) -> str:
             or hop.route_verdict == PathVerdict.ALLOWED
         ]
         details = ", ".join(
-            f"{hop.display_name}("
-            f"inNSG={hop.nsg_verdict.value if hop.nsg_verdict else 'N/A'}, "
-            f"outNSG={hop.nsg_outbound_verdict.value if hop.nsg_outbound_verdict else 'N/A'}, "
-            f"route={hop.route_verdict.value if hop.route_verdict else 'N/A'})"
+            _verdict_reason_hop_detail(hop)
             for hop in allow_hops
         )
         return f"All hops allow traffic: {details}"
@@ -1129,10 +1233,7 @@ def _verdict_reason(hops: list[PathHop], verdict: PathVerdict) -> str:
             or hop.route_verdict == PathVerdict.BLOCKED
         ]
         details = ", ".join(
-            f"{hop.display_name}("
-            f"inNSG={hop.nsg_verdict.value if hop.nsg_verdict else 'N/A'}, "
-            f"outNSG={hop.nsg_outbound_verdict.value if hop.nsg_outbound_verdict else 'N/A'}, "
-            f"route={hop.route_verdict.value if hop.route_verdict else 'N/A'})"
+            _verdict_reason_hop_detail(hop)
             for hop in block_hops
         )
         return f"Traffic blocked at: {details}"
@@ -1147,8 +1248,8 @@ def _verdict_reason(hops: list[PathHop], verdict: PathVerdict) -> str:
     ]
     if not unknown_hops:
         return "Verdict unknown: insufficient data for classification"
-    hop_names = ", ".join(hop.display_name for hop in unknown_hops)
-    return f"Insufficient NSG/route data for hops: {hop_names}"
+    details = ", ".join(_verdict_reason_hop_detail(hop) for hop in unknown_hops)
+    return f"Insufficient NSG/route data for hops: {details}"
 
 
 # ---------------------------------------------------------------------------
@@ -1177,16 +1278,39 @@ def _trace_path(
     # attach to a path hop; they are not traffic path hops themselves.
     edges = infer_explicit_network_relationship_edges(resources)
 
-    # Build adjacency list (undirected for MVP path-finding over connectivity edges).
+    # Build adjacency list. Most ARM reference edges describe attachments that
+    # should be traversable in both directions for path finding. VNet peering is
+    # different: Azure requires both sides to be configured, so only treat a
+    # peering as traversable when reciprocal peering evidence exists.
     adjacency: dict[str, list[str]] = {}
-    for edge in edges:
-        if edge.get("relation_type") != "connects_to":
-            continue
+    connect_edges = [edge for edge in edges if edge.get("relation_type") == "connects_to"]
+    peering_pairs: set[tuple[str, str]] = set()
+
+    def _edge_resource_ids(edge: dict[str, Any]) -> tuple[str, str]:
         src_key = edge["source_node_key"]
         tgt_key = edge["target_node_key"]
-        # Strip "resource:" prefix for adjacency
         src_rid = src_key.replace("resource:", "", 1) if src_key.startswith("resource:") else src_key
         tgt_rid = tgt_key.replace("resource:", "", 1) if tgt_key.startswith("resource:") else tgt_key
+        return src_rid, tgt_rid
+
+    for edge in connect_edges:
+        if "virtualNetworkPeerings" not in str(edge.get("evidence") or ""):
+            continue
+        src_rid, tgt_rid = _edge_resource_ids(edge)
+        peering_pairs.add((
+            (_canonical_resource_id(src_rid) or src_rid),
+            (_canonical_resource_id(tgt_rid) or tgt_rid),
+        ))
+
+    for edge in connect_edges:
+        src_rid, tgt_rid = _edge_resource_ids(edge)
+        if "virtualNetworkPeerings" in str(edge.get("evidence") or ""):
+            canonical_pair = (
+                (_canonical_resource_id(src_rid) or src_rid),
+                (_canonical_resource_id(tgt_rid) or tgt_rid),
+            )
+            if (canonical_pair[1], canonical_pair[0]) not in peering_pairs:
+                continue
         adjacency.setdefault(src_rid, []).append(tgt_rid)
         adjacency.setdefault(tgt_rid, []).append(src_rid)
 

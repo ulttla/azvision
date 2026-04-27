@@ -342,6 +342,8 @@ export type PathAnalysisHop = {
   route_verdict?: PathAnalysisVerdict
   route_table_name?: string
   route_name?: string
+  route_next_hop_type?: string
+  route_next_hop_ip?: string
 }
 
 export type PathAnalysisCandidate = {

@@ -173,6 +173,33 @@ function formatSourceLabel(value?: string) {
   return prettifyKey(normalized)
 }
 
+
+function formatRouteNextHopLabel(nextHopType?: string, nextHopIp?: string) {
+  const normalized = String(nextHopType ?? '').trim().toLowerCase()
+  if (!normalized) {
+    return ''
+  }
+  if (normalized === 'vnetlocal') {
+    return 'direct within VNet'
+  }
+  if (normalized === 'virtualnetwork') {
+    return 'direct within virtual network'
+  }
+  if (normalized === 'internet') {
+    return 'internet-bound'
+  }
+  if (normalized === 'virtualappliance') {
+    return nextHopIp ? `via appliance ${nextHopIp}` : 'via appliance'
+  }
+  if (normalized === 'virtualnetworkgateway') {
+    return 'via virtual network gateway'
+  }
+  if (normalized === 'none') {
+    return 'black hole dropped'
+  }
+  return nextHopIp ? `via ${nextHopType} ${nextHopIp}` : `via ${nextHopType}`
+}
+
 function formatConfidenceLabel(value?: number) {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return '-'
@@ -3478,7 +3505,7 @@ export function TopologyPage() {
                     Source: {pathSourceNode?.display_name ?? '-'} • Destination: {pathDestinationNode?.display_name ?? '-'}
                   </p>
                   <p className="hint detail-inline-hint">
-                    MVP note: path analysis now evaluates inbound/outbound NSG checkpoints, source/destination prefix filters, destination port, service tags, and route evidence conservatively.
+                    MVP note: path analysis now evaluates inbound/outbound NSG checkpoints, source/destination prefix filters, source/destination ports, service tags, and route evidence conservatively. Source port filtering is rarely needed; specify it only when you want stricter NSG matching.
                   </p>
                   <div className="search-form detail-inline-hint">
                     <input
@@ -3512,7 +3539,7 @@ export function TopologyPage() {
                       max="65535"
                       value={pathSourcePortInput}
                       onChange={(event) => setPathSourcePortInput(event.target.value)}
-                      placeholder="Source port, optional"
+                      placeholder="Source port, e.g. 50000"
                       aria-label="Path analysis source port"
                     />
                     <input
@@ -3579,8 +3606,8 @@ export function TopologyPage() {
                                 </span>
                               ) : null}
                               {hop.route_verdict ? (
-                                <span className="mini-chip" title={[hop.route_table_name, hop.route_name].filter(Boolean).join(' / ') || undefined}>
-                                  Route: {hop.route_verdict}{hop.route_name ? ` (${hop.route_name})` : ''}
+                                <span className="mini-chip" title={[hop.route_table_name, hop.route_name, hop.route_next_hop_type, hop.route_next_hop_ip].filter(Boolean).join(' / ') || undefined}>
+                                  Route: {hop.route_verdict}{hop.route_name ? ` (${hop.route_name})` : ''}{hop.route_next_hop_type ? ` — ${formatRouteNextHopLabel(hop.route_next_hop_type, hop.route_next_hop_ip)}` : ''}
                                 </span>
                               ) : null}
                             </span>

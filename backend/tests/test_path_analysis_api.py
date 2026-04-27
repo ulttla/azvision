@@ -7,6 +7,9 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
+from app.collectors.azure_inventory import AzureInventoryCollection, InventoryResolution
+import app.api.routes.path_analysis as path_analysis_routes
+
 WORKSPACE = "ws-path-analysis-test"
 
 
@@ -126,3 +129,123 @@ class TestPathAnalysisGet:
                 # The API should not break with new fields
                 assert isinstance(hop.get("nsg_direction"), (str, type(None)))
                 assert isinstance(hop.get("nsg_outbound_verdict"), (str, type(None)))
+                assert isinstance(hop.get("route_next_hop_type"), (str, type(None)))
+                assert isinstance(hop.get("route_next_hop_ip"), (str, type(None)))
+
+    def test_source_port_param_accepted(self, client: TestClient):
+        """Source port parameter is accepted and doesn't break the API."""
+        topo = client.get(f"/api/v1/workspaces/{WORKSPACE}/topology").json()
+        resource_nodes = [n for n in topo["nodes"] if n["node_type"] == "resource"]
+        if len(resource_nodes) < 2:
+            pytest.skip("Not enough mock resources")
+
+        resp = client.get(
+            f"/api/v1/workspaces/{WORKSPACE}/path-analysis",
+            params={
+                "source_resource_id": resource_nodes[0]["node_ref"],
+                "destination_resource_id": resource_nodes[1]["node_ref"],
+                "source_port": "50000",
+                "destination_port": "443",
+            },
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["overall_verdict"] in ("allowed", "blocked", "unknown")
+
+def _api_resource(resource_id: str, resource_type: str, properties: dict | None = None) -> dict:
+    return {
+        "subscription_id": "00000000-0000-0000-0000-000000000001",
+        "resource_group": "rg-network",
+        "name": resource_id.rstrip("/").split("/")[-1],
+        "type": resource_type,
+        "id": resource_id,
+        "properties": properties or {},
+        "source": "azure",
+    }
+
+
+def test_source_port_changes_verdict_round_trip(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    """API-level source_port should flow through to NSG verdict calculation."""
+    base = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-network/providers"
+    vnet_id = f"{base}/Microsoft.Network/virtualNetworks/vnet-app"
+    subnet_id = f"{vnet_id}/subnets/snet-app"
+    nsg_id = f"{base}/Microsoft.Network/networkSecurityGroups/nsg-app"
+    nic_id = f"{base}/Microsoft.Network/networkInterfaces/nic-app"
+    vm_id = f"{base}/Microsoft.Compute/virtualMachines/vm-app"
+    resources = [
+        _api_resource(vnet_id, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": subnet_id}]}),
+        _api_resource(subnet_id, "Microsoft.Network/virtualNetworks/subnets", {"networkSecurityGroup": {"id": nsg_id}}),
+        _api_resource(
+            nsg_id,
+            "Microsoft.Network/networkSecurityGroups",
+            {
+                "securityRules": [
+                    {
+                        "name": "deny-admin-source",
+                        "properties": {
+                            "direction": "Inbound",
+                            "access": "Deny",
+                            "priority": 100,
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "sourcePortRange": "12345",
+                            "destinationPortRange": "443",
+                            "protocol": "Tcp",
+                        },
+                    },
+                    {
+                        "name": "allow-ephemeral-source",
+                        "properties": {
+                            "direction": "Inbound",
+                            "access": "Allow",
+                            "priority": 200,
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "sourcePortRange": "49152-65535",
+                            "destinationPortRange": "443",
+                            "protocol": "Tcp",
+                        },
+                    },
+                ],
+                "subnets": [{"id": subnet_id}],
+            },
+        ),
+        _api_resource(
+            nic_id,
+            "Microsoft.Network/networkInterfaces",
+            {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": subnet_id}}}]},
+        ),
+        _api_resource(vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": nic_id}]}}),
+    ]
+
+    def fake_resolution(*args, **kwargs):
+        return InventoryResolution(AzureInventoryCollection([], [], resources), mode="test")
+
+    monkeypatch.setattr(path_analysis_routes, "resolve_inventory_collection", fake_resolution)
+
+    blocked_resp = client.get(
+        f"/api/v1/workspaces/{WORKSPACE}/path-analysis",
+        params={
+            "source_resource_id": vm_id,
+            "destination_resource_id": subnet_id,
+            "protocol": "Tcp",
+            "source_port": "12345",
+            "destination_port": "443",
+        },
+    )
+    allowed_resp = client.get(
+        f"/api/v1/workspaces/{WORKSPACE}/path-analysis",
+        params={
+            "source_resource_id": vm_id,
+            "destination_resource_id": subnet_id,
+            "protocol": "Tcp",
+            "source_port": "50000",
+            "destination_port": "443",
+        },
+    )
+
+    assert blocked_resp.status_code == 200
+    assert blocked_resp.json()["overall_verdict"] == "blocked"
+    assert allowed_resp.status_code == 200
+    assert allowed_resp.json()["overall_verdict"] == "allowed"

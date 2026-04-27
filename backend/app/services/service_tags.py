@@ -150,6 +150,10 @@ def address_prefix_matches_tag(
         return None  # unparseable prefix → ambiguous
 
     if canonical == "internet":
+        shared_address_space = ipaddress.ip_network("100.64.0.0/10")
+        if requested.version == 4 and requested.subnet_of(shared_address_space):
+            return False
+
         # Azure's Internet tag represents public internet address space, not
         # private/RFC1918/ULA or other special-use ranges. Avoid relying on
         # ``is_global`` alone because it is intentionally tied to IANA special

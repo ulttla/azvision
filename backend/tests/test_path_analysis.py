@@ -24,6 +24,7 @@ from app.services.path_analysis import (
     classify_route_verdict,
     parse_nsg_rules,
     parse_route_table_routes,
+    _rules_with_azure_defaults,
 )
 
 # ---------------------------------------------------------------------------
@@ -308,6 +309,99 @@ class TestClassifyNSGVerdict:
         assert classify_nsg_verdict(rules, direction="inbound", source_port=50000) == PathVerdict.ALLOWED
         assert classify_nsg_verdict(rules, direction="inbound", source_port=3389) == PathVerdict.BLOCKED
 
+    def test_real_export_style_port_range_lists_are_supported(self):
+        """Azure exports can use plural port arrays; they should behave like scalar ranges."""
+        nsg = _nsg_resource(
+            NSG_ID,
+            security_rules=[
+                {
+                    "name": "allow-app-ephemeral-to-https",
+                    "properties": {
+                        "direction": "Inbound",
+                        "access": "Allow",
+                        "priority": 100,
+                        "protocol": "Tcp",
+                        "sourceAddressPrefixes": ["10.0.0.0/24", "10.0.1.0/24"],
+                        "destinationAddressPrefix": "10.2.0.4/32",
+                        "sourcePortRanges": ["49152-65535"],
+                        "destinationPortRanges": ["443", "8443"],
+                    },
+                }
+            ],
+        )
+
+        rules = parse_nsg_rules(nsg)
+
+        assert classify_nsg_verdict(
+            rules,
+            direction="inbound",
+            protocol="Tcp",
+            source_address_prefix="10.0.1.25/32",
+            destination_address_prefix="10.2.0.4/32",
+            source_port=50000,
+            destination_port=443,
+        ) == PathVerdict.ALLOWED
+        assert classify_nsg_verdict(
+            rules,
+            direction="inbound",
+            protocol="Tcp",
+            source_address_prefix="10.0.1.25/32",
+            destination_address_prefix="10.2.0.4/32",
+            source_port=12345,
+            destination_port=443,
+        ) == PathVerdict.UNKNOWN
+
+    def test_empty_prefix_and_port_lists_behave_like_wildcards(self):
+        rules = [
+            NSGRule(
+                direction="inbound",
+                access="allow",
+                priority=100,
+                name="allow-empty-list-shape",
+                source_address_prefix=[],
+                destination_address_prefix=[],
+                source_port_range=[],
+                destination_port_range=[],
+                protocol="Tcp",
+            )
+        ]
+
+        assert classify_nsg_verdict(
+            rules,
+            direction="inbound",
+            protocol="Tcp",
+            source_address_prefix="10.0.1.25/32",
+            destination_address_prefix="10.2.0.4/32",
+            source_port=50000,
+            destination_port=443,
+        ) == PathVerdict.ALLOWED
+
+    def test_partial_default_rules_are_backfilled_with_missing_outbound_defaults(self):
+        inbound_default_only = [
+            {
+                "name": "AllowVnetInBound",
+                "properties": {
+                    "direction": "Inbound",
+                    "access": "Allow",
+                    "priority": 65000,
+                    "sourceAddressPrefix": "VirtualNetwork",
+                    "destinationAddressPrefix": "VirtualNetwork",
+                    "sourcePortRange": "*",
+                    "destinationPortRange": "*",
+                    "protocol": "*",
+                },
+            }
+        ]
+        nsg = _nsg_resource(NSG_ID, default_rules=inbound_default_only)
+        rules = _rules_with_azure_defaults(nsg)
+
+        assert classify_nsg_verdict(
+            rules,
+            direction="outbound",
+            source_address_prefix="10.0.1.25/32",
+            destination_address_prefix="10.0.2.25/32",
+        ) == PathVerdict.ALLOWED
+
     def test_source_port_filtering_returns_unknown_without_match(self):
         rules = [NSGRule(direction="inbound", access="allow", priority=100, name="allow-ephemeral", source_port_range="49152-65535")]
         assert classify_nsg_verdict(rules, direction="inbound", source_port=12345) == PathVerdict.UNKNOWN
@@ -420,6 +514,22 @@ class TestClassifyRouteVerdict:
 
     def test_blackhole_route_uses_cidr_containment(self):
         routes = [RouteEntry(name="drop-spoke", address_prefix="10.0.0.0/16", next_hop_type="None")]
+        assert classify_route_verdict(routes, destination_prefix="10.0.1.25/32") == PathVerdict.BLOCKED
+
+    def test_longest_prefix_match_prefers_specific_allow_over_broader_blackhole(self):
+        routes = [
+            RouteEntry(name="allow-specific", address_prefix="10.0.0.0/16", next_hop_type="VnetLocal"),
+            RouteEntry(name="drop-broad", address_prefix="10.0.0.0/8", next_hop_type="None"),
+        ]
+
+        assert classify_route_verdict(routes, destination_prefix="10.0.1.25/32") == PathVerdict.ALLOWED
+
+    def test_longest_prefix_match_prefers_specific_blackhole_over_broader_allow(self):
+        routes = [
+            RouteEntry(name="allow-broad", address_prefix="10.0.0.0/8", next_hop_type="VnetLocal"),
+            RouteEntry(name="drop-specific", address_prefix="10.0.1.0/24", next_hop_type="None"),
+        ]
+
         assert classify_route_verdict(routes, destination_prefix="10.0.1.25/32") == PathVerdict.BLOCKED
 
     def test_blackhole_route_does_not_cross_ip_versions(self):
@@ -889,6 +999,129 @@ class TestAnalyzePathEdgeCases:
         subnet_hop = next(h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID)
         assert result.overall_verdict == PathVerdict.BLOCKED
         assert subnet_hop.route_name == "drop-destination"
+        assert subnet_hop.route_next_hop_type == "None"
+        assert subnet_hop.route_next_hop_ip is None
+
+    def test_route_next_hop_ip_is_reported_for_ambiguous_appliance_routes(self):
+        """Route evidence should expose next-hop details for conservative unknowns."""
+        resources = [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {
+                    "networkSecurityGroup": {"id": NSG_ID},
+                    "routeTable": {"id": RT_ID},
+                },
+            ),
+            _nsg_resource(NSG_ID, security_rules=[_allow_rule()], subnets=[{"id": SUBNET_ID}]),
+            _route_table_resource(
+                RT_ID,
+                routes=[
+                    _route_entry(
+                        "to-firewall",
+                        address_prefix="10.0.0.0/8",
+                        next_hop_type="VirtualAppliance",
+                        next_hop_ip="10.0.0.4",
+                    ),
+                ],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            destination_address_prefix="10.0.1.25/32",
+        )
+        subnet_hop = next(h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID)
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert subnet_hop.route_name == "to-firewall"
+        assert subnet_hop.route_next_hop_type == "VirtualAppliance"
+        assert subnet_hop.route_next_hop_ip == "10.0.0.4"
+
+
+    def test_one_way_vnet_peering_does_not_create_reverse_path(self):
+        """VNet peering requires reciprocal evidence before path traversal."""
+        remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
+        remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
+        remote_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-remote"
+        remote_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-remote"
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": remote_vnet_id}}},
+                    ],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(remote_vnet_id, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": remote_subnet_id}]}),
+            _resource(remote_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": remote_subnet_id}}}]},
+            ),
+            _resource(remote_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": remote_nic_id}]}}),
+        ]
+
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert "No network path found" in result.warnings[-1]
+
+    def test_reciprocal_vnet_peering_allows_path_traversal(self):
+        """Reciprocal VNet peering evidence can be traversed as network connectivity."""
+        remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
+        remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
+        remote_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-remote"
+        remote_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-remote"
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": remote_vnet_id}}},
+                    ],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": remote_subnet_id}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": VNET_ID}}},
+                    ],
+                },
+            ),
+            _resource(remote_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": remote_subnet_id}}}]},
+            ),
+            _resource(remote_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": remote_nic_id}]}}),
+        ]
+
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.path_candidates
+        assert result.path_candidates[0].hops[-1].resource_id == SUBNET_ID
 
     def test_path_trace_does_not_treat_nsg_attachment_as_traffic_path(self):
         """NSG secures edge alone should not become a source/destination traffic path."""
@@ -1317,3 +1550,279 @@ class TestServiceTagInNSGVerdict:
         )
         # Internet tag matches any IP (0.0.0.0/0), so the deny rule applies
         assert result.overall_verdict == PathVerdict.BLOCKED
+
+
+# ===========================================================================
+# Route Next-Hop Evidence
+# ===========================================================================
+
+class TestRouteNextHopEvidence:
+    """Tests that route next-hop type and IP are surfaced in path analysis results."""
+
+    def _resources_with_route_next_hop(self, *, route_name: str = "to-firewall", next_hop_type: str = "VirtualAppliance", next_hop_ip: str | None = "10.0.0.1") -> list[dict]:
+        """Resources with a subnet that has a route table with a specific next-hop."""
+        return [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {
+                    "networkSecurityGroup": {"id": NSG_ID},
+                    "routeTable": {"id": RT_ID},
+                },
+            ),
+            _nsg_resource(NSG_ID, security_rules=[_allow_rule()], subnets=[{"id": SUBNET_ID}]),
+            _route_table_resource(
+                RT_ID,
+                routes=[_route_entry(route_name, next_hop_type=next_hop_type, next_hop_ip=next_hop_ip)],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+
+    def test_route_next_hop_type_populated_on_subnet_hop(self):
+        """Subnet hop should have route_next_hop_type when route table is associated."""
+        resources = self._resources_with_route_next_hop()
+        result = analyze_path(resources, source_resource_id=VM_ID, destination_resource_id=SUBNET_ID)
+        subnet_hop = next((h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID), None)
+        assert subnet_hop is not None
+        assert subnet_hop.route_next_hop_type == "VirtualAppliance"
+
+    def test_route_next_hop_ip_populated(self):
+        """Subnet hop should have route_next_hop_ip when the route entry has one."""
+        resources = self._resources_with_route_next_hop(next_hop_ip="10.0.0.1")
+        result = analyze_path(resources, source_resource_id=VM_ID, destination_resource_id=SUBNET_ID)
+        subnet_hop = next((h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID), None)
+        assert subnet_hop is not None
+        assert subnet_hop.route_next_hop_ip == "10.0.0.1"
+
+    def test_route_next_hop_ip_none_when_absent(self):
+        """Subnet hop should have route_next_hop_ip as None when the route entry has no next_hop_ip."""
+        resources = self._resources_with_route_next_hop(next_hop_type="VnetLocal", next_hop_ip=None)
+        result = analyze_path(resources, source_resource_id=VM_ID, destination_resource_id=SUBNET_ID)
+        subnet_hop = next((h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID), None)
+        assert subnet_hop is not None
+        assert subnet_hop.route_next_hop_type == "VnetLocal"
+        assert subnet_hop.route_next_hop_ip is None
+
+    def test_verdict_reason_includes_next_hop_type(self):
+        """Verdict reason should include next-hop type for route verdicts."""
+        resources = self._resources_with_route_next_hop()
+        result = analyze_path(resources, source_resource_id=VM_ID, destination_resource_id=SUBNET_ID)
+        reason = result.path_candidates[0].reason
+        assert "VirtualAppliance" in reason or "via" in reason
+
+    def test_blackhole_route_next_hop_type_is_none(self):
+        """Blackhole route should have route_next_hop_type='None'."""
+        resources = [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {
+                    "networkSecurityGroup": {"id": NSG_ID},
+                    "routeTable": {"id": RT_ID},
+                },
+            ),
+            _nsg_resource(NSG_ID, security_rules=[_allow_rule()], subnets=[{"id": SUBNET_ID}]),
+            _route_table_resource(RT_ID, routes=[_blackhole_route()], subnets=[{"id": SUBNET_ID}]),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+        result = analyze_path(resources, source_resource_id=VM_ID, destination_resource_id=SUBNET_ID)
+        subnet_hop = next((h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID), None)
+        assert subnet_hop is not None
+        assert subnet_hop.route_next_hop_type == "None"
+        assert result.overall_verdict == PathVerdict.BLOCKED
+
+
+# ===========================================================================
+# Source Port and Address Prefix through Full Path Analysis
+# ===========================================================================
+
+class TestSourcePortAndAddressFiltering:
+    """Integration tests verifying source_port and source/destination address prefixes
+    propagate correctly through the full analyze_path pipeline, not just unit-level classification."""
+
+    def test_source_port_blocks_path_through_nsg(self):
+        """Full path analysis with source_port filter that denies specific source port."""
+        resources = [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID}},
+            ),
+            _nsg_resource(
+                NSG_ID,
+                security_rules=[
+                    _deny_rule("deny-ephemeral-src", priority=100, direction="inbound"),
+                ],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+        # deny_rule default has sourcePortRange="*" so it matches; priority 200 < allow default 65000
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            source_port=50000,
+        )
+        assert result.overall_verdict == PathVerdict.BLOCKED
+
+    def test_source_address_prefix_filtering_through_path(self):
+        """Source address prefix should propagate to NSG evaluation in full path."""
+        resources = [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID}},
+            ),
+            _nsg_resource(
+                NSG_ID,
+                security_rules=[
+                    {
+                        "name": "allow-vnet-only",
+                        "properties": {
+                            "direction": "Inbound",
+                            "access": "Allow",
+                            "priority": 100,
+                            "sourceAddressPrefix": "10.0.0.0/16",
+                            "destinationAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "protocol": "*",
+                        },
+                    },
+                ],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+        # With matching source prefix (10.0.2.4/32 is within 10.0.0.0/16) → allow
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            source_address_prefix="10.0.2.4/32",
+        )
+        assert result.overall_verdict == PathVerdict.ALLOWED
+
+    def test_virtual_appliance_route_through_full_path(self):
+        """Full path with VirtualAppliance next-hop should produce UNKNOWN verdict."""
+        resources = [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {
+                    "networkSecurityGroup": {"id": NSG_ID},
+                    "routeTable": {"id": RT_ID},
+                },
+            ),
+            _nsg_resource(NSG_ID, security_rules=[_allow_rule()], subnets=[{"id": SUBNET_ID}]),
+            _route_table_resource(
+                RT_ID,
+                routes=[_route_entry("to-fw", next_hop_type="VirtualAppliance", next_hop_ip="10.0.0.1")],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            destination_address_prefix="10.0.0.5/32",
+        )
+        # VirtualAppliance next-hop → UNKNOWN (firewall config not modelled)
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        # Verify next-hop evidence is present
+        subnet_hop = next((h for h in result.path_candidates[0].hops if h.resource_id == SUBNET_ID), None)
+        assert subnet_hop is not None
+        assert subnet_hop.route_next_hop_type == "VirtualAppliance"
+        assert subnet_hop.route_next_hop_ip == "10.0.0.1"
+
+    def test_protocol_and_port_combined_through_path(self):
+        """Full path analysis with protocol + both source and destination ports."""
+        resources = [
+            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                SUBNET_ID,
+                "Microsoft.Network/virtualNetworks/subnets",
+                {"networkSecurityGroup": {"id": NSG_ID}},
+            ),
+            _nsg_resource(
+                NSG_ID,
+                security_rules=[
+                    {
+                        "name": "allow-https-only",
+                        "properties": {
+                            "direction": "Inbound",
+                            "access": "Allow",
+                            "priority": 100,
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "443",
+                            "protocol": "Tcp",
+                        },
+                    },
+                ],
+                subnets=[{"id": SUBNET_ID}],
+            ),
+            _resource(
+                NIC_ID,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(VM_ID, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": NIC_ID}]}}),
+        ]
+        # Tcp/443 → ALLOWED
+        result = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            protocol="Tcp",
+            source_port=50000,
+            destination_port=443,
+        )
+        assert result.overall_verdict == PathVerdict.ALLOWED
+
+        # Udp/443 does not match the custom allow; Azure default rules still apply.
+        result2 = analyze_path(
+            resources,
+            source_resource_id=VM_ID,
+            destination_resource_id=SUBNET_ID,
+            protocol="Udp",
+            source_address_prefix="203.0.113.10/32",
+            destination_address_prefix="10.2.0.4/32",
+            source_port=50000,
+            destination_port=443,
+        )
+        assert result2.overall_verdict == PathVerdict.BLOCKED
