@@ -56,6 +56,13 @@ cd /Users/gun/dev/azvision
 scripts/personal_use_smoke.sh
 ```
 
+When the frontend dev server is also running, run the UI visual smoke for Network Path Analysis. It restores an available snapshot if the current canvas is empty, selects source/destination resource nodes, applies `Tcp`, `source_port=50000`, `destination_port=443`, runs analysis, and writes screenshots under `tmp/path-analysis-visual-smoke/`.
+
+```bash
+cd /Users/gun/dev/azvision
+scripts/path_analysis_visual_smoke.mjs
+```
+
 Useful options:
 
 ```bash
@@ -116,9 +123,10 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 3. Open UI: `http://127.0.0.1:5173`
 4. Confirm Azure read: `scripts/live_topology_probe.sh` or UI scope load
 5. For network troubleshooting, select source/destination resource nodes and run Network Path Analysis with only the filters you need (`source_port` is usually optional)
-6. Use topology/manual modeling as needed
-7. Save important states as server snapshots
-8. Before risky local cleanup, run `scripts/backup_sqlite.sh`
+6. If UI behavior changed, run `scripts/path_analysis_visual_smoke.mjs` with backend/frontend running and keep the generated screenshots as temporary evidence
+7. Use topology/manual modeling as needed
+8. Save important states as server snapshots
+9. Before risky local cleanup, run `scripts/backup_sqlite.sh`
 
 ## Known personal-use limits
 

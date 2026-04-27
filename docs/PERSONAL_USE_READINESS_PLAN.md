@@ -27,6 +27,7 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
    - live read-test
    - topology probe with network inference
    - network path analysis smoke on live topology resources when at least two resource nodes are available
+   - Network Path Analysis UI visual smoke with screenshot evidence when frontend changes touch the path-analysis panel or filters
 3. Core workflow readiness
    - topology view usable baseline
    - Network Path Analysis usable baseline with conservative NSG/route evidence
@@ -83,6 +84,12 @@ scripts/backup_sqlite.sh
 scripts/verify_sqlite_backup.sh
 ```
 
+With backend and frontend running, the path-analysis visual check is:
+
+```bash
+scripts/path_analysis_visual_smoke.mjs
+```
+
 Expected result:
 - `personal_use_smoke.sh` prints `PASS: AzVision personal-use smoke completed` and verifies smoke workspace cleanup
 - backend tests pass
@@ -98,6 +105,7 @@ Expected result:
 - Azure read-test passes or live dependency is explicitly skipped for offline work
 - topology smoke returns at least one node
 - network path analysis smoke passes when at least two resource nodes are available
+- path-analysis visual smoke passes when the frontend panel/filter behavior changed
 - manual node/edge path passes
 - snapshot create/list/detail/restore path passes
 - smoke-created manual/snapshot records are cleaned up
