@@ -378,6 +378,7 @@ def _first_effective_nsg_rule(
     destination_port: int | None = None,
     virtual_network_prefixes: Sequence[str] | None = None,
 ) -> NSGRule | None:
+    uncertain_rules: list[NSGRule] = []
     for rule in sorted(rules, key=lambda r: r.priority):
         state = _nsg_rule_match_state(
             rule,
@@ -390,9 +391,13 @@ def _first_effective_nsg_rule(
             virtual_network_prefixes=virtual_network_prefixes,
         )
         if state is True:
+            if rule.access == "allow" and any(item.access == "deny" for item in uncertain_rules):
+                return None
+            if rule.access == "deny" and any(item.access == "allow" for item in uncertain_rules):
+                return None
             return rule
         if state is None:
-            return None
+            uncertain_rules.append(rule)
     return None
 
 
@@ -477,7 +482,7 @@ def _address_prefix_match_state(
             return True
 
         if is_service_tag(text):
-            if text == "virtualnetwork" and virtual_network_prefixes:
+            if text == "virtualnetwork" and virtual_network_prefixes is not None:
                 tag_match = _prefix_is_covered_by_any(virtual_network_prefixes, requested)
             else:
                 tag_match = address_prefix_matches_tag(text, requested)
@@ -1060,7 +1065,7 @@ def _virtual_network_prefixes_for_resource(
     res: dict[str, Any],
     resources_by_canonical_id: dict[str, dict[str, Any]],
     resource_ids: dict[str, str],
-) -> tuple[str, ...]:
+) -> tuple[str, ...] | None:
     """Return the Azure VirtualNetwork tag scope for a subnet/NIC hop.
 
     Azure's ``VirtualNetwork`` service tag is not all RFC1918 space. For an
@@ -1072,7 +1077,7 @@ def _virtual_network_prefixes_for_resource(
     vnet_canonical = _canonical_resource_id(vnet_id) if vnet_id else None
     vnet_res = resources_by_canonical_id.get(vnet_canonical) if vnet_canonical else None
     if not vnet_res:
-        return ()
+        return None
 
     prefixes: list[str] = list(_vnet_address_prefixes(vnet_res))
     for peer_id in _connected_peered_vnet_ids(vnet_res, resources_by_canonical_id):
@@ -1141,8 +1146,8 @@ def _connected_peered_vnet_ids(
     peers: set[str] = set()
     for raw in _iter_dicts(_properties(vnet_res).get("virtualNetworkPeerings")):
         props = raw.get("properties") if isinstance(raw.get("properties"), dict) else raw
-        state = str(props.get("peeringState") or "Connected").strip().lower()
-        if state and state != "connected":
+        state = str(props.get("peeringState") or "").strip().lower()
+        if state != "connected":
             continue
         remote_id = _canonical_resource_id(_id_from_ref(props.get("remoteVirtualNetwork")))
         if not remote_id:
@@ -1156,8 +1161,8 @@ def _connected_peered_vnet_ids(
 def _has_connected_reverse_peering(vnet_res: dict[str, Any], expected_remote_vnet_id: str) -> bool:
     for raw in _iter_dicts(_properties(vnet_res).get("virtualNetworkPeerings")):
         props = raw.get("properties") if isinstance(raw.get("properties"), dict) else raw
-        state = str(props.get("peeringState") or "Connected").strip().lower()
-        if state and state != "connected":
+        state = str(props.get("peeringState") or "").strip().lower()
+        if state != "connected":
             continue
         remote_id = _canonical_resource_id(_id_from_ref(props.get("remoteVirtualNetwork")))
         if remote_id == expected_remote_vnet_id:
@@ -1610,6 +1615,6 @@ def _peering_edge_is_connected(
         remote_id = _canonical_resource_id(_id_from_ref(props.get("remoteVirtualNetwork")))
         if remote_id != target_canonical:
             continue
-        state = str(props.get("peeringState") or "Connected").strip().lower()
+        state = str(props.get("peeringState") or "").strip().lower()
         return state == "connected"
     return False

@@ -476,6 +476,49 @@ class TestClassifyNSGVerdict:
             virtual_network_prefixes=("10.0.0.0/16",),
         ) == PathVerdict.BLOCKED
 
+    def test_empty_virtual_network_context_does_not_fall_back_to_broad_static_tag(self):
+        rules = [
+            NSGRule(
+                direction="inbound",
+                access="allow",
+                priority=100,
+                name="allow-vnet",
+                source_address_prefix="VirtualNetwork",
+            )
+        ]
+
+        assert classify_nsg_verdict(
+            rules,
+            direction="inbound",
+            source_address_prefix="10.9.1.25/32",
+            virtual_network_prefixes=(),
+        ) == PathVerdict.UNKNOWN
+
+    def test_uncertain_higher_allow_rule_does_not_hide_lower_matching_allow(self):
+        rules = [
+            NSGRule(
+                direction="inbound",
+                access="allow",
+                priority=100,
+                name="allow-vnet-empty-context",
+                source_address_prefix="VirtualNetwork",
+            ),
+            NSGRule(
+                direction="inbound",
+                access="allow",
+                priority=200,
+                name="allow-explicit-spoke",
+                source_address_prefix="10.0.0.0/16",
+            ),
+        ]
+
+        assert classify_nsg_verdict(
+            rules,
+            direction="inbound",
+            source_address_prefix="10.0.1.25/32",
+            virtual_network_prefixes=(),
+        ) == PathVerdict.ALLOWED
+
 
 # ===========================================================================
 # Route Table Parsing
@@ -1155,6 +1198,92 @@ class TestAnalyzePathEdgeCases:
         assert result.path_candidates == []
         assert "No network path found" in result.warnings[-1]
 
+    def test_missing_vnet_peering_state_does_not_create_path(self):
+        """Missing peeringState should not be assumed to be traffic-carrying."""
+        remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
+        remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
+        remote_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-remote"
+        remote_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-remote"
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": remote_vnet_id}}},
+                    ],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": remote_subnet_id}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": VNET_ID}}},
+                    ],
+                },
+            ),
+            _resource(remote_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": remote_subnet_id}}}]},
+            ),
+            _resource(remote_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": remote_nic_id}]}}),
+        ]
+
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert "No network path found" in result.warnings[-1]
+
+    def test_initiated_vnet_peering_does_not_create_path(self):
+        """Initiated peering is not traffic-carrying until both sides are Connected."""
+        remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
+        remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
+        remote_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-remote"
+        remote_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-remote"
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": remote_vnet_id}, "peeringState": "Initiated"}},
+                    ],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": remote_subnet_id}],
+                    "virtualNetworkPeerings": [
+                        {"properties": {"remoteVirtualNetwork": {"id": VNET_ID}, "peeringState": "Connected"}},
+                    ],
+                },
+            ),
+            _resource(remote_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": remote_subnet_id}}}]},
+            ),
+            _resource(remote_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": remote_nic_id}]}}),
+        ]
+
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert "No network path found" in result.warnings[-1]
+
     def test_disconnected_vnet_peering_does_not_create_path(self):
         """VNet peering must be connected on both sides before traversal."""
         remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
@@ -1199,7 +1328,7 @@ class TestAnalyzePathEdgeCases:
         assert "No network path found" in result.warnings[-1]
 
     def test_reciprocal_vnet_peering_allows_path_traversal(self):
-        """Reciprocal VNet peering evidence can be traversed as network connectivity."""
+        """Reciprocal connected VNet peering evidence can be traversed as network connectivity."""
         remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
         remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
         remote_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-remote"
@@ -1211,7 +1340,7 @@ class TestAnalyzePathEdgeCases:
                 {
                     "subnets": [{"id": SUBNET_ID}],
                     "virtualNetworkPeerings": [
-                        {"properties": {"remoteVirtualNetwork": {"id": remote_vnet_id}}},
+                        {"properties": {"remoteVirtualNetwork": {"id": remote_vnet_id}, "peeringState": "Connected"}},
                     ],
                 },
             ),
@@ -1222,7 +1351,7 @@ class TestAnalyzePathEdgeCases:
                 {
                     "subnets": [{"id": remote_subnet_id}],
                     "virtualNetworkPeerings": [
-                        {"properties": {"remoteVirtualNetwork": {"id": VNET_ID}}},
+                        {"properties": {"remoteVirtualNetwork": {"id": VNET_ID}, "peeringState": "Connected"}},
                     ],
                 },
             ),
@@ -1595,7 +1724,11 @@ class TestServiceTagInNSGVerdict:
             ],
         )
         resources = [
-            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {"addressSpace": {"addressPrefixes": ["10.0.0.0/16"]}, "subnets": [{"id": SUBNET_ID}]},
+            ),
             _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {"networkSecurityGroup": {"id": NSG_ID}}),
             nsg,
             _resource(
@@ -1888,7 +2021,11 @@ class TestSourcePortAndAddressFiltering:
     def test_protocol_and_port_combined_through_path(self):
         """Full path analysis with protocol + both source and destination ports."""
         resources = [
-            _resource(VNET_ID, "Microsoft.Network/virtualNetworks", {"subnets": [{"id": SUBNET_ID}]}),
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {"addressSpace": {"addressPrefixes": ["10.0.0.0/16"]}, "subnets": [{"id": SUBNET_ID}]},
+            ),
             _resource(
                 SUBNET_ID,
                 "Microsoft.Network/virtualNetworks/subnets",

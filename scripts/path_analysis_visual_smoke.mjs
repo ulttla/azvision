@@ -23,6 +23,10 @@ function loadPlaywright() {
 
 const { chromium } = loadPlaywright();
 
+// Visual evidence smoke: this verifies that the Path Analysis panel renders,
+// accepts filters, runs an analysis, and writes screenshots. Functional verdict
+// semantics remain covered by backend tests; this script fails only when the UI
+// flow cannot produce a rendered verdict/evidence panel.
 const baseUrl = process.env.AZVISION_UI_URL || 'http://127.0.0.1:5173';
 const outputDir = process.env.AZVISION_VISUAL_SMOKE_DIR || path.resolve('tmp/path-analysis-visual-smoke');
 const protocol = process.env.AZVISION_PATH_PROTOCOL || 'Tcp';
@@ -139,6 +143,9 @@ async function main() {
       verdict: verdictMatch?.[1]?.toLowerCase() || 'not-rendered',
       outputDir,
     };
+    if (summary.verdict === 'not-rendered') {
+      throw new Error('Path analysis verdict did not render in the detail panel');
+    }
     console.log(JSON.stringify(summary, null, 2));
   } finally {
     await browser.close();
