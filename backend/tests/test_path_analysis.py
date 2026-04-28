@@ -2248,3 +2248,201 @@ class TestSourcePortAndAddressFiltering:
             destination_port=443,
         )
         assert result2.overall_verdict == PathVerdict.BLOCKED
+
+
+class TestPeeringTraversalMetadata:
+    """Test that path_analysis exposes source-address-aware direct/forwarded distinction."""
+
+    def _direct_peering_resources(self, *, allow_forwarded: bool | None = None) -> tuple[list[dict], str, str]:
+        """Build two directly-peered VNets with a VM in each."""
+        remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
+        remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
+        remote_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-remote"
+        remote_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-remote"
+
+        local_peering_props: dict = {
+            "remoteVirtualNetwork": {"id": remote_vnet_id},
+            "peeringState": "Connected",
+        }
+        remote_peering_props: dict = {
+            "remoteVirtualNetwork": {"id": VNET_ID},
+            "peeringState": "Connected",
+        }
+        if allow_forwarded is not None:
+            local_peering_props["allowForwardedTraffic"] = allow_forwarded
+            remote_peering_props["allowForwardedTraffic"] = allow_forwarded
+
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [{"properties": local_peering_props}],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": remote_subnet_id}],
+                    "virtualNetworkPeerings": [{"properties": remote_peering_props}],
+                },
+            ),
+            _resource(remote_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": remote_subnet_id}}}]},
+            ),
+            _resource(remote_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": remote_nic_id}]}}),
+        ]
+        return resources, remote_vm_id, SUBNET_ID
+
+    def _transitive_peering_resources(
+        self,
+        *,
+        target_to_hub: bool | None = None,
+        hub_to_target: bool | None = None,
+        hub_to_spoke: bool | None = None,
+        spoke_to_hub: bool | None = None,
+    ) -> tuple[list[dict], str]:
+        hub_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-hub"
+        spoke_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-spoke"
+        hub_subnet_id = f"{hub_vnet_id}/subnets/snet-hub"
+        spoke_subnet_id = f"{spoke_vnet_id}/subnets/snet-spoke"
+        spoke_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-spoke"
+        spoke_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-spoke"
+
+        def _peering(remote_vnet_id: str, allow_forwarded: bool | None) -> dict:
+            props = {"remoteVirtualNetwork": {"id": remote_vnet_id}, "peeringState": "Connected"}
+            if allow_forwarded is not None:
+                props["allowForwardedTraffic"] = allow_forwarded
+            return {"properties": props}
+
+        return [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [_peering(hub_vnet_id, target_to_hub)],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                hub_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": hub_subnet_id}],
+                    "virtualNetworkPeerings": [
+                        _peering(VNET_ID, hub_to_target),
+                        _peering(spoke_vnet_id, hub_to_spoke),
+                    ],
+                },
+            ),
+            _resource(hub_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                spoke_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": spoke_subnet_id}],
+                    "virtualNetworkPeerings": [_peering(hub_vnet_id, spoke_to_hub)],
+                },
+            ),
+            _resource(spoke_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                spoke_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": spoke_subnet_id}}}]},
+            ),
+            _resource(spoke_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": spoke_nic_id}]}}),
+        ], spoke_vm_id
+
+    def test_intra_vnet_path_has_no_peering_metadata(self):
+        """Intra-VNet path has peering_hop_count=0, is_forwarded_traffic=None."""
+        resources, _, _ = self._direct_peering_resources()
+        # Use same-VNet VM and subnet (VM_ID is local, SUBNET_ID is local)
+        # Add local VM and NIC for intra-VNet path
+        local_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-local"
+        local_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-local"
+        local_resources = resources + [
+            _resource(
+                local_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": SUBNET_ID}}}]},
+            ),
+            _resource(local_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": local_nic_id}]}}),
+        ]
+        result = analyze_path(local_resources, source_resource_id=local_vm_id, destination_resource_id=SUBNET_ID)
+        assert result.path_candidates
+        candidate = result.path_candidates[0]
+        assert candidate.peering_hop_count == 0
+        assert candidate.is_forwarded_traffic is None
+        # No hops should be marked as peering boundary
+        assert not any(hop.is_peering_boundary for hop in candidate.hops)
+
+    def test_direct_peering_path_has_peering_hop_count_1(self):
+        """Direct peering path has peering_hop_count=1, is_forwarded_traffic=False."""
+        resources, remote_vm_id, _ = self._direct_peering_resources(allow_forwarded=False)
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+        assert result.path_candidates
+        candidate = result.path_candidates[0]
+        assert candidate.peering_hop_count == 1
+        assert candidate.is_forwarded_traffic is False
+
+    def test_direct_peering_path_marks_peering_boundary(self):
+        """Direct peering path marks the VNet hop reached via peering as peering boundary."""
+        resources, remote_vm_id, _ = self._direct_peering_resources(allow_forwarded=False)
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+        assert result.path_candidates
+        candidate = result.path_candidates[0]
+        vnet_hops = [h for h in candidate.hops if h.hop_type == HopType.VNET]
+        peering_boundary_hops = [h for h in candidate.hops if h.is_peering_boundary]
+        # At least one VNet hop should be a peering boundary
+        assert peering_boundary_hops, f"Expected peering boundary, got hops: {[(h.display_name, h.is_peering_boundary) for h in candidate.hops]}"
+        # All peering boundary hops should be VNet type
+        assert all(h.hop_type == HopType.VNET for h in peering_boundary_hops)
+
+    def test_transitive_peering_path_has_peering_hop_count_2(self):
+        """Transitive (2-hop) peering path has peering_hop_count=2, is_forwarded_traffic=True."""
+        resources, spoke_vm_id = self._transitive_peering_resources(
+            target_to_hub=True,
+            hub_to_target=True,
+            hub_to_spoke=True,
+            spoke_to_hub=True,
+        )
+        result = analyze_path(resources, source_resource_id=spoke_vm_id, destination_resource_id=SUBNET_ID)
+        assert result.path_candidates
+        candidate = result.path_candidates[0]
+        assert candidate.peering_hop_count == 2
+        assert candidate.is_forwarded_traffic is True
+
+    def test_transitive_peering_path_marks_multiple_peering_boundaries(self):
+        """Transitive path marks both transit VNet and destination VNet as peering boundaries."""
+        resources, spoke_vm_id = self._transitive_peering_resources(
+            target_to_hub=True,
+            hub_to_target=True,
+            hub_to_spoke=True,
+            spoke_to_hub=True,
+        )
+        result = analyze_path(resources, source_resource_id=spoke_vm_id, destination_resource_id=SUBNET_ID)
+        assert result.path_candidates
+        candidate = result.path_candidates[0]
+        peering_boundary_hops = [h for h in candidate.hops if h.is_peering_boundary]
+        # In a 2-hop transitive path, both the hub and destination VNet are peering boundaries
+        assert len(peering_boundary_hops) >= 2
+
+    def test_no_path_produces_no_peering_metadata(self):
+        """When no path is found, peering metadata defaults to 0/None."""
+        resources, spoke_vm_id = self._transitive_peering_resources(
+            target_to_hub=None,
+            hub_to_target=None,
+            hub_to_spoke=None,
+            spoke_to_hub=None,
+        )
+        result = analyze_path(resources, source_resource_id=spoke_vm_id, destination_resource_id=SUBNET_ID)
+        # No path found
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []

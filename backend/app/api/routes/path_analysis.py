@@ -45,6 +45,7 @@ def _path_analysis_to_dict(result: Any) -> dict[str, Any]:
                 hop_dict["nsg_outbound_name"] = hop.nsg_outbound_name
             if hop.nsg_outbound_rule_name is not None:
                 hop_dict["nsg_outbound_rule_name"] = hop.nsg_outbound_rule_name
+            hop_dict["is_peering_boundary"] = hop.is_peering_boundary
             if hop.route_verdict is not None:
                 hop_dict["route_verdict"] = hop.route_verdict.value if hasattr(hop.route_verdict, "value") else str(hop.route_verdict)
             if hop.route_table_name is not None:
@@ -63,6 +64,8 @@ def _path_analysis_to_dict(result: Any) -> dict[str, Any]:
             "verdict": candidate.verdict.value if hasattr(candidate.verdict, "value") else str(candidate.verdict),
             "hops": hops,
             "reason": candidate.reason,
+            "peering_hop_count": candidate.peering_hop_count,
+            "is_forwarded_traffic": candidate.is_forwarded_traffic,
         })
 
     return {

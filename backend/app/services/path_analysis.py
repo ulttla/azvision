@@ -118,6 +118,10 @@ class PathHop:
     route_next_hop_type: str | None = None
     route_next_hop_ip: str | None = None
 
+    # Peering boundary marker: True when this VNet hop is reached via a
+    # VNet peering edge (the path crosses from one VNet to another).
+    is_peering_boundary: bool = False
+
 
 @dataclass(frozen=True)
 class PathCandidate:
@@ -127,6 +131,13 @@ class PathCandidate:
     verdict: PathVerdict
     hops: tuple[PathHop, ...]
     reason: str
+    # Number of VNet peering edges traversed in this path.
+    # 0 = intra-VNet, 1 = direct peering, 2+ = transitive peering.
+    peering_hop_count: int = 0
+    # Whether traffic is forwarded through peering.
+    # None = intra-VNet (no peering), False = direct peering,
+    # True = transitive peering (forwarded through ≥2 peering edges).
+    is_forwarded_traffic: bool | None = None
 
 
 @dataclass
@@ -885,7 +896,7 @@ def analyze_path(
         )
 
     # Find path from source to destination via topology edges
-    path_hops = _trace_path(
+    trace_result = _trace_path(
         source_res,
         dest_res,
         resources,
@@ -893,7 +904,7 @@ def analyze_path(
         resource_ids,
     )
 
-    if not path_hops:
+    if not trace_result.hops:
         return PathAnalysisResult(
             source_resource_id=source_resource_id,
             destination_resource_id=destination_resource_id,
@@ -911,12 +922,12 @@ def analyze_path(
     )
 
     classified_hops: list[PathHop] = []
-    for idx, hop in enumerate(path_hops):
+    for idx, hop in enumerate(trace_result.hops):
         classified_hop = _classify_hop(
             hop,
             resources_by_canonical_id,
             resource_ids,
-            path_hops=path_hops,
+            path_hops=list(trace_result.hops),
             hop_index=idx,
             nsg_params=nsg_params,
         )
@@ -932,6 +943,8 @@ def analyze_path(
         verdict=overall_verdict,
         hops=tuple(classified_hops),
         reason=reason,
+        peering_hop_count=trace_result.peering_hop_count,
+        is_forwarded_traffic=trace_result.is_forwarded_traffic,
     )
 
     return PathAnalysisResult(
@@ -1343,6 +1356,7 @@ def _classify_hop(
         route_name=route_name,
         route_next_hop_type=route_next_hop_type,
         route_next_hop_ip=route_next_hop_ip,
+        is_peering_boundary=hop.is_peering_boundary,
     )
 
 
@@ -1475,17 +1489,29 @@ class _TraversalEdge:
     allow_forwarded_traffic: bool | None = None
 
 
+@dataclass(frozen=True)
+class _TraceResult:
+    """Result of path tracing including peering metadata."""
+    hops: tuple[PathHop, ...]
+    peering_hop_count: int = 0
+    is_forwarded_traffic: bool | None = None
+    peering_boundary_ids: tuple[str, ...] = ()  # canonical IDs of VNet hops reached via peering
+
+
 def _trace_path(
     source: dict[str, Any],
     destination: dict[str, Any],
     resources: list[dict[str, Any]],
     resources_by_canonical_id: dict[str, dict[str, Any]],
     resource_ids: dict[str, str],
-) -> list[PathHop]:
+) -> _TraceResult:
     """Trace a network path from source resource to destination resource.
 
     Uses topology inference (ARM ID references) to follow VNet→Subnet→NIC
     chains. This is a simplified BFS-style path finder for MVP scope.
+
+    Returns a _TraceResult with hops, peering count, and forwarded-traffic
+    metadata for source-address-aware direct vs. forwarded distinction.
     """
     from app.services.topology_inference import infer_explicit_network_relationship_edges
 
@@ -1546,7 +1572,7 @@ def _trace_path(
     dest_canonical = _canonical_resource_id(dest_id) or ""
 
     if not source_canonical or not dest_canonical:
-        return []
+        return _TraceResult(hops=())
 
     # Use canonical IDs for BFS
     canonical_adjacency: dict[str, list[_TraversalEdge]] = {}
@@ -1592,7 +1618,7 @@ def _trace_path(
                 queue.append(next_state)
 
     if found_state is None:
-        return []
+        return _TraceResult(hops=())
 
     # Reconstruct path
     path: list[str] = []
@@ -1602,9 +1628,31 @@ def _trace_path(
         path.append(current)
         current_state = parent.get(current_state)
         if current_state is None:
-            return []  # Should not happen if BFS found it
+            return _TraceResult(hops=())  # Should not happen if BFS found it
     path.append(source_canonical)
     path.reverse()
+
+    # Determine which path edges are peering crossings.
+    # Walk the BFS path and check adjacency to find peering boundary VNet hops.
+    peering_boundary_canonical: set[str] = set()
+    for i in range(len(path) - 1):
+        current_rid = path[i]
+        next_rid = path[i + 1]
+        for edge in canonical_adjacency.get(current_rid, []):
+            if edge.target_resource_id == next_rid and edge.is_peering:
+                # The target VNet of a peering edge is a peering boundary
+                peering_boundary_canonical.add(next_rid)
+                break
+
+    # Extract peering metadata from the found BFS state
+    final_peering_hops = found_state[1] if found_state else 0
+    is_forwarded: bool | None = None
+    if final_peering_hops == 0:
+        is_forwarded = None   # intra-VNet
+    elif final_peering_hops == 1:
+        is_forwarded = False  # direct peering
+    else:
+        is_forwarded = True   # transitive / forwarded
 
     # Convert to PathHop list
     hops: list[PathHop] = []
@@ -1618,6 +1666,7 @@ def _trace_path(
                 resource_type=rt,
                 hop_type=_hop_type_for_resource_type(rt),
                 display_name=_resource_display_name(res),
+                is_peering_boundary=rid in peering_boundary_canonical,
             ))
         else:
             # Fallback for unknown resource in path
@@ -1627,9 +1676,15 @@ def _trace_path(
                 resource_type="unknown",
                 hop_type=HopType.OTHER,
                 display_name=actual_id.split("/")[-1] if actual_id else "unknown",
+                is_peering_boundary=rid in peering_boundary_canonical,
             ))
 
-    return hops
+    return _TraceResult(
+        hops=tuple(hops),
+        peering_hop_count=final_peering_hops,
+        is_forwarded_traffic=is_forwarded,
+        peering_boundary_ids=tuple(sorted(peering_boundary_canonical)),
+    )
 
 
 def _peering_edge_is_connected(

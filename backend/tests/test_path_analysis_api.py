@@ -249,3 +249,73 @@ def test_source_port_changes_verdict_round_trip(client: TestClient, monkeypatch:
     assert blocked_resp.json()["overall_verdict"] == "blocked"
     assert allowed_resp.status_code == 200
     assert allowed_resp.json()["overall_verdict"] == "allowed"
+
+
+def test_peering_metadata_serializes_round_trip(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    """API response should expose peering metadata from path analysis candidates and hops."""
+    base = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-network/providers"
+    local_vnet_id = f"{base}/Microsoft.Network/virtualNetworks/vnet-local"
+    local_subnet_id = f"{local_vnet_id}/subnets/snet-local"
+    remote_vnet_id = f"{base}/Microsoft.Network/virtualNetworks/vnet-remote"
+    remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
+    remote_nic_id = f"{base}/Microsoft.Network/networkInterfaces/nic-remote"
+    remote_vm_id = f"{base}/Microsoft.Compute/virtualMachines/vm-remote"
+
+    local_peering = {
+        "remoteVirtualNetwork": {"id": remote_vnet_id},
+        "peeringState": "Connected",
+        "allowForwardedTraffic": False,
+    }
+    remote_peering = {
+        "remoteVirtualNetwork": {"id": local_vnet_id},
+        "peeringState": "Connected",
+        "allowForwardedTraffic": False,
+    }
+    resources = [
+        _api_resource(
+            local_vnet_id,
+            "Microsoft.Network/virtualNetworks",
+            {"subnets": [{"id": local_subnet_id}], "virtualNetworkPeerings": [{"properties": local_peering}]},
+        ),
+        _api_resource(local_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+        _api_resource(
+            remote_vnet_id,
+            "Microsoft.Network/virtualNetworks",
+            {"subnets": [{"id": remote_subnet_id}], "virtualNetworkPeerings": [{"properties": remote_peering}]},
+        ),
+        _api_resource(remote_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+        _api_resource(
+            remote_nic_id,
+            "Microsoft.Network/networkInterfaces",
+            {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": remote_subnet_id}}}]},
+        ),
+        _api_resource(
+            remote_vm_id,
+            "Microsoft.Compute/virtualMachines",
+            {"networkProfile": {"networkInterfaces": [{"id": remote_nic_id}]}},
+        ),
+    ]
+
+    def fake_resolution(*args, **kwargs):
+        return InventoryResolution(AzureInventoryCollection([], [], resources), mode="test")
+
+    monkeypatch.setattr(path_analysis_routes, "resolve_inventory_collection", fake_resolution)
+
+    resp = client.get(
+        f"/api/v1/workspaces/{WORKSPACE}/path-analysis",
+        params={
+            "source_resource_id": remote_vm_id,
+            "destination_resource_id": local_subnet_id,
+        },
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["overall_verdict"] in ("allowed", "blocked", "unknown")
+    assert body["path_candidates"]
+    candidate = body["path_candidates"][0]
+    assert candidate["peering_hop_count"] == 1
+    assert candidate["is_forwarded_traffic"] is False
+    assert candidate["hops"]
+    assert all("is_peering_boundary" in hop for hop in candidate["hops"])
+    assert any(hop["is_peering_boundary"] is True for hop in candidate["hops"])
