@@ -1558,6 +1558,8 @@ def _trace_path(
             )
             if canonical_pair not in peering_pairs or (canonical_pair[1], canonical_pair[0]) not in peering_pairs:
                 continue
+            if not _peering_edge_allows_virtual_network_access(src_rid, tgt_rid, resources_by_canonical_id):
+                continue
             adjacency.setdefault(src_rid, []).append(_TraversalEdge(
                 target_resource_id=tgt_rid,
                 is_peering=True,
@@ -1704,6 +1706,26 @@ def _peering_edge_is_connected(
             continue
         state = str(props.get("peeringState") or "").strip().lower()
         return state == "connected"
+    return False
+
+
+def _peering_edge_allows_virtual_network_access(
+    source_vnet_id: str,
+    target_vnet_id: str,
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+) -> bool:
+    source = resources_by_canonical_id.get(_canonical_resource_id(source_vnet_id) or "")
+    target_canonical = _canonical_resource_id(target_vnet_id)
+    if not source or not target_canonical:
+        return False
+
+    for raw in _iter_dicts(_properties(source).get("virtualNetworkPeerings")):
+        props = raw.get("properties") if isinstance(raw.get("properties"), dict) else raw
+        remote_id = _canonical_resource_id(_id_from_ref(props.get("remoteVirtualNetwork")))
+        if remote_id != target_canonical:
+            continue
+        raw_value = props.get("allowVirtualNetworkAccess")
+        return raw_value is not False
     return False
 
 

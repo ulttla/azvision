@@ -2253,7 +2253,13 @@ class TestSourcePortAndAddressFiltering:
 class TestPeeringTraversalMetadata:
     """Test that path_analysis exposes source-address-aware direct/forwarded distinction."""
 
-    def _direct_peering_resources(self, *, allow_forwarded: bool | None = None) -> tuple[list[dict], str, str]:
+    def _direct_peering_resources(
+        self,
+        *,
+        allow_forwarded: bool | None = None,
+        local_allow_virtual_network_access: bool | None = None,
+        remote_allow_virtual_network_access: bool | None = None,
+    ) -> tuple[list[dict], str, str]:
         """Build two directly-peered VNets with a VM in each."""
         remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
         remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
@@ -2271,6 +2277,10 @@ class TestPeeringTraversalMetadata:
         if allow_forwarded is not None:
             local_peering_props["allowForwardedTraffic"] = allow_forwarded
             remote_peering_props["allowForwardedTraffic"] = allow_forwarded
+        if local_allow_virtual_network_access is not None:
+            local_peering_props["allowVirtualNetworkAccess"] = local_allow_virtual_network_access
+        if remote_allow_virtual_network_access is not None:
+            remote_peering_props["allowVirtualNetworkAccess"] = remote_allow_virtual_network_access
 
         resources = [
             _resource(
@@ -2398,12 +2408,22 @@ class TestPeeringTraversalMetadata:
         result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
         assert result.path_candidates
         candidate = result.path_candidates[0]
-        vnet_hops = [h for h in candidate.hops if h.hop_type == HopType.VNET]
         peering_boundary_hops = [h for h in candidate.hops if h.is_peering_boundary]
         # At least one VNet hop should be a peering boundary
         assert peering_boundary_hops, f"Expected peering boundary, got hops: {[(h.display_name, h.is_peering_boundary) for h in candidate.hops]}"
         # All peering boundary hops should be VNet type
         assert all(h.hop_type == HopType.VNET for h in peering_boundary_hops)
+
+    def test_direct_peering_path_blocks_when_source_direction_disallows_virtual_network_access(self):
+        """Explicit allowVirtualNetworkAccess=false blocks direct peering traversal from that source VNet."""
+        resources, remote_vm_id, _ = self._direct_peering_resources(
+            allow_forwarded=False,
+            remote_allow_virtual_network_access=False,
+        )
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert "No network path found" in result.warnings[-1]
 
     def test_transitive_peering_path_has_peering_hop_count_2(self):
         """Transitive (2-hop) peering path has peering_hop_count=2, is_forwarded_traffic=True."""
