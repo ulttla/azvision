@@ -1369,6 +1369,174 @@ class TestAnalyzePathEdgeCases:
         assert result.path_candidates
         assert result.path_candidates[0].hops[-1].resource_id == SUBNET_ID
 
+    def test_direct_vnet_peering_allows_path_when_forwarded_traffic_false(self):
+        """Direct peering traffic does not require forwarded-traffic permission."""
+        remote_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-remote"
+        remote_subnet_id = f"{remote_vnet_id}/subnets/snet-remote"
+        remote_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-remote"
+        remote_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-remote"
+        resources = [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [
+                        {
+                            "properties": {
+                                "remoteVirtualNetwork": {"id": remote_vnet_id},
+                                "peeringState": "Connected",
+                                "allowForwardedTraffic": False,
+                            },
+                        },
+                    ],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": remote_subnet_id}],
+                    "virtualNetworkPeerings": [
+                        {
+                            "properties": {
+                                "remoteVirtualNetwork": {"id": VNET_ID},
+                                "peeringState": "Connected",
+                                "allowForwardedTraffic": False,
+                            },
+                        },
+                    ],
+                },
+            ),
+            _resource(remote_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                remote_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": remote_subnet_id}}}]},
+            ),
+            _resource(remote_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": remote_nic_id}]}}),
+        ]
+
+        result = analyze_path(resources, source_resource_id=remote_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.path_candidates
+        assert result.path_candidates[0].hops[-1].resource_id == SUBNET_ID
+
+    def _transitive_peering_resources(
+        self,
+        *,
+        target_to_hub: bool | None = None,
+        hub_to_target: bool | None = None,
+        hub_to_spoke: bool | None = None,
+        spoke_to_hub: bool | None = None,
+    ) -> tuple[list[dict], str]:
+        hub_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-hub"
+        spoke_vnet_id = f"{BASE}/Microsoft.Network/virtualNetworks/vnet-spoke"
+        hub_subnet_id = f"{hub_vnet_id}/subnets/snet-hub"
+        spoke_subnet_id = f"{spoke_vnet_id}/subnets/snet-spoke"
+        spoke_nic_id = f"{BASE}/Microsoft.Network/networkInterfaces/nic-spoke"
+        spoke_vm_id = f"{BASE}/Microsoft.Compute/virtualMachines/vm-spoke"
+
+        def _peering(remote_vnet_id: str, allow_forwarded: bool | None) -> dict:
+            props = {"remoteVirtualNetwork": {"id": remote_vnet_id}, "peeringState": "Connected"}
+            if allow_forwarded is not None:
+                props["allowForwardedTraffic"] = allow_forwarded
+            return {"properties": props}
+
+        return [
+            _resource(
+                VNET_ID,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": SUBNET_ID}],
+                    "virtualNetworkPeerings": [_peering(hub_vnet_id, target_to_hub)],
+                },
+            ),
+            _resource(SUBNET_ID, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                hub_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": hub_subnet_id}],
+                    "virtualNetworkPeerings": [
+                        _peering(VNET_ID, hub_to_target),
+                        _peering(spoke_vnet_id, hub_to_spoke),
+                    ],
+                },
+            ),
+            _resource(hub_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                spoke_vnet_id,
+                "Microsoft.Network/virtualNetworks",
+                {
+                    "subnets": [{"id": spoke_subnet_id}],
+                    "virtualNetworkPeerings": [_peering(hub_vnet_id, spoke_to_hub)],
+                },
+            ),
+            _resource(spoke_subnet_id, "Microsoft.Network/virtualNetworks/subnets", {}),
+            _resource(
+                spoke_nic_id,
+                "Microsoft.Network/networkInterfaces",
+                {"ipConfigurations": [{"name": "ipconfig1", "properties": {"subnet": {"id": spoke_subnet_id}}}]},
+            ),
+            _resource(spoke_vm_id, "Microsoft.Compute/virtualMachines", {"networkProfile": {"networkInterfaces": [{"id": spoke_nic_id}]}}),
+        ], spoke_vm_id
+
+    def test_transitive_vnet_peering_missing_allow_forwarded_does_not_create_path(self):
+        """Missing allowForwardedTraffic is not enough evidence for transitive peering traversal."""
+        resources, spoke_vm_id = self._transitive_peering_resources()
+
+        result = analyze_path(resources, source_resource_id=spoke_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert "No network path found" in result.warnings[-1]
+
+    def test_transitive_vnet_peering_allow_forwarded_false_does_not_create_path(self):
+        """Explicit allowForwardedTraffic=false blocks transitive peering traversal evidence."""
+        resources, spoke_vm_id = self._transitive_peering_resources(
+            target_to_hub=True,
+            hub_to_target=False,
+            hub_to_spoke=True,
+            spoke_to_hub=True,
+        )
+
+        result = analyze_path(resources, source_resource_id=spoke_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert "No network path found" in result.warnings[-1]
+
+    def test_transitive_vnet_peering_first_allow_forwarded_false_does_not_create_path(self):
+        """Forwarded traversal stays blocked when the first peering direction disallows forwarded traffic."""
+        resources, spoke_vm_id = self._transitive_peering_resources(
+            target_to_hub=True,
+            hub_to_target=True,
+            hub_to_spoke=True,
+            spoke_to_hub=False,
+        )
+
+        result = analyze_path(resources, source_resource_id=spoke_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.overall_verdict == PathVerdict.UNKNOWN
+        assert result.path_candidates == []
+        assert "No network path found" in result.warnings[-1]
+
+    def test_transitive_vnet_peering_allows_path_when_forwarded_traffic_true(self):
+        """Transitive peering traversal requires every traversed peering direction to allow forwarded traffic."""
+        resources, spoke_vm_id = self._transitive_peering_resources(
+            target_to_hub=True,
+            hub_to_target=True,
+            hub_to_spoke=True,
+            spoke_to_hub=True,
+        )
+
+        result = analyze_path(resources, source_resource_id=spoke_vm_id, destination_resource_id=SUBNET_ID)
+
+        assert result.path_candidates
+        assert result.path_candidates[0].hops[-1].resource_id == SUBNET_ID
+
     def test_path_trace_does_not_treat_nsg_attachment_as_traffic_path(self):
         """NSG secures edge alone should not become a source/destination traffic path."""
         resources = [

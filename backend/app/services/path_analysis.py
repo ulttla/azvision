@@ -1468,6 +1468,13 @@ def _verdict_reason(hops: list[PathHop], verdict: PathVerdict) -> str:
 # Path tracing (BFS)
 # ---------------------------------------------------------------------------
 
+@dataclass(frozen=True)
+class _TraversalEdge:
+    target_resource_id: str
+    is_peering: bool = False
+    allow_forwarded_traffic: bool | None = None
+
+
 def _trace_path(
     source: dict[str, Any],
     destination: dict[str, Any],
@@ -1494,7 +1501,7 @@ def _trace_path(
     # should be traversable in both directions for path finding. VNet peering is
     # different: Azure requires both sides to be configured, so only treat a
     # peering as traversable when reciprocal peering evidence exists.
-    adjacency: dict[str, list[str]] = {}
+    adjacency: dict[str, list[_TraversalEdge]] = {}
     connect_edges = [edge for edge in edges if edge.get("relation_type") == "connects_to"]
     peering_pairs: set[tuple[str, str]] = set()
 
@@ -1525,8 +1532,14 @@ def _trace_path(
             )
             if canonical_pair not in peering_pairs or (canonical_pair[1], canonical_pair[0]) not in peering_pairs:
                 continue
-        adjacency.setdefault(src_rid, []).append(tgt_rid)
-        adjacency.setdefault(tgt_rid, []).append(src_rid)
+            adjacency.setdefault(src_rid, []).append(_TraversalEdge(
+                target_resource_id=tgt_rid,
+                is_peering=True,
+                allow_forwarded_traffic=_peering_edge_allows_forwarded_traffic(src_rid, tgt_rid, resources_by_canonical_id),
+            ))
+            continue
+        adjacency.setdefault(src_rid, []).append(_TraversalEdge(target_resource_id=tgt_rid))
+        adjacency.setdefault(tgt_rid, []).append(_TraversalEdge(target_resource_id=src_rid))
 
     # BFS from source to destination
     source_canonical = _canonical_resource_id(source_id) or ""
@@ -1536,40 +1549,59 @@ def _trace_path(
         return []
 
     # Use canonical IDs for BFS
-    canonical_adjacency: dict[str, list[str]] = {}
+    canonical_adjacency: dict[str, list[_TraversalEdge]] = {}
     for rid, neighbors in adjacency.items():
         canonical_rid = _canonical_resource_id(rid) or rid
-        canonical_neighbors = [_canonical_resource_id(n) or n for n in neighbors]
+        canonical_neighbors = [
+            _TraversalEdge(
+                target_resource_id=_canonical_resource_id(edge.target_resource_id) or edge.target_resource_id,
+                is_peering=edge.is_peering,
+                allow_forwarded_traffic=edge.allow_forwarded_traffic,
+            )
+            for edge in neighbors
+        ]
         canonical_adjacency.setdefault(canonical_rid, []).extend(canonical_neighbors)
 
     # BFS
-    visited: set[str] = set()
-    parent: dict[str, str] = {}
-    queue = [source_canonical]
-    visited.add(source_canonical)
+    traversal_limit = max(len(resources), 1)
+    start_state = (source_canonical, 0, True)
+    visited: set[tuple[str, int, bool]] = set()
+    parent: dict[tuple[str, int, bool], tuple[str, int, bool]] = {}
+    queue = [start_state]
+    visited.add(start_state)
 
-    found = False
+    found_state: tuple[str, int, bool] | None = None
     while queue:
-        current = queue.pop(0)
+        current, peering_hops, forwarded_allowed = queue.pop(0)
         if current == dest_canonical:
-            found = True
+            found_state = (current, peering_hops, forwarded_allowed)
             break
-        for neighbor in canonical_adjacency.get(current, []):
-            if neighbor not in visited:
-                visited.add(neighbor)
-                parent[neighbor] = current
-                queue.append(neighbor)
+        for edge in canonical_adjacency.get(current, []):
+            next_peering_hops = peering_hops + (1 if edge.is_peering else 0)
+            if next_peering_hops > traversal_limit:
+                continue
+            next_forwarded_allowed = forwarded_allowed
+            if edge.is_peering:
+                next_forwarded_allowed = forwarded_allowed and edge.allow_forwarded_traffic is True
+            if next_peering_hops > 1 and not next_forwarded_allowed:
+                continue
+            next_state = (edge.target_resource_id, next_peering_hops, next_forwarded_allowed)
+            if next_state not in visited:
+                visited.add(next_state)
+                parent[next_state] = (current, peering_hops, forwarded_allowed)
+                queue.append(next_state)
 
-    if not found:
+    if found_state is None:
         return []
 
     # Reconstruct path
     path: list[str] = []
-    current = dest_canonical
-    while current != source_canonical:
+    current_state = found_state
+    while current_state[0] != source_canonical:
+        current = current_state[0]
         path.append(current)
-        current = parent.get(current)
-        if current is None:
+        current_state = parent.get(current_state)
+        if current_state is None:
             return []  # Should not happen if BFS found it
     path.append(source_canonical)
     path.reverse()
@@ -1618,3 +1650,23 @@ def _peering_edge_is_connected(
         state = str(props.get("peeringState") or "").strip().lower()
         return state == "connected"
     return False
+
+
+def _peering_edge_allows_forwarded_traffic(
+    source_vnet_id: str,
+    target_vnet_id: str,
+    resources_by_canonical_id: dict[str, dict[str, Any]],
+) -> bool | None:
+    source = resources_by_canonical_id.get(_canonical_resource_id(source_vnet_id) or "")
+    target_canonical = _canonical_resource_id(target_vnet_id)
+    if not source or not target_canonical:
+        return None
+
+    for raw in _iter_dicts(_properties(source).get("virtualNetworkPeerings")):
+        props = raw.get("properties") if isinstance(raw.get("properties"), dict) else raw
+        remote_id = _canonical_resource_id(_id_from_ref(props.get("remoteVirtualNetwork")))
+        if remote_id != target_canonical:
+            continue
+        raw_value = props.get("allowForwardedTraffic")
+        return raw_value if isinstance(raw_value, bool) else None
+    return None
