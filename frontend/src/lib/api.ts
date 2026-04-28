@@ -339,6 +339,7 @@ export type PathAnalysisHop = {
   nsg_outbound_verdict?: PathAnalysisVerdict
   nsg_outbound_name?: string
   nsg_outbound_rule_name?: string
+  is_peering_boundary?: boolean
   route_verdict?: PathAnalysisVerdict
   route_table_name?: string
   route_name?: string
@@ -352,6 +353,8 @@ export type PathAnalysisCandidate = {
   verdict: PathAnalysisVerdict
   hops: PathAnalysisHop[]
   reason: string
+  peering_hop_count?: number
+  is_forwarded_traffic?: boolean | null
 }
 
 export type PathAnalysisResponse = {

@@ -174,6 +174,16 @@ function formatSourceLabel(value?: string) {
 }
 
 
+function formatPeeringTraversalLabel(peeringHopCount?: number, isForwardedTraffic?: boolean | null) {
+  if (!peeringHopCount) {
+    return 'intra-VNet'
+  }
+  if (isForwardedTraffic === true || peeringHopCount > 1) {
+    return `forwarded peering (${peeringHopCount} hops)`
+  }
+  return 'direct peering'
+}
+
 function formatRouteNextHopLabel(nextHopType?: string, nextHopIp?: string) {
   const normalized = String(nextHopType ?? '').trim().toLowerCase()
   if (!normalized) {
@@ -3517,7 +3527,7 @@ export function TopologyPage() {
                     </p>
                   ) : null}
                   <p className="hint detail-inline-hint">
-                    MVP note: path analysis now evaluates inbound/outbound NSG checkpoints, source/destination prefix filters, source/destination ports, service tags, and route evidence conservatively. Source port filtering is rarely needed; specify it only when you want stricter NSG matching.
+                    MVP note: path analysis evaluates inbound/outbound NSG checkpoints, peering traversal type, source/destination prefix filters, source/destination ports, service tags, and route evidence conservatively. Source port filtering is rarely needed; specify it only when you want stricter NSG matching.
                   </p>
                   <div className="search-form detail-inline-hint">
                     <input
@@ -3600,11 +3610,20 @@ export function TopologyPage() {
                       <p className="hint">
                         {pathAnalysisResult.path_candidates[0]?.reason ?? pathAnalysisResult.warnings[0] ?? 'No path candidate returned.'}
                       </p>
+                      {pathAnalysisResult.path_candidates[0] ? (
+                        <p className="hint detail-inline-hint">
+                          Peering: {formatPeeringTraversalLabel(
+                            pathAnalysisResult.path_candidates[0].peering_hop_count,
+                            pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
+                          )}
+                        </p>
+                      ) : null}
                       {pathAnalysisResult.path_candidates[0]?.hops.length ? (
                         <div className="sample-chip-list">
                           {pathAnalysisResult.path_candidates[0].hops.slice(0, 6).map((hop, index) => (
                             <span key={`${hop.resource_id}-${index}`} className="sample-chip">
                               {hop.display_name} • {hop.hop_type}
+                              {hop.is_peering_boundary ? <span className="mini-chip">Peering boundary</span> : null}
                               {hop.nsg_verdict ? (
                                 <span className="mini-chip" title={[hop.nsg_name, hop.nsg_rule_name].filter(Boolean).join(' / ') || undefined}>
                                   NSG{hop.nsg_direction ? ` ${hop.nsg_direction}` : ''}: {hop.nsg_verdict}
