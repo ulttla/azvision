@@ -57,6 +57,13 @@ assert.match(sqliteHealthCode, /oldest_archive_age_days/, 'SQLite health check s
 assert.match(sqliteHealthCode, /orphan_archive_count/, 'SQLite health check should report orphan archive count')
 assert.match(sqliteHealthCode, /archive_warnings/, 'SQLite health check should report archive threshold warnings')
 
+const sqliteHealthSelftestCode = readFileSync(
+  path.join(repoRoot, 'scripts/sqlite_health_check_selftest.py'),
+  'utf8',
+)
+assert.match(sqliteHealthSelftestCode, /orphan_archives_present/, 'SQLite health self-test should cover orphan archive warning')
+assert.match(sqliteHealthSelftestCode, /oldest_archive_age_gt_90d/, 'SQLite health self-test should cover archive age warning')
+
 // ============================================================
 // Section 3: DDL includes snapshot_topology_archives table
 // ============================================================

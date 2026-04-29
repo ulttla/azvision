@@ -91,7 +91,7 @@ Before any prune code can write to SQLite:
 1. Candidate selection unit tests for pinned, archived, safety floor, oldest-first ordering, and below-threshold cases.
 2. Dry-run smoke test proving zero side effects.
 3. Integration test for any prune endpoint in dry-run mode only.
-4. Health-check tests for threshold warnings.
+4. Health-check tests for threshold warnings. Current script-level self-test: `python3 scripts/sqlite_health_check_selftest.py`.
 5. Manual approval for any real deletion or cleanup operation.
 
 ## Current decision
