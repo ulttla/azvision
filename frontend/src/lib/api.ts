@@ -673,8 +673,25 @@ export async function getSimulationTemplate(workspaceId: string, simulationId: s
   return fetchJson<SimulationTemplateResponse>(`/workspaces/${workspaceId}/simulations/${simulationId}/template`)
 }
 
-export async function getSimulationFit(workspaceId: string, simulationId: string): Promise<SimulationFitResponse> {
-  return fetchJson<SimulationFitResponse>(`/workspaces/${workspaceId}/simulations/${simulationId}/fit`)
+export async function getSimulationFit(
+  workspaceId: string,
+  simulationId: string,
+  options?: { subscriptionId?: string; resourceGroupName?: string; limit?: number },
+): Promise<SimulationFitResponse> {
+  const search = new URLSearchParams()
+  if (options?.subscriptionId) {
+    search.set('subscription_id', options.subscriptionId)
+  }
+  if (options?.resourceGroupName) {
+    search.set('resource_group_name', options.resourceGroupName)
+  }
+  if (options?.limit) {
+    search.set('limit', String(options.limit))
+  }
+  const query = search.toString()
+  return fetchJson<SimulationFitResponse>(
+    `/workspaces/${workspaceId}/simulations/${simulationId}/fit${query ? `?${query}` : ''}`,
+  )
 }
 
 export async function getSimulationReport(workspaceId: string, simulationId: string): Promise<SimulationReportResponse> {

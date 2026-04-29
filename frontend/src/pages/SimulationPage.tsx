@@ -47,6 +47,7 @@ export function SimulationPage() {
   const [template, setTemplate] = useState<SimulationTemplateResponse | null>(null)
   const [fit, setFit] = useState<SimulationFitResponse | null>(null)
   const [report, setReport] = useState<SimulationReportResponse | null>(null)
+  const [fitLimit, setFitLimit] = useState(200)
   const [templateLoading, setTemplateLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -87,7 +88,7 @@ export function SimulationPage() {
       try {
         const [templateResult, fitResult, reportResult] = await Promise.all([
           getSimulationTemplate(workspaceId, selectedSimulation.simulation_id),
-          getSimulationFit(workspaceId, selectedSimulation.simulation_id),
+          getSimulationFit(workspaceId, selectedSimulation.simulation_id, { limit: fitLimit }),
           getSimulationReport(workspaceId, selectedSimulation.simulation_id),
         ])
         if (!cancelled) {
@@ -111,7 +112,7 @@ export function SimulationPage() {
     return () => {
       cancelled = true
     }
-  }, [selectedSimulation, workspaceId])
+  }, [fitLimit, selectedSimulation, workspaceId])
 
   async function handleCreateSimulation() {
     if (!description.trim()) {
@@ -173,6 +174,17 @@ export function SimulationPage() {
           <label className="field-label">
             Environment
             <input className="search-input" value={environment} onChange={(event) => setEnvironment(event.target.value)} />
+          </label>
+          <label className="field-label">
+            Fit resource limit
+            <input
+              className="search-input"
+              type="number"
+              min={1}
+              max={500}
+              value={fitLimit}
+              onChange={(event) => setFitLimit(Math.min(500, Math.max(1, Number(event.target.value) || 1)))}
+            />
           </label>
         </div>
         <label className="field-label simulation-description-field">
