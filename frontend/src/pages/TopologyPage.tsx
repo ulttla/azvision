@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import type { Core } from 'cytoscape'
 
 import {
+  compareTopologySnapshots,
   createExport,
   createManualEdge,
   createManualNode,
@@ -346,6 +347,7 @@ export function TopologyPage() {
   const [snapshotFilter, setSnapshotFilter] = useState<SnapshotFilterTab>('all')
   const [snapshotSortBy, setSnapshotSortBy] = useState<SnapshotSortBy>('last_restored_at')
   const [snapshotSortOrder, setSnapshotSortOrder] = useState<SnapshotSortOrder>('desc')
+  const [snapshotCompareBaseId, setSnapshotCompareBaseId] = useState('')
   const [snapshotNameInput, setSnapshotNameInput] = useState('')
   const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
   const [manualNodes, setManualNodes] = useState<ManualNode[]>([])
@@ -474,6 +476,7 @@ export function TopologyPage() {
 
   useEffect(() => {
     setServerSnapshotThumbnailById({})
+    setSnapshotCompareBaseId('')
   }, [selectedWorkspaceId, snapshotStorageMode])
 
   useEffect(() => {
@@ -1782,6 +1785,30 @@ export function TopologyPage() {
     }
   }
 
+  async function handleCompareSavedSnapshot(snapshot: SavedTopologySnapshot) {
+    if (snapshotStorageMode !== 'server') {
+      setExportMessage('Snapshot compare is available in server snapshot mode.')
+      return
+    }
+    if (!selectedWorkspaceId || !snapshotCompareBaseId) {
+      setSnapshotCompareBaseId(snapshot.id)
+      setExportMessage(`Snapshot compare base set: ${snapshot.name}`)
+      return
+    }
+    if (snapshotCompareBaseId === snapshot.id) {
+      setExportMessage('Choose a different target snapshot to compare.')
+      return
+    }
+
+    try {
+      const result = await compareTopologySnapshots(selectedWorkspaceId, snapshotCompareBaseId, snapshot.id)
+      const summary = result.summary.length ? result.summary.join(' • ') : 'no metadata-level differences'
+      setExportMessage(`Snapshot compare: ${result.base_name} → ${result.target_name} — ${summary}`)
+    } catch (error) {
+      setExportMessage(error instanceof Error ? error.message : 'Snapshot compare failed')
+    }
+  }
+
   async function handleImportLocalSnapshots() {
     if (!selectedWorkspaceId || snapshotStorageMode !== 'server' || !localWorkspaceSnapshots.length) {
       return
@@ -2695,6 +2722,7 @@ export function TopologyPage() {
                               {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
                             </span>
                             {snapshot.isPinned ? <span className="mini-chip">{UI_TEXT.pinnedSnapshotBadge}</span> : null}
+                            {snapshotCompareBaseId === snapshot.id ? <span className="mini-chip">Compare base</span> : null}
                             {isArchivedSnapshot ? <span className="mini-chip">{UI_TEXT.archivedSnapshotBadge}</span> : null}
                             {!snapshot.lastRestoredAt ? <span className="mini-chip">{UI_TEXT.neverRestoredSnapshotBadge}</span> : null}
                             {isActiveSnapshot ? <span className="mini-chip">{UI_TEXT.activeSnapshotBadge}</span> : null}
@@ -2763,6 +2791,14 @@ export function TopologyPage() {
                             onClick={() => handleToggleSnapshotArchive(snapshot)}
                           >
                             {isArchivedSnapshot ? UI_TEXT.unarchiveSnapshot : UI_TEXT.archiveSnapshot}
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => handleCompareSavedSnapshot(snapshot)}
+                            disabled={snapshotStorageMode !== 'server'}
+                          >
+                            {snapshotCompareBaseId && snapshotCompareBaseId !== snapshot.id ? 'Compare' : 'Set compare base'}
                           </button>
                           <button
                             type="button"
