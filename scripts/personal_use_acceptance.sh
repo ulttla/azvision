@@ -63,6 +63,7 @@ bash -n scripts/verify_sqlite_backup.sh
 bash -n scripts/personal_use_smoke.sh
 bash -n scripts/snapshot_compare_smoke.sh
 bash -n scripts/cost_report_smoke.sh
+bash -n scripts/cost_insights_smoke.sh
 python3 -m py_compile scripts/sqlite_health_check.py
 
 echo "[3/11] local readiness preflight"
@@ -101,5 +102,6 @@ scripts/snapshot_compare_smoke.sh
 echo "[11/11] cost report smoke"
 start_backend_if_needed
 scripts/cost_report_smoke.sh
+scripts/cost_insights_smoke.sh
 
 echo "PASS: AzVision personal-use acceptance completed"
