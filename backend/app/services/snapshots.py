@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from app.repositories.snapshots import SnapshotRepository
+from app.repositories.topology_archive import TopologyArchiveRepository
 from app.schemas.snapshots import (
     SnapshotCompareCountDelta,
     SnapshotCompareRefDelta,
@@ -220,3 +221,8 @@ class SnapshotService:
         deleted = self.repository.delete(workspace_id, snapshot_id)
         if not deleted:
             raise SnapshotNotFoundError(snapshot_id)
+        TopologyArchiveRepository.delete(
+            snapshot_id,
+            workspace_id,
+            database_url=self.repository.database_url,
+        )

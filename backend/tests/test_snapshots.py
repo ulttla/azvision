@@ -340,6 +340,34 @@ class TestSnapshotServiceDelete:
         with pytest.raises(SnapshotNotFoundError):
             snapshot_service.get_snapshot(WORKSPACE, created.id)
 
+    def test_delete_removes_topology_archive(self, snapshot_service: SnapshotService):
+        from app.repositories.topology_archive import TopologyArchiveRepository
+
+        created = snapshot_service.create_snapshot(WORKSPACE, _make_create_request())
+        TopologyArchiveRepository.store(
+            created.id,
+            WORKSPACE,
+            nodes_json='[{"node_key":"node-a"}]',
+            edges_json="[]",
+            topology_hash="hash-a",
+            node_count=1,
+            edge_count=0,
+            database_url=snapshot_service.repository.database_url,
+        )
+        assert TopologyArchiveRepository.get(
+            created.id,
+            WORKSPACE,
+            database_url=snapshot_service.repository.database_url,
+        ) is not None
+
+        snapshot_service.delete_snapshot(WORKSPACE, created.id)
+
+        assert TopologyArchiveRepository.get(
+            created.id,
+            WORKSPACE,
+            database_url=snapshot_service.repository.database_url,
+        ) is None
+
     def test_delete_nonexistent_raises(self, snapshot_service: SnapshotService):
         with pytest.raises(SnapshotNotFoundError):
             snapshot_service.delete_snapshot(WORKSPACE, "snap_gone")
