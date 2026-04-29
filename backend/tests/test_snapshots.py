@@ -17,6 +17,7 @@ from app.schemas.snapshots import (
     SnapshotUpdateRequest,
 )
 from app.services.snapshots import SnapshotNotFoundError, SnapshotService
+from app.services.topology_normalizer import MAX_TOPOLOGY_ARCHIVE_BYTES
 
 
 # ---------------------------------------------------------------------------
@@ -755,6 +756,21 @@ class TestTopologyArchiveRoute:
         assert resp2.status_code == 200
         # Same input → same hash (idempotent replace)
         assert resp1.json()["topology_hash"] == resp2.json()["topology_hash"]
+
+    def test_store_topology_archive_rejects_oversized_payload(self, client: TestClient):
+        snap = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(name="OversizedTopo"),
+        ).json()
+        oversized = "x" * (MAX_TOPOLOGY_ARCHIVE_BYTES + 1)
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap['id']}/topology-archive",
+            json={"topology": {"nodes": [{"node_key": "a", "display_name": oversized}], "edges": []}},
+        )
+
+        assert resp.status_code == 400
+        assert "max" in resp.json()["message"].lower()
 
 
 class TestTopologyCompareRoute:
