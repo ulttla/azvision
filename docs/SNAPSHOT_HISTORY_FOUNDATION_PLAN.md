@@ -272,3 +272,4 @@ SnapshotRecord {
 
 ## 한 줄 결론
 - AzVision의 다음 snapshot/history 단계는 raw topology archive가 아니라, **capture / restore / active working set을 구분하는 history foundation**을 추가하는 방향이 가장 안전하다.
+- raw topology archival diff가 필요해지는 시점의 별도 설계 기준은 `RAW_TOPOLOGY_DIFF_PLAN.md` 를 따른다.

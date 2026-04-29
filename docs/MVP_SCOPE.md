@@ -43,7 +43,7 @@
 - PDF export
 - snapshot 저장 및 비교
   - 현재 metadata-level snapshot compare first-pass 구현 완료
-  - raw topology archival 기반 full diff viewer는 후속 범위
+  - raw topology archival 기반 full diff viewer는 후속 범위이며 `RAW_TOPOLOGY_DIFF_PLAN.md` 기준으로 별도 설계/구현
 
 ### Out of scope
 - 정교한 비용 최적화 추천

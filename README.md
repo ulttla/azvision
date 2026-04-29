@@ -12,7 +12,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - live resource 목록 수집 시 network/compute 주요 타입은 detail GET으로 relationship property를 best-effort 보강함
   - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
   - snapshot CRUD + restore-events endpoint 구현 완료
-  - snapshot compare first-pass endpoint 구현 완료. 현재는 saved view-state metadata 기준으로 count/scope/compare_refs 차이를 반환하며, raw topology archival diff는 별도 장기 과제로 둠
+  - snapshot compare first-pass endpoint 구현 완료. 현재는 saved view-state metadata 기준으로 count/scope/compare_refs 차이를 반환하며, raw topology archival diff는 `docs/RAW_TOPOLOGY_DIFF_PLAN.md` 기준 후속 과제로 둠
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
   - rule-based Cost Intelligence first-pass endpoint(`/cost/summary`, `/cost/resources`, `/cost/recommendations`, `/cost/report`) 구현 완료. 실제 Cost Management 금액 수집 전까지 비용 금액은 `unknown-cost-data` 로 명시하고 cost driver signal 및 `noop` cost ingestion provider hook을 제공
   - frontend `Cost Insights` view에서 subscription/resource group/resource group limit/resource limit scope 기준 rule-based cost summary/recommendations/resource prompts 및 markdown report download 확인 가능
