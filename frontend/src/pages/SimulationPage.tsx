@@ -21,6 +21,22 @@ function priorityTone(priority: string) {
   return 'severity-low'
 }
 
+function safeFileName(value: string) {
+  return value.trim().replace(/[^a-z0-9._-]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'simulation'
+}
+
+function downloadTextFile(filename: string, content: string, type = 'text/plain;charset=utf-8') {
+  const blob = new Blob([content], { type })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 export function SimulationPage() {
   const [workspaceId, setWorkspaceId] = useState<string>(DEFAULT_WORKSPACE_ID)
   const [workloadName, setWorkloadName] = useState('new-app')
@@ -117,6 +133,23 @@ export function SimulationPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function downloadSimulationReport() {
+    if (!selectedSimulation || !report) return
+    downloadTextFile(
+      `${safeFileName(selectedSimulation.workload_name)}-${selectedSimulation.simulation_id}-report.md`,
+      report.content,
+      'text/markdown;charset=utf-8',
+    )
+  }
+
+  function downloadSimulationTemplate() {
+    if (!selectedSimulation || !template) return
+    downloadTextFile(
+      `${safeFileName(selectedSimulation.workload_name)}-${selectedSimulation.simulation_id}-outline.bicep`,
+      template.content,
+    )
   }
 
   return (
@@ -254,6 +287,9 @@ export function SimulationPage() {
               <div className="cost-note-box simulation-template-box">
                 <div className="cost-recommendation-heading">
                   <h4>Markdown report</h4>
+                  <button type="button" className="toolbar-button search-inline-button" onClick={downloadSimulationReport} disabled={!report}>
+                    Download
+                  </button>
                   <span className="mini-chip">{report?.report_type ?? 'not loaded'}</span>
                 </div>
                 {report ? (
@@ -270,6 +306,9 @@ export function SimulationPage() {
               <div className="cost-note-box simulation-template-box">
                 <div className="cost-recommendation-heading">
                   <h4>IaC outline</h4>
+                  <button type="button" className="toolbar-button search-inline-button" onClick={downloadSimulationTemplate} disabled={!template}>
+                    Download
+                  </button>
                   <span className="mini-chip">{templateLoading ? 'loading' : template?.format ?? 'not loaded'}</span>
                 </div>
                 {template ? (
