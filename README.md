@@ -57,6 +57,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `scripts/check_doc_mirror.sh` 는 기본 visibility-only이고, `AZVISION_DOC_MIRROR_STRICT=1` 설정 시 mirror drift를 실패로 처리 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
+  - CI/frontend acceptance now runs browserless frontend semantics smokes for snapshot sort and thumbnail guard copy/contract drift
   - `docs/MIRROR_POLICY.md` 와 `scripts/check_doc_mirror.sh` 로 repo docs와 workspace docs mirror drift를 visibility-only 방식으로 점검 가능
   - `docs/PERSONAL_USE_RUNBOOK.md`, `docs/PERSONAL_USE_READINESS_PLAN.md`, `scripts/check_personal_use_ready.sh`, `scripts/run_dev.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh` 로 Gun 단독 실사용 v0.9 사전점검·실행·검증·백업 경로를 점검 가능
 - 참고
@@ -153,6 +154,7 @@ npm run dev
   - `python -m compileall app`
   - backend app import smoke
   - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`, `scripts/snapshot_sort_api_smoke.sh`, `scripts/snapshot_compare_smoke.sh`, `scripts/cost_report_smoke.sh`, `scripts/cost_insights_smoke.sh`, `scripts/simulation_smoke.sh`)
+  - browserless frontend semantics smoke (`scripts/snapshot_sort_semantics_smoke.mts`, `scripts/snapshot_thumbnail_guard_copy_smoke.mts`)
   - read-only SQLite health check (`scripts/sqlite_health_check.py`)
   - frontend `npm ci` + `npm run build`
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외

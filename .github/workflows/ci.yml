@@ -98,3 +98,8 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+      - name: Frontend semantics smokes
+        run: |
+          node --experimental-strip-types ../scripts/snapshot_sort_semantics_smoke.mts
+          node --experimental-strip-types ../scripts/snapshot_thumbnail_guard_copy_smoke.mts
