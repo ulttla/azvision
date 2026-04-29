@@ -670,3 +670,178 @@ class TestSnapshotRouteCompare:
         )
         assert resp.status_code == 404
         assert resp.json()["status"] == "http-404"
+
+
+# ===========================================================================
+# Topology Archive integration tests
+# ===========================================================================
+
+WORKSPACE = "local-demo"
+
+
+class TestTopologyArchiveRoute:
+    """Tests for POST /snapshots/{id}/topology-archive."""
+
+    def test_store_topology_archive_returns_200(self, client: TestClient):
+        snap = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(name="WithTopology"),
+        ).json()
+
+        topology = {
+            "nodes": [
+                {"node_key": "a", "display_name": "Node A", "source": "azure", "resource_type": "vm"},
+                {"node_key": "b", "display_name": "Node B", "source": "azure", "resource_type": "db"},
+            ],
+            "edges": [
+                {"source_node_key": "a", "target_node_key": "b", "relation_type": "contains", "source": "azure"},
+            ],
+        }
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap['id']}/topology-archive",
+            json={"topology": topology},
+        )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["snapshot_id"] == snap["id"]
+        assert body["workspace_id"] == WORKSPACE
+        assert body["status"] == "stored"
+        assert body["node_count"] == 2
+        assert body["edge_count"] == 1
+        assert body["topology_hash"] != ""
+
+    def test_store_topology_archive_with_empty_topo(self, client: TestClient):
+        snap = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(name="EmptyTopo"),
+        ).json()
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap['id']}/topology-archive",
+            json={"topology": {"nodes": [], "edges": []}},
+        )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["node_count"] == 0
+        assert body["edge_count"] == 0
+
+    def test_store_topology_archive_deterministic_hash(self, client: TestClient):
+        snap = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(name="HashTest"),
+        ).json()
+
+        topology = {
+            "nodes": [
+                {"node_key": "b", "display_name": "B"},
+                {"node_key": "a", "display_name": "A"},
+            ],
+            "edges": [{"source_node_key": "a", "target_node_key": "b", "relation_type": "contains"}],
+        }
+
+        resp1 = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap['id']}/topology-archive",
+            json={"topology": topology},
+        )
+        resp2 = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap['id']}/topology-archive",
+            json={"topology": topology},
+        )
+
+        assert resp1.status_code == 200
+        assert resp2.status_code == 200
+        # Same input → same hash (idempotent replace)
+        assert resp1.json()["topology_hash"] == resp2.json()["topology_hash"]
+
+
+class TestTopologyCompareRoute:
+    """Tests for POST /snapshots/compare/topology."""
+
+    def _snap(self, client: TestClient, name: str, topology=None) -> dict:
+        payload = _create_payload(name=name)
+        if topology:
+            payload["topology"] = topology
+        return client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots", json=payload
+        ).json()
+
+    def test_compare_topology_available(self, client: TestClient):
+        snap_a = self._snap(client, "Base", {
+            "nodes": [{"node_key": "a", "display_name": "A", "source": "azure"}],
+            "edges": [{"source_node_key": "a", "target_node_key": "a", "relation_type": "self"}],
+        })
+        snap_b = self._snap(client, "Target", {
+            "nodes": [
+                {"node_key": "a", "display_name": "A", "source": "azure"},
+                {"node_key": "b", "display_name": "B", "source": "azure"},
+            ],
+            "edges": [{"source_node_key": "a", "target_node_key": "b", "relation_type": "contains"}],
+        })
+
+        # Store archives
+        client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap_a['id']}/topology-archive",
+            json={"topology": {"nodes": [{"node_key": "a", "display_name": "A", "source": "azure"}], "edges": [{"source_node_key": "a", "target_node_key": "a", "relation_type": "self"}]}},
+        )
+        client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap_b['id']}/topology-archive",
+            json={"topology": {"nodes": [{"node_key": "a", "display_name": "A", "source": "azure"}, {"node_key": "b", "display_name": "B", "source": "azure"}], "edges": [{"source_node_key": "a", "target_node_key": "b", "relation_type": "contains"}]}},
+        )
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/compare/topology",
+            json={"base_snapshot_id": snap_a["id"], "target_snapshot_id": snap_b["id"]},
+        )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["archive_status"] == "available"
+        assert body["base_snapshot_id"] == snap_a["id"]
+        assert body["target_snapshot_id"] == snap_b["id"]
+        assert len(body["node_delta"]["added"]) == 1
+        assert body["node_delta"]["added"][0]["node_key"] == "b"
+        assert any("+1" in s for s in body["summary"])
+
+    def test_compare_topology_missing_archive_fallback(self, client: TestClient):
+        snap_a = self._snap(client, "NoArchiveA")
+        snap_b = self._snap(client, "NoArchiveB")
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/compare/topology",
+            json={"base_snapshot_id": snap_a["id"], "target_snapshot_id": snap_b["id"]},
+        )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is False
+        assert body["archive_status"] == "missing"
+        assert any("archive" in s.lower() for s in body["summary"])
+
+    def test_compare_topology_one_missing_archive(self, client: TestClient):
+        snap_a = self._snap(client, "WithArchive", {
+            "nodes": [{"node_key": "a", "display_name": "A"}],
+            "edges": [],
+        })
+        snap_b = self._snap(client, "NoArchive", {
+            "nodes": [{"node_key": "b", "display_name": "B"}],
+            "edges": [],
+        })
+
+        # Only archive snap_a
+        client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap_a['id']}/topology-archive",
+            json={"topology": {"nodes": [{"node_key": "a", "display_name": "A"}], "edges": []}},
+        )
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/compare/topology",
+            json={"base_snapshot_id": snap_a["id"], "target_snapshot_id": snap_b["id"]},
+        )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["archive_status"] == "missing"

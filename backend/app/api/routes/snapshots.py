@@ -120,7 +120,7 @@ def store_topology_archive(
     a deterministic SHA-256 hash is computed for quick equality checks.
     """
     try:
-        normalized = normalize_topology(payload.topology)
+        normalized = normalize_topology(payload.topology.model_dump())
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid topology payload: {exc}") from exc
 
@@ -181,7 +181,7 @@ def compare_topology(
             node_delta={"added": [], "removed": [], "changed": []},
             edge_delta={"added": [], "removed": [], "changed": []},
             summary=["Topology archive not available for one or both snapshots"],
-            metadata_delta=meta,
+            metadata_delta=meta.model_dump() if hasattr(meta, "model_dump") else meta,
         )
 
     # Compute topology diff

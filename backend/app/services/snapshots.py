@@ -99,7 +99,8 @@ class SnapshotService:
             return
 
         try:
-            normalized = normalize_topology(topology_data)
+            topology_dict = getattr(topology_data, "model_dump", lambda: topology_data)()
+            normalized = normalize_topology(topology_dict)
         except Exception:
             return  # Best-effort: skip archive on normalization failure
 
