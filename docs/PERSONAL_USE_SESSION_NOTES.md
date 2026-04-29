@@ -62,8 +62,8 @@ scripts/sqlite_health_check.py
 ## Known non-blocking limits
 
 - This remains local/dev single-user use, not external product deployment.
-- Snapshot stores view state and metadata, not a full Azure inventory archive.
-- Snapshot compare is currently metadata-level only; full raw topology diff is still product-track work.
+- Snapshot stores view state and metadata; raw topology archives are stored separately when topology archive paths are invoked.
+- Snapshot compare UI is currently metadata-level. Raw topology diff R1 exists at API/storage level; full UI diff viewer and retention policy are still product-track work.
 - Network Path Analysis is conservative: missing/ambiguous NSG or route data remains `unknown` rather than assumed allowed.
 - Thumbnail preview is optional and may be removed by guard checks.
 - Azure live smoke depends on local credentials, certificate path, and network access.

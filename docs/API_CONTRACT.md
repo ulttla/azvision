@@ -106,8 +106,16 @@
 - `POST /workspaces/{workspace_id}/snapshots/compare`
   - request: `base_snapshot_id`, `target_snapshot_id`
   - 응답: `ok`, `workspace_id`, base/target snapshot ids/names/capture times, `count_delta`, `scope_delta`, `compare_refs_delta`, `summary[]`
-  - 현재 1차 compare는 snapshot의 view-state metadata 기준이다. 즉 `visible_node_count`, `loaded_node_count`, `edge_count`, scope/query/subscription/resource group, `compare_refs` 추가/삭제/유지 차이를 비교한다.
-  - live Azure raw topology archival이나 immutable scan diff가 아니며, snapshot 원칙인 `saved view state + metadata` 모델 안에서 동작한다.
+  - 현재 UI 1차 compare는 snapshot의 view-state metadata 기준이다. 즉 `visible_node_count`, `loaded_node_count`, `edge_count`, scope/query/subscription/resource group, `compare_refs` 추가/삭제/유지 차이를 비교한다.
+  - raw topology archive 기반 diff는 별도 R1 endpoint인 `POST /workspaces/{workspace_id}/snapshots/compare/topology` 를 사용한다.
+- `POST /workspaces/{workspace_id}/snapshots/{snapshot_id}/topology-archive`
+  - request: `topology.nodes[]`, `topology.edges[]`
+  - 동작: UI state를 제거하고 node/edge를 deterministic sort한 canonical JSON과 SHA-256 hash를 `snapshot_topology_archives`에 저장한다.
+  - 응답: `snapshot_id`, `workspace_id`, `topology_hash`, `node_count`, `edge_count`, `status=stored`
+- `POST /workspaces/{workspace_id}/snapshots/compare/topology`
+  - request: `base_snapshot_id`, `target_snapshot_id`
+  - 응답: `archive_status`, `node_delta`, `edge_delta`, `summary[]`, 필요 시 `metadata_delta`
+  - 양쪽 archive가 있으면 raw topology diff를 반환한다. archive가 없으면 `archive_status=missing`, `ok=false`, metadata compare fallback을 `metadata_delta`에 포함한다.
 - `DELETE /workspaces/{workspace_id}/snapshots/{snapshot_id}`
   - 응답: `workspace_id`, `snapshot_id`, `status=deleted`
 
