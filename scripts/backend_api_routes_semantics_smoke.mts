@@ -1,0 +1,54 @@
+/**
+ * Browserless FE semantics smoke — backend API routes structure validation.
+ * Validates that all expected route files exist and export FastAPI routers.
+ * Run: node --experimental-strip-types scripts/backend_api_routes_semantics_smoke.mts
+ */
+
+import assert from 'node:assert/strict'
+import { readFileSync, statSync } from 'node:fs'
+import path from 'node:path'
+
+const repoRoot = path.resolve(import.meta.dirname, '..')
+
+// ============================================================
+// Section 1: Route files existence
+// ============================================================
+const routeFiles = [
+  'backend/app/api/routes/topology.py',
+  'backend/app/api/routes/cost.py',
+  'backend/app/api/routes/copilot.py',
+  'backend/app/api/routes/snapshots.py',
+  'backend/app/api/routes/simulations.py',
+  'backend/app/api/routes/exports.py',
+  'backend/app/api/routes/path_analysis.py',
+  'backend/app/api/routes/auth.py',
+]
+
+for (const routeFile of routeFiles) {
+  const fullPath = path.join(repoRoot, routeFile)
+  try {
+    statSync(fullPath)
+  } catch {
+    assert.fail(`${routeFile} should exist`)
+  }
+}
+
+// ============================================================
+// Section 2: Each route file should define router with APIRouter
+// ============================================================
+for (const routeFile of routeFiles) {
+  const code = readFileSync(path.join(repoRoot, routeFile), 'utf8')
+  assert.match(code, /APIRouter/, `${routeFile} should import APIRouter`)
+  assert.match(code, /router\s*=\s*APIRouter|router\s*=\s*APIRouter\(/, `${routeFile} should define router`)
+}
+
+// ============================================================
+// Section 3: app.py should import and include all routers
+// ============================================================
+const appCode = readFileSync(path.join(repoRoot, 'backend/app/main.py'), 'utf8')
+const routerImports = ['topology', 'cost', 'copilot', 'snapshots', 'simulations', 'exports', 'path_analysis', 'auth']
+for (const route of routerImports) {
+  assert.match(appCode, new RegExp(`\\b${route}\\b`), `app.py should reference ${route} routes`)
+}
+
+console.log('✅ backend_api_routes_semantics_smoke.mts: all assertions passed')
