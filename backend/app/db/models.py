@@ -177,6 +177,23 @@ DDL_STATEMENTS = [
     CREATE INDEX IF NOT EXISTS idx_simulations_workspace_created_at
     ON simulations (workspace_id, created_at DESC, id DESC)
     """,
+    """
+    CREATE TABLE IF NOT EXISTS snapshot_topology_archives (
+        snapshot_id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        archive_version INTEGER NOT NULL DEFAULT 1,
+        topology_hash TEXT NOT NULL,
+        nodes_json TEXT NOT NULL,
+        edges_json TEXT NOT NULL,
+        node_count INTEGER NOT NULL DEFAULT 0,
+        edge_count INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_topology_archives_workspace
+    ON snapshot_topology_archives (workspace_id, snapshot_id)
+    """,
 ]
 
 
