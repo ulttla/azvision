@@ -210,17 +210,6 @@ function formatDeltaItemLabel(item: unknown) {
   return JSON.stringify(row)
 }
 
-function getDeltaPreviewRows(
-  label: 'node' | 'edge',
-  delta: { added: unknown[]; removed: unknown[]; changed: unknown[] },
-) {
-  return ([
-    ...delta.added.slice(0, 3).map((item) => ({ key: `${label}-added-${formatDeltaItemLabel(item)}`, kind: 'added', label: formatDeltaItemLabel(item) })),
-    ...delta.removed.slice(0, 3).map((item) => ({ key: `${label}-removed-${formatDeltaItemLabel(item)}`, kind: 'removed', label: formatDeltaItemLabel(item) })),
-    ...delta.changed.slice(0, 3).map((item) => ({ key: `${label}-changed-${formatDeltaItemLabel(item)}`, kind: 'changed', label: formatDeltaItemLabel(item) })),
-  ]).slice(0, 6)
-}
-
 function formatNodeDetail(node: unknown): string {
   if (!node || typeof node !== 'object') return String(node ?? '-')
   const n = node as Record<string, unknown>

@@ -74,7 +74,7 @@ const topoPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/Topolo
 assert.match(topoPageCode, /compareTopologySnapshots\(/, 'TopologyPage should call compareTopologySnapshots')
 assert.match(topoPageCode, /compareTopologyArchives\(/, 'TopologyPage should call compareTopologyArchives')
 assert.match(topoPageCode, /Raw topology diff/, 'TopologyPage should render raw topology diff result panel')
-assert.match(topoPageCode, /getDeltaPreviewRows/, 'TopologyPage should render bounded raw topology diff preview rows')
+assert.match(topoPageCode, /renderDiffDrilldownSection/, 'TopologyPage should render bounded raw topology diff drilldown sections')
 assert.match(topoPageCode, /buildTopologyDiffMarkdown/, 'TopologyPage should support raw topology diff markdown export')
 assert.match(topoPageCode, /Download diff markdown/, 'TopologyPage should expose raw topology diff markdown download action')
 
