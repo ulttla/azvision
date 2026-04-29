@@ -79,8 +79,7 @@ echo "[5/12] frontend build"
 npm --prefix frontend run build
 
 echo "[6/12] frontend semantics smokes"
-node --experimental-strip-types scripts/snapshot_sort_semantics_smoke.mts
-node --experimental-strip-types scripts/snapshot_thumbnail_guard_copy_smoke.mts
+npm --prefix frontend run smoke:semantics
 
 echo "[7/12] SQLite health check"
 scripts/sqlite_health_check.py
