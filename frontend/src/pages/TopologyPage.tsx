@@ -221,6 +221,27 @@ function getDeltaPreviewRows(
   ]).slice(0, 6)
 }
 
+function formatNodeDetail(node: unknown): string {
+  if (!node || typeof node !== 'object') return String(node ?? '-')
+  const n = node as Record<string, unknown>
+  const name = n.display_name ?? n.name ?? n.node_key ?? '-'
+  const type = n.resource_type ?? n.node_type ?? ''
+  const location = n.location ?? ''
+  const parts = [String(name)]
+  if (type) parts.push(`(${type})`)
+  if (location) parts.push(`@ ${location}`)
+  return parts.join(' ')
+}
+
+function formatEdgeDetail(edge: unknown): string {
+  if (!edge || typeof edge !== 'object') return String(edge ?? '-')
+  const e = edge as Record<string, unknown>
+  const src = e.source_node_key ?? e.source ?? '-'
+  const tgt = e.target_node_key ?? e.target ?? '-'
+  const rel = e.relation_type ?? e.type ?? ''
+  return `${src} → ${tgt}${rel ? ` (${rel})` : ''}`
+}
+
 function buildTopologyDiffMarkdown(result: TopologyArchiveCompareResponse) {
   const lines = [
     '# AzVision Raw Topology Diff',
@@ -243,16 +264,44 @@ function buildTopologyDiffMarkdown(result: TopologyArchiveCompareResponse) {
     lines.push('- No raw topology differences reported.')
   }
 
-  const previews = [
-    ...getDeltaPreviewRows('node', result.node_delta),
-    ...getDeltaPreviewRows('edge', result.edge_delta),
-  ]
+  const nd = result.node_delta
+  const ed = result.edge_delta
+  const DISPLAY_MAX = 50
 
-  if (previews.length) {
-    lines.push('', '## Preview rows')
-    for (const row of previews) {
-      lines.push(`- ${row.kind}: ${row.label}`)
+  // Node added
+  if (nd.added.length) {
+    lines.push('', `## Added Nodes (${nd.added.length})`)
+    for (const n of nd.added.slice(0, DISPLAY_MAX)) lines.push(`- ${formatNodeDetail(n)}`)
+  }
+
+  // Node removed
+  if (nd.removed.length) {
+    lines.push('', `## Removed Nodes (${nd.removed.length})`)
+    for (const n of nd.removed.slice(0, DISPLAY_MAX)) lines.push(`- ${formatNodeDetail(n)}`)
+  }
+
+  // Node changed with before/after
+  if (nd.changed.length) {
+    lines.push('', `## Changed Nodes (${nd.changed.length})`)
+    for (const item of nd.changed.slice(0, DISPLAY_MAX)) {
+      const c = item as Record<string, unknown>
+      const key = c.node_key ?? '-'
+      lines.push(`### ${key}`)
+      lines.push(`- Before: ${formatNodeDetail(c.base)}`)
+      lines.push(`- After: ${formatNodeDetail(c.target)}`)
     }
+  }
+
+  // Edge added
+  if (ed.added.length) {
+    lines.push('', `## Added Edges (${ed.added.length})`)
+    for (const e of ed.added.slice(0, DISPLAY_MAX)) lines.push(`- ${formatEdgeDetail(e)}`)
+  }
+
+  // Edge removed
+  if (ed.removed.length) {
+    lines.push('', `## Removed Edges (${ed.removed.length})`)
+    for (const e of ed.removed.slice(0, DISPLAY_MAX)) lines.push(`- ${formatEdgeDetail(e)}`)
   }
 
   if (result.archive_status === 'missing') {
@@ -437,6 +486,7 @@ export function TopologyPage() {
   const [snapshotSortOrder, setSnapshotSortOrder] = useState<SnapshotSortOrder>('desc')
   const [snapshotCompareBaseId, setSnapshotCompareBaseId] = useState('')
   const [snapshotTopologyCompareResult, setSnapshotTopologyCompareResult] = useState<TopologyArchiveCompareResponse | null>(null)
+  const [diffExpandedSections, setDiffExpandedSections] = useState<Set<string>>(new Set())
   const [snapshotNameInput, setSnapshotNameInput] = useState('')
   const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
   const [manualNodes, setManualNodes] = useState<ManualNode[]>([])
@@ -1999,6 +2049,53 @@ export function TopologyPage() {
     setExportMessage('Raw topology diff markdown exported.')
   }
 
+  function toggleDiffSection(section: string) {
+    setDiffExpandedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(section)) next.delete(section)
+      else next.add(section)
+      return next
+    })
+  }
+
+  function renderDiffDrilldownSection(
+    title: string,
+    sectionKey: string,
+    items: unknown[],
+    renderItem: (item: unknown) => string,
+    renderDetail?: (item: unknown) => string,
+  ) {
+    if (!items.length) return null
+    const expanded = diffExpandedSections.has(sectionKey)
+    const DISPLAY_LIMIT = 50
+    return (
+      <div className="snapshot-diff-drilldown-section">
+        <button
+          type="button"
+          className="snapshot-diff-drilldown-toggle"
+          onClick={() => toggleDiffSection(sectionKey)}
+        >
+          <span className="drilldown-caret">{expanded ? '▼' : '▶'}</span>
+          <span className="drilldown-title">{title}</span>
+          <span className="drilldown-count">{items.length}</span>
+        </button>
+        {expanded ? (
+          <div className="snapshot-diff-drilldown-body">
+            {items.slice(0, DISPLAY_LIMIT).map((item, idx) => (
+              <div key={`${sectionKey}-${idx}`} className="snapshot-diff-drilldown-row">
+                <code className="snapshot-diff-drilldown-label">{renderItem(item)}</code>
+                {renderDetail ? <span className="snapshot-diff-drilldown-detail">{renderDetail(item)}</span> : null}
+              </div>
+            ))}
+            {items.length > DISPLAY_LIMIT ? (
+              <p className="hint preset-card-meta">… and {items.length - DISPLAY_LIMIT} more rows capped</p>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
   function handleImportPresetClick() {
     presetImportInputRef.current?.click()
   }
@@ -2826,21 +2923,45 @@ export function TopologyPage() {
                     <p className="hint preset-card-meta">No raw topology differences reported.</p>
                   )}
                   {snapshotTopologyCompareResult.archive_status === 'available' ? (
-                    <div className="snapshot-diff-preview-grid">
-                      {[
-                        ...getDeltaPreviewRows('node', snapshotTopologyCompareResult.node_delta),
-                        ...getDeltaPreviewRows('edge', snapshotTopologyCompareResult.edge_delta),
-                      ].map((row) => (
-                        <span key={row.key} className={`snapshot-diff-preview-row snapshot-diff-preview-${row.kind}`}>
-                          {row.kind}: {row.label}
-                        </span>
-                      ))}
+                    <div className="snapshot-diff-drilldown">
+                      {renderDiffDrilldownSection('Added nodes', 'node-added', snapshotTopologyCompareResult.node_delta.added, formatDeltaItemLabel, formatNodeDetail)}
+                      {renderDiffDrilldownSection('Removed nodes', 'node-removed', snapshotTopologyCompareResult.node_delta.removed, formatDeltaItemLabel, formatNodeDetail)}
+                      {renderDiffDrilldownSection('Changed nodes', 'node-changed', snapshotTopologyCompareResult.node_delta.changed, (item) => {
+                        const c = item as Record<string, unknown>
+                        return String(c.node_key ?? formatDeltaItemLabel(item))
+                      }, (item) => {
+                        const c = item as Record<string, unknown>
+                        return `${formatNodeDetail(c.base)} → ${formatNodeDetail(c.target)}`
+                      })}
+                      {renderDiffDrilldownSection('Added edges', 'edge-added', snapshotTopologyCompareResult.edge_delta.added, formatDeltaItemLabel, formatEdgeDetail)}
+                      {renderDiffDrilldownSection('Removed edges', 'edge-removed', snapshotTopologyCompareResult.edge_delta.removed, formatDeltaItemLabel, formatEdgeDetail)}
                     </div>
                   ) : null}
                   {snapshotTopologyCompareResult.archive_status === 'missing' ? (
                     <p className="hint preset-card-meta">Raw archive is missing for one or both snapshots; metadata compare remains the safe fallback.</p>
                   ) : null}
                   <div className="button-row snapshot-diff-actions">
+                    {snapshotTopologyCompareResult.archive_status === 'available' ? (
+                      <button
+                        type="button"
+                        className="toolbar-button search-inline-button"
+                        onClick={() => {
+                          const all = ['node-added','node-removed','node-changed','edge-added','edge-removed']
+                          setDiffExpandedSections((prev) => {
+                            const any = all.some((s) => prev.has(s))
+                            const next = new Set(prev)
+                            if (any) { for (const s of all) next.delete(s) }
+                            else { for (const s of all) next.add(s) }
+                            return next
+                          })
+                        }}
+                      >
+                        {(() => {
+                          const all = ['node-added','node-removed','node-changed','edge-added','edge-removed']
+                          return all.some((s) => diffExpandedSections.has(s)) ? 'Collapse all' : 'Expand all'
+                        })()}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="toolbar-button search-inline-button"

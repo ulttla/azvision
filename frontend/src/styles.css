@@ -719,6 +719,89 @@ p {
 
 .snapshot-diff-actions {
   margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Drilldown expandable sections */
+.snapshot-diff-drilldown {
+  margin-top: 10px;
+}
+
+.snapshot-diff-drilldown-section {
+  margin-bottom: 4px;
+}
+
+.snapshot-diff-drilldown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.48);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-align: left;
+}
+
+.snapshot-diff-drilldown-toggle:hover {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(125, 211, 252, 0.22);
+}
+
+.drilldown-caret {
+  font-size: 0.7rem;
+  width: 12px;
+  flex-shrink: 0;
+  color: #7dd3fc;
+}
+
+.drilldown-title {
+  flex: 1;
+}
+
+.drilldown-count {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: #94a3b8;
+}
+
+.snapshot-diff-drilldown-body {
+  padding: 6px 0 6px 20px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.snapshot-diff-drilldown-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 0.78rem;
+}
+
+.snapshot-diff-drilldown-label {
+  color: #dbeafe;
+  background: rgba(15, 23, 42, 0.52);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.76rem;
+  word-break: break-all;
+}
+
+.snapshot-diff-drilldown-detail {
+  color: #94a3b8;
+  font-size: 0.74rem;
 }
 
 .snapshot-save-row {
