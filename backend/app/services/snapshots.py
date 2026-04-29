@@ -15,6 +15,7 @@ from app.schemas.snapshots import (
     SnapshotSummaryRecord,
     SnapshotUpdateRequest,
 )
+from app.services.topology_normalizer import normalize_topology
 
 
 class SnapshotNotFoundError(RuntimeError):
@@ -73,7 +74,49 @@ class SnapshotService:
                 "archived_at": "",
             }
         )
+        # Auto-archive topology if payload contains nodes/edges
+        self._archive_topology_if_available(
+            record["id"],
+            workspace_id,
+            payload,
+        )
+
         return SnapshotRecord.model_validate(record)
+
+    def _archive_topology_if_available(
+        self,
+        snapshot_id: str,
+        workspace_id: str,
+        payload: SnapshotCreateRequest,
+    ) -> None:
+        """Archive topology data if the create payload includes nodes and edges.
+
+        This is called automatically during snapshot creation when the frontend
+        sends topology data alongside the snapshot metadata.
+        """
+        topology_data = getattr(payload, "topology", None)
+        if topology_data is None:
+            return
+
+        try:
+            normalized = normalize_topology(topology_data)
+        except Exception:
+            return  # Best-effort: skip archive on normalization failure
+
+        if normalized["node_count"] == 0:
+            return
+
+        from app.repositories.topology_archive import TopologyArchiveRepository
+
+        TopologyArchiveRepository.store(
+            snapshot_id=snapshot_id,
+            workspace_id=workspace_id,
+            nodes_json=normalized["nodes_json"],
+            edges_json=normalized["edges_json"],
+            topology_hash=normalized["topology_hash"],
+            node_count=normalized["node_count"],
+            edge_count=normalized["edge_count"],
+        )
 
     def update_snapshot(
         self,

@@ -142,12 +142,12 @@ def topology_diff(
     changed_nodes = []
     for k in sorted(base_keys & target_keys):
         if _nodes_differ(base_node_map[k], target_node_map[k]):
-            changed_nodes.append({
-                "node_key": k,
-                "base": base_node_map[k],
-                "target": target_node_map[k],
-            })[:max_items] if len(changed_nodes) < max_items else None
-    changed_nodes = changed_nodes[:max_items]
+            if len(changed_nodes) < max_items:
+                changed_nodes.append({
+                    "node_key": k,
+                    "base": base_node_map[k],
+                    "target": target_node_map[k],
+                })
 
     # Edge diff
     base_edge_keys = set(base_edge_set.keys())
