@@ -103,7 +103,7 @@
 
 ### SnapshotRecord (Phase 1B implemented)
 - 목적: topology의 **current view state + metadata** 저장
-- 비목적: live Azure topology raw payload 전체 archival
+- 비목적: live Azure topology raw payload 전체 archival. 후속 raw topology diff 설계는 `RAW_TOPOLOGY_DIFF_PLAN.md` 참조
 - `id` — snapshot public id
 - `workspace_id`
 - `preset_version`
