@@ -162,17 +162,19 @@ If either snapshot lacks an archive, return `archive_status=missing`, `ok=false`
 - Added/removed/changed nodes and edges with bounded list limits.
 - Tests for same archive, node add/remove/change, edge add/remove/change, max-items bound, and missing archive fallback.
 
-### Phase R3: UI surfacing — partial
+### Phase R3: UI surfacing — done for current bounded slice
 
 - Done: current compare button still runs metadata compare first.
 - Done: UI now calls `POST /snapshots/compare/topology` after metadata compare in server snapshot mode.
-- Done: snapshot panel shows a bounded raw topology diff result card with archive status, node/edge add/remove/changed counts, summary lines, missing-archive fallback copy, capped preview chips for changed node/edge rows, and markdown summary export.
-- Next: add expandable per-resource/per-edge drilldown and richer export content.
+- Done: snapshot panel shows a bounded raw topology diff result card with archive status, node/edge add/remove/changed counts, summary lines, missing-archive fallback copy, expandable per-category drilldown, changed node before/after details, 50-row display caps, and richer markdown export.
+- Done: `scripts/topology_page_semantics_smoke.mts` and `scripts/snapshot_compare_api_semantics_smoke.mts` include browserless coverage for the bounded drilldown/export path.
+- Deferred: component-level interaction tests for expand/collapse can be added if a React testing stack is introduced.
 
 ### Phase R4: retention and bloat guard — partial
 
 - Done: archive count/bytes in `scripts/sqlite_health_check.py`.
 - Done: normalized archive byte guard before write (`MAX_TOPOLOGY_ARCHIVE_BYTES = 1_000_000`).
+- Done: snapshot deletion cascades to `snapshot_topology_archives` to avoid orphan archive rows.
 - Next: explicit retention policy for local SQLite.
 - Consider external object storage only if local SQLite bloat becomes measurable.
 
@@ -190,8 +192,8 @@ Current gates:
 Next gates for R3/R4:
 
 - UI compare remains metadata-first and does not hide missing archive fallback.
-- Raw diff result card remains bounded before UI rendering; detailed rows should add an explicit display limit.
-- Current markdown export uses the bounded summary/preview model; richer export content should keep explicit limits.
+- Raw diff result card and markdown export keep explicit display limits for detailed rows.
+- Snapshot delete keeps snapshot archive rows from becoming orphaned.
 - Oversized normalized archive payload is rejected before repository write.
 - Retention policy has tests for expiry/count behavior once implemented.
 
@@ -204,4 +206,4 @@ Next gates for R3/R4:
 
 ## Current decision
 
-R1/R2 are accepted as backend/API foundation. The next safe product slice is R3 UI surfacing or R4 retention guard, not a broader rewrite of snapshot history or restore semantics.
+R1/R2 are accepted as backend/API foundation. The current R3 bounded UI slice is implemented and reviewed. The next safe product slice is an explicit R4 local SQLite retention policy, not a broader rewrite of snapshot history or restore semantics.
