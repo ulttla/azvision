@@ -53,7 +53,9 @@ const sqliteHealthCode = readFileSync(
 
 assert.match(sqliteHealthCode, /archive_count/, 'SQLite health check should report archive count')
 assert.match(sqliteHealthCode, /archive_total_bytes/, 'SQLite health check should report archive total bytes')
+assert.match(sqliteHealthCode, /oldest_archive_age_days/, 'SQLite health check should report oldest archive age')
 assert.match(sqliteHealthCode, /orphan_archive_count/, 'SQLite health check should report orphan archive count')
+assert.match(sqliteHealthCode, /archive_warnings/, 'SQLite health check should report archive threshold warnings')
 
 // ============================================================
 // Section 3: DDL includes snapshot_topology_archives table

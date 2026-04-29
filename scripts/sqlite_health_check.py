@@ -3,11 +3,15 @@ from __future__ import annotations
 
 import argparse
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
 
 DEFAULT_DB_PATHS = (Path("azvision.db"), Path("backend/azvision.db"))
+ARCHIVE_COUNT_WARN_THRESHOLD = 50
+ARCHIVE_TOTAL_BYTES_WARN_THRESHOLD = 10 * 1024 * 1024
+ARCHIVE_AGE_WARN_DAYS = 90
 
 
 def existing_db_paths(paths: Iterable[Path]) -> list[Path]:
@@ -25,6 +29,24 @@ def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
 def scalar(conn: sqlite3.Connection, sql: str, params: tuple = ()):
     row = conn.execute(sql, params).fetchone()
     return row[0] if row else None
+
+
+def parse_sqlite_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip().replace("Z", "+00:00")
+    candidates = [text]
+    if " " in text and "T" not in text:
+        candidates.append(text.replace(" ", "T") + "+00:00")
+    for candidate in candidates:
+        try:
+            parsed = datetime.fromisoformat(candidate)
+        except ValueError:
+            continue
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    return None
 
 
 def check_database(path: Path) -> dict[str, object]:
@@ -95,6 +117,14 @@ def check_database(path: Path) -> dict[str, object]:
                 )
                 or 0
             )
+            oldest_archive_created_at = scalar(conn, "SELECT MIN(created_at) FROM snapshot_topology_archives")
+            if oldest_archive_created_at:
+                stats["oldest_archive_created_at"] = str(oldest_archive_created_at)
+                parsed_oldest = parse_sqlite_timestamp(oldest_archive_created_at)
+                if parsed_oldest is not None:
+                    stats["oldest_archive_age_days"] = int(
+                        (datetime.now(timezone.utc) - parsed_oldest).total_seconds() // 86400
+                    )
             if table_exists(conn, "snapshots"):
                 stats["orphan_archive_count"] = int(
                     scalar(
@@ -109,6 +139,18 @@ def check_database(path: Path) -> dict[str, object]:
                     )
                     or 0
                 )
+
+            archive_warnings: list[str] = []
+            if int(stats["archive_count"]) > ARCHIVE_COUNT_WARN_THRESHOLD:
+                archive_warnings.append("archive_count_gt_50")
+            if int(stats["archive_total_bytes"]) > ARCHIVE_TOTAL_BYTES_WARN_THRESHOLD:
+                archive_warnings.append("archive_total_bytes_gt_10mb")
+            if int(stats.get("oldest_archive_age_days", 0)) > ARCHIVE_AGE_WARN_DAYS:
+                archive_warnings.append("oldest_archive_age_gt_90d")
+            if int(stats.get("orphan_archive_count", 0)) > 0:
+                archive_warnings.append("orphan_archives_present")
+            if archive_warnings:
+                stats["archive_warnings"] = archive_warnings
 
         return stats
 
@@ -148,9 +190,13 @@ def main() -> int:
             )
         if "archive_count" in stats:
             archive_line = "   topology_archives={archive_count} archive_total_bytes={archive_total_bytes}".format(**stats)
+            if "oldest_archive_age_days" in stats:
+                archive_line += " oldest_archive_age_days={oldest_archive_age_days}".format(**stats)
             if "orphan_archive_count" in stats:
                 archive_line += " orphan_archives={orphan_archive_count}".format(**stats)
             print(archive_line)
+            if stats.get("archive_warnings"):
+                print("   archive_warnings=" + ",".join(stats["archive_warnings"]))
     print("PASS: AzVision SQLite health check completed")
     return 0
 
