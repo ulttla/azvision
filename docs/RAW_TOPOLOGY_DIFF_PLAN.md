@@ -172,7 +172,7 @@ If either snapshot lacks an archive, return `archive_status=missing`, `ok=false`
 ### Phase R4: retention and bloat guard — partial
 
 - Done: archive count/bytes in `scripts/sqlite_health_check.py`.
-- Next: max archive byte guard before write.
+- Done: normalized archive byte guard before write (`MAX_TOPOLOGY_ARCHIVE_BYTES = 1_000_000`).
 - Next: explicit retention policy for local SQLite.
 - Consider external object storage only if local SQLite bloat becomes measurable.
 
@@ -192,7 +192,8 @@ Next gates for R3/R4:
 - UI compare remains metadata-first and does not hide missing archive fallback.
 - Large archive/diff output is bounded before UI rendering.
 - Markdown export, if added, uses the same bounded summary model.
-- Retention guard has tests for oversized payload and missing archive fallback.
+- Oversized normalized archive payload is rejected before repository write.
+- Retention policy has tests for expiry/count behavior once implemented.
 
 ## Risks
 

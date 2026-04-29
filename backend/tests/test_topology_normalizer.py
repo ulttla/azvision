@@ -5,6 +5,8 @@ import json
 import pytest
 
 from app.services.topology_normalizer import (
+    MAX_TOPOLOGY_ARCHIVE_BYTES,
+    TopologyArchiveTooLargeError,
     _edge_signature,
     _is_valid_edge,
     _is_valid_node,
@@ -128,6 +130,15 @@ class TestNormalizeTopology:
         result = normalize_topology(topology)
         # Compact JSON should not contain spaces after separators
         assert ": " not in result["nodes_json"]
+
+    def test_archive_bytes_reported(self):
+        result = normalize_topology({"nodes": [{"node_key": "a"}], "edges": []})
+        assert result["archive_bytes"] > 0
+
+    def test_archive_size_guard_rejects_oversized_payload(self):
+        oversized = "x" * (MAX_TOPOLOGY_ARCHIVE_BYTES + 1)
+        with pytest.raises(TopologyArchiveTooLargeError):
+            normalize_topology({"nodes": [{"node_key": "a", "display_name": oversized}], "edges": []})
 
 
 # ============================================================

@@ -5,6 +5,13 @@ import json
 from typing import Any
 
 
+MAX_TOPOLOGY_ARCHIVE_BYTES = 1_000_000
+
+
+class TopologyArchiveTooLargeError(ValueError):
+    """Raised when normalized topology archive JSON exceeds the local guard."""
+
+
 def normalize_topology(topology: dict[str, Any]) -> dict[str, Any]:
     """Normalize topology data for archival.
 
@@ -44,6 +51,12 @@ def normalize_topology(topology: dict[str, Any]) -> dict[str, Any]:
     nodes_canonical = json.dumps(sorted_nodes, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
     edges_canonical = json.dumps(sorted_edges, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
 
+    archive_bytes = len(nodes_canonical.encode("utf-8")) + len(edges_canonical.encode("utf-8"))
+    if archive_bytes > MAX_TOPOLOGY_ARCHIVE_BYTES:
+        raise TopologyArchiveTooLargeError(
+            f"normalized topology archive is {archive_bytes} bytes; max is {MAX_TOPOLOGY_ARCHIVE_BYTES}"
+        )
+
     # Compute deterministic hash of the canonical representation
     hash_input = f"{nodes_canonical}|{edges_canonical}"
     topology_hash = hashlib.sha256(hash_input.encode("utf-8")).hexdigest()
@@ -54,6 +67,7 @@ def normalize_topology(topology: dict[str, Any]) -> dict[str, Any]:
         "topology_hash": topology_hash,
         "node_count": len(sorted_nodes),
         "edge_count": len(sorted_edges),
+        "archive_bytes": archive_bytes,
         "nodes": sorted_nodes,
         "edges": sorted_edges,
     }
