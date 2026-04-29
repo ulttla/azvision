@@ -44,6 +44,18 @@ assert.match(repoCode, /def count_by_workspace/, 'should define count_by_workspa
 assert.match(repoCode, /def total_size_bytes/, 'should define total_size_bytes method')
 
 // ============================================================
+// Section 2.5: SQLite health check reports topology archive bloat signals
+// ============================================================
+const sqliteHealthCode = readFileSync(
+  path.join(repoRoot, 'scripts/sqlite_health_check.py'),
+  'utf8',
+)
+
+assert.match(sqliteHealthCode, /archive_count/, 'SQLite health check should report archive count')
+assert.match(sqliteHealthCode, /archive_total_bytes/, 'SQLite health check should report archive total bytes')
+assert.match(sqliteHealthCode, /orphan_archive_count/, 'SQLite health check should report orphan archive count')
+
+// ============================================================
 // Section 3: DDL includes snapshot_topology_archives table
 // ============================================================
 const modelsCode = readFileSync(
