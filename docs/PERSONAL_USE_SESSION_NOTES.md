@@ -8,6 +8,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - **Primary command:** `scripts/personal_use_acceptance.sh`
 - **Daily start:** `scripts/run_dev.sh`
 - **Daily smoke:** `scripts/personal_use_smoke.sh`
+- **Snapshot compare smoke:** `scripts/snapshot_compare_smoke.sh`
 - **Data safety:** `scripts/backup_sqlite.sh` followed by `scripts/verify_sqlite_backup.sh`
 
 ## What was validated
@@ -19,6 +20,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - Network Path Analysis endpoint smoke on live topology resources when available
 - manual node/edge create-update-cleanup path
 - snapshot create/list/detail/restore-cleanup path
+- metadata-level snapshot compare path
 - backend full test suite
 - frontend production build
 - SQLite backup with SHA-256 and `integrity_check=ok`
@@ -40,10 +42,18 @@ Use it:
 - after restoring SQLite state
 - before declaring the personal-use baseline healthy
 
+Run snapshot compare smoke separately when changing snapshot compare behavior:
+
+```bash
+cd /Users/gun/dev/azvision
+scripts/snapshot_compare_smoke.sh
+```
+
 ## Known non-blocking limits
 
 - This remains local/dev single-user use, not external product deployment.
 - Snapshot stores view state and metadata, not a full Azure inventory archive.
+- Snapshot compare is currently metadata-level only; full raw topology diff is still product-track work.
 - Network Path Analysis is conservative: missing/ambiguous NSG or route data remains `unknown` rather than assumed allowed.
 - Thumbnail preview is optional and may be removed by guard checks.
 - Azure live smoke depends on local credentials, certificate path, and network access.

@@ -18,6 +18,7 @@ backend/azvision.db
 backups/
 exports/
 secrets/
+tmp/
 
 # Frontend
 frontend/.env.local

@@ -96,7 +96,7 @@ def root() -> dict[str, str]:
     return {
         "app": settings.app_name,
         "status": "ok",
-        "phase": "1A-sprint-0-scaffold",
+        "phase": "personal-use-v0.9-plus-product-track",
     }
 
 

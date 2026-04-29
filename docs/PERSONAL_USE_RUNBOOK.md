@@ -63,6 +63,13 @@ cd /Users/gun/dev/azvision
 scripts/path_analysis_visual_smoke.mjs
 ```
 
+Snapshot compare is available for server snapshots. In the UI, click `Set compare base` on one snapshot, then `Compare` on another snapshot. The current first pass compares saved view-state metadata, not raw Azure topology archives. For API smoke with the backend running:
+
+```bash
+cd /Users/gun/dev/azvision
+scripts/snapshot_compare_smoke.sh
+```
+
 Useful options:
 
 ```bash
@@ -126,7 +133,8 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 6. If UI behavior changed, run `scripts/path_analysis_visual_smoke.mjs` with backend/frontend running and keep the generated screenshots as temporary evidence
 7. Use topology/manual modeling as needed
 8. Save important states as server snapshots
-9. Before risky local cleanup, run `scripts/backup_sqlite.sh`
+9. Compare two server snapshots when you need a quick metadata-level delta for visible/loaded nodes, edges, scope, or compare refs
+10. Before risky local cleanup, run `scripts/backup_sqlite.sh`
 
 ## Known personal-use limits
 
@@ -134,4 +142,5 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 - Azure credentials are server-side configured; there is no user login or permission model yet.
 - Snapshot thumbnails are optional and can be removed by guard checks.
 - Snapshot payloads store view state and metadata, not a full historical Azure inventory archive.
+- Snapshot compare is metadata-level only for now; full raw topology diff remains product-track work.
 - Browser/local dev ports are assumed to be `8000` and `5173` unless overridden by environment variables.

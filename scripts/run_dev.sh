@@ -19,6 +19,21 @@ if [ ! -d "$ROOT_DIR/frontend/node_modules" ]; then
   exit 1
 fi
 
+wait_for_url() {
+  local label="$1"
+  local url="$2"
+  local i
+  for i in $(seq 1 30); do
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      echo "$label ready: $url"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "$label did not become ready: $url"
+  return 1
+}
+
 cleanup() {
   if [ -n "${BACKEND_PID:-}" ]; then
     pkill -P "$BACKEND_PID" 2>/dev/null || true
@@ -53,6 +68,8 @@ FRONTEND_PID=$!
 
 echo
 echo "AzVision dev stack is starting."
+wait_for_url "Backend" "http://$BACKEND_HOST:$BACKEND_PORT/healthz"
+wait_for_url "Frontend" "http://$FRONTEND_HOST:$FRONTEND_PORT/"
 echo "API: http://$BACKEND_HOST:$BACKEND_PORT"
 echo "UI:  http://$FRONTEND_HOST:$FRONTEND_PORT"
 echo "Press Ctrl+C to stop both processes."

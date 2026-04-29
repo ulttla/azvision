@@ -52,40 +52,45 @@ echo "ROOT_DIR=$ROOT_DIR"
 
 cd "$ROOT_DIR"
 
-echo "[1/8] docs mirror check"
+echo "[1/9] docs mirror check"
 bash scripts/check_doc_mirror.sh
 
-echo "[2/8] script syntax"
+echo "[2/9] script syntax"
 bash -n scripts/run_dev.sh
 bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
 bash -n scripts/verify_sqlite_backup.sh
 bash -n scripts/personal_use_smoke.sh
+bash -n scripts/snapshot_compare_smoke.sh
 
-echo "[3/8] local readiness preflight"
+echo "[3/9] local readiness preflight"
 scripts/check_personal_use_ready.sh
 
-echo "[4/8] backend tests"
+echo "[4/9] backend tests"
 (
   cd backend
   .venv/bin/python -m pytest -q
 )
 
-echo "[5/8] frontend build"
+echo "[5/9] frontend build"
 npm --prefix frontend run build
 
-echo "[6/8] SQLite backup"
+echo "[6/9] SQLite backup"
 scripts/backup_sqlite.sh
 
-echo "[7/8] SQLite backup verification"
+echo "[7/9] SQLite backup verification"
 scripts/verify_sqlite_backup.sh
 
-echo "[8/8] personal workflow smoke"
+echo "[8/9] personal workflow smoke"
 if [ "$RUN_LIVE_SMOKE" = "1" ]; then
   start_backend_if_needed
   scripts/personal_use_smoke.sh
 else
   echo "[skip] personal workflow smoke skipped because AZVISION_ACCEPTANCE_LIVE_SMOKE=$RUN_LIVE_SMOKE"
 fi
+
+echo "[9/9] snapshot compare smoke"
+start_backend_if_needed
+scripts/snapshot_compare_smoke.sh
 
 echo "PASS: AzVision personal-use acceptance completed"
