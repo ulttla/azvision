@@ -63,11 +63,15 @@ cd /Users/gun/dev/azvision
 scripts/path_analysis_visual_smoke.mjs
 ```
 
-Snapshot compare is available for server snapshots. In the UI, click `Set compare base` on one snapshot, then `Compare` on another snapshot. The current first pass compares saved view-state metadata, not raw Azure topology archives. For API smoke with the backend running:
+Snapshot compare is available for server snapshots. In the UI, click `Set compare base` on one snapshot, then `Compare` on another snapshot. The current first pass compares saved view-state metadata, not raw Azure topology archives. For focused API smokes with the backend running:
 
 ```bash
 cd /Users/gun/dev/azvision
 scripts/snapshot_compare_smoke.sh
+scripts/cost_report_smoke.sh
+scripts/cost_insights_smoke.sh
+scripts/simulation_smoke.sh
+scripts/sqlite_health_check.py
 ```
 
 Useful options:
@@ -134,7 +138,8 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 7. Use topology/manual modeling as needed
 8. Save important states as server snapshots
 9. Compare two server snapshots when you need a quick metadata-level delta for visible/loaded nodes, edges, scope, or compare refs
-10. Before risky local cleanup, run `scripts/backup_sqlite.sh`
+10. Use Cost Insights and Simulation pages for rule-based planning; scope cost/simulation fit with resource limits before exporting reports
+11. Before risky local cleanup, run `scripts/backup_sqlite.sh` and `scripts/sqlite_health_check.py`
 
 ## Known personal-use limits
 
@@ -143,4 +148,6 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 - Snapshot thumbnails are optional and can be removed by guard checks.
 - Snapshot payloads store view state and metadata, not a full historical Azure inventory archive.
 - Snapshot compare is metadata-level only for now; full raw topology diff remains product-track work.
+- Cost Intelligence is currently rule-based and does not ingest actual Azure Cost Management dollar amounts yet.
+- Simulation templates are intentionally non-deployable planning outlines until API versions, SKU choices, dependencies, and required properties are validated.
 - Browser/local dev ports are assumed to be `8000` and `5173` unless overridden by environment variables.

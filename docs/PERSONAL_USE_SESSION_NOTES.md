@@ -9,6 +9,9 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - **Daily start:** `scripts/run_dev.sh`
 - **Daily smoke:** `scripts/personal_use_smoke.sh`
 - **Snapshot compare smoke:** `scripts/snapshot_compare_smoke.sh`
+- **Cost smoke:** `scripts/cost_report_smoke.sh` and `scripts/cost_insights_smoke.sh`
+- **Simulation smoke:** `scripts/simulation_smoke.sh`
+- **SQLite health:** `scripts/sqlite_health_check.py`
 - **Data safety:** `scripts/backup_sqlite.sh` followed by `scripts/verify_sqlite_backup.sh`
 
 ## What was validated
@@ -25,6 +28,9 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - frontend production build
 - SQLite backup with SHA-256 and `integrity_check=ok`
 - SQLite backup verifier
+- SQLite health signal for snapshots, thumbnails, manual records, and simulations
+- rule-based cost report and scoped cost insights smoke
+- rule-based simulation create/list/detail/template/report/fit smoke
 - run script start and stop cleanup behavior
 
 ## When to run acceptance
@@ -42,11 +48,15 @@ Use it:
 - after restoring SQLite state
 - before declaring the personal-use baseline healthy
 
-Run snapshot compare smoke separately when changing snapshot compare behavior:
+Run focused smokes separately when changing related behavior:
 
 ```bash
 cd /Users/gun/dev/azvision
 scripts/snapshot_compare_smoke.sh
+scripts/cost_report_smoke.sh
+scripts/cost_insights_smoke.sh
+scripts/simulation_smoke.sh
+scripts/sqlite_health_check.py
 ```
 
 ## Known non-blocking limits
@@ -57,7 +67,7 @@ scripts/snapshot_compare_smoke.sh
 - Network Path Analysis is conservative: missing/ambiguous NSG or route data remains `unknown` rather than assumed allowed.
 - Thumbnail preview is optional and may be removed by guard checks.
 - Azure live smoke depends on local credentials, certificate path, and network access.
-- Product-track items remain deferred: login, multi-user permissions, object storage thumbnails, cost intelligence, simulation, AI copilot.
+- Productization items remain deferred: login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot.
 
 ## If something fails
 
