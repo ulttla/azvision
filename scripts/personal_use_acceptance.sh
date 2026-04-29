@@ -52,10 +52,10 @@ echo "ROOT_DIR=$ROOT_DIR"
 
 cd "$ROOT_DIR"
 
-echo "[1/10] docs mirror check"
+echo "[1/11] docs mirror check"
 bash scripts/check_doc_mirror.sh
 
-echo "[2/10] script syntax"
+echo "[2/11] script syntax"
 bash -n scripts/run_dev.sh
 bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
@@ -63,26 +63,30 @@ bash -n scripts/verify_sqlite_backup.sh
 bash -n scripts/personal_use_smoke.sh
 bash -n scripts/snapshot_compare_smoke.sh
 bash -n scripts/cost_report_smoke.sh
+python3 -m py_compile scripts/sqlite_health_check.py
 
-echo "[3/10] local readiness preflight"
+echo "[3/11] local readiness preflight"
 scripts/check_personal_use_ready.sh
 
-echo "[4/10] backend tests"
+echo "[4/11] backend tests"
 (
   cd backend
   .venv/bin/python -m pytest -q
 )
 
-echo "[5/10] frontend build"
+echo "[5/11] frontend build"
 npm --prefix frontend run build
 
-echo "[6/10] SQLite backup"
+echo "[6/11] SQLite health check"
+scripts/sqlite_health_check.py
+
+echo "[7/11] SQLite backup"
 scripts/backup_sqlite.sh
 
-echo "[7/10] SQLite backup verification"
+echo "[8/11] SQLite backup verification"
 scripts/verify_sqlite_backup.sh
 
-echo "[8/10] personal workflow smoke"
+echo "[9/11] personal workflow smoke"
 if [ "$RUN_LIVE_SMOKE" = "1" ]; then
   start_backend_if_needed
   scripts/personal_use_smoke.sh
@@ -90,11 +94,11 @@ else
   echo "[skip] personal workflow smoke skipped because AZVISION_ACCEPTANCE_LIVE_SMOKE=$RUN_LIVE_SMOKE"
 fi
 
-echo "[9/10] snapshot compare smoke"
+echo "[10/11] snapshot compare smoke"
 start_backend_if_needed
 scripts/snapshot_compare_smoke.sh
 
-echo "[10/10] cost report smoke"
+echo "[11/11] cost report smoke"
 start_backend_if_needed
 scripts/cost_report_smoke.sh
 
