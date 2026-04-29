@@ -50,10 +50,22 @@ export function CostPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [subscriptionId, setSubscriptionId] = useState('')
+  const [resourceGroupName, setResourceGroupName] = useState('')
+  const [resourceLimit, setResourceLimit] = useState(500)
   const [copilotPrompt, setCopilotPrompt] = useState('How can I reduce cost or improve this architecture?')
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
   const [copilotLoading, setCopilotLoading] = useState(false)
   const [reportLoading, setReportLoading] = useState(false)
+
+  const costQueryOptions = useMemo(
+    () => ({
+      subscriptionId: subscriptionId.trim() || undefined,
+      resourceGroupName: resourceGroupName.trim() || undefined,
+      resourceLimit,
+    }),
+    [resourceGroupName, resourceLimit, subscriptionId],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -63,9 +75,9 @@ export function CostPage() {
       setError('')
       try {
         const [summaryResult, resourceResult, recommendationResult] = await Promise.all([
-          getCostSummary(workspaceId),
-          getCostResources(workspaceId),
-          getCostRecommendations(workspaceId),
+          getCostSummary(workspaceId, costQueryOptions),
+          getCostResources(workspaceId, costQueryOptions),
+          getCostRecommendations(workspaceId, costQueryOptions),
         ])
         if (cancelled) return
 
@@ -91,7 +103,7 @@ export function CostPage() {
     return () => {
       cancelled = true
     }
-  }, [refreshKey, workspaceId])
+  }, [costQueryOptions, refreshKey, workspaceId])
 
   const sortedRecommendations = useMemo(
     () => [...recommendations].sort((left, right) => severityRank(left.severity) - severityRank(right.severity)),
@@ -109,7 +121,7 @@ export function CostPage() {
     setCopilotLoading(true)
     setError('')
     try {
-      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim()))
+      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), costQueryOptions))
     } catch (err) {
       setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to ask copilot')
     } finally {
@@ -121,7 +133,7 @@ export function CostPage() {
     setReportLoading(true)
     setError('')
     try {
-      const report = await getCostReport(workspaceId)
+      const report = await getCostReport(workspaceId, costQueryOptions)
       const blob = new Blob([report.content], { type: 'text/markdown;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -155,6 +167,35 @@ export function CostPage() {
               value={workspaceId}
               onChange={(event) => setWorkspaceId(event.target.value)}
               onBlur={() => setWorkspaceId((current) => current.trim() || DEFAULT_WORKSPACE_ID)}
+            />
+          </label>
+          <label className="field-label">
+            Subscription filter
+            <input
+              className="search-input"
+              value={subscriptionId}
+              placeholder="optional subscription id"
+              onChange={(event) => setSubscriptionId(event.target.value)}
+            />
+          </label>
+          <label className="field-label">
+            Resource group filter
+            <input
+              className="search-input"
+              value={resourceGroupName}
+              placeholder="optional resource group"
+              onChange={(event) => setResourceGroupName(event.target.value)}
+            />
+          </label>
+          <label className="field-label">
+            Resource limit
+            <input
+              className="search-input"
+              type="number"
+              min={1}
+              max={5000}
+              value={resourceLimit}
+              onChange={(event) => setResourceLimit(Math.min(5000, Math.max(1, Number(event.target.value) || 1)))}
             />
           </label>
           <button type="button" className="toolbar-button primary" onClick={() => setRefreshKey((value) => value + 1)}>

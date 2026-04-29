@@ -15,7 +15,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - snapshot compare first-pass endpoint 구현 완료. 현재는 saved view-state metadata 기준으로 count/scope/compare_refs 차이를 반환하며, raw topology archival diff는 별도 장기 과제로 둠
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
   - rule-based Cost Intelligence first-pass endpoint(`/cost/summary`, `/cost/resources`, `/cost/recommendations`, `/cost/report`) 구현 완료. 실제 Cost Management 금액 수집 전까지 비용 금액은 `unknown-cost-data` 로 명시하고 cost driver signal 및 `noop` cost ingestion provider hook을 제공
-  - frontend `Cost Insights` view에서 rule-based cost summary/recommendations/resource prompts 및 markdown report download 확인 가능
+  - frontend `Cost Insights` view에서 subscription/resource group/resource limit scope 기준 rule-based cost summary/recommendations/resource prompts 및 markdown report download 확인 가능
   - `/chat` rule-based copilot first-pass 구현 완료. 현재는 `llm_status=not_configured`, `provider=rule-based` 로 실제 LLM 연결 전 구조/비용/네트워크 질문에 대한 deterministic answer/suggestions를 반환
   - `/simulations` rule-based first-pass 구현 완료. workload 설명 기반 recommended resources, architecture/cost/security notes, next actions, assumptions를 생성하고 SQLite에 저장. 각 simulation은 markdown report, non-deployable Bicep outline template, resource-limit scoped current inventory fit 비교와 frontend download action으로 확인 가능
   - global exception handling 기준으로 `HTTPException` / `AzureClientError` non-2xx 응답이 `{ ok, status, message }` JSON shape로 정규화됨
