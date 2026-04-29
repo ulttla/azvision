@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "smoke:semantics": "node --experimental-strip-types ../scripts/snapshot_sort_semantics_smoke.mts && node --experimental-strip-types ../scripts/snapshot_thumbnail_guard_copy_smoke.mts"
+    "smoke:semantics": "node --experimental-strip-types ../scripts/snapshot_sort_semantics_smoke.mts && node --experimental-strip-types ../scripts/snapshot_thumbnail_guard_copy_smoke.mts && node --experimental-strip-types ../scripts/cost_page_semantics_smoke.mts"
   },
   "dependencies": {
     "cytoscape": "^3.33.2",
