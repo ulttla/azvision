@@ -51,6 +51,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `scripts/snapshot_payload_smoke.sh` 로 snapshot list/detail payload 분리(summary list, detail thumbnail 포함)와 invalid/oversized thumbnail sanitize 경로 smoke 가능
   - `scripts/snapshot_compare_smoke.sh` 로 metadata-level snapshot compare endpoint를 live API 기준으로 smoke 가능
   - `scripts/cost_report_smoke.sh` 로 rule-based cost markdown report endpoint를 live API 기준으로 smoke 가능
+  - `scripts/simulation_smoke.sh` 로 simulation create/list/detail/template/report/fit API 계약을 smoke 가능
   - `scripts/sqlite_health_check.py` 로 local SQLite integrity, journal mode, snapshot/thumbnail size signal을 read-only로 점검 가능
   - `scripts/check_doc_mirror.sh` 는 기본 visibility-only이고, `AZVISION_DOC_MIRROR_STRICT=1` 설정 시 mirror drift를 실패로 처리 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
@@ -150,7 +151,7 @@ npm run dev
   - backend dependency install
   - `python -m compileall app`
   - backend app import smoke
-  - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`, `scripts/snapshot_sort_api_smoke.sh`, `scripts/snapshot_compare_smoke.sh`, `scripts/cost_report_smoke.sh`)
+  - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`, `scripts/snapshot_sort_api_smoke.sh`, `scripts/snapshot_compare_smoke.sh`, `scripts/cost_report_smoke.sh`, `scripts/simulation_smoke.sh`)
   - read-only SQLite health check (`scripts/sqlite_health_check.py`)
   - frontend `npm ci` + `npm run build`
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
@@ -164,6 +165,7 @@ npm run dev
 - snapshot summary/detail payload 점검은 `bash scripts/snapshot_payload_smoke.sh` 로 list는 thumbnail 제외, detail은 thumbnail 포함 계약과 invalid/oversized thumbnail sanitize 경로를 확인 가능
 - snapshot compare endpoint 점검은 `bash scripts/snapshot_compare_smoke.sh` 로 metadata-level count/scope/compare_refs delta 계약을 확인 가능
 - cost markdown report endpoint 점검은 `bash scripts/cost_report_smoke.sh` 로 rule-based report payload와 guardrail 문구를 확인 가능
+- simulation endpoint 점검은 `bash scripts/simulation_smoke.sh` 로 create/list/detail/template/report/fit 계약을 확인 가능
 - snapshot sort semantics 점검은 `node --experimental-strip-types scripts/snapshot_sort_semantics_smoke.mts` 로 `Saved` custom sort와 `Recent` fixed semantics를 빠르게 smoke 가능
 - snapshot sort visual smoke는 `node scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI 순서와 `Recent` tab sort-control 숨김까지 확인 가능
 - docs mirror drift 점검은 `bash scripts/check_doc_mirror.sh` 로 수행하며, 예상된 one-side-only 항목은 `docs/MIRROR_POLICY.md` 의 Deferred Drift에 기록한다
