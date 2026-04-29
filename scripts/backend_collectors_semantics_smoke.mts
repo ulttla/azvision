@@ -26,10 +26,10 @@ for (const symbol of expectedSymbols) {
 }
 
 // ============================================================
-// Section 3: Azure SDK imports
+// Section 3: Azure SDK imports (via azure_client layer)
 // ============================================================
-assert.match(collectorCode, /from azure/, 'collector should import from azure SDK')
-assert.match(collectorCode, /ManagementClient|ResourceGroupsManagementClient|ComputeManagementClient|NetworkManagementClient/, 'collector should use Azure management clients')
+assert.match(collectorCode, /from app\.core\.azure_client/, 'collector should import from azure_client layer')
+assert.match(collectorCode, /ManagementClient|ResourceGroupsManagementClient|ComputeManagementClient|NetworkManagementClient|get_management_token|get_paginated_items|get_json/, 'collector should use Azure client functions')
 
 // ============================================================
 // Section 4: Expected data structures
@@ -57,6 +57,6 @@ assert.match(configCode, /azure_client_id|azure_client_secret|azure_tenant_id/, 
 // ============================================================
 const azureClientCode = readFileSync(path.join(repoRoot, 'backend/app/core/azure_client.py'), 'utf8')
 assert.match(azureClientCode, /from azure/, 'azure_client.py should import from azure SDK')
-assert.match(azureClientCode, /ManagedIdentityCredential|DefaultAzureCredential|ClientSecretCredential/, 'azure_client.py should use Azure credentials')
+assert.match(azureClientCode, /CertificateCredential|ManagedIdentityCredential|DefaultAzureCredential|ClientSecretCredential/, 'azure_client.py should use Azure credentials')
 
 console.log('✅ backend_collectors_semantics_smoke.mts: all assertions passed')
