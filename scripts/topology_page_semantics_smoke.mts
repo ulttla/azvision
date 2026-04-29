@@ -150,6 +150,16 @@ assert.match(topoPageCode, /compareTopologySnapshots\(/, 'TopologyPage should ca
 assert.match(topoPageCode, /createExport\(/, 'TopologyPage should call createExport')
 
 // ============================================================
+// Section 13.5: Raw topology diff drilldown and markdown export
+// ============================================================
+assert.match(topoPageCode, /function buildTopologyDiffMarkdown/, 'TopologyPage should define raw topology diff markdown export builder')
+assert.match(topoPageCode, /function renderDiffDrilldownSection/, 'TopologyPage should render expandable topology diff drilldown sections')
+assert.match(topoPageCode, /diffExpandedSections/, 'TopologyPage should track expanded diff sections')
+assert.match(topoPageCode, /Before:\s*\$\{formatNodeDetail\(c\.base\)\}/, 'markdown export should include changed-node before details')
+assert.match(topoPageCode, /After:\s*\$\{formatNodeDetail\(c\.target\)\}/, 'markdown export should include changed-node after details')
+assert.match(topoPageCode, /DISPLAY_MAX|DISPLAY_LIMIT/, 'raw topology diff drilldown/export should keep a bounded display cap')
+
+// ============================================================
 // Section 14: Resource type filter constants
 // ============================================================
 assert.match(topoModelCode, /DEFAULT_RESOURCE_FILTERS|ResourceCategory/, 'topology/model should define resource filter constants')
