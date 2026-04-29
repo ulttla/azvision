@@ -4,7 +4,17 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from app.repositories.snapshots import SnapshotRepository
-from app.schemas.snapshots import SnapshotCreateRequest, SnapshotListQuery, SnapshotRecord, SnapshotSummaryRecord, SnapshotUpdateRequest
+from app.schemas.snapshots import (
+    SnapshotCompareCountDelta,
+    SnapshotCompareRefDelta,
+    SnapshotCompareResponse,
+    SnapshotCompareScopeDelta,
+    SnapshotCreateRequest,
+    SnapshotListQuery,
+    SnapshotRecord,
+    SnapshotSummaryRecord,
+    SnapshotUpdateRequest,
+)
 
 
 class SnapshotNotFoundError(RuntimeError):
@@ -91,6 +101,76 @@ class SnapshotService:
         if snapshot is None:
             raise SnapshotNotFoundError(snapshot_id)
         return SnapshotRecord.model_validate(snapshot)
+
+    def compare_snapshots(
+        self,
+        workspace_id: str,
+        base_snapshot_id: str,
+        target_snapshot_id: str,
+    ) -> SnapshotCompareResponse:
+        base = self.get_snapshot(workspace_id, base_snapshot_id)
+        target = self.get_snapshot(workspace_id, target_snapshot_id)
+
+        base_refs = set(base.compare_refs)
+        target_refs = set(target.compare_refs)
+        added_refs = sorted(target_refs - base_refs)
+        removed_refs = sorted(base_refs - target_refs)
+        unchanged_refs = sorted(base_refs & target_refs)
+
+        count_delta = SnapshotCompareCountDelta(
+            visible_node_count=target.visible_node_count - base.visible_node_count,
+            loaded_node_count=target.loaded_node_count - base.loaded_node_count,
+            edge_count=target.edge_count - base.edge_count,
+        )
+        scope_delta = SnapshotCompareScopeDelta(
+            scope_changed=target.scope != base.scope,
+            query_changed=target.query != base.query,
+            subscription_changed=target.selected_subscription_id != base.selected_subscription_id,
+            resource_group_changed=target.resource_group_name != base.resource_group_name,
+        )
+        refs_delta = SnapshotCompareRefDelta(
+            added=added_refs,
+            removed=removed_refs,
+            unchanged=unchanged_refs,
+        )
+
+        summary: list[str] = []
+        if count_delta.visible_node_count:
+            summary.append(f"visible_node_count {count_delta.visible_node_count:+d}")
+        if count_delta.loaded_node_count:
+            summary.append(f"loaded_node_count {count_delta.loaded_node_count:+d}")
+        if count_delta.edge_count:
+            summary.append(f"edge_count {count_delta.edge_count:+d}")
+        if added_refs or removed_refs:
+            summary.append(f"compare_refs +{len(added_refs)} / -{len(removed_refs)}")
+        changed_scope_fields = [
+            label
+            for label, changed in [
+                ("scope", scope_delta.scope_changed),
+                ("query", scope_delta.query_changed),
+                ("subscription", scope_delta.subscription_changed),
+                ("resource_group", scope_delta.resource_group_changed),
+            ]
+            if changed
+        ]
+        if changed_scope_fields:
+            summary.append("scope fields changed: " + ", ".join(changed_scope_fields))
+        if not summary:
+            summary.append("no metadata-level snapshot differences detected")
+
+        return SnapshotCompareResponse(
+            workspace_id=workspace_id,
+            base_snapshot_id=base.id,
+            target_snapshot_id=target.id,
+            base_name=base.name,
+            target_name=target.name,
+            base_captured_at=base.captured_at,
+            target_captured_at=target.captured_at,
+            count_delta=count_delta,
+            scope_delta=scope_delta,
+            compare_refs_delta=refs_delta,
+            summary=summary,
+        )
 
     def delete_snapshot(self, workspace_id: str, snapshot_id: str) -> None:
         deleted = self.repository.delete(workspace_id, snapshot_id)

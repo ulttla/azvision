@@ -12,6 +12,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - live resource 목록 수집 시 network/compute 주요 타입은 detail GET으로 relationship property를 best-effort 보강함
   - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
   - snapshot CRUD + restore-events endpoint 구현 완료
+  - snapshot compare first-pass endpoint 구현 완료. 현재는 saved view-state metadata 기준으로 count/scope/compare_refs 차이를 반환하며, raw topology archival diff는 별도 장기 과제로 둠
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
   - rule-based Cost Intelligence first-pass endpoint(`/cost/summary`, `/cost/resources`, `/cost/recommendations`) 구현 완료. 실제 Cost Management 금액 수집 전까지 비용 금액은 `unknown-cost-data` 로 명시하고 cost driver signal 및 `noop` cost ingestion provider hook을 제공
   - frontend `Cost Insights` view에서 rule-based cost summary/recommendations/resource prompts 확인 가능
@@ -48,6 +49,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 는 Phase 1B 구현 완료 + snapshot sort UX visual smoke closeout 기준으로 최신화 완료
   - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline + `Saved Snapshots` sort UX visual smoke 반영 기준으로 최신화 완료
   - `scripts/snapshot_payload_smoke.sh` 로 snapshot list/detail payload 분리(summary list, detail thumbnail 포함)와 invalid/oversized thumbnail sanitize 경로 smoke 가능
+  - `scripts/snapshot_compare_smoke.sh` 로 metadata-level snapshot compare endpoint를 live API 기준으로 smoke 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
   - `docs/MIRROR_POLICY.md` 와 `scripts/check_doc_mirror.sh` 로 repo docs와 workspace docs mirror drift를 visibility-only 방식으로 점검 가능
@@ -63,7 +65,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`
-- legacy copy: `/Users/gun/.openclaw/workspace/projects/azvision` 는 당분간 보존만 하고 새 작업은 이 repo 기준으로 진행
+- legacy copy는 `/Users/gun/.openclaw/workspace/projects/azvision.legacy_archive_20260412_012338` 로 archive 처리 완료. 새 작업은 이 repo 기준으로 진행
 - GitHub remote: `https://github.com/ulttla/azvision`
 
 ## 디렉터리 구조
@@ -145,7 +147,7 @@ npm run dev
   - backend dependency install
   - `python -m compileall app`
   - backend app import smoke
-  - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`, `scripts/snapshot_sort_api_smoke.sh`)
+  - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`, `scripts/snapshot_sort_api_smoke.sh`, `scripts/snapshot_compare_smoke.sh`)
   - frontend `npm ci` + `npm run build`
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
 
@@ -156,6 +158,7 @@ npm run dev
 - live topology/inference 점검은 `bash scripts/live_topology_probe.sh` 로 config-check → read-test → topology probe를 한 번에 수행 가능
 - error response contract 점검은 `bash scripts/error_response_smoke.sh` 로 representative 400/404 응답 shape를 확인 가능
 - snapshot summary/detail payload 점검은 `bash scripts/snapshot_payload_smoke.sh` 로 list는 thumbnail 제외, detail은 thumbnail 포함 계약과 invalid/oversized thumbnail sanitize 경로를 확인 가능
+- snapshot compare endpoint 점검은 `bash scripts/snapshot_compare_smoke.sh` 로 metadata-level count/scope/compare_refs delta 계약을 확인 가능
 - snapshot sort semantics 점검은 `node --experimental-strip-types scripts/snapshot_sort_semantics_smoke.mts` 로 `Saved` custom sort와 `Recent` fixed semantics를 빠르게 smoke 가능
 - snapshot sort visual smoke는 `node scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI 순서와 `Recent` tab sort-control 숨김까지 확인 가능
 - docs mirror drift 점검은 `bash scripts/check_doc_mirror.sh` 로 수행하며, 예상된 one-side-only 항목은 `docs/MIRROR_POLICY.md` 의 Deferred Drift에 기록한다
@@ -164,6 +167,6 @@ npm run dev
 - `GET /api/v1/workspaces/{workspace_id}/resource-groups`
 - `GET /api/v1/workspaces/{workspace_id}/resources`
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
-- snapshot CRUD / import UX / local-server storage 구분 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
+- snapshot CRUD / import UX / local-server storage 구분 / metadata-level snapshot compare first-pass 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
 - Cost Intelligence first-pass는 rule-based recommendation까지 구현됐고, 실제 Azure Cost Management ingestion / dollar amount mapping은 다음 Phase 2 세부 작업으로 남는다
 - 다음 권장 순서: explicit network relationship regression + cost recommendation regression + visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke 유지 → Azure Cost Management ingestion 또는 AI Copilot skeleton 진입 판단

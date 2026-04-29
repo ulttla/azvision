@@ -5,6 +5,8 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.snapshots import (
+    SnapshotCompareRequest,
+    SnapshotCompareResponse,
     SnapshotCreateRequest,
     SnapshotListQuery,
     SnapshotListResponse,
@@ -38,6 +40,18 @@ def list_snapshots(
 @router.post("", response_model=SnapshotRecord)
 def create_snapshot(workspace_id: str, payload: SnapshotCreateRequest) -> SnapshotRecord:
     return service.create_snapshot(workspace_id, payload)
+
+
+@router.post("/compare", response_model=SnapshotCompareResponse)
+def compare_snapshots(workspace_id: str, payload: SnapshotCompareRequest) -> SnapshotCompareResponse:
+    try:
+        return service.compare_snapshots(
+            workspace_id,
+            payload.base_snapshot_id,
+            payload.target_snapshot_id,
+        )
+    except SnapshotNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Snapshot not found") from exc
 
 
 @router.get("/{snapshot_id}", response_model=SnapshotRecord)

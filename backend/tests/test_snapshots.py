@@ -572,3 +572,101 @@ class TestSnapshotListSortFilter:
         ids = [item["id"] for item in resp.json()["items"]]
         assert a["id"] in ids
         assert b["id"] not in ids
+
+
+class TestSnapshotServiceCompare:
+    def test_compare_returns_metadata_deltas(self, snapshot_service: SnapshotService):
+        base = snapshot_service.create_snapshot(
+            WORKSPACE,
+            _make_create_request(
+                name="Base",
+                compare_refs=["node-a", "node-b"],
+                selected_subscription_id="sub-a",
+                resource_group_name="rg-a",
+                visible_node_count=10,
+                loaded_node_count=12,
+                edge_count=5,
+            ),
+        )
+        target = snapshot_service.create_snapshot(
+            WORKSPACE,
+            _make_create_request(
+                name="Target",
+                compare_refs=["node-b", "node-c"],
+                selected_subscription_id="sub-a",
+                resource_group_name="rg-b",
+                visible_node_count=14,
+                loaded_node_count=15,
+                edge_count=9,
+            ),
+        )
+
+        result = snapshot_service.compare_snapshots(WORKSPACE, base.id, target.id)
+
+        assert result.base_snapshot_id == base.id
+        assert result.target_snapshot_id == target.id
+        assert result.count_delta.visible_node_count == 4
+        assert result.count_delta.loaded_node_count == 3
+        assert result.count_delta.edge_count == 4
+        assert result.scope_delta.resource_group_changed is True
+        assert result.scope_delta.subscription_changed is False
+        assert result.compare_refs_delta.added == ["node-c"]
+        assert result.compare_refs_delta.removed == ["node-a"]
+        assert result.compare_refs_delta.unchanged == ["node-b"]
+        assert "compare_refs +1 / -1" in result.summary
+
+    def test_compare_missing_snapshot_raises(self, snapshot_service: SnapshotService):
+        base = snapshot_service.create_snapshot(WORKSPACE, _make_create_request())
+        with pytest.raises(SnapshotNotFoundError):
+            snapshot_service.compare_snapshots(WORKSPACE, base.id, "snap_missing")
+
+
+class TestSnapshotRouteCompare:
+    def test_post_compare_returns_deltas(self, client: TestClient):
+        base = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(
+                name="Base",
+                compare_refs=["node-a", "node-b"],
+                visible_node_count=5,
+                loaded_node_count=6,
+                edge_count=3,
+            ),
+        ).json()
+        target = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(
+                name="Target",
+                compare_refs=["node-b", "node-c"],
+                visible_node_count=8,
+                loaded_node_count=10,
+                edge_count=4,
+            ),
+        ).json()
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/compare",
+            json={"base_snapshot_id": base["id"], "target_snapshot_id": target["id"]},
+        )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["base_snapshot_id"] == base["id"]
+        assert body["target_snapshot_id"] == target["id"]
+        assert body["count_delta"]["visible_node_count"] == 3
+        assert body["count_delta"]["loaded_node_count"] == 4
+        assert body["count_delta"]["edge_count"] == 1
+        assert body["compare_refs_delta"]["added"] == ["node-c"]
+        assert body["compare_refs_delta"]["removed"] == ["node-a"]
+
+    def test_post_compare_missing_snapshot_returns_404(self, client: TestClient):
+        base = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots", json=_create_payload()
+        ).json()
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/compare",
+            json={"base_snapshot_id": base["id"], "target_snapshot_id": "snap_missing"},
+        )
+        assert resp.status_code == 404
+        assert resp.json()["status"] == "http-404"

@@ -25,6 +25,10 @@ AzVision은 이미 아래를 구현한 상태다.
   - `sort_order`
   - `include_archived`
   - `pinned_first`
+- snapshot compare first-pass endpoint 반영
+  - `POST /workspaces/{workspace_id}/snapshots/compare`
+  - saved view-state metadata 기준 count/scope/compare_refs delta 반환
+  - raw Azure topology archival diff는 여전히 비목표
 - `Saved Snapshots` 패널에 sort field / sort order control 추가
   - `Last Restored` / `Captured` / `Updated`
   - newest / oldest
@@ -48,7 +52,7 @@ AzVision은 이미 아래를 구현한 상태다.
 아래는 이번 foundation 범위에서 제외한다.
 - live Azure raw topology payload 전체 archival
 - full revision timeline viewer
-- snapshot diff viewer
+- full snapshot diff viewer
 - multi-user collaboration / permission model
 - object storage 기반 thumbnail 분리
 - scan result 자체의 immutable audit log

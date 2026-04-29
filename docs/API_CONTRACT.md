@@ -103,6 +103,11 @@
   - snapshot restore usage 기록
   - side effect: `last_restored_at`, `restore_count` 갱신
   - 응답: `SnapshotRecord`
+- `POST /workspaces/{workspace_id}/snapshots/compare`
+  - request: `base_snapshot_id`, `target_snapshot_id`
+  - 응답: `ok`, `workspace_id`, base/target snapshot ids/names/capture times, `count_delta`, `scope_delta`, `compare_refs_delta`, `summary[]`
+  - 현재 1차 compare는 snapshot의 view-state metadata 기준이다. 즉 `visible_node_count`, `loaded_node_count`, `edge_count`, scope/query/subscription/resource group, `compare_refs` 추가/삭제/유지 차이를 비교한다.
+  - live Azure raw topology archival이나 immutable scan diff가 아니며, snapshot 원칙인 `saved view state + metadata` 모델 안에서 동작한다.
 - `DELETE /workspaces/{workspace_id}/snapshots/{snapshot_id}`
   - 응답: `workspace_id`, `snapshot_id`, `status=deleted`
 

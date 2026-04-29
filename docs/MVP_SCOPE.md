@@ -1,7 +1,8 @@
 # AzVision MVP Scope
 
 > **현재 제품 기준선:** single-user first.
-> 현재 구현은 Phase 1B server-backed snapshot/history usable baseline까지 반영됐지만, productization 기능은 아직 범위가 아니다.
+> historical freeze 기준은 Phase 1A Core Discovery였지만, 현재 구현 기준선은 Phase 1B server-backed snapshot/history usable baseline과 metadata-level snapshot compare first-pass까지 진입했다.
+> productization 기능은 아직 범위가 아니다.
 > user login / multi-user / permission model / language toggle은 보류한다.
 > Gun 단독 실사용 v0.9 기준은 `PERSONAL_USE_READINESS_PLAN.md` 와 `PERSONAL_USE_RUNBOOK.md` 를 우선 참조한다.
 > 각 Phase의 세부 범위는 `PRODUCT_VISION.md`를 참조한다.
@@ -24,7 +25,7 @@
 - PDF export (Phase 1B)
 - snapshot 저장 및 비교 (Phase 1B)
 - 비용 분석 (Phase 2)
-- what-if 시뮬레이션 (Phase 3)
+- 신규 서비스/비용 변경안 what-if 시뮬레이션 (Phase 3). 단, static Network Path Analysis는 네트워크 진단 기능으로 별도 취급
 - AI copilot (Phase 3)
 - user login / account 관리
 - multi-user collaboration / permission model
@@ -41,6 +42,8 @@
 - relation confidence 및 source 고도화
 - PDF export
 - snapshot 저장 및 비교
+  - 현재 metadata-level snapshot compare first-pass 구현 완료
+  - raw topology archival 기반 full diff viewer는 후속 범위
 
 ### Out of scope
 - 정교한 비용 최적화 추천

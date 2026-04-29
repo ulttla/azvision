@@ -138,3 +138,47 @@ class SnapshotListResponse(BaseModel):
     ok: bool = True
     workspace_id: str
     items: list[SnapshotSummaryRecord]
+
+
+class SnapshotCompareRequest(BaseModel):
+    base_snapshot_id: str = Field(..., min_length=1)
+    target_snapshot_id: str = Field(..., min_length=1)
+
+    @field_validator("base_snapshot_id", "target_snapshot_id", mode="before")
+    @classmethod
+    def _normalize_snapshot_ids(cls, value: object) -> str:
+        return str(value or "").strip()
+
+
+class SnapshotCompareRefDelta(BaseModel):
+    added: list[str] = Field(default_factory=list)
+    removed: list[str] = Field(default_factory=list)
+    unchanged: list[str] = Field(default_factory=list)
+
+
+class SnapshotCompareCountDelta(BaseModel):
+    visible_node_count: int = 0
+    loaded_node_count: int = 0
+    edge_count: int = 0
+
+
+class SnapshotCompareScopeDelta(BaseModel):
+    scope_changed: bool = False
+    query_changed: bool = False
+    subscription_changed: bool = False
+    resource_group_changed: bool = False
+
+
+class SnapshotCompareResponse(BaseModel):
+    ok: bool = True
+    workspace_id: str
+    base_snapshot_id: str
+    target_snapshot_id: str
+    base_name: str
+    target_name: str
+    base_captured_at: str
+    target_captured_at: str
+    count_delta: SnapshotCompareCountDelta
+    scope_delta: SnapshotCompareScopeDelta
+    compare_refs_delta: SnapshotCompareRefDelta
+    summary: list[str] = Field(default_factory=list)

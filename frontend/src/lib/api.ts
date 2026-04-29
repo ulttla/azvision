@@ -430,6 +430,34 @@ export type SnapshotApiUpdateRequest = {
   archived?: boolean
 }
 
+export type SnapshotCompareResponse = {
+  ok: boolean
+  workspace_id: string
+  base_snapshot_id: string
+  target_snapshot_id: string
+  base_name: string
+  target_name: string
+  base_captured_at: string
+  target_captured_at: string
+  count_delta: {
+    visible_node_count: number
+    loaded_node_count: number
+    edge_count: number
+  }
+  scope_delta: {
+    scope_changed: boolean
+    query_changed: boolean
+    subscription_changed: boolean
+    resource_group_changed: boolean
+  }
+  compare_refs_delta: {
+    added: string[]
+    removed: string[]
+    unchanged: string[]
+  }
+  summary: string[]
+}
+
 export type SnapshotListSortBy = 'updated_at' | 'captured_at' | 'last_restored_at'
 export type SnapshotListSortOrder = 'asc' | 'desc'
 
@@ -856,6 +884,23 @@ export async function recordTopologySnapshotRestoreEvent(
 ): Promise<SnapshotApiRecord> {
   return fetchJson<SnapshotApiRecord>(`/workspaces/${workspaceId}/snapshots/${snapshotId}/restore-events`, {
     method: 'POST',
+  })
+}
+
+export async function compareTopologySnapshots(
+  workspaceId: string,
+  baseSnapshotId: string,
+  targetSnapshotId: string,
+): Promise<SnapshotCompareResponse> {
+  return fetchJson<SnapshotCompareResponse>(`/workspaces/${workspaceId}/snapshots/compare`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      base_snapshot_id: baseSnapshotId,
+      target_snapshot_id: targetSnapshotId,
+    }),
   })
 }
 
