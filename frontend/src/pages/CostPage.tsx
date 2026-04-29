@@ -52,6 +52,7 @@ export function CostPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [subscriptionId, setSubscriptionId] = useState('')
   const [resourceGroupName, setResourceGroupName] = useState('')
+  const [resourceGroupLimit, setResourceGroupLimit] = useState(200)
   const [resourceLimit, setResourceLimit] = useState(500)
   const [copilotPrompt, setCopilotPrompt] = useState('How can I reduce cost or improve this architecture?')
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
@@ -62,9 +63,10 @@ export function CostPage() {
     () => ({
       subscriptionId: subscriptionId.trim() || undefined,
       resourceGroupName: resourceGroupName.trim() || undefined,
+      resourceGroupLimit,
       resourceLimit,
     }),
-    [resourceGroupName, resourceLimit, subscriptionId],
+    [resourceGroupLimit, resourceGroupName, resourceLimit, subscriptionId],
   )
 
   useEffect(() => {
@@ -185,6 +187,17 @@ export function CostPage() {
               value={resourceGroupName}
               placeholder="optional resource group"
               onChange={(event) => setResourceGroupName(event.target.value)}
+            />
+          </label>
+          <label className="field-label">
+            Resource group limit
+            <input
+              className="search-input"
+              type="number"
+              min={1}
+              max={1000}
+              value={resourceGroupLimit}
+              onChange={(event) => setResourceGroupLimit(Math.min(1000, Math.max(1, Number(event.target.value) || 1)))}
             />
           </label>
           <label className="field-label">
