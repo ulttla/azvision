@@ -15,7 +15,7 @@ import type { TopologyEdge, TopologyNode, TopologyResponse } from '../../lib/api
 // Types
 // ============================================================
 
-export type TopologyDiffKind = 'added' | 'removed' | 'modified'
+export type TopologyDiffKind = 'added' | 'removed' | 'modified' | 'unchanged'
 
 export type TopologyDiffNode = {
   node_key: string
@@ -207,7 +207,7 @@ export function diffTopologyResponses(
 
   diff.edges.sort((a, b) => {
     if (a.kind !== b.kind) {
-      const order = { added: 0, modified: 1, removed: 2 }
+      const order: Record<TopologyDiffKind, number> = { added: 0, modified: 1, removed: 2, unchanged: 3 }
       return order[a.kind] - order[b.kind]
     }
     return a.edge_key.localeCompare(b.edge_key)
