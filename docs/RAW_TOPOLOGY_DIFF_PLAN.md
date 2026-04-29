@@ -26,9 +26,9 @@ Implemented:
 
 Current non-goals:
 
-- The default UI compare button is still metadata-level first.
+- The default UI compare button remains metadata-level first, with raw topology diff shown as an additional result panel when archives are available.
 - Snapshot restore does not replay historical raw topology archives.
-- Full UI diff viewer, markdown export, and formal retention policy are not implemented yet.
+- Detailed expandable per-resource drilldown and formal retention policy are not implemented yet; a bounded markdown summary export is available from the raw diff card.
 
 ## Product gap
 
@@ -48,9 +48,9 @@ Archive-level compare can now support API results for:
 
 Still missing for product use:
 
-- UI sections for resource/edge-level delta.
-- Human-friendly diff summaries and markdown export.
-- Explicit archive retention/size limit policy beyond health reporting.
+- Expandable detailed UI drilldown for individual resource/edge delta rows beyond the capped preview.
+- Richer markdown export with full bounded drilldown beyond the current summary/preview export.
+- Explicit archive retention/size limit policy beyond health reporting and write-time size guard.
 
 ## Design principles
 
@@ -162,12 +162,12 @@ If either snapshot lacks an archive, return `archive_status=missing`, `ok=false`
 - Added/removed/changed nodes and edges with bounded list limits.
 - Tests for same archive, node add/remove/change, edge add/remove/change, max-items bound, and missing archive fallback.
 
-### Phase R3: UI surfacing — next
+### Phase R3: UI surfacing — partial
 
-- Keep current compare button.
-- Show metadata deltas first.
-- If archive diff is available, show resource/edge-level sections.
-- Make export/download of diff markdown optional.
+- Done: current compare button still runs metadata compare first.
+- Done: UI now calls `POST /snapshots/compare/topology` after metadata compare in server snapshot mode.
+- Done: snapshot panel shows a bounded raw topology diff result card with archive status, node/edge add/remove/changed counts, summary lines, missing-archive fallback copy, capped preview chips for changed node/edge rows, and markdown summary export.
+- Next: add expandable per-resource/per-edge drilldown and richer export content.
 
 ### Phase R4: retention and bloat guard — partial
 
@@ -190,8 +190,8 @@ Current gates:
 Next gates for R3/R4:
 
 - UI compare remains metadata-first and does not hide missing archive fallback.
-- Large archive/diff output is bounded before UI rendering.
-- Markdown export, if added, uses the same bounded summary model.
+- Raw diff result card remains bounded before UI rendering; detailed rows should add an explicit display limit.
+- Current markdown export uses the bounded summary/preview model; richer export content should keep explicit limits.
 - Oversized normalized archive payload is rejected before repository write.
 - Retention policy has tests for expiry/count behavior once implemented.
 

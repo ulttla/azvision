@@ -469,6 +469,24 @@ export type SnapshotCompareResponse = {
   summary: string[]
 }
 
+export type TopologyDiffBucket = {
+  added: Record<string, unknown>[]
+  removed: Record<string, unknown>[]
+  changed: Record<string, unknown>[]
+}
+
+export type TopologyArchiveCompareResponse = {
+  ok: boolean
+  workspace_id: string
+  base_snapshot_id: string
+  target_snapshot_id: string
+  archive_status: 'available' | 'missing'
+  node_delta: TopologyDiffBucket
+  edge_delta: TopologyDiffBucket
+  summary: string[]
+  metadata_delta?: SnapshotCompareResponse | null
+}
+
 export type SnapshotListSortBy = 'updated_at' | 'captured_at' | 'last_restored_at'
 export type SnapshotListSortOrder = 'asc' | 'desc'
 
@@ -925,6 +943,23 @@ export async function compareTopologySnapshots(
   targetSnapshotId: string,
 ): Promise<SnapshotCompareResponse> {
   return fetchJson<SnapshotCompareResponse>(`/workspaces/${workspaceId}/snapshots/compare`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      base_snapshot_id: baseSnapshotId,
+      target_snapshot_id: targetSnapshotId,
+    }),
+  })
+}
+
+export async function compareTopologyArchives(
+  workspaceId: string,
+  baseSnapshotId: string,
+  targetSnapshotId: string,
+): Promise<TopologyArchiveCompareResponse> {
+  return fetchJson<TopologyArchiveCompareResponse>(`/workspaces/${workspaceId}/snapshots/compare/topology`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

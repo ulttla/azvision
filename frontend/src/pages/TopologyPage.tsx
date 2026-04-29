@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import type { Core } from 'cytoscape'
 
 import {
+  compareTopologyArchives,
   compareTopologySnapshots,
   createExport,
   createManualEdge,
@@ -32,6 +33,7 @@ import {
   type PathAnalysisResponse,
   type UpdateManualEdgeRequest,
   type UpdateManualNodeRequest,
+  type TopologyArchiveCompareResponse,
   type TopologyEdge,
   type TopologyNode,
   type TopologyNodeDetail,
@@ -172,6 +174,92 @@ function formatSourceLabel(value?: string) {
     return 'Inferred'
   }
   return prettifyKey(normalized)
+}
+
+function formatDeltaCounts(delta?: { added: unknown[]; removed: unknown[]; changed: unknown[] }) {
+  if (!delta) {
+    return '+0 / -0 / changed 0'
+  }
+
+  return `+${delta.added.length} / -${delta.removed.length} / changed ${delta.changed.length}`
+}
+
+function formatDeltaItemLabel(item: unknown) {
+  if (!item || typeof item !== 'object') {
+    return String(item ?? '-')
+  }
+
+  const row = item as Record<string, unknown>
+  const displayName = row.display_name ?? row.name
+  if (typeof displayName === 'string' && displayName.trim()) {
+    return displayName
+  }
+
+  const nodeKey = row.node_key ?? row.node_ref ?? row.id
+  if (typeof nodeKey === 'string' && nodeKey.trim()) {
+    return nodeKey
+  }
+
+  const source = row.source_node_key ?? row.source
+  const target = row.target_node_key ?? row.target
+  const relationType = row.relation_type ?? row.type
+  if (typeof source === 'string' && typeof target === 'string') {
+    return `${source} → ${target}${typeof relationType === 'string' ? ` (${relationType})` : ''}`
+  }
+
+  return JSON.stringify(row)
+}
+
+function getDeltaPreviewRows(
+  label: 'node' | 'edge',
+  delta: { added: unknown[]; removed: unknown[]; changed: unknown[] },
+) {
+  return ([
+    ...delta.added.slice(0, 3).map((item) => ({ key: `${label}-added-${formatDeltaItemLabel(item)}`, kind: 'added', label: formatDeltaItemLabel(item) })),
+    ...delta.removed.slice(0, 3).map((item) => ({ key: `${label}-removed-${formatDeltaItemLabel(item)}`, kind: 'removed', label: formatDeltaItemLabel(item) })),
+    ...delta.changed.slice(0, 3).map((item) => ({ key: `${label}-changed-${formatDeltaItemLabel(item)}`, kind: 'changed', label: formatDeltaItemLabel(item) })),
+  ]).slice(0, 6)
+}
+
+function buildTopologyDiffMarkdown(result: TopologyArchiveCompareResponse) {
+  const lines = [
+    '# AzVision Raw Topology Diff',
+    '',
+    `- Workspace: ${result.workspace_id}`,
+    `- Base snapshot: ${result.base_snapshot_id}`,
+    `- Target snapshot: ${result.target_snapshot_id}`,
+    `- Archive status: ${result.archive_status}`,
+    `- Nodes: ${formatDeltaCounts(result.node_delta)}`,
+    `- Edges: ${formatDeltaCounts(result.edge_delta)}`,
+    '',
+    '## Summary',
+  ]
+
+  if (result.summary.length) {
+    for (const item of result.summary.slice(0, 20)) {
+      lines.push(`- ${item}`)
+    }
+  } else {
+    lines.push('- No raw topology differences reported.')
+  }
+
+  const previews = [
+    ...getDeltaPreviewRows('node', result.node_delta),
+    ...getDeltaPreviewRows('edge', result.edge_delta),
+  ]
+
+  if (previews.length) {
+    lines.push('', '## Preview rows')
+    for (const row of previews) {
+      lines.push(`- ${row.kind}: ${row.label}`)
+    }
+  }
+
+  if (result.archive_status === 'missing') {
+    lines.push('', 'Archive missing for one or both snapshots; metadata compare remains the fallback.')
+  }
+
+  return `${lines.join('\n')}\n`
 }
 
 
@@ -348,6 +436,7 @@ export function TopologyPage() {
   const [snapshotSortBy, setSnapshotSortBy] = useState<SnapshotSortBy>('last_restored_at')
   const [snapshotSortOrder, setSnapshotSortOrder] = useState<SnapshotSortOrder>('desc')
   const [snapshotCompareBaseId, setSnapshotCompareBaseId] = useState('')
+  const [snapshotTopologyCompareResult, setSnapshotTopologyCompareResult] = useState<TopologyArchiveCompareResponse | null>(null)
   const [snapshotNameInput, setSnapshotNameInput] = useState('')
   const [snapshotNoteInput, setSnapshotNoteInput] = useState('')
   const [manualNodes, setManualNodes] = useState<ManualNode[]>([])
@@ -1792,6 +1881,7 @@ export function TopologyPage() {
     }
     if (!selectedWorkspaceId || !snapshotCompareBaseId) {
       setSnapshotCompareBaseId(snapshot.id)
+      setSnapshotTopologyCompareResult(null)
       setExportMessage(`Snapshot compare base set: ${snapshot.name}`)
       return
     }
@@ -1802,9 +1892,16 @@ export function TopologyPage() {
 
     try {
       const result = await compareTopologySnapshots(selectedWorkspaceId, snapshotCompareBaseId, snapshot.id)
+      const topologyResult = await compareTopologyArchives(selectedWorkspaceId, snapshotCompareBaseId, snapshot.id)
+      setSnapshotTopologyCompareResult(topologyResult)
       const summary = result.summary.length ? result.summary.join(' • ') : 'no metadata-level differences'
-      setExportMessage(`Snapshot compare: ${result.base_name} → ${result.target_name} — ${summary}`)
+      const archiveSummary =
+        topologyResult.archive_status === 'available'
+          ? `topology nodes ${formatDeltaCounts(topologyResult.node_delta)}, edges ${formatDeltaCounts(topologyResult.edge_delta)}`
+          : 'topology archive missing; metadata fallback shown'
+      setExportMessage(`Snapshot compare: ${result.base_name} → ${result.target_name} — ${summary} — ${archiveSummary}`)
     } catch (error) {
+      setSnapshotTopologyCompareResult(null)
       setExportMessage(error instanceof Error ? error.message : 'Snapshot compare failed')
     }
   }
@@ -1885,6 +1982,21 @@ export function TopologyPage() {
     anchor.click()
     window.URL.revokeObjectURL(url)
     setExportMessage(`${UI_TEXT.exportedSnapshotsPrefix} ${savedSnapshots.length}`)
+  }
+
+  function handleExportTopologyDiffMarkdown() {
+    if (typeof window === 'undefined' || !snapshotTopologyCompareResult) {
+      return
+    }
+
+    const blob = new Blob([buildTopologyDiffMarkdown(snapshotTopologyCompareResult)], { type: 'text/markdown' })
+    const url = window.URL.createObjectURL(blob)
+    const anchor = window.document.createElement('a')
+    anchor.href = url
+    anchor.download = `azvision-raw-topology-diff-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.md`
+    anchor.click()
+    window.URL.revokeObjectURL(url)
+    setExportMessage('Raw topology diff markdown exported.')
   }
 
   function handleImportPresetClick() {
@@ -2694,6 +2806,50 @@ export function TopologyPage() {
               ) : null}
               {snapshotFilter !== 'archived' && snapshotFilterCounts.archived > 0 ? (
                 <p className="hint snapshot-archived-hint">{UI_TEXT.snapshotArchivedHint(snapshotFilterCounts.archived)}</p>
+              ) : null}
+              {snapshotTopologyCompareResult ? (
+                <div className="snapshot-topology-diff-card">
+                  <div className="preset-card-title-row">
+                    <strong>Raw topology diff</strong>
+                    <span className="mini-chip">{snapshotTopologyCompareResult.archive_status}</span>
+                  </div>
+                  <p className="hint preset-card-meta">
+                    Nodes {formatDeltaCounts(snapshotTopologyCompareResult.node_delta)} • Edges {formatDeltaCounts(snapshotTopologyCompareResult.edge_delta)}
+                  </p>
+                  {snapshotTopologyCompareResult.summary.length ? (
+                    <ul className="snapshot-diff-summary-list">
+                      {snapshotTopologyCompareResult.summary.slice(0, 5).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="hint preset-card-meta">No raw topology differences reported.</p>
+                  )}
+                  {snapshotTopologyCompareResult.archive_status === 'available' ? (
+                    <div className="snapshot-diff-preview-grid">
+                      {[
+                        ...getDeltaPreviewRows('node', snapshotTopologyCompareResult.node_delta),
+                        ...getDeltaPreviewRows('edge', snapshotTopologyCompareResult.edge_delta),
+                      ].map((row) => (
+                        <span key={row.key} className={`snapshot-diff-preview-row snapshot-diff-preview-${row.kind}`}>
+                          {row.kind}: {row.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {snapshotTopologyCompareResult.archive_status === 'missing' ? (
+                    <p className="hint preset-card-meta">Raw archive is missing for one or both snapshots; metadata compare remains the safe fallback.</p>
+                  ) : null}
+                  <div className="button-row snapshot-diff-actions">
+                    <button
+                      type="button"
+                      className="toolbar-button search-inline-button"
+                      onClick={handleExportTopologyDiffMarkdown}
+                    >
+                      Download diff markdown
+                    </button>
+                  </div>
+                </div>
               ) : null}
               {renderedSavedSnapshots.length ? (
                 <div className="compare-chip-grid preset-list-grid">

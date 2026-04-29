@@ -15,6 +15,7 @@ const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'ut
 // Section 1: compareTopologySnapshots function exists
 // ============================================================
 assert.match(apiCode, /export async function compareTopologySnapshots/, 'should export compareTopologySnapshots')
+assert.match(apiCode, /export async function compareTopologyArchives/, 'should export compareTopologyArchives')
 
 // ============================================================
 // Section 2: Function signature
@@ -22,11 +23,13 @@ assert.match(apiCode, /export async function compareTopologySnapshots/, 'should 
 assert.match(apiCode, /compareTopologySnapshots\s*\(\s*workspaceId/, 'should accept workspaceId parameter')
 assert.match(apiCode, /compareTopologySnapshots\s*\([^)]*baseSnapshotId/, 'should accept baseSnapshotId parameter')
 assert.match(apiCode, /compareTopologySnapshots\s*\([^)]*targetSnapshotId/, 'should accept targetSnapshotId parameter')
+assert.match(apiCode, /compareTopologyArchives\s*\([^)]*targetSnapshotId/, 'archive compare should accept targetSnapshotId parameter')
 
 // ============================================================
 // Section 3: Fetch path
 // ============================================================
 assert.match(apiCode, /\/workspaces\/\$\{workspaceId\}\/snapshots\/compare/, 'should use correct API path')
+assert.match(apiCode, /\/workspaces\/\$\{workspaceId\}\/snapshots\/compare\/topology/, 'archive compare should use topology API path')
 
 // ============================================================
 // Section 4: HTTP method
@@ -44,6 +47,10 @@ assert.match(apiCode, /target_name/, 'SnapshotCompareResponse should have target
 assert.match(apiCode, /count_delta/, 'SnapshotCompareResponse should have count_delta')
 assert.match(apiCode, /scope_delta/, 'SnapshotCompareResponse should have scope_delta')
 assert.match(apiCode, /compare_refs_delta/, 'SnapshotCompareResponse should have compare_refs_delta')
+assert.match(apiCode, /export type TopologyArchiveCompareResponse/, 'should export TopologyArchiveCompareResponse')
+assert.match(apiCode, /archive_status/, 'TopologyArchiveCompareResponse should have archive_status')
+assert.match(apiCode, /node_delta/, 'TopologyArchiveCompareResponse should have node_delta')
+assert.match(apiCode, /edge_delta/, 'TopologyArchiveCompareResponse should have edge_delta')
 
 // ============================================================
 // Section 6: count_delta structure
@@ -65,5 +72,10 @@ assert.match(apiCode, /resource_group_changed/, 'scope_delta should have resourc
 // ============================================================
 const topoPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
 assert.match(topoPageCode, /compareTopologySnapshots\(/, 'TopologyPage should call compareTopologySnapshots')
+assert.match(topoPageCode, /compareTopologyArchives\(/, 'TopologyPage should call compareTopologyArchives')
+assert.match(topoPageCode, /Raw topology diff/, 'TopologyPage should render raw topology diff result panel')
+assert.match(topoPageCode, /getDeltaPreviewRows/, 'TopologyPage should render bounded raw topology diff preview rows')
+assert.match(topoPageCode, /buildTopologyDiffMarkdown/, 'TopologyPage should support raw topology diff markdown export')
+assert.match(topoPageCode, /Download diff markdown/, 'TopologyPage should expose raw topology diff markdown download action')
 
 console.log('✅ snapshot_compare_api_semantics_smoke.mts: all assertions passed')
