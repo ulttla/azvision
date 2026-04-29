@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ApiError,
   getCostRecommendations,
+  getCostReport,
   getCostResources,
   getCostSummary,
   postCopilotMessage,
@@ -52,6 +53,7 @@ export function CostPage() {
   const [copilotPrompt, setCopilotPrompt] = useState('How can I reduce cost or improve this architecture?')
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
   const [copilotLoading, setCopilotLoading] = useState(false)
+  const [reportLoading, setReportLoading] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -115,6 +117,27 @@ export function CostPage() {
     }
   }
 
+  async function downloadCostReport() {
+    setReportLoading(true)
+    setError('')
+    try {
+      const report = await getCostReport(workspaceId)
+      const blob = new Blob([report.content], { type: 'text/markdown;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${workspaceId || DEFAULT_WORKSPACE_ID}-cost-summary.md`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to download cost report')
+    } finally {
+      setReportLoading(false)
+    }
+  }
+
   return (
     <main className="page-shell cost-page-shell">
       <section className="panel-card hero-card">
@@ -136,6 +159,9 @@ export function CostPage() {
           </label>
           <button type="button" className="toolbar-button primary" onClick={() => setRefreshKey((value) => value + 1)}>
             {loading ? 'Refreshing…' : 'Refresh cost insights'}
+          </button>
+          <button type="button" className="toolbar-button" onClick={downloadCostReport} disabled={reportLoading}>
+            {reportLoading ? 'Preparing report…' : 'Download markdown report'}
           </button>
         </div>
         {mode ? <p className="hint">Inventory mode: {mode}</p> : null}

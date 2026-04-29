@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.services.cost_analysis import build_cost_recommendations, build_cost_summary
+from app.services.cost_analysis import build_cost_recommendations, build_cost_report_markdown, build_cost_summary
 from app.services.cost_ingestion import get_default_cost_ingestion_provider
 
 WORKSPACE = "ws-cost-test"
@@ -115,3 +115,35 @@ def test_cost_resources_route_returns_unknown_cost_rows(client: TestClient) -> N
     assert body["items"]
     assert body["items"][0]["cost_status"] == "unknown-cost-data"
     assert "cost_driver_labels" in body["items"][0]
+
+
+def test_cost_report_markdown_keeps_rule_based_guardrails() -> None:
+    resources = [
+        {
+            "id": "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm-app",
+            "name": "vm-app",
+            "type": "Microsoft.Compute/virtualMachines",
+            "tags": {},
+        }
+    ]
+    recommendations = build_cost_recommendations(resources)
+    summary = build_cost_summary(resources, recommendations, get_default_cost_ingestion_provider().get_cost_snapshot(resources))
+
+    report = build_cost_report_markdown(WORKSPACE, summary, recommendations, resources)
+
+    assert report.startswith(f"# AzVision Cost Summary — {WORKSPACE}")
+    assert "Cost status: unknown-cost-data" in report
+    assert "Azure Cost Management dollar amounts" in report
+    assert "Review VM rightsizing" in report
+
+
+def test_cost_report_route_returns_markdown_payload(client: TestClient) -> None:
+    response = client.get(f"/api/v1/workspaces/{WORKSPACE}/cost/report")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok"] is True
+    assert body["report_type"] == "markdown"
+    assert body["title"].startswith("AzVision Cost Summary")
+    assert "# AzVision Cost Summary" in body["content"]
+    assert body["warnings"]

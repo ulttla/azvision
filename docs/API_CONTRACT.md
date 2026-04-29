@@ -125,6 +125,9 @@
 - `POST /workspaces/{workspace_id}/cost/recommendations`
   - 응답: rule-based recommendation `items[]` with `rule_id`, `category`, `severity`, `resource_id`, `title`, `recommendation`, `evidence`, `confidence`
   - 현재는 Azure Cost Management 금액 수집이 아니라 topology/inventory 기반 triage recommendation이다
+- `GET /workspaces/{workspace_id}/cost/report`
+  - 응답: `ok`, `workspace_id`, `report_type=markdown`, `title`, `content`, `warnings[]`
+  - 현재는 rule-based cost summary/recommendations를 markdown 보고서 초안으로 묶어 반환한다. 실제 dollar amount는 Azure Cost Management ingestion 전까지 포함하지 않는다
 
 ### Simulation (Phase 3 first-pass implemented)
 - `POST /workspaces/{workspace_id}/simulations`

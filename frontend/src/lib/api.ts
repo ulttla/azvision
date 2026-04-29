@@ -136,6 +136,17 @@ export type CostRecommendationResponse = {
   items: CostRecommendation[]
 }
 
+export type CostReportResponse = {
+  ok: boolean
+  workspace_id: string
+  mode?: string
+  warning?: string | null
+  report_type: string
+  title: string
+  content: string
+  warnings: string[]
+}
+
 export type CopilotResponse = {
   ok: boolean
   workspace_id: string
@@ -615,6 +626,10 @@ export async function getCostSummary(workspaceId: string, options?: CostQueryOpt
 
 export async function getCostResources(workspaceId: string, options?: CostQueryOptions): Promise<CostResourceResponse> {
   return fetchJson<CostResourceResponse>(`/workspaces/${workspaceId}/cost/resources${buildInventoryQuery(options)}`)
+}
+
+export async function getCostReport(workspaceId: string, options?: CostQueryOptions): Promise<CostReportResponse> {
+  return fetchJson<CostReportResponse>(`/workspaces/${workspaceId}/cost/report${buildInventoryQuery(options)}`)
 }
 
 export async function getCostRecommendations(

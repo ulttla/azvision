@@ -200,6 +200,69 @@ def build_cost_resource_rows(resources: list[dict[str, Any]], recommendations: l
     ]
 
 
+def build_cost_report_markdown(
+    workspace_id: str,
+    summary: dict[str, Any],
+    recommendations: list[dict[str, Any]],
+    resources: list[dict[str, Any]],
+) -> str:
+    lines = [
+        f"# AzVision Cost Summary — {workspace_id}",
+        "",
+        "## Status",
+        f"- Cost status: {summary.get('cost_status')}",
+        f"- Cost ingestion provider: {summary.get('cost_ingestion_provider')}",
+        f"- Cost ingestion configured: {str(bool(summary.get('cost_ingestion_configured'))).lower()}",
+        f"- Estimated monthly cost: {summary.get('estimated_monthly_cost') or 'unknown'}",
+        "",
+        "## Inventory Signals",
+        f"- Resources analyzed: {summary.get('analyzed_resource_count', 0)} / {summary.get('resource_count', 0)}",
+        f"- Recommendations: {summary.get('recommendation_count', 0)}",
+        f"- Governance tag gaps: {summary.get('governance_gap_count', 0)}",
+        "",
+        "## Top Resource Types",
+    ]
+
+    top_resource_types = summary.get("top_resource_types") or {}
+    if top_resource_types:
+        lines.extend(f"- {resource_type}: {count}" for resource_type, count in top_resource_types.items())
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "## Cost Drivers"])
+    cost_driver_counts = summary.get("cost_driver_counts") or {}
+    if cost_driver_counts:
+        lines.extend(f"- {label}: {count}" for label, count in cost_driver_counts.items())
+    else:
+        lines.append("- none")
+
+    lines.extend(["", "## Top Recommendations"])
+    for item in recommendations[:10]:
+        lines.extend(
+            [
+                f"### {item.get('title')}",
+                f"- Severity: {item.get('severity')}",
+                f"- Resource: {item.get('resource_name')} ({item.get('resource_type')})",
+                f"- Recommendation: {item.get('recommendation')}",
+                f"- Evidence: {'; '.join(item.get('evidence') or []) or 'none'}",
+                "",
+            ]
+        )
+    if not recommendations:
+        lines.append("- none")
+
+    lines.extend(
+        [
+            "",
+            "## Guardrails",
+            "- This report is rule-based and does not yet include Azure Cost Management dollar amounts.",
+            "- Use it as a triage checklist until real cost ingestion is configured.",
+            f"- Inventory resources considered: {len([resource for resource in resources if _resource_id(resource)])}",
+        ]
+    )
+    return "\n".join(lines).strip() + "\n"
+
+
 def build_cost_summary(
     resources: list[dict[str, Any]],
     recommendations: list[dict[str, Any]],
