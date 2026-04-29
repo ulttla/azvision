@@ -83,6 +83,19 @@ def check_database(path: Path) -> dict[str, object]:
                 or 0
             )
 
+        if table_exists(conn, "snapshot_topology_archives"):
+            stats["archive_count"] = int(scalar(conn, "SELECT COUNT(*) FROM snapshot_topology_archives") or 0)
+            stats["archive_total_bytes"] = int(
+                scalar(
+                    conn,
+                    """
+                    SELECT COALESCE(SUM(LENGTH(nodes_json) + LENGTH(edges_json)), 0)
+                    FROM snapshot_topology_archives
+                    """,
+                )
+                or 0
+            )
+
         return stats
 
 
@@ -118,6 +131,10 @@ def main() -> int:
         if "simulation_count" in stats:
             print(
                 "   simulations={simulation_count} simulation_json_bytes={simulation_json_bytes}".format(**stats)
+            )
+        if "archive_count" in stats:
+            print(
+                "   topology_archives={archive_count} archive_total_bytes={archive_total_bytes}".format(**stats)
             )
     print("PASS: AzVision SQLite health check completed")
     return 0
