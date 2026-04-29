@@ -62,6 +62,26 @@ def check_database(path: Path) -> dict[str, object]:
             stats["manual_node_count"] = int(scalar(conn, "SELECT COUNT(*) FROM manual_nodes") or 0)
         if table_exists(conn, "manual_edges"):
             stats["manual_edge_count"] = int(scalar(conn, "SELECT COUNT(*) FROM manual_edges") or 0)
+        if table_exists(conn, "simulations"):
+            stats["simulation_count"] = int(scalar(conn, "SELECT COUNT(*) FROM simulations") or 0)
+            stats["simulation_json_bytes"] = int(
+                scalar(
+                    conn,
+                    """
+                    SELECT COALESCE(SUM(
+                        LENGTH(matched_rules_json)
+                        + LENGTH(recommended_resources_json)
+                        + LENGTH(architecture_notes_json)
+                        + LENGTH(cost_considerations_json)
+                        + LENGTH(security_considerations_json)
+                        + LENGTH(next_actions_json)
+                        + LENGTH(assumptions_json)
+                    ), 0)
+                    FROM simulations
+                    """,
+                )
+                or 0
+            )
 
         return stats
 
@@ -94,6 +114,10 @@ def main() -> int:
                     manual_node_count=stats.get("manual_node_count", 0),
                     manual_edge_count=stats.get("manual_edge_count", 0),
                 )
+            )
+        if "simulation_count" in stats:
+            print(
+                "   simulations={simulation_count} simulation_json_bytes={simulation_json_bytes}".format(**stats)
             )
     print("PASS: AzVision SQLite health check completed")
     return 0

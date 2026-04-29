@@ -52,7 +52,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `scripts/snapshot_compare_smoke.sh` 로 metadata-level snapshot compare endpoint를 live API 기준으로 smoke 가능
   - `scripts/cost_report_smoke.sh` 로 rule-based cost markdown report endpoint를 live API 기준으로 smoke 가능
   - `scripts/simulation_smoke.sh` 로 simulation create/list/detail/template/report/fit API 계약을 smoke 가능
-  - `scripts/sqlite_health_check.py` 로 local SQLite integrity, journal mode, snapshot/thumbnail size signal을 read-only로 점검 가능
+  - `scripts/sqlite_health_check.py` 로 local SQLite integrity, journal mode, snapshot/thumbnail size, simulation JSON size signal을 read-only로 점검 가능
   - `scripts/check_doc_mirror.sh` 는 기본 visibility-only이고, `AZVISION_DOC_MIRROR_STRICT=1` 설정 시 mirror drift를 실패로 처리 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
