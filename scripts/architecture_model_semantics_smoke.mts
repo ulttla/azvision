@@ -731,6 +731,56 @@ function topologyEdge(
 
 
 // ---------------------------------------------------------------------------
+// Section 15.5: Presentation overrides
+// ---------------------------------------------------------------------------
+
+{
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'storage-override', display_name: 'raw-datalake', resource_type: 'Microsoft.Storage/storageAccounts' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t, {
+    nodeOverrides: {
+      'storage-override': {
+        displayNameOverride: 'Curated Landing Zone',
+        stageKeyOverride: 'ingest',
+      },
+    },
+  })
+  assert.equal(vm.nodes[0].label, 'Curated Landing Zone', 'displayNameOverride should replace generated label')
+  assert.equal(vm.nodes[0].stage, 'ingest', 'stageKeyOverride should move resource into selected stage')
+  assert.equal(vm.stageBuckets.find((bucket) => bucket.stage === 'ingest')?.nodes.length, 1, 'override target bucket should contain node')
+  assert.equal(vm.stageBuckets.find((bucket) => bucket.stage === 'store')?.nodes.length, 0, 'original generated bucket should no longer contain moved node')
+}
+
+{
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [
+      resourceNode({ node_key: 'group-a', display_name: 'api-prod-a', resource_type: 'Microsoft.Web/sites' }),
+      resourceNode({ node_key: 'group-b', display_name: 'api-prod-b', resource_type: 'Microsoft.Web/sites' }),
+    ],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t, {
+    groupThreshold: 2,
+    nodeOverrides: {
+      'group-a': { displayNameOverride: 'Presentation API' },
+      'group-b': { displayNameOverride: 'Presentation API' },
+    },
+  })
+  assert.equal(vm.nodes.length, 1, 'matching overrides should keep grouped card compact')
+  assert.equal(vm.nodes[0].label, 'Presentation API', 'shared displayNameOverride should label grouped card')
+}
+
+// ---------------------------------------------------------------------------
 // Section 16: Scale smoke — 200+ resource topology
 // ---------------------------------------------------------------------------
 
