@@ -170,13 +170,14 @@ If either snapshot lacks an archive, return `archive_status=missing`, `ok=false`
 - Done: `scripts/topology_page_semantics_smoke.mts` and `scripts/snapshot_compare_api_semantics_smoke.mts` include browserless coverage for the bounded drilldown/export path.
 - Deferred: component-level interaction tests for expand/collapse can be added if a React testing stack is introduced.
 
-### Phase R4: retention and bloat guard — partial
+### Phase R4: retention and bloat guard — done for bounded dry-run scope
 
 - Done: archive count/bytes in `scripts/sqlite_health_check.py`.
 - Done: normalized archive byte guard before write (`MAX_TOPOLOGY_ARCHIVE_BYTES = 1_000_000`).
 - Done: snapshot deletion cascades to `snapshot_topology_archives` to avoid orphan archive rows.
 - Done: explicit local SQLite retention policy in `docs/RETENTION_POLICY.md`.
 - Done: dry-run-only candidate selector in `scripts/archive_retention_dry_run.py`; no delete/commit mode exists.
+- Done: dry-run candidate selection protects pinned, archived, orphan, cross-workspace, and newest-floor rows before listing candidates.
 - Consider external object storage only if local SQLite bloat becomes measurable.
 
 ## Acceptance gates
@@ -190,13 +191,18 @@ Current gates:
 - `npm --prefix frontend run smoke:semantics` includes `scripts/topology_archive_smoke.mts`.
 - SQLite health check reports archive count/bytes once archive table exists.
 
-Next gates for R3/R4:
+Accepted R3/R4 bounded gates:
 
 - UI compare remains metadata-first and does not hide missing archive fallback.
 - Raw diff result card and markdown export keep explicit display limits for detailed rows.
 - Snapshot delete keeps snapshot archive rows from becoming orphaned.
 - Oversized normalized archive payload is rejected before repository write.
 - Retention dry-run candidate selector protects pinned, archived, orphan, and newest floor archives before listing candidates.
+
+Remaining deferred gates:
+
+- API-level archive store -> compare integration coverage can be added to bridge unit tests and smoke scripts.
+- Real archive prune/delete behavior remains deferred and requires an explicit approval path; do not add write mode to the dry-run script by default.
 
 ## Risks
 

@@ -1,5 +1,12 @@
 # AzVision 시각 품질 향상 로드맵
 
+> Status note (2026-04-29): this is a Phase 1A historical planning artifact.
+> Current visual/export work is tracked in `docs/ARCHITECTURE_VIEW_MVP_PLAN.md`,
+> `docs/RAW_TOPOLOGY_DIFF_PLAN.md`, and `docs/PERSONAL_USE_READINESS_PLAN.md`.
+> Do not use this file as the active implementation roadmap without first
+> refreshing it against the current Architecture View, PDF export, snapshot
+> compare, and raw topology diff baseline.
+
 **작성일:** 2026-04-09  
 **대상:** Phase 1A Live Topology + Cytoscape  
 **작업 경로:** `/Users/gun/dev/azvision`
