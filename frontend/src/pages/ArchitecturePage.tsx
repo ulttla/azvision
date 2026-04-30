@@ -164,6 +164,7 @@ export function ArchitecturePage() {
   const [authReady, setAuthReady] = useState(false)
   const [error, setError] = useState('')
   const [includeNetworkInference, setIncludeNetworkInference] = useState(true)
+  const [showInfraOverlay, setShowInfraOverlay] = useState(true)
   const [groupThreshold, setGroupThreshold] = useState(2)
   const [hiddenSourceNodeKeys, setHiddenSourceNodeKeys] = useState<string[]>([])
   const [overridesReady, setOverridesReady] = useState(false)
@@ -422,7 +423,13 @@ export function ArchitecturePage() {
     [groupThreshold, hiddenTopology],
   )
 
-  const visibleStageBuckets = architectureModel.stageBuckets
+  const visibleStageBuckets = useMemo(
+    () =>
+      architectureModel.stageBuckets.map((bucket) =>
+        bucket.stage === 'infra' && !showInfraOverlay ? { ...bucket, nodes: [] } : bucket,
+      ),
+    [architectureModel.stageBuckets, showInfraOverlay],
+  )
   const visibleNodes = useMemo(
     () => visibleStageBuckets.flatMap((bucket) => bucket.nodes),
     [visibleStageBuckets],
@@ -704,6 +711,14 @@ export function ArchitecturePage() {
               />
               <span>Include network inference edges</span>
             </label>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
+                checked={showInfraOverlay}
+                onChange={(event) => setShowInfraOverlay(event.target.checked)}
+              />
+              <span>Show infra overlay lane</span>
+            </label>
             <label className="architecture-threshold-field">
               <span>Group threshold</span>
               <select value={groupThreshold} onChange={(event) => setGroupThreshold(Number(event.target.value))}>
@@ -716,6 +731,7 @@ export function ArchitecturePage() {
           <p className="hint architecture-hint-copy">
             Override delta is stored separately by workspace + subscription + RG scope and tracks hidden
             source topology node keys, so the topology source remains intact even when grouping threshold changes.
+            The infra overlay can be hidden for presentation exports without removing network resources from the source topology.
           </p>
         </article>
 

@@ -59,6 +59,7 @@ const expectedStates = [
   'error',
   'search',
   'selectedNodeId',
+  'showInfraOverlay',
 ]
 
 for (const stateName of expectedStates) {
@@ -113,4 +114,11 @@ assert.match(apiCode, /export type TopologyResponse/, 'api.ts should export Topo
 // ============================================================
 assert.match(archPageCode, /getAuthConfigCheck/, 'ArchitecturePage should import getAuthConfigCheck')
 
-console.log('✅ architecture_page_semantics_smoke.mts: all assertions passed')
+// ============================================================
+// Section 13: Infra overlay presentation control
+// ============================================================
+assert.match(archPageCode, /showInfraOverlay/, 'ArchitecturePage should expose an infra overlay visibility state')
+assert.match(archPageCode, /Show infra overlay lane/, 'ArchitecturePage should render the infra overlay control copy')
+assert.match(archPageCode, /bucket\.stage === 'infra' && !showInfraOverlay/, 'ArchitecturePage should hide infra bucket nodes without mutating topology')
+
+console.log('architecture_page_semantics_smoke.mts: all assertions passed')
