@@ -142,7 +142,7 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 9. Compare two server snapshots in the UI when you need a quick metadata-level delta for visible/loaded nodes, edges, scope, or compare refs
 10. Use Cost Insights and Simulation pages for rule-based planning; scope cost/simulation fit with resource limits before exporting reports
 11. Before risky local cleanup, run `scripts/backup_sqlite.sh` and `scripts/sqlite_health_check.py`
-12. If `sqlite_health_check.py` reports `orphan_archives` or archive threshold warnings, treat it as an action signal only. Do not delete archives without a dry-run plan and explicit approval.
+12. If `sqlite_health_check.py` reports `orphan_archives` or archive threshold warnings, treat it as an action signal only. Historical smoke/test archives can produce warnings even when acceptance passes. Do not delete or reconcile archives during routine use without a fresh backup, dry-run candidate review, and explicit approval.
 
 ## Known personal-use limits
 
@@ -151,7 +151,7 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 - Snapshot thumbnails are optional and can be removed by guard checks.
 - Snapshot payloads store view state and metadata; raw topology archives are stored separately when topology archive paths are invoked.
 - Snapshot compare UI is metadata-first with bounded raw topology diff drilldown/export when archives are available.
-- Topology archive retention is health-signal/design only. No auto-prune path exists; any archive cleanup requires backup, dry-run, and explicit approval.
+- Topology archive retention is health-signal/design only. No auto-prune path exists; any archive cleanup requires backup, dry-run, and explicit approval. `scripts/archive_retention_dry_run.py` is read-only and requires `--dry-run`; pytest also covers the dry-run CLI contract.
 - Cost Intelligence is currently rule-based and does not ingest actual Azure Cost Management dollar amounts yet.
 - Simulation templates are intentionally non-deployable planning outlines until API versions, SKU choices, dependencies, and required properties are validated.
 - Browser/local dev ports are assumed to be `8000` and `5173` unless overridden by environment variables.

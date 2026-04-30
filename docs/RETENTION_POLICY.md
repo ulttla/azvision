@@ -33,6 +33,8 @@ Recommended warning thresholds:
 
 Warnings are informational. They must not trigger automatic deletion.
 
+Current local smoke may report orphan archive rows in `azvision.db` or `backend/azvision.db` when historical test/smoke data predates the delete-cascade guard. That state is a review signal, not a failure by itself. Do not reconcile or delete those rows during routine acceptance; first take a SQLite backup, run a dry-run candidate review, and get explicit approval for any cleanup.
+
 ### 3. User-initiated prune only
 
 AzVision must not auto-prune topology archives in single-user mode. Any archive deletion outside normal snapshot delete must be explicitly requested by the user and preceded by a dry run.
@@ -90,9 +92,9 @@ Commit mode, if ever added, must require an explicit confirmation flag and must 
 
 Before any prune code can write to SQLite:
 
-1. Candidate selection unit tests for pinned, archived, safety floor, oldest-first ordering, and below-threshold cases. Current script-level self-test: `python3 scripts/archive_retention_dry_run_selftest.py`.
-2. Dry-run smoke test proving zero side effects. Current local smoke: `python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run`.
-3. Integration test for any prune endpoint in dry-run mode only.
+1. Candidate selection tests for pinned, archived, safety floor, oldest-first ordering, below-threshold cases, orphan protection, and cross-workspace isolation. Current coverage: `backend/tests/test_archive_retention_dry_run.py` plus `python3 scripts/archive_retention_dry_run_selftest.py`.
+2. Dry-run CLI smoke proving `--dry-run` enforcement and JSON output. Current coverage: `backend/tests/test_archive_retention_dry_run.py`; optional local smoke: `python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run`.
+3. Integration test for any future prune endpoint in dry-run mode only.
 4. Health-check tests for threshold warnings. Current script-level self-test: `python3 scripts/sqlite_health_check_selftest.py`.
 5. Manual approval for any real deletion or cleanup operation.
 
