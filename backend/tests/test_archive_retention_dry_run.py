@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import sqlite3
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -126,3 +128,58 @@ def test_select_retention_candidates_requires_archive_tables(tmp_path: Path) -> 
 
     with pytest.raises(SystemExit, match="snapshot_topology_archives"):
         select_retention_candidates(db_path, workspace_id="ws-test")
+
+
+def test_archive_retention_cli_requires_dry_run(tmp_path: Path) -> None:
+    db_path = tmp_path / "retention.db"
+    _create_retention_db(db_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS_DIR / "archive_retention_dry_run.py"),
+            "--db",
+            str(db_path),
+            "--workspace",
+            "ws-test",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "--dry-run is required" in result.stderr
+
+
+def test_archive_retention_cli_outputs_json_dry_run(tmp_path: Path) -> None:
+    db_path = tmp_path / "retention.db"
+    _create_retention_db(db_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS_DIR / "archive_retention_dry_run.py"),
+            "--db",
+            str(db_path),
+            "--workspace",
+            "ws-test",
+            "--keep-recent",
+            "2",
+            "--min-age-days",
+            "90",
+            "--dry-run",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    body = json.loads(result.stdout)
+    assert body["dry_run"] is True
+    assert body["workspace_id"] == "ws-test"
+    assert body["candidate_snapshot_ids"] == ["snap_candidate_1", "snap_candidate_2"]
+    assert body["candidate_count"] == 2
+    assert body["protected_counts"]["orphan"] == 1
+    assert any("dry-run-only" in warning for warning in body["warnings"])

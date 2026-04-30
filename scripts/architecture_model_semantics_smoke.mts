@@ -729,4 +729,64 @@ function topologyEdge(
   assert.equal(vm.sourceNodeCount, 1, 'sourceNodeCount counts only resource nodes')
 }
 
+
+// ---------------------------------------------------------------------------
+// Section 16: Scale smoke — 200+ resource topology
+// ---------------------------------------------------------------------------
+
+{
+  const nodes: TopologyNode[] = []
+  for (let index = 0; index < 240; index += 1) {
+    const family = index % 6
+    const resourceType = family === 0
+      ? 'Microsoft.Storage/storageAccounts'
+      : family === 1
+        ? 'Microsoft.Web/sites'
+        : family === 2
+          ? 'Microsoft.Synapse/workspaces'
+          : family === 3
+            ? 'Microsoft.Network/virtualNetworks'
+            : family === 4
+              ? 'Microsoft.Sql/managedInstances'
+              : 'Microsoft.Unknown/widgets'
+    nodes.push(resourceNode({
+      node_key: `scale-${index}`,
+      display_name: `scale-${family}-resource-${index}`,
+      resource_type: resourceType,
+      resource_group: `rg-scale-${index % 12}`,
+      location: index % 2 === 0 ? 'canadacentral' : 'westus3',
+    }))
+  }
+
+  const edges: TopologyEdge[] = []
+  for (let index = 0; index < 180; index += 1) {
+    edges.push(topologyEdge(`scale-${index}`, `scale-${index + 60}`, 'depends_on'))
+  }
+
+  const t: TopologyResponse = {
+    workspace_id: 'scale-ws',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes,
+    edges,
+    status: 'ok',
+  }
+  const started = Date.now()
+  const vm = buildArchitectureViewModel(t, { groupThreshold: 10, includeNetworkOverlay: true })
+  const populatedBuckets = vm.stageBuckets.filter(bucket => bucket.nodes.length > 0)
+  const svg = renderArchitectureSvg(populatedBuckets, vm.edges)
+  const elapsedMs = Date.now() - started
+
+  assert.equal(vm.sourceNodeCount, 240, 'scale topology accounts for all resource nodes')
+  assert.equal(vm.groupedResourceCount, 240, 'scale topology groupedResourceCount accounts for all source nodes')
+  assert.ok(vm.nodes.length < 240, 'scale topology is compacted by grouping')
+  assert.ok(vm.nodes.length > 0, 'scale topology renders at least one architecture node')
+  assert.ok(vm.edges.length > 0, 'scale topology derives architecture edges')
+  assert.ok(populatedBuckets.length >= 4, 'scale topology populates multiple architecture stages')
+  assert.match(svg.svg, /^\s*<svg /, 'scale topology renders an SVG document')
+  assert.ok(svg.width < 10000, 'scale SVG width remains bounded')
+  assert.ok(svg.height < 10000, 'scale SVG height remains bounded')
+  assert.ok(elapsedMs < 1000, `scale topology derivation/render should stay fast; got ${elapsedMs}ms`)
+}
+
 console.log('✅ architecture_model_semantics_smoke.mts: all assertions passed')
