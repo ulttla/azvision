@@ -28,7 +28,7 @@ Current non-goals:
 
 - The default UI compare button remains metadata-level first, with raw topology diff shown as an additional result panel when archives are available.
 - Snapshot restore does not replay historical raw topology archives.
-- Detailed expandable per-resource drilldown and formal retention policy are not implemented yet; a bounded markdown summary export is available from the raw diff card.
+- Detailed expandable per-resource/per-edge drilldown and bounded markdown export are implemented in the raw diff card; real retention prune/delete execution remains deferred.
 
 ## Product gap
 
@@ -48,9 +48,9 @@ Archive-level compare can now support API results for:
 
 Still missing for product use:
 
-- Expandable detailed UI drilldown for individual resource/edge delta rows beyond the capped preview.
-- Richer markdown export with full bounded drilldown beyond the current summary/preview export.
-- Explicit archive retention/size limit policy beyond health reporting and write-time size guard.
+- Expandable detailed UI drilldown for individual resource/edge delta rows is implemented with bounded sections, including changed-node and changed-edge before/after detail when the backend returns it.
+- Markdown export includes bounded added/removed/changed node sections and added/removed/changed edge sections.
+- Explicit archive retention/size limit policy beyond health reporting, write-time size guard, and dry-run candidate selection remains approval-gated for real prune/delete.
 
 ## Design principles
 

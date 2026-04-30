@@ -332,17 +332,22 @@ export type ArchitectureViewOverrideState = {
 - 최소 수동 액션 1개(node hide/show 또는 stage move)가 동작함
 - 향후 수동 수정용 override schema가 문서와 코드 구조에 반영됨
 
-## 현재 구현 상태 메모 (2026-04-21 review)
-- 이 섹션은 Architecture View 라인 기준 상태 메모다. snapshot sort, error response contract, inventory/auth Azure error normalization 후속은 `README.md`, `docs/API_CONTRACT.md` 기준 최신 상태를 따른다.
+## 현재 구현 상태 메모 (2026-04-30 LWW c1)
+- 이 섹션은 Architecture View 라인 기준 상태 메모다. snapshot/raw diff, error response contract, inventory/auth Azure error normalization 후속은 `README.md`, `docs/API_CONTRACT.md`, `docs/RAW_TOPOLOGY_DIFF_PLAN.md` 기준 최신 상태를 따른다.
 - `Topology View / Architecture View` 탭 전환 반영 완료
 - frontend 전용 architecture view-model + stage bucket + simplified edge 생성 반영 완료
 - `ArchitecturePage`에서 SVG 기반 compact diagram / zone board / flow summary / selected card 패널 구성 완료
-- browser-local override delta(`hiddenSourceNodeKeys`) 저장/복원 반영 완료
+- browser-local override delta 저장/복원 반영 완료
+  - hide/show: `hiddenSourceNodeKeys`
+  - presentation label override: `displayNameOverride`
+  - presentation stage move: `stageKeyOverride`
+  - scope reset: `Reset all overrides`
+- infra overlay lane toggle 반영 완료. 발표/export용으로 infra lane을 숨겨도 원본 topology는 변경하지 않음
 - export PNG/PDF, group threshold, network inference toggle 연결 완료
 - label readability pass 반영 완료
   - domain token split / acronym prettify / singleton label polish 적용
   - short-only compact alias 2차 적용(`Synapse WS`, `MI`, `MI Support Net`, `SQL MI SW Dev Net`, `Pricing Calculator CDN` 류)
-- browser smoke + frontend `npm run build` 기준 usable 상태 확인
+- 검증 상태: `npm --prefix frontend run build`, `npm --prefix frontend run smoke:semantics`, `scripts/personal_use_acceptance.sh` PASS
 
 ## reviewer check 요청 포인트
 ### UX / Product
