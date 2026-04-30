@@ -632,7 +632,7 @@ export function ArchitecturePage() {
           <h1>Compact architecture pipeline mode</h1>
           <p className="subtext architecture-subtext">
             Auto-map live topology resources into Source → Ingest → Process → Store → Serve zones,
-            keep infra separated, and persist lightweight hide/show delta as a presentation override.
+            keep infra separated, and persist lightweight hide, label, and stage overrides for presentation-ready views.
           </p>
         </div>
         <span className={`status-pill ${authReady ? 'ready' : 'pending'}`}>
@@ -820,7 +820,7 @@ export function ArchitecturePage() {
           </div>
           <p className="hint architecture-hint-copy">
             Override delta is stored separately by workspace + subscription + RG scope and tracks hidden
-            source topology node keys, so the topology source remains intact even when grouping threshold changes.
+            source topology node keys plus label/stage overrides, so the topology source remains intact even when grouping threshold changes.
             The infra overlay can be hidden for presentation exports without removing network resources from the source topology.
           </p>
         </article>
@@ -1039,7 +1039,7 @@ export function ArchitecturePage() {
                 })}
               </ul>
             ) : (
-              <p className="hint">{isInitialTopologyLoad ? 'Loading…' : 'No visible simplified edges after current hide/show overrides.'}</p>
+              <p className="hint">{isInitialTopologyLoad ? 'Loading…' : 'No visible simplified edges after current presentation overrides.'}</p>
             )}
           </div>
         </article>

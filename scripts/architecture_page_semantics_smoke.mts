@@ -130,6 +130,7 @@ assert.match(archPageCode, /displayNameOverride/, 'ArchitecturePage should suppo
 assert.match(archPageCode, /stageKeyOverride/, 'ArchitecturePage should support presentation stage overrides')
 assert.match(archPageCode, /arch-detail-label-override/, 'ArchitecturePage should expose selected-card label override input')
 assert.match(archPageCode, /arch-detail-stage-override/, 'ArchitecturePage should expose selected-card stage override select')
+assert.match(archPageCode, /hide, label, and stage overrides/, 'ArchitecturePage should describe the expanded presentation override scope')
 assert.match(archStorageCode, /nodeOverrides/, 'architecture/storage should persist presentation overrides')
 assert.match(archModelCode, /ArchitectureNodeOverride/, 'architecture/model should define override options')
 assert.match(archModelCode, /nodeOverrides\[node\.node_key\]\?\.stageKeyOverride/, 'architecture/model should apply stage overrides before bucket render')
