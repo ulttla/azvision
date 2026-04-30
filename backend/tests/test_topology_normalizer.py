@@ -8,6 +8,7 @@ from app.services.topology_normalizer import (
     MAX_TOPOLOGY_ARCHIVE_BYTES,
     TopologyArchiveTooLargeError,
     _edge_signature,
+    _edges_differ,
     _is_valid_edge,
     _is_valid_node,
     _node_key,
@@ -198,6 +199,25 @@ class TestTopologyDiff:
         result = topology_diff(base, target)
         assert len(result["edge_delta"]["removed"]) == 1
 
+    def test_edge_changed_non_identity_attribute(self):
+        nodes = [{"node_key": "a"}, {"node_key": "b"}]
+        base_edge = {
+            "source_node_key": "a",
+            "target_node_key": "b",
+            "relation_type": "routes",
+            "source": "azure",
+            "confidence": "low",
+        }
+        target_edge = {**base_edge, "confidence": "high"}
+        base = self._make_archive(nodes, [base_edge])
+        target = self._make_archive(nodes, [target_edge])
+        result = topology_diff(base, target)
+        assert result["edge_delta"]["added"] == []
+        assert result["edge_delta"]["removed"] == []
+        assert len(result["edge_delta"]["changed"]) == 1
+        assert result["edge_delta"]["changed"][0]["edge_key"] == "a->b:routes:azure"
+        assert any("edge(s) changed" in item for item in result["summary"])
+
     def test_missing_archive(self):
         base = {"nodes_json": "[]", "edges_json": "[]"}
         target = {"nodes_json": "invalid json", "edges_json": "[]"}
@@ -251,6 +271,15 @@ class TestHelpers:
     def test_is_valid_edge(self):
         assert _is_valid_edge({"source_node_key": "a", "target_node_key": "b"}) is True
         assert _is_valid_edge({"source_node_key": ""}) is False
+
+    def test_edges_differ_ignores_identity_fields(self):
+        a = {"source_node_key": "a", "target_node_key": "b", "relation_type": "routes", "source": "azure", "confidence": "low"}
+        b = {"source_node_key": "a", "target_node_key": "b", "relation_type": "routes", "source": "azure", "confidence": "low"}
+        c = {"source_node_key": "a", "target_node_key": "b", "relation_type": "routes", "source": "azure", "confidence": "high"}
+        d = {"source_node_key": "x", "target_node_key": "y", "relation_type": "contains", "source": "manual", "confidence": "low"}
+        assert _edges_differ(a, b) is False
+        assert _edges_differ(a, c) is True
+        assert _edges_differ(a, d) is False
 
     def test_nodes_differ(self):
         a = {"node_key": "a", "display_name": "A", "source": "azure", "resource_type": "vm", "location": "canadacentral", "tags": {"env": "prod"}}

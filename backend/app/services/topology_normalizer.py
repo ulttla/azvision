@@ -170,6 +170,16 @@ def topology_diff(
     added_edges = [target_edge_set[k] for k in sorted(target_edge_keys - base_edge_keys)][:max_items]
     removed_edges = [base_edge_set[k] for k in sorted(base_edge_keys - target_edge_keys)][:max_items]
 
+    changed_edges = []
+    for k in sorted(base_edge_keys & target_edge_keys):
+        if _edges_differ(base_edge_set[k], target_edge_set[k]):
+            if len(changed_edges) < max_items:
+                changed_edges.append({
+                    "edge_key": k,
+                    "base": base_edge_set[k],
+                    "target": target_edge_set[k],
+                })
+
     # Compute summary
     summary = []
     if added_nodes:
@@ -182,6 +192,8 @@ def topology_diff(
         summary.append(f"+{len(added_edges)} edge(s) added")
     if removed_edges:
         summary.append(f"-{len(removed_edges)} edge(s) removed")
+    if changed_edges:
+        summary.append(f"~{len(changed_edges)} edge(s) changed")
 
     return {
         "node_delta": {
@@ -192,7 +204,7 @@ def topology_diff(
         "edge_delta": {
             "added": added_edges,
             "removed": removed_edges,
-            "changed": [],
+            "changed": changed_edges,
         },
         "summary": summary,
     }
@@ -201,6 +213,18 @@ def topology_diff(
 def _edge_signature(edge: dict[str, Any]) -> str:
     """Create a deterministic key for an edge."""
     return f"{_edge_source_key(edge)}->{_edge_target_key(edge)}:{edge.get('relation_type', '')}:{edge.get('source', 'azure')}"
+
+
+def _edges_differ(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    """Check if two same-identity edges differ in non-identity attributes."""
+    identity_fields = {"source_node_key", "target_node_key", "relation_type", "source"}
+    comparable_a = {key: value for key, value in a.items() if key not in identity_fields}
+    comparable_b = {key: value for key, value in b.items() if key not in identity_fields}
+    return json.dumps(comparable_a, sort_keys=True, ensure_ascii=False) != json.dumps(
+        comparable_b,
+        sort_keys=True,
+        ensure_ascii=False,
+    )
 
 
 def _nodes_differ(a: dict[str, Any], b: dict[str, Any]) -> bool:
