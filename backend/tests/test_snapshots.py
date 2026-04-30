@@ -850,6 +850,103 @@ class TestTopologyCompareRoute:
         assert body["node_delta"]["added"][0]["node_key"] == "b"
         assert any("+1" in s for s in body["summary"])
 
+    def test_compare_topology_reports_exact_node_and_edge_deltas(self, client: TestClient):
+        snap_a = self._snap(client, "ExactBase")
+        snap_b = self._snap(client, "ExactTarget")
+        base_topology = {
+            "nodes": [
+                {
+                    "node_key": "resource:api",
+                    "display_name": "api-app",
+                    "source": "azure",
+                    "resource_type": "Microsoft.Web/sites",
+                    "location": "canadacentral",
+                    "tags": {"tier": "api"},
+                },
+                {
+                    "node_key": "resource:legacy-db",
+                    "display_name": "legacy-db",
+                    "source": "azure",
+                    "resource_type": "Microsoft.Sql/servers",
+                    "location": "canadacentral",
+                },
+            ],
+            "edges": [
+                {
+                    "source_node_key": "resource:api",
+                    "target_node_key": "resource:legacy-db",
+                    "relation_type": "connects_to",
+                    "source": "azure",
+                }
+            ],
+        }
+        target_topology = {
+            "nodes": [
+                {
+                    "node_key": "resource:api",
+                    "display_name": "api-app-v2",
+                    "source": "azure",
+                    "resource_type": "Microsoft.Web/sites",
+                    "location": "canadacentral",
+                    "tags": {"tier": "api", "release": "blue"},
+                },
+                {
+                    "node_key": "resource:sql-mi",
+                    "display_name": "sql-mi",
+                    "source": "azure",
+                    "resource_type": "Microsoft.Sql/managedInstances",
+                    "location": "canadacentral",
+                },
+            ],
+            "edges": [
+                {
+                    "source_node_key": "resource:api",
+                    "target_node_key": "resource:sql-mi",
+                    "relation_type": "connects_to",
+                    "source": "azure",
+                }
+            ],
+        }
+
+        base_store = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap_a['id']}/topology-archive",
+            json={"topology": base_topology},
+        )
+        target_store = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap_b['id']}/topology-archive",
+            json={"topology": target_topology},
+        )
+
+        assert base_store.status_code == 200
+        assert target_store.status_code == 200
+        assert base_store.json()["node_count"] == 2
+        assert target_store.json()["edge_count"] == 1
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/compare/topology",
+            json={"base_snapshot_id": snap_a["id"], "target_snapshot_id": snap_b["id"]},
+        )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["archive_status"] == "available"
+        assert [node["node_key"] for node in body["node_delta"]["added"]] == ["resource:sql-mi"]
+        assert [node["node_key"] for node in body["node_delta"]["removed"]] == ["resource:legacy-db"]
+        assert [node["node_key"] for node in body["node_delta"]["changed"]] == ["resource:api"]
+        changed = body["node_delta"]["changed"][0]
+        assert changed["base"]["display_name"] == "api-app"
+        assert changed["target"]["display_name"] == "api-app-v2"
+        assert body["edge_delta"]["added"] == [target_topology["edges"][0]]
+        assert body["edge_delta"]["removed"] == [base_topology["edges"][0]]
+        assert set(body["summary"]) == {
+            "+1 node(s) added",
+            "-1 node(s) removed",
+            "~1 node(s) changed",
+            "+1 edge(s) added",
+            "-1 edge(s) removed",
+        }
+
     def test_compare_topology_missing_archive_fallback(self, client: TestClient):
         snap_a = self._snap(client, "NoArchiveA")
         snap_b = self._snap(client, "NoArchiveB")
