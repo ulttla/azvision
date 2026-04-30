@@ -293,6 +293,18 @@ function buildTopologyDiffMarkdown(result: TopologyArchiveCompareResponse) {
     for (const e of ed.removed.slice(0, DISPLAY_MAX)) lines.push(`- ${formatEdgeDetail(e)}`)
   }
 
+  // Edge changed with before/after
+  if (ed.changed.length) {
+    lines.push('', `## Changed Edges (${ed.changed.length})`)
+    for (const item of ed.changed.slice(0, DISPLAY_MAX)) {
+      const c = item as Record<string, unknown>
+      const key = c.edge_key ?? c.relation_key ?? formatDeltaItemLabel(item)
+      lines.push(`### ${key}`)
+      lines.push(`- Before: ${formatEdgeDetail(c.base)}`)
+      lines.push(`- After: ${formatEdgeDetail(c.target)}`)
+    }
+  }
+
   if (result.archive_status === 'missing') {
     lines.push('', 'Archive missing for one or both snapshots; metadata compare remains the fallback.')
   }
@@ -2924,6 +2936,13 @@ export function TopologyPage() {
                       })}
                       {renderDiffDrilldownSection('Added edges', 'edge-added', snapshotTopologyCompareResult.edge_delta.added, formatDeltaItemLabel, formatEdgeDetail)}
                       {renderDiffDrilldownSection('Removed edges', 'edge-removed', snapshotTopologyCompareResult.edge_delta.removed, formatDeltaItemLabel, formatEdgeDetail)}
+                      {renderDiffDrilldownSection('Changed edges', 'edge-changed', snapshotTopologyCompareResult.edge_delta.changed, (item) => {
+                        const c = item as Record<string, unknown>
+                        return String(c.edge_key ?? c.relation_key ?? formatDeltaItemLabel(item))
+                      }, (item) => {
+                        const c = item as Record<string, unknown>
+                        return `${formatEdgeDetail(c.base)} → ${formatEdgeDetail(c.target)}`
+                      })}
                     </div>
                   ) : null}
                   {snapshotTopologyCompareResult.archive_status === 'missing' ? (
@@ -2935,7 +2954,7 @@ export function TopologyPage() {
                         type="button"
                         className="toolbar-button search-inline-button"
                         onClick={() => {
-                          const all = ['node-added','node-removed','node-changed','edge-added','edge-removed']
+                          const all = ['node-added','node-removed','node-changed','edge-added','edge-removed','edge-changed']
                           setDiffExpandedSections((prev) => {
                             const any = all.some((s) => prev.has(s))
                             const next = new Set(prev)
@@ -2946,7 +2965,7 @@ export function TopologyPage() {
                         }}
                       >
                         {(() => {
-                          const all = ['node-added','node-removed','node-changed','edge-added','edge-removed']
+                          const all = ['node-added','node-removed','node-changed','edge-added','edge-removed','edge-changed']
                           return all.some((s) => diffExpandedSections.has(s)) ? 'Collapse all' : 'Expand all'
                         })()}
                       </button>

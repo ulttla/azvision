@@ -157,6 +157,11 @@ assert.match(topoPageCode, /function renderDiffDrilldownSection/, 'TopologyPage 
 assert.match(topoPageCode, /diffExpandedSections/, 'TopologyPage should track expanded diff sections')
 assert.match(topoPageCode, /Before:\s*\$\{formatNodeDetail\(c\.base\)\}/, 'markdown export should include changed-node before details')
 assert.match(topoPageCode, /After:\s*\$\{formatNodeDetail\(c\.target\)\}/, 'markdown export should include changed-node after details')
+assert.match(topoPageCode, /Changed edges/, 'TopologyPage should render changed raw topology edge drilldown when present')
+assert.match(topoPageCode, /edge-changed/, 'TopologyPage should include changed edge sections in expand or collapse all')
+assert.match(topoPageCode, /## Changed Edges/, 'markdown export should include changed-edge details')
+assert.match(topoPageCode, /Before:\s*\$\{formatEdgeDetail\(c\.base\)\}/, 'markdown export should include changed-edge before details')
+assert.match(topoPageCode, /After:\s*\$\{formatEdgeDetail\(c\.target\)\}/, 'markdown export should include changed-edge after details')
 assert.match(topoPageCode, /DISPLAY_MAX|DISPLAY_LIMIT/, 'raw topology diff drilldown/export should keep a bounded display cap')
 
 // ============================================================
