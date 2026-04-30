@@ -12,7 +12,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - live resource 목록 수집 시 network/compute 주요 타입은 detail GET으로 relationship property를 best-effort 보강함
   - SQLite `snapshots` table + 운영 메타 컬럼(`captured_at`, `last_restored_at`, `restore_count`, `is_pinned`, `archived_at`) 반영 완료
   - snapshot CRUD + restore-events endpoint 구현 완료
-  - snapshot compare first-pass endpoint 구현 완료. 기본 `/snapshots/compare`는 saved view-state metadata 기준으로 count/scope/compare_refs 차이를 반환한다. raw topology archival diff R1은 `snapshot_topology_archives` 저장소, `POST /snapshots/{id}/topology-archive`, `POST /snapshots/compare/topology`, auto-archive 경로까지 구현됐으며, UI diff viewer/retention policy는 `docs/RAW_TOPOLOGY_DIFF_PLAN.md` 기준 후속 과제다
+  - snapshot compare first-pass endpoint 구현 완료. 기본 `/snapshots/compare`는 saved view-state metadata 기준으로 count/scope/compare_refs 차이를 반환한다. raw topology archival diff는 `snapshot_topology_archives` 저장소, `POST /snapshots/{id}/topology-archive`, `POST /snapshots/compare/topology`, auto-archive, bounded UI drilldown/markdown export까지 구현됐다. retention은 `docs/RETENTION_POLICY.md` 기준으로 health signal/design까지만 완료됐으며 실제 prune/delete는 별도 승인 대상이다
   - list sort/filter query (`sort_by`, `sort_order`, `include_archived`, `pinned_first`) 구현 완료
   - rule-based Cost Intelligence first-pass endpoint(`/cost/summary`, `/cost/resources`, `/cost/recommendations`, `/cost/report`) 구현 완료. 실제 Cost Management 금액 수집 전까지 비용 금액은 `unknown-cost-data` 로 명시하고 cost driver signal 및 `noop` cost ingestion provider hook을 제공
   - frontend `Cost Insights` view에서 subscription/resource group/resource group limit/resource limit scope 기준 rule-based cost summary/recommendations/resource prompts 및 markdown report download 확인 가능
@@ -50,11 +50,11 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md` 는 H1/H2 usable baseline + `Saved Snapshots` sort UX visual smoke 반영 기준으로 최신화 완료
   - `scripts/snapshot_payload_smoke.sh` 로 snapshot list/detail payload 분리(summary list, detail thumbnail 포함)와 invalid/oversized thumbnail sanitize 경로 smoke 가능
   - `scripts/snapshot_compare_smoke.sh` 로 metadata-level snapshot compare endpoint를 live API 기준으로 smoke 가능
-  - `scripts/topology_archive_smoke.mts` 로 raw topology archive DDL/repository/API route/auto-archive contract를 browserless smoke 가능
+  - `scripts/topology_archive_smoke.mts` 로 raw topology archive DDL/repository/API route/auto-archive/retention health signal contract를 browserless smoke 가능
   - `scripts/cost_report_smoke.sh` 로 rule-based cost markdown report endpoint를 live API 기준으로 smoke 가능
   - `scripts/cost_insights_smoke.sh` 로 scoped cost summary/resources/recommendations/report 계약을 live API 기준으로 smoke 가능
   - `scripts/simulation_smoke.sh` 로 simulation create/list/detail/template/report/fit API 계약을 smoke 가능
-  - `scripts/sqlite_health_check.py` 로 local SQLite integrity, journal mode, snapshot/thumbnail size, simulation JSON size signal을 read-only로 점검 가능
+  - `scripts/sqlite_health_check.py` 로 local SQLite integrity, journal mode, snapshot/thumbnail size, simulation JSON size, topology archive count/bytes/age/orphan warning signal을 read-only로 점검 가능
   - `scripts/check_doc_mirror.sh` 는 기본 visibility-only이고, `AZVISION_DOC_MIRROR_STRICT=1` 설정 시 mirror drift를 실패로 처리 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
@@ -64,7 +64,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - 참고
   - snapshot list 응답은 `ok`, `workspace_id`, `items` 구조로 general response shape 원칙과 정합됨
   - snapshot detail 응답은 `thumbnail_data_url` 포함, list 응답은 summary-only로 유지
-  - 다음 권장 순서: explicit network relationship regression + visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke를 회귀 경로로 유지하고, 추가 UX polish 범위를 최소 단위로만 검토
+  - 다음 권장 순서: raw topology archive retention은 `docs/RETENTION_POLICY.md` 기준으로 dry-run candidate design부터 진행하고, 실제 prune/delete는 별도 승인 전까지 금지. 일반 회귀는 explicit network relationship regression + visual smoke + guard copy/threshold/API contract smoke + payload sanitize smoke 유지
   - current same-line UX baseline: save 이후 warning surface(local-only pre-save sanitize + server-side blank thumbnail 커버) + save 전 storage-mode guard hint + guard copy/threshold/API contract alignment smoke
 
 ## Provider extension notes
@@ -168,6 +168,7 @@ npm run dev
 - error response contract 점검은 `bash scripts/error_response_smoke.sh` 로 representative 400/404 응답 shape를 확인 가능
 - snapshot summary/detail payload 점검은 `bash scripts/snapshot_payload_smoke.sh` 로 list는 thumbnail 제외, detail은 thumbnail 포함 계약과 invalid/oversized thumbnail sanitize 경로를 확인 가능
 - snapshot compare endpoint 점검은 `bash scripts/snapshot_compare_smoke.sh` 로 metadata-level count/scope/compare_refs delta 계약을 확인 가능
+- raw topology archive/retention health 계약은 `node --experimental-strip-types scripts/topology_archive_smoke.mts` 와 `python3 scripts/sqlite_health_check_selftest.py` 로 확인 가능
 - cost markdown report endpoint 점검은 `bash scripts/cost_report_smoke.sh` 로 rule-based report payload와 guardrail 문구를 확인 가능
 - scoped cost insights endpoint 점검은 `bash scripts/cost_insights_smoke.sh` 로 summary/resources/recommendations/report 계약을 확인 가능
 - simulation endpoint 점검은 `bash scripts/simulation_smoke.sh` 로 create/list/detail/template/report/fit 계약을 확인 가능

@@ -63,7 +63,7 @@ cd /Users/gun/dev/azvision
 scripts/path_analysis_visual_smoke.mjs
 ```
 
-Snapshot compare is available for server snapshots. In the UI, click `Set compare base` on one snapshot, then `Compare` on another snapshot. The UI compare path still uses saved view-state metadata. Raw topology archival diff R1 is available at the API/storage layer (`snapshot_topology_archives`, topology archive store endpoint, topology compare endpoint, auto-archive path), but the full UI diff viewer and retention policy remain product-track follow-ups. For focused API smokes with the backend running:
+Snapshot compare is available for server snapshots. In the UI, click `Set compare base` on one snapshot, then `Compare` on another snapshot. The UI compare path runs saved view-state metadata first and then shows a bounded raw topology diff card when topology archives are available. The raw diff card includes archive status, summary, expandable node/edge sections, changed-node before/after detail, and markdown export. Retention is currently health-signal/design only; automatic prune/delete is intentionally disabled. For focused API smokes with the backend running:
 
 ```bash
 cd /Users/gun/dev/azvision
@@ -72,6 +72,7 @@ scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
 scripts/simulation_smoke.sh
 scripts/sqlite_health_check.py
+python3 scripts/sqlite_health_check_selftest.py
 npm --prefix frontend run smoke:semantics # includes topology_archive_smoke.mts
 ```
 
@@ -141,6 +142,7 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 9. Compare two server snapshots in the UI when you need a quick metadata-level delta for visible/loaded nodes, edges, scope, or compare refs
 10. Use Cost Insights and Simulation pages for rule-based planning; scope cost/simulation fit with resource limits before exporting reports
 11. Before risky local cleanup, run `scripts/backup_sqlite.sh` and `scripts/sqlite_health_check.py`
+12. If `sqlite_health_check.py` reports `orphan_archives` or archive threshold warnings, treat it as an action signal only. Do not delete archives without a dry-run plan and explicit approval.
 
 ## Known personal-use limits
 
@@ -148,7 +150,8 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 - Azure credentials are server-side configured; there is no user login or permission model yet.
 - Snapshot thumbnails are optional and can be removed by guard checks.
 - Snapshot payloads store view state and metadata; raw topology archives are stored separately when topology archive paths are invoked.
-- Snapshot compare UI is metadata-level for now. Raw topology diff R1 exists at API/storage level; full UI diff viewer and retention policy remain product-track work.
+- Snapshot compare UI is metadata-first with bounded raw topology diff drilldown/export when archives are available.
+- Topology archive retention is health-signal/design only. No auto-prune path exists; any archive cleanup requires backup, dry-run, and explicit approval.
 - Cost Intelligence is currently rule-based and does not ingest actual Azure Cost Management dollar amounts yet.
 - Simulation templates are intentionally non-deployable planning outlines until API versions, SKU choices, dependencies, and required properties are validated.
 - Browser/local dev ports are assumed to be `8000` and `5173` unless overridden by environment variables.
