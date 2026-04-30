@@ -368,6 +368,65 @@ class TestSnapshotServiceDelete:
             database_url=snapshot_service.repository.database_url,
         ) is None
 
+    def test_topology_archive_workspace_listing_count_and_size(self, snapshot_service: SnapshotService):
+        from app.repositories.topology_archive import TopologyArchiveRepository
+
+        first = snapshot_service.create_snapshot(WORKSPACE, _make_create_request(name="Archive A"))
+        second = snapshot_service.create_snapshot(WORKSPACE, _make_create_request(name="Archive B"))
+        other = snapshot_service.create_snapshot("ws-other", _make_create_request(name="Other"))
+        TopologyArchiveRepository.store(
+            first.id,
+            WORKSPACE,
+            nodes_json='[{"node_key":"node-a"}]',
+            edges_json="[]",
+            topology_hash="hash-a",
+            node_count=1,
+            edge_count=0,
+            database_url=snapshot_service.repository.database_url,
+        )
+        TopologyArchiveRepository.store(
+            second.id,
+            WORKSPACE,
+            nodes_json='[{"node_key":"node-b"},{"node_key":"node-c"}]',
+            edges_json='[{"source_node_key":"node-b","target_node_key":"node-c"}]',
+            topology_hash="hash-b",
+            node_count=2,
+            edge_count=1,
+            database_url=snapshot_service.repository.database_url,
+        )
+        TopologyArchiveRepository.store(
+            other.id,
+            "ws-other",
+            nodes_json='[{"node_key":"other"}]',
+            edges_json="[]",
+            topology_hash="hash-other",
+            node_count=1,
+            edge_count=0,
+            database_url=snapshot_service.repository.database_url,
+        )
+
+        archives = TopologyArchiveRepository.list_by_workspace(
+            WORKSPACE,
+            database_url=snapshot_service.repository.database_url,
+        )
+
+        assert {item["snapshot_id"] for item in archives} == {first.id, second.id}
+        assert all(item["workspace_id"] == WORKSPACE for item in archives)
+        assert TopologyArchiveRepository.count_by_workspace(
+            WORKSPACE,
+            database_url=snapshot_service.repository.database_url,
+        ) == 2
+        expected_size = sum(len(payload) for payload in [
+            '[{"node_key":"node-a"}]',
+            "[]",
+            '[{"node_key":"node-b"},{"node_key":"node-c"}]',
+            '[{"source_node_key":"node-b","target_node_key":"node-c"}]',
+        ])
+        assert TopologyArchiveRepository.total_size_bytes(
+            WORKSPACE,
+            database_url=snapshot_service.repository.database_url,
+        ) == expected_size
+
     def test_delete_nonexistent_raises(self, snapshot_service: SnapshotService):
         with pytest.raises(SnapshotNotFoundError):
             snapshot_service.delete_snapshot(WORKSPACE, "snap_gone")
