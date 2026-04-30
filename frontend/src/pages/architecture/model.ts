@@ -72,6 +72,11 @@ export type ArchitectureViewModel = {
   stageBuckets: ArchitectureStageBucket[]
 }
 
+export type ArchitectureNodeOverride = {
+  displayNameOverride?: string
+  stageKeyOverride?: ArchitectureStage
+}
+
 export type ArchitectureSvgResult = {
   svg: string
   width: number
@@ -828,12 +833,16 @@ function createArchitectureNode(
   }
 }
 
-function buildArchitectureNodes(topology: TopologyResponse, groupThreshold: number): ArchitectureNode[] {
+function buildArchitectureNodes(
+  topology: TopologyResponse,
+  groupThreshold: number,
+  nodeOverrides: Record<string, ArchitectureNodeOverride>,
+): ArchitectureNode[] {
   const resourceNodes = topology.nodes.filter((node) => node.node_type === 'resource')
   const grouped = new Map<string, TopologyNode[]>()
 
   for (const node of resourceNodes) {
-    const stage = stageForNode(node)
+    const stage = nodeOverrides[node.node_key]?.stageKeyOverride ?? stageForNode(node)
     const { family, label } = familyForResourceType(node.resource_type)
     const workloadKey = workloadKeyForNode(node)
     const groupKey = `${stage}|${family}|${workloadKey}`
@@ -855,6 +864,14 @@ function buildArchitectureNodes(topology: TopologyResponse, groupThreshold: numb
     ]
     const familyLabel = familyForResourceType(nodes[0]?.resource_type).label
 
+    const displayNameOverrides = nodes
+      .map((node) => nodeOverrides[node.node_key]?.displayNameOverride?.trim())
+      .filter((value): value is string => Boolean(value))
+    const sharedDisplayNameOverride =
+      displayNameOverrides.length === nodes.length && new Set(displayNameOverrides).size === 1
+        ? displayNameOverrides[0]
+        : undefined
+
     if (nodes.length >= groupThreshold) {
       architectureNodes.push(
         createArchitectureNode(
@@ -864,7 +881,7 @@ function buildArchitectureNodes(topology: TopologyResponse, groupThreshold: numb
           familyLabel,
           workloadKey,
           nodes,
-          composeGroupedArchitectureLabel(workloadKey, familyValue, familyLabel),
+          sharedDisplayNameOverride ?? composeGroupedArchitectureLabel(workloadKey, familyValue, familyLabel),
         ),
       )
       continue
@@ -879,7 +896,7 @@ function buildArchitectureNodes(topology: TopologyResponse, groupThreshold: numb
           familyForResourceType(node.resource_type).label,
           workloadKeyForNode(node),
           [node],
-          node.display_name,
+          nodeOverrides[node.node_key]?.displayNameOverride?.trim() || node.display_name,
         ),
       )
     }
@@ -997,7 +1014,7 @@ function buildArchitectureEdges(
 
 export function buildArchitectureViewModel(
   topology: TopologyResponse | null | undefined,
-  options?: { groupThreshold?: number },
+  options?: { groupThreshold?: number; nodeOverrides?: Record<string, ArchitectureNodeOverride> },
 ): ArchitectureViewModel {
   if (!topology) {
     return {
@@ -1018,7 +1035,7 @@ export function buildArchitectureViewModel(
   }
 
   const groupThreshold = Math.max(2, options?.groupThreshold ?? GROUP_THRESHOLD_DEFAULT)
-  const nodes = buildArchitectureNodes(topology, groupThreshold)
+  const nodes = buildArchitectureNodes(topology, groupThreshold, options?.nodeOverrides ?? {})
   const edges = buildArchitectureEdges(nodes, topology.edges)
   const stageBuckets = ARCHITECTURE_STAGE_ORDER.map((stage) => ({
     stage,

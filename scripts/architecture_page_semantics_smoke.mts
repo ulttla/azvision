@@ -60,6 +60,7 @@ const expectedStates = [
   'search',
   'selectedNodeId',
   'showInfraOverlay',
+  'nodeOverrides',
 ]
 
 for (const stateName of expectedStates) {
@@ -120,5 +121,18 @@ assert.match(archPageCode, /getAuthConfigCheck/, 'ArchitecturePage should import
 assert.match(archPageCode, /showInfraOverlay/, 'ArchitecturePage should expose an infra overlay visibility state')
 assert.match(archPageCode, /Show infra overlay lane/, 'ArchitecturePage should render the infra overlay control copy')
 assert.match(archPageCode, /bucket\.stage === 'infra' && !showInfraOverlay/, 'ArchitecturePage should hide infra bucket nodes without mutating topology')
+
+// ============================================================
+// Section 14: Presentation overrides
+// ============================================================
+assert.match(archPageCode, /nodeOverrides/, 'ArchitecturePage should track node presentation overrides')
+assert.match(archPageCode, /displayNameOverride/, 'ArchitecturePage should support presentation label overrides')
+assert.match(archPageCode, /stageKeyOverride/, 'ArchitecturePage should support presentation stage overrides')
+assert.match(archPageCode, /arch-detail-label-override/, 'ArchitecturePage should expose selected-card label override input')
+assert.match(archPageCode, /arch-detail-stage-override/, 'ArchitecturePage should expose selected-card stage override select')
+assert.match(archStorageCode, /nodeOverrides/, 'architecture/storage should persist presentation overrides')
+assert.match(archModelCode, /ArchitectureNodeOverride/, 'architecture/model should define override options')
+assert.match(archModelCode, /nodeOverrides\[node\.node_key\]\?\.stageKeyOverride/, 'architecture/model should apply stage overrides before bucket render')
+assert.match(archModelCode, /displayNameOverride/, 'architecture/model should prefer label overrides when rendering cards')
 
 console.log('architecture_page_semantics_smoke.mts: all assertions passed')

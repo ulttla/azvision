@@ -21,6 +21,8 @@ import {
   renderArchitectureSvg,
   type ArchitectureEdge,
   type ArchitectureNode,
+  type ArchitectureNodeOverride,
+  type ArchitectureStage,
 } from './architecture/model'
 import {
   clearArchitectureOverrideState,
@@ -88,6 +90,31 @@ function filterTopologyByVisibleSourceKeys(
     nodes: visibleNodes,
     edges: visibleEdges,
   }
+}
+
+function isArchitectureStage(value: string): value is ArchitectureStage {
+  return Object.prototype.hasOwnProperty.call(ARCHITECTURE_STAGE_META, value)
+}
+
+function normalizeNodeOverrides(overrides?: Record<string, { displayNameOverride?: string; stageKeyOverride?: string }>) {
+  const result: Record<string, ArchitectureNodeOverride> = {}
+
+  for (const [nodeKey, override] of Object.entries(overrides ?? {})) {
+    const displayNameOverride = override.displayNameOverride?.trim()
+    const stageKeyOverride = override.stageKeyOverride?.trim()
+    const next: ArchitectureNodeOverride = {}
+    if (displayNameOverride) {
+      next.displayNameOverride = displayNameOverride
+    }
+    if (stageKeyOverride && isArchitectureStage(stageKeyOverride)) {
+      next.stageKeyOverride = stageKeyOverride
+    }
+    if (next.displayNameOverride || next.stageKeyOverride) {
+      result[nodeKey] = next
+    }
+  }
+
+  return result
 }
 
 function filterTopologyByHiddenSourceKeys(
@@ -167,6 +194,7 @@ export function ArchitecturePage() {
   const [showInfraOverlay, setShowInfraOverlay] = useState(true)
   const [groupThreshold, setGroupThreshold] = useState(2)
   const [hiddenSourceNodeKeys, setHiddenSourceNodeKeys] = useState<string[]>([])
+  const [nodeOverrides, setNodeOverrides] = useState<Record<string, ArchitectureNodeOverride>>({})
   const [overridesReady, setOverridesReady] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [exportLoading, setExportLoading] = useState(false)
@@ -308,6 +336,7 @@ export function ArchitecturePage() {
   useEffect(() => {
     if (!overrideScopeKey || !selectedWorkspaceId) {
       setHiddenSourceNodeKeys([])
+      setNodeOverrides({})
       setOverridesReady(false)
       return
     }
@@ -315,6 +344,7 @@ export function ArchitecturePage() {
     setOverridesReady(false)
     const state = loadArchitectureOverrideState(overrideScopeKey)
     setHiddenSourceNodeKeys(state.hiddenSourceNodeKeys)
+    setNodeOverrides(normalizeNodeOverrides(state.nodeOverrides))
     setOverridesReady(true)
   }, [overrideScopeKey, selectedWorkspaceId])
 
@@ -325,9 +355,10 @@ export function ArchitecturePage() {
 
     saveArchitectureOverrideState(overrideScopeKey, {
       hiddenSourceNodeKeys,
+      nodeOverrides,
       updatedAt: new Date().toISOString(),
     })
-  }, [hiddenSourceNodeKeys, overrideScopeKey, overridesReady, selectedWorkspaceId])
+  }, [hiddenSourceNodeKeys, nodeOverrides, overrideScopeKey, overridesReady, selectedWorkspaceId])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -414,13 +445,13 @@ export function ArchitecturePage() {
   )
 
   const architectureModel = useMemo(
-    () => buildArchitectureViewModel(visibleTopology, { groupThreshold }),
-    [groupThreshold, visibleTopology],
+    () => buildArchitectureViewModel(visibleTopology, { groupThreshold, nodeOverrides }),
+    [groupThreshold, nodeOverrides, visibleTopology],
   )
 
   const hiddenArchitectureModel = useMemo(
-    () => buildArchitectureViewModel(hiddenTopology, { groupThreshold }),
-    [groupThreshold, hiddenTopology],
+    () => buildArchitectureViewModel(hiddenTopology, { groupThreshold, nodeOverrides }),
+    [groupThreshold, hiddenTopology, nodeOverrides],
   )
 
   const visibleStageBuckets = useMemo(
@@ -495,8 +526,62 @@ export function ArchitecturePage() {
     setHiddenSourceNodeKeys((current) => current.filter((nodeKey) => !restoreSet.has(nodeKey)))
   }
 
+  function updateSelectedNodeOverride(update: ArchitectureNodeOverride) {
+    if (!selectedNode) {
+      return
+    }
+
+    setNodeOverrides((current) => {
+      const next = { ...current }
+      for (const nodeKey of selectedNode.sourceNodeKeys) {
+        const merged = { ...(next[nodeKey] ?? {}), ...update }
+        if (!merged.displayNameOverride?.trim()) {
+          delete merged.displayNameOverride
+        }
+        if (!merged.stageKeyOverride) {
+          delete merged.stageKeyOverride
+        }
+        if (merged.displayNameOverride || merged.stageKeyOverride) {
+          next[nodeKey] = merged
+        } else {
+          delete next[nodeKey]
+        }
+      }
+      return next
+    })
+  }
+
+  function selectedNodeDisplayNameOverride(node: ArchitectureNode): string {
+    const values = node.sourceNodeKeys
+      .map((nodeKey) => nodeOverrides[nodeKey]?.displayNameOverride)
+      .filter((value): value is string => Boolean(value))
+    return values.length === node.sourceNodeKeys.length && new Set(values).size === 1 ? values[0] : ''
+  }
+
+  function selectedNodeStageOverride(node: ArchitectureNode): ArchitectureStage {
+    const values = node.sourceNodeKeys
+      .map((nodeKey) => nodeOverrides[nodeKey]?.stageKeyOverride)
+      .filter((value): value is ArchitectureStage => Boolean(value))
+    return values.length === node.sourceNodeKeys.length && new Set(values).size === 1 ? values[0] : node.stage
+  }
+
+  function clearSelectedNodePresentationOverrides() {
+    if (!selectedNode) {
+      return
+    }
+
+    setNodeOverrides((current) => {
+      const next = { ...current }
+      for (const nodeKey of selectedNode.sourceNodeKeys) {
+        delete next[nodeKey]
+      }
+      return next
+    })
+  }
+
   function resetHiddenNodes() {
     setHiddenSourceNodeKeys([])
+    setNodeOverrides({})
     if (overrideScopeKey) {
       clearArchitectureOverrideState(overrideScopeKey)
     }
@@ -691,8 +776,13 @@ export function ArchitecturePage() {
           <div className="section-heading">
             <h2>View Controls</h2>
             <div className="button-row">
-              <button type="button" className="toolbar-button" onClick={resetHiddenNodes} disabled={!hiddenSourceNodeKeys.length}>
-                Reset hidden nodes{hiddenNodes.length > 0 ? ` (${hiddenNodes.length})` : ''}
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={resetHiddenNodes}
+                disabled={!hiddenSourceNodeKeys.length && !Object.keys(nodeOverrides).length}
+              >
+                Reset all overrides{hiddenNodes.length > 0 ? ` (${hiddenNodes.length} hidden)` : ''}
               </button>
               <button type="button" className="toolbar-button" onClick={() => void handleExport('png')} disabled={exportLoading || !visibleNodes.length}>
                 {exportLoading ? 'Exporting…' : 'Export PNG'}
@@ -767,6 +857,34 @@ export function ArchitecturePage() {
                   <strong>{selectedNode.nodeCount}</strong>
                 </div>
               </div>
+              <div className="architecture-detail-grid">
+                <label>
+                  <span className="metric-label">Presentation label</span>
+                  <input
+                    type="text"
+                    value={selectedNodeDisplayNameOverride(selectedNode)}
+                    onChange={(event) => updateSelectedNodeOverride({ displayNameOverride: event.target.value })}
+                    placeholder={selectedNode.label}
+                    aria-label="Architecture presentation label override"
+                    data-testid="arch-detail-label-override"
+                  />
+                </label>
+                <label>
+                  <span className="metric-label">Presentation stage</span>
+                  <select
+                    value={selectedNodeStageOverride(selectedNode)}
+                    onChange={(event) => updateSelectedNodeOverride({ stageKeyOverride: event.target.value as ArchitectureStage })}
+                    aria-label="Architecture presentation stage override"
+                    data-testid="arch-detail-stage-override"
+                  >
+                    {ARCHITECTURE_STAGE_ORDER.map((stage) => (
+                      <option key={stage} value={stage}>
+                        {ARCHITECTURE_STAGE_META[stage].label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className="button-row architecture-card-actions">
                 <button
                   type="button"
@@ -776,6 +894,15 @@ export function ArchitecturePage() {
                   data-testid="arch-detail-hide-btn"
                 >
                   Hide from architecture view
+                </button>
+                <button
+                  type="button"
+                  className="toolbar-button"
+                  onClick={clearSelectedNodePresentationOverrides}
+                  disabled={!selectedNode.sourceNodeKeys.some((nodeKey) => nodeOverrides[nodeKey])}
+                  data-testid="arch-detail-clear-presentation-btn"
+                >
+                  Clear label/stage override
                 </button>
               </div>
               <div className="architecture-source-list">

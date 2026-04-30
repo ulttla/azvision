@@ -1,5 +1,11 @@
+export type ArchitectureNodeOverrideState = {
+  displayNameOverride?: string
+  stageKeyOverride?: string
+}
+
 export type ArchitectureOverrideState = {
   hiddenSourceNodeKeys: string[]
+  nodeOverrides?: Record<string, ArchitectureNodeOverrideState>
   updatedAt?: string
 }
 
@@ -49,10 +55,20 @@ export function loadArchitectureOverrideState(scopeKey: string): ArchitectureOve
     return { hiddenSourceNodeKeys: [] }
   }
 
+  const nodeOverrides =
+    state.nodeOverrides && typeof state.nodeOverrides === 'object'
+      ? Object.fromEntries(
+          Object.entries(state.nodeOverrides).filter(
+            ([nodeKey, override]) => typeof nodeKey === 'string' && Boolean(nodeKey) && Boolean(override),
+          ),
+        )
+      : undefined
+
   return {
     hiddenSourceNodeKeys: state.hiddenSourceNodeKeys.filter(
       (value): value is string => typeof value === 'string' && value.length > 0,
     ),
+    nodeOverrides,
     updatedAt: state.updatedAt,
   }
 }
@@ -66,10 +82,17 @@ export function saveArchitectureOverrideState(
   }
 
   const states = readAllStates()
+  const nodeOverrides = Object.fromEntries(
+    Object.entries(state.nodeOverrides ?? {}).filter(([, override]) =>
+      Boolean(override.displayNameOverride?.trim() || override.stageKeyOverride?.trim()),
+    ),
+  )
+
   states[scopeKey] = {
     hiddenSourceNodeKeys: Array.from(new Set(state.hiddenSourceNodeKeys)).sort((left, right) =>
       left.localeCompare(right),
     ),
+    nodeOverrides,
     updatedAt: state.updatedAt ?? new Date().toISOString(),
   }
   writeAllStates(states)
