@@ -175,7 +175,8 @@ If either snapshot lacks an archive, return `archive_status=missing`, `ok=false`
 - Done: archive count/bytes in `scripts/sqlite_health_check.py`.
 - Done: normalized archive byte guard before write (`MAX_TOPOLOGY_ARCHIVE_BYTES = 1_000_000`).
 - Done: snapshot deletion cascades to `snapshot_topology_archives` to avoid orphan archive rows.
-- Next: explicit retention policy for local SQLite.
+- Done: explicit local SQLite retention policy in `docs/RETENTION_POLICY.md`.
+- Done: dry-run-only candidate selector in `scripts/archive_retention_dry_run.py`; no delete/commit mode exists.
 - Consider external object storage only if local SQLite bloat becomes measurable.
 
 ## Acceptance gates
@@ -195,7 +196,7 @@ Next gates for R3/R4:
 - Raw diff result card and markdown export keep explicit display limits for detailed rows.
 - Snapshot delete keeps snapshot archive rows from becoming orphaned.
 - Oversized normalized archive payload is rejected before repository write.
-- Retention policy has tests for expiry/count behavior once implemented.
+- Retention dry-run candidate selector protects pinned, archived, orphan, and newest floor archives before listing candidates.
 
 ## Risks
 
@@ -206,4 +207,4 @@ Next gates for R3/R4:
 
 ## Current decision
 
-R1/R2 are accepted as backend/API foundation. The current R3 bounded UI slice is implemented and reviewed. The next safe product slice is an explicit R4 local SQLite retention policy, not a broader rewrite of snapshot history or restore semantics.
+R1/R2 are accepted as backend/API foundation. The current R3 bounded UI slice is implemented and reviewed. R4 now has local SQLite retention policy, health signals, delete-cascade guard, and a dry-run-only candidate selector. Real prune/delete behavior remains deferred and requires explicit approval.

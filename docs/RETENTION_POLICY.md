@@ -37,6 +37,14 @@ Warnings are informational. They must not trigger automatic deletion.
 
 AzVision must not auto-prune topology archives in single-user mode. Any archive deletion outside normal snapshot delete must be explicitly requested by the user and preceded by a dry run.
 
+Current helper:
+
+```bash
+python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run
+```
+
+This helper is intentionally dry-run-only. It opens SQLite in read-only mode and has no delete or commit path.
+
 ## Eligibility rules for future prune design
 
 | Rule | Behavior |
@@ -48,15 +56,9 @@ AzVision must not auto-prune topology archives in single-user mode. Any archive 
 | Orphan archive rows | Handle with explicit reconciliation, not broad retention pruning |
 | Empty or unchanged diff evidence | Keep; “no change” is useful evidence |
 
-## Future dry-run design
+## Dry-run candidate design
 
-Any future prune helper or endpoint must start with dry-run mode.
-
-Suggested CLI shape:
-
-```bash
-python scripts/prune_archives.py --workspace local-demo --dry-run
-```
+Any future prune endpoint must start with dry-run mode. The current script-level helper is `scripts/archive_retention_dry_run.py` and is limited to candidate selection.
 
 Expected dry-run output:
 
@@ -88,12 +90,12 @@ Commit mode, if ever added, must require an explicit confirmation flag and must 
 
 Before any prune code can write to SQLite:
 
-1. Candidate selection unit tests for pinned, archived, safety floor, oldest-first ordering, and below-threshold cases.
-2. Dry-run smoke test proving zero side effects.
+1. Candidate selection unit tests for pinned, archived, safety floor, oldest-first ordering, and below-threshold cases. Current script-level self-test: `python3 scripts/archive_retention_dry_run_selftest.py`.
+2. Dry-run smoke test proving zero side effects. Current local smoke: `python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run`.
 3. Integration test for any prune endpoint in dry-run mode only.
 4. Health-check tests for threshold warnings. Current script-level self-test: `python3 scripts/sqlite_health_check_selftest.py`.
 5. Manual approval for any real deletion or cleanup operation.
 
 ## Current decision
 
-Current R4 scope is limited to health signals and design. Actual prune CLI/API implementation and existing orphan cleanup are deferred until explicit approval.
+Current R4 scope includes health signals, design, and a dry-run-only candidate selector. Actual prune/delete CLI, API implementation, and existing orphan cleanup are deferred until explicit approval.
