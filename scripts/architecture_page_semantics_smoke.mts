@@ -139,4 +139,17 @@ assert.match(archModelCode, /ArchitectureNodeOverride/, 'architecture/model shou
 assert.match(archModelCode, /nodeOverrides\[node\.node_key\]\?\.stageKeyOverride/, 'architecture/model should apply stage overrides before bucket render')
 assert.match(archModelCode, /displayNameOverride/, 'architecture/model should prefer label overrides when rendering cards')
 
+// ============================================================
+// Section 15: Presentation annotations
+// ============================================================
+assert.match(archModelCode, /ArchitectureAnnotation/, 'architecture/model should define annotation type')
+assert.match(archStorageCode, /ArchitectureAnnotationState/, 'architecture/storage should define persisted annotation state')
+assert.match(archStorageCode, /annotations/, 'architecture/storage should persist annotations with override state')
+assert.match(archPageCode, /annotations/, 'ArchitecturePage should track presentation annotations')
+assert.match(archPageCode, /arch-annotation-draft/, 'ArchitecturePage should expose annotation draft input')
+assert.match(archPageCode, /arch-annotation-add-btn/, 'ArchitecturePage should expose annotation add action')
+assert.match(archPageCode, /arch-annotation-delete-btn/, 'ArchitecturePage should expose annotation delete action')
+assert.match(archPageCode, /Presentation Notes/, 'ArchitecturePage should render a presentation notes panel')
+assert.match(archPageCode, /presentation annotations/, 'ArchitecturePage should describe annotations as source-safe override delta')
+
 console.log('architecture_page_semantics_smoke.mts: all assertions passed')

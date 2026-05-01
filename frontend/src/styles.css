@@ -1622,8 +1622,55 @@ select {
   min-width: 980px;
 }
 
+.architecture-annotation-board,
 .architecture-zone-board {
   margin-top: 20px;
+}
+
+.architecture-annotation-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.architecture-annotation-compose textarea,
+.architecture-annotation-card textarea {
+  width: 100%;
+  min-height: 76px;
+  resize: vertical;
+}
+
+.architecture-annotation-actions,
+.architecture-annotation-toolbar {
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.architecture-annotation-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.architecture-annotation-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.architecture-annotation-info {
+  border-color: rgba(96, 165, 250, 0.3);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.architecture-annotation-warning {
+  border-color: rgba(251, 146, 60, 0.34);
+  background: rgba(249, 115, 22, 0.12);
 }
 
 .architecture-stage-board {

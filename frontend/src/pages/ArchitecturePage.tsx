@@ -19,6 +19,7 @@ import {
   ARCHITECTURE_STAGE_ORDER,
   buildArchitectureViewModel,
   renderArchitectureSvg,
+  type ArchitectureAnnotation,
   type ArchitectureEdge,
   type ArchitectureNode,
   type ArchitectureNodeOverride,
@@ -117,6 +118,22 @@ function normalizeNodeOverrides(overrides?: Record<string, { displayNameOverride
   return result
 }
 
+function normalizeAnnotations(annotations?: Array<{ id?: string; text?: string; tone?: string; updatedAt?: string }>): ArchitectureAnnotation[] {
+  const result: ArchitectureAnnotation[] = []
+
+  for (const annotation of annotations ?? []) {
+    const text = annotation.text?.trim().slice(0, 280) ?? ''
+    if (!annotation.id || !text) {
+      continue
+    }
+    const tone: ArchitectureAnnotation['tone'] =
+      annotation.tone === 'warning' || annotation.tone === 'info' ? annotation.tone : 'note'
+    result.push({ id: annotation.id, text, tone, updatedAt: annotation.updatedAt })
+  }
+
+  return result
+}
+
 function filterTopologyByHiddenSourceKeys(
   topology: TopologyResponse | null,
   hiddenSourceNodeKeySet: Set<string>,
@@ -195,6 +212,9 @@ export function ArchitecturePage() {
   const [groupThreshold, setGroupThreshold] = useState(2)
   const [hiddenSourceNodeKeys, setHiddenSourceNodeKeys] = useState<string[]>([])
   const [nodeOverrides, setNodeOverrides] = useState<Record<string, ArchitectureNodeOverride>>({})
+  const [annotations, setAnnotations] = useState<ArchitectureAnnotation[]>([])
+  const [annotationDraft, setAnnotationDraft] = useState('')
+  const [annotationTone, setAnnotationTone] = useState<ArchitectureAnnotation['tone']>('note')
   const [overridesReady, setOverridesReady] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [exportLoading, setExportLoading] = useState(false)
@@ -337,6 +357,8 @@ export function ArchitecturePage() {
     if (!overrideScopeKey || !selectedWorkspaceId) {
       setHiddenSourceNodeKeys([])
       setNodeOverrides({})
+      setAnnotations([])
+      setAnnotationDraft('')
       setOverridesReady(false)
       return
     }
@@ -345,6 +367,7 @@ export function ArchitecturePage() {
     const state = loadArchitectureOverrideState(overrideScopeKey)
     setHiddenSourceNodeKeys(state.hiddenSourceNodeKeys)
     setNodeOverrides(normalizeNodeOverrides(state.nodeOverrides))
+    setAnnotations(normalizeAnnotations(state.annotations))
     setOverridesReady(true)
   }, [overrideScopeKey, selectedWorkspaceId])
 
@@ -356,9 +379,10 @@ export function ArchitecturePage() {
     saveArchitectureOverrideState(overrideScopeKey, {
       hiddenSourceNodeKeys,
       nodeOverrides,
+      annotations,
       updatedAt: new Date().toISOString(),
     })
-  }, [hiddenSourceNodeKeys, nodeOverrides, overrideScopeKey, overridesReady, selectedWorkspaceId])
+  }, [annotations, hiddenSourceNodeKeys, nodeOverrides, overrideScopeKey, overridesReady, selectedWorkspaceId])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -582,9 +606,48 @@ export function ArchitecturePage() {
   function resetHiddenNodes() {
     setHiddenSourceNodeKeys([])
     setNodeOverrides({})
+    setAnnotations([])
+    setAnnotationDraft('')
     if (overrideScopeKey) {
       clearArchitectureOverrideState(overrideScopeKey)
     }
+  }
+
+  function createAnnotation() {
+    const text = annotationDraft.trim().slice(0, 280)
+    if (!text) {
+      return
+    }
+
+    const now = new Date().toISOString()
+    setAnnotations((current) => [
+      ...current,
+      { id: `annotation:${Date.now().toString(36)}`, text, tone: annotationTone, updatedAt: now },
+    ])
+    setAnnotationDraft('')
+  }
+
+  function updateAnnotation(annotationId: string, text: string) {
+    const nextText = text.slice(0, 280)
+    setAnnotations((current) =>
+      current.map((annotation) =>
+        annotation.id === annotationId
+          ? { ...annotation, text: nextText, updatedAt: new Date().toISOString() }
+          : annotation,
+      ),
+    )
+  }
+
+  function updateAnnotationTone(annotationId: string, tone: ArchitectureAnnotation['tone']) {
+    setAnnotations((current) =>
+      current.map((annotation) =>
+        annotation.id === annotationId ? { ...annotation, tone, updatedAt: new Date().toISOString() } : annotation,
+      ),
+    )
+  }
+
+  function deleteAnnotation(annotationId: string) {
+    setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId))
   }
 
   async function handleCopySvg() {
@@ -807,9 +870,9 @@ export function ArchitecturePage() {
                 type="button"
                 className="toolbar-button"
                 onClick={resetHiddenNodes}
-                disabled={!hiddenSourceNodeKeys.length && !Object.keys(nodeOverrides).length}
+                disabled={!hiddenSourceNodeKeys.length && !Object.keys(nodeOverrides).length && !annotations.length}
               >
-                Reset all overrides{hiddenNodes.length > 0 ? ` (${hiddenNodes.length} hidden)` : ''}
+                Reset all overrides{hiddenNodes.length > 0 || annotations.length > 0 ? ` (${hiddenNodes.length} hidden, ${annotations.length} notes)` : ''}
               </button>
               <button type="button" className="toolbar-button" onClick={() => void handleExport('png')} disabled={exportLoading || !visibleNodes.length}>
                 {exportLoading ? 'Exporting…' : 'Export PNG'}
@@ -850,7 +913,7 @@ export function ArchitecturePage() {
           </div>
           <p className="hint architecture-hint-copy">
             Override delta is stored separately by workspace + subscription + RG scope and tracks hidden
-            source topology node keys plus label/stage overrides, so the topology source remains intact even when grouping threshold changes.
+            source topology node keys plus label/stage overrides and presentation annotations, so the topology source remains intact even when grouping threshold changes.
             The infra overlay can be hidden for presentation exports without removing network resources from the source topology.
             Copy SVG rasterizes the current diagram to PNG and writes it to the system clipboard.
           </p>
@@ -962,6 +1025,79 @@ export function ArchitecturePage() {
           <span className="mini-status">SVG-based export-safe rendering</span>
         </div>
         <div className="architecture-svg-shell" dangerouslySetInnerHTML={{ __html: svgDiagram.svg }} />
+      </section>
+
+      <section className="panel-card architecture-annotation-board">
+        <div className="section-heading">
+          <h2>Presentation Notes</h2>
+          <span className="mini-status">Local annotation delta • {annotations.length} note{annotations.length === 1 ? '' : 's'}</span>
+        </div>
+        <div className="architecture-annotation-compose" data-testid="arch-annotation-compose">
+          <textarea
+            value={annotationDraft}
+            onChange={(event) => setAnnotationDraft(event.target.value.slice(0, 280))}
+            placeholder="Add a short presentation note for this architecture view…"
+            aria-label="Architecture annotation text"
+            data-testid="arch-annotation-draft"
+          />
+          <div className="button-row architecture-annotation-actions">
+            <select
+              value={annotationTone}
+              onChange={(event) => setAnnotationTone(event.target.value as ArchitectureAnnotation['tone'])}
+              aria-label="Architecture annotation tone"
+              data-testid="arch-annotation-tone"
+            >
+              <option value="note">Note</option>
+              <option value="info">Info</option>
+              <option value="warning">Warning</option>
+            </select>
+            <button
+              type="button"
+              className="toolbar-button primary"
+              onClick={createAnnotation}
+              disabled={!annotationDraft.trim()}
+              data-testid="arch-annotation-add-btn"
+            >
+              Add note
+            </button>
+          </div>
+        </div>
+        {annotations.length ? (
+          <div className="architecture-annotation-list" data-testid="arch-annotation-list">
+            {annotations.map((annotation) => (
+              <article key={annotation.id} className={`architecture-annotation-card architecture-annotation-${annotation.tone}`}>
+                <div className="button-row architecture-annotation-toolbar">
+                  <select
+                    value={annotation.tone}
+                    onChange={(event) => updateAnnotationTone(annotation.id, event.target.value as ArchitectureAnnotation['tone'])}
+                    aria-label="Update annotation tone"
+                    data-testid="arch-annotation-item-tone"
+                  >
+                    <option value="note">Note</option>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="toolbar-button search-inline-button"
+                    onClick={() => deleteAnnotation(annotation.id)}
+                    data-testid="arch-annotation-delete-btn"
+                  >
+                    Delete
+                  </button>
+                </div>
+                <textarea
+                  value={annotation.text}
+                  onChange={(event) => updateAnnotation(annotation.id, event.target.value)}
+                  aria-label="Edit architecture annotation"
+                  data-testid="arch-annotation-item-text"
+                />
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="hint">No presentation notes yet. Notes are saved with the same workspace/subscription/RG override scope.</p>
+        )}
       </section>
 
       <section className="panel-card architecture-zone-board">

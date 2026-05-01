@@ -3,9 +3,17 @@ export type ArchitectureNodeOverrideState = {
   stageKeyOverride?: string
 }
 
+export type ArchitectureAnnotationState = {
+  id: string
+  text: string
+  tone?: 'note' | 'warning' | 'info'
+  updatedAt?: string
+}
+
 export type ArchitectureOverrideState = {
   hiddenSourceNodeKeys: string[]
   nodeOverrides?: Record<string, ArchitectureNodeOverrideState>
+  annotations?: ArchitectureAnnotationState[]
   updatedAt?: string
 }
 
@@ -47,12 +55,12 @@ function writeAllStates(states: Record<string, ArchitectureOverrideState>) {
 
 export function loadArchitectureOverrideState(scopeKey: string): ArchitectureOverrideState {
   if (!scopeKey) {
-    return { hiddenSourceNodeKeys: [] }
+    return { hiddenSourceNodeKeys: [], annotations: [] }
   }
 
   const state = readAllStates()[scopeKey]
   if (!state || !Array.isArray(state.hiddenSourceNodeKeys)) {
-    return { hiddenSourceNodeKeys: [] }
+    return { hiddenSourceNodeKeys: [], annotations: [] }
   }
 
   const nodeOverrides =
@@ -69,6 +77,24 @@ export function loadArchitectureOverrideState(scopeKey: string): ArchitectureOve
       (value): value is string => typeof value === 'string' && value.length > 0,
     ),
     nodeOverrides,
+    annotations: Array.isArray(state.annotations)
+      ? state.annotations
+          .filter((annotation): annotation is ArchitectureAnnotationState =>
+            Boolean(
+              annotation &&
+                typeof annotation.id === 'string' &&
+                annotation.id.length > 0 &&
+                typeof annotation.text === 'string' &&
+                annotation.text.trim().length > 0,
+            ),
+          )
+          .map((annotation) => ({
+            id: annotation.id,
+            text: annotation.text.trim().slice(0, 280),
+            tone: annotation.tone === 'warning' || annotation.tone === 'info' ? annotation.tone : 'note',
+            updatedAt: annotation.updatedAt,
+          }))
+      : [],
     updatedAt: state.updatedAt,
   }
 }
@@ -93,6 +119,14 @@ export function saveArchitectureOverrideState(
       left.localeCompare(right),
     ),
     nodeOverrides,
+    annotations: (state.annotations ?? [])
+      .filter((annotation) => annotation.text.trim().length > 0)
+      .map((annotation) => ({
+        id: annotation.id,
+        text: annotation.text.trim().slice(0, 280),
+        tone: annotation.tone === 'warning' || annotation.tone === 'info' ? annotation.tone : 'note',
+        updatedAt: annotation.updatedAt ?? new Date().toISOString(),
+      })),
     updatedAt: state.updatedAt ?? new Date().toISOString(),
   }
   writeAllStates(states)

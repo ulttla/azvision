@@ -77,6 +77,13 @@ export type ArchitectureNodeOverride = {
   stageKeyOverride?: ArchitectureStage
 }
 
+export type ArchitectureAnnotation = {
+  id: string
+  text: string
+  tone: 'note' | 'warning' | 'info'
+  updatedAt?: string
+}
+
 export type ArchitectureSvgResult = {
   svg: string
   width: number
