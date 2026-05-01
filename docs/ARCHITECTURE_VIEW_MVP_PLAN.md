@@ -342,6 +342,7 @@ export type ArchitectureViewOverrideState = {
   - presentation label override: `displayNameOverride`
   - presentation stage move: `stageKeyOverride`
   - presentation annotations: `annotations[]` with note/info/warning tone
+  - presentation order: `position.order` with drag/drop plus Earlier/Later controls
   - scope reset: `Reset all overrides`
 - infra overlay lane toggle 반영 완료. 발표/export용으로 infra lane을 숨겨도 원본 topology는 변경하지 않음
 - presentation notes panel 반영 완료. 짧은 발표용 메모를 topology source와 분리된 local override delta로 저장함
