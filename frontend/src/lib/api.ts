@@ -432,6 +432,11 @@ export type SnapshotApiCreateRequest = {
   /** Original capture timestamp. When provided (e.g. on local→server import) the
    *  server preserves it instead of using the current time. */
   captured_at?: string
+  /** Optional raw topology payload for server-side normalized archive storage. */
+  topology?: {
+    nodes: Array<Record<string, unknown>>
+    edges: Array<Record<string, unknown>>
+  }
 }
 
 export type SnapshotApiUpdateRequest = {

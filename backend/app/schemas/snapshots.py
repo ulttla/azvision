@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.topology_archive import TopologyPayload
+
 SNAPSHOT_NAME_MAX_LENGTH = 120
 SNAPSHOT_NOTE_MAX_LENGTH = 2000
 SNAPSHOT_THUMBNAIL_MAX_LENGTH = 500 * 1024
@@ -72,6 +74,9 @@ class SnapshotCreateRequest(SnapshotBase):
     # Optional: caller may supply the original capture timestamp (e.g. on local→server import).
     # When omitted the service uses the current UTC time.
     captured_at: str | None = None
+    # Optional raw topology payload. When present, the service stores a normalized
+    # topology archive alongside the snapshot so raw topology diff can compare it later.
+    topology: TopologyPayload | None = None
 
 
 class SnapshotUpdateRequest(BaseModel):
