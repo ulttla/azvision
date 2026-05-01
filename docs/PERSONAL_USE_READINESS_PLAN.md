@@ -121,7 +121,8 @@ Expected result:
 
 ## Next development priorities after v0.9
 
-1. Lightweight Architecture View readiness badges are now implemented for backend health, auth readiness, and topology generated time. Consider a shared app-shell badge only if the same signal becomes useful outside Architecture View.
+1. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
 2. Add PDF export smoke if PDF becomes part of the immediate personal workflow.
-3. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
-4. Re-enter productization planning separately when external-user goals return.
+3. Consider a shared app-shell readiness badge only if the same health/auth/topology-age signal becomes useful outside Architecture View.
+4. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
+5. Re-enter productization planning separately when external-user goals return.

@@ -343,16 +343,19 @@ export type ArchitectureViewOverrideState = {
   - presentation stage move: `stageKeyOverride`
   - presentation annotations: `annotations[]` with note/info/warning tone
   - presentation order: `position.order` with drag/drop plus Earlier/Later controls
+  - scale/scroll viewing controls: `100 / 90 / 80 / 67 / 55%`, default 80%, with horizontal scroll fallback for smaller displays
   - scope reset: `Reset all overrides`
 - infra overlay lane toggle 반영 완료. 발표/export용으로 infra lane을 숨겨도 원본 topology는 변경하지 않음
 - presentation notes panel 반영 완료. 짧은 발표용 메모를 topology source와 분리된 local override delta로 저장함
 - presentation notes는 export-safe SVG에도 함께 렌더링되어 PNG/PDF/clipboard 출력에 포함됨
+- Zone Board 화면 잘림 방지 pass 반영 완료. stage board/card action/chip overflow를 정리했고, 작은 화면에서는 축소 후 필요 시 스크롤로 이동 가능함
 - export PNG/PDF, clipboard PNG copy, group threshold, network inference toggle 연결 완료
 - lightweight readiness badges 반영 완료. backend health, auth readiness, topology generated time을 Architecture View 상단에서 확인 가능
 - label readability pass 반영 완료
   - domain token split / acronym prettify / singleton label polish 적용
   - short-only compact alias 2차 적용(`Synapse WS`, `MI`, `MI Support Net`, `SQL MI SW Dev Net`, `Pricing Calculator CDN` 류)
 - 검증 상태: `npm --prefix frontend run build`, `npm --prefix frontend run smoke:semantics`, `scripts/personal_use_acceptance.sh` PASS
+- Browser/CDP evidence: channel profile `azvision-dev`에서 Architecture View live render, layout clipping fix, scale/scroll UX smoke 확인. 관련 screenshot은 `tmp/architecture-view-layout-fix-smoke.png`, `tmp/architecture-view-scale-scroll-smoke.png`.
 
 ## reviewer check 요청 포인트
 ### UX / Product
