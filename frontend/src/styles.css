@@ -1594,6 +1594,13 @@ select {
   color: #fecdd3;
 }
 
+.architecture-health-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .architecture-source-list {
   display: grid;
   gap: 8px;

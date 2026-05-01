@@ -527,6 +527,10 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
+export async function getBackendHealth(): Promise<{ status: string }> {
+  return fetchJson('/healthz')
+}
+
 export async function getWorkspaces(): Promise<Workspace[]> {
   const data = await fetchJson<{ items: Workspace[] }>('/workspaces')
   return data.items

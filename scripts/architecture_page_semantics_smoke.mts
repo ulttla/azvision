@@ -25,6 +25,7 @@ const requiredImports = [
   'getTopology',
   'createExport',
   'getAuthConfigCheck',
+  'getBackendHealth',
 ]
 
 for (const imp of requiredImports) {
@@ -117,6 +118,9 @@ assert.match(apiCode, /export type TopologyResponse/, 'api.ts should export Topo
 // Section 12: Auth diagnostics
 // ============================================================
 assert.match(archPageCode, /getAuthConfigCheck/, 'ArchitecturePage should import getAuthConfigCheck')
+assert.match(archPageCode, /getBackendHealth/, 'ArchitecturePage should import getBackendHealth')
+assert.match(apiCode, /getBackendHealth/, 'api.ts should expose backend health helper')
+assert.match(archPageCode, /arch-health-badges/, 'ArchitecturePage should render health/readiness badges')
 
 // ============================================================
 // Section 13: Infra overlay presentation control

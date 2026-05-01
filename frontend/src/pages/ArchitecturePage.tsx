@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   createExport,
   getAuthConfigCheck,
+  getBackendHealth,
   getTopology,
   getWorkspaceInventorySummary,
   getWorkspaceResourceGroups,
@@ -206,6 +207,7 @@ export function ArchitecturePage() {
   const [loading, setLoading] = useState(true)
   const [topologyLoading, setTopologyLoading] = useState(false)
   const [authReady, setAuthReady] = useState(false)
+  const [backendHealthStatus, setBackendHealthStatus] = useState<'checking' | 'ok' | 'error'>('checking')
   const [error, setError] = useState('')
   const [includeNetworkInference, setIncludeNetworkInference] = useState(true)
   const [showInfraOverlay, setShowInfraOverlay] = useState(true)
@@ -226,18 +228,24 @@ export function ArchitecturePage() {
     async function loadInitialData() {
       try {
         setLoading(true)
-        const [workspaceItems, authStatus] = await Promise.all([getWorkspaces(), getAuthConfigCheck()])
+        const [workspaceItems, authStatus, healthStatus] = await Promise.all([
+          getWorkspaces(),
+          getAuthConfigCheck(),
+          getBackendHealth(),
+        ])
         if (!active) {
           return
         }
 
         setWorkspaces(workspaceItems)
         setAuthReady(authStatus.auth_ready)
+        setBackendHealthStatus(healthStatus.status === 'ok' ? 'ok' : 'error')
         setSelectedWorkspaceId((current) => current || workspaceItems[0]?.id || '')
       } catch (err) {
         if (!active) {
           return
         }
+        setBackendHealthStatus('error')
         setError(err instanceof Error ? err.message : 'Failed to load architecture workspace data')
       } finally {
         if (active) {
@@ -725,9 +733,17 @@ export function ArchitecturePage() {
             keep infra separated, and persist lightweight hide, label, and stage overrides for presentation-ready views.
           </p>
         </div>
-        <span className={`status-pill ${authReady ? 'ready' : 'pending'}`}>
-          {authReady ? 'Live inventory ready' : 'Diagnostic mode'}
-        </span>
+        <div className="architecture-health-badges" data-testid="arch-health-badges">
+          <span className={`status-pill ${backendHealthStatus === 'ok' ? 'ready' : 'pending'}`} data-testid="arch-health-backend">
+            Backend {backendHealthStatus === 'ok' ? 'healthy' : backendHealthStatus === 'checking' ? 'checking' : 'unavailable'}
+          </span>
+          <span className={`status-pill ${authReady ? 'ready' : 'pending'}`} data-testid="arch-health-auth">
+            {authReady ? 'Live inventory ready' : 'Diagnostic mode'}
+          </span>
+          <span className="status-pill pending" data-testid="arch-health-topology-age">
+            Topology {topology?.generated_at ? formatDateTime(topology.generated_at) : 'not loaded'}
+          </span>
+        </div>
       </section>
 
       {error ? <div className="error-banner">API error: {error}</div> : null}
