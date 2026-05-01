@@ -341,9 +341,12 @@ export type ArchitectureViewOverrideState = {
   - hide/show: `hiddenSourceNodeKeys`
   - presentation label override: `displayNameOverride`
   - presentation stage move: `stageKeyOverride`
+  - presentation annotations: `annotations[]` with note/info/warning tone
   - scope reset: `Reset all overrides`
 - infra overlay lane toggle 반영 완료. 발표/export용으로 infra lane을 숨겨도 원본 topology는 변경하지 않음
-- export PNG/PDF, group threshold, network inference toggle 연결 완료
+- presentation notes panel 반영 완료. 짧은 발표용 메모를 topology source와 분리된 local override delta로 저장함
+- export PNG/PDF, clipboard PNG copy, group threshold, network inference toggle 연결 완료
+- lightweight readiness badges 반영 완료. backend health, auth readiness, topology generated time을 Architecture View 상단에서 확인 가능
 - label readability pass 반영 완료
   - domain token split / acronym prettify / singleton label polish 적용
   - short-only compact alias 2차 적용(`Synapse WS`, `MI`, `MI Support Net`, `SQL MI SW Dev Net`, `Pricing Calculator CDN` 류)

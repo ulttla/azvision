@@ -20,7 +20,7 @@ Implemented:
   - deterministic topology normalization and SHA-256 hash utility.
   - `POST /workspaces/{workspace_id}/snapshots/{snapshot_id}/topology-archive`.
   - `POST /workspaces/{workspace_id}/snapshots/compare/topology` with metadata fallback when an archive is missing.
-  - snapshot create auto-archive helper when a topology payload is available.
+  - snapshot create accepts optional `topology` payload and auto-archives it when nodes are present.
   - archive size/count reporting in `scripts/sqlite_health_check.py`.
   - `scripts/topology_archive_smoke.mts` included in `npm --prefix frontend run smoke:semantics`.
 
@@ -201,7 +201,7 @@ Accepted R3/R4 bounded gates:
 
 Remaining deferred gates:
 
-- API-level archive store -> compare integration coverage can be added to bridge unit tests and smoke scripts.
+- API-level snapshot create `topology` payload -> auto archive -> compare integration coverage is implemented in `backend/tests/test_topology_archive_integration.py`.
 - Real archive prune/delete behavior remains deferred and requires an explicit approval path; do not add write mode to the dry-run script by default.
 
 ## Risks

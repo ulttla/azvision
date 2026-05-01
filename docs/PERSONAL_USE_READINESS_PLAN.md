@@ -121,7 +121,7 @@ Expected result:
 
 ## Next development priorities after v0.9
 
-1. Add a lightweight UI/readiness badge or health panel only if daily use shows repeated friction.
+1. Lightweight Architecture View readiness badges are now implemented for backend health, auth readiness, and topology generated time. Consider a shared app-shell badge only if the same signal becomes useful outside Architecture View.
 2. Add PDF export smoke if PDF becomes part of the immediate personal workflow.
 3. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
 4. Re-enter productization planning separately when external-user goals return.
