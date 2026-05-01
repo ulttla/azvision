@@ -552,8 +552,8 @@ export function ArchitecturePage() {
   }, [selectedNode, selectedNodeId])
 
   const svgDiagram = useMemo(
-    () => renderArchitectureSvg(visibleStageBuckets, visibleEdges),
-    [visibleEdges, visibleStageBuckets],
+    () => renderArchitectureSvg(visibleStageBuckets, visibleEdges, { annotations }),
+    [annotations, visibleEdges, visibleStageBuckets],
   )
 
   const isInitialTopologyLoad = topologyLoading && topology === null

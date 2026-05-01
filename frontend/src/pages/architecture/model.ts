@@ -1107,6 +1107,7 @@ function wrapNodeLabel(label: string): string[] {
 export function renderArchitectureSvg(
   stageBuckets: ArchitectureStageBucket[],
   edges: ArchitectureEdge[],
+  options?: { annotations?: ArchitectureAnnotation[] },
 ): ArchitectureSvgResult {
   const visibleBuckets = stageBuckets.filter((bucket) => bucket.nodes.length > 0)
   const buckets = visibleBuckets.length
@@ -1121,6 +1122,8 @@ export function renderArchitectureSvg(
   const nodeGap = 12
   const canvasPadding = 28
   const footerHeight = 24
+  const annotationRows = Math.ceil(Math.min(options?.annotations?.length ?? 0, 6) / 3)
+  const annotationHeight = annotationRows ? annotationRows * 86 + 20 : 0
   const innerHeight = Math.max(
     320,
     ...buckets.map(
@@ -1132,7 +1135,7 @@ export function renderArchitectureSvg(
     ),
   )
   const width = canvasPadding * 2 + buckets.length * stageWidth + Math.max(0, buckets.length - 1) * stageGap
-  const height = canvasPadding * 2 + innerHeight + footerHeight
+  const height = canvasPadding * 2 + innerHeight + annotationHeight + footerHeight
 
   const stageX = new Map<ArchitectureStage, number>()
   const nodePosition = new Map<string, { x: number; y: number; width: number; height: number }>()
@@ -1213,6 +1216,27 @@ export function renderArchitectureSvg(
     })
     .join('')
 
+  const annotationMarkup = (options?.annotations ?? [])
+    .slice(0, 6)
+    .map((annotation, index) => {
+      const cardWidth = 260
+      const cardHeight = 68
+      const col = index % 3
+      const row = Math.floor(index / 3)
+      const x = canvasPadding + col * (cardWidth + 18)
+      const y = canvasPadding + innerHeight + 18 + row * (cardHeight + 16)
+      const toneColor = annotation.tone === 'warning' ? '#fb923c' : annotation.tone === 'info' ? '#60a5fa' : '#facc15'
+      const lines = wrapNodeLabel(annotation.text).map((line) => clip(line, 28))
+      return `
+        <g>
+          <rect x="${x}" y="${y}" width="${cardWidth}" height="${cardHeight}" rx="14" fill="rgba(15, 23, 42, 0.9)" stroke="${toneColor}" opacity="0.96" />
+          <text x="${x + 14}" y="${y + 22}" fill="${toneColor}" font-size="11" font-weight="700" font-family="Inter, Arial, sans-serif">${escapeXml(annotation.tone.toUpperCase())}</text>
+          ${renderSvgTextLines(x + 14, y + 42, lines, '#e2e8f0', 12)}
+        </g>
+      `
+    })
+    .join('')
+
   const legend = ARCHITECTURE_STAGE_ORDER.map((stage) => ARCHITECTURE_STAGE_META[stage])
     .map(
       (meta, index) => `
@@ -1228,6 +1252,7 @@ export function renderArchitectureSvg(
       ${arrowMarker}
       ${edgeMarkup}
       ${stageRects}
+      ${annotationMarkup}
       ${legend}
     </svg>
   `

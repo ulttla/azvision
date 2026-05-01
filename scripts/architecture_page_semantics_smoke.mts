@@ -155,6 +155,8 @@ assert.match(archPageCode, /arch-annotation-add-btn/, 'ArchitecturePage should e
 assert.match(archPageCode, /arch-annotation-delete-btn/, 'ArchitecturePage should expose annotation delete action')
 assert.match(archPageCode, /Presentation Notes/, 'ArchitecturePage should render a presentation notes panel')
 assert.match(archPageCode, /presentation annotations/, 'ArchitecturePage should describe annotations as source-safe override delta')
+assert.match(archPageCode, /renderArchitectureSvg\(visibleStageBuckets, visibleEdges, \{ annotations \}\)/, 'ArchitecturePage should include annotations in export-safe SVG rendering')
+assert.match(archModelCode, /annotationMarkup/, 'architecture/model should render annotations into the SVG diagram')
 
 // ============================================================
 // Section 16: Presentation order / drag reposition
