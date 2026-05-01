@@ -1680,10 +1680,31 @@ select {
   background: rgba(249, 115, 22, 0.12);
 }
 
+.architecture-zone-heading {
+  align-items: flex-start;
+}
+
+.architecture-scale-controls {
+  justify-content: flex-end;
+}
+
+.architecture-stage-scroll {
+  overflow: auto;
+  padding: 2px 2px 10px;
+  scrollbar-gutter: stable both-edges;
+}
+
+.architecture-stage-scale-frame {
+  --architecture-board-scale: 1;
+  min-width: 100%;
+}
+
 .architecture-stage-board {
+  --architecture-column-min: calc(260px * var(--architecture-board-scale));
+  --architecture-board-gap: max(8px, calc(16px * var(--architecture-board-scale)));
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(7, minmax(var(--architecture-column-min), 1fr));
+  gap: var(--architecture-board-gap);
   overflow-x: visible;
   padding-bottom: 4px;
 }
@@ -1692,15 +1713,15 @@ select {
   min-width: 0;
   display: grid;
   align-content: start;
-  gap: 10px;
+  gap: max(7px, calc(10px * var(--architecture-board-scale)));
 }
 
 .architecture-stage-header {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: max(6px, calc(8px * var(--architecture-board-scale)));
   align-items: center;
-  padding: 12px 14px;
+  padding: max(8px, calc(12px * var(--architecture-board-scale))) max(10px, calc(14px * var(--architecture-board-scale)));
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(15, 23, 42, 0.68);
@@ -1718,14 +1739,14 @@ select {
 
 .architecture-stage-card-list {
   display: grid;
-  gap: 10px;
+  gap: max(7px, calc(10px * var(--architecture-board-scale)));
   min-width: 0;
 }
 
 .architecture-node-card {
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: max(7px, calc(10px * var(--architecture-board-scale)));
+  padding: max(8px, calc(12px * var(--architecture-board-scale)));
   border-radius: 14px;
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.14);
@@ -1742,7 +1763,7 @@ select {
 }
 
 .architecture-node-button {
-  gap: 12px;
+  gap: max(8px, calc(12px * var(--architecture-board-scale)));
   min-width: 0;
 }
 

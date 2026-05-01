@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
 import {
   createExport,
@@ -65,6 +65,12 @@ function parseInitialSubscriptionId(): string {
 
 function parseInitialResourceGroupName(): string {
   return readInitialSearchParam('rg')
+}
+
+const ARCHITECTURE_BOARD_SCALE_OPTIONS = [1, 0.9, 0.8, 0.67, 0.55] as const
+
+function formatScaleLabel(scale: number): string {
+  return `${Math.round(scale * 100)}%`
 }
 
 function filterTopologyByVisibleSourceKeys(
@@ -225,6 +231,7 @@ export function ArchitecturePage() {
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [exportLoading, setExportLoading] = useState(false)
   const [exportMessage, setExportMessage] = useState('')
+  const [zoneBoardScale, setZoneBoardScale] = useState<(typeof ARCHITECTURE_BOARD_SCALE_OPTIONS)[number]>(0.8)
 
   useEffect(() => {
     let active = true
@@ -1188,12 +1195,34 @@ export function ArchitecturePage() {
       </section>
 
       <section className="panel-card architecture-zone-board">
-        <div className="section-heading">
-          <h2>Zone Board</h2>
-          <span className="mini-status">Select cards for detail • hide noisy support items</span>
+        <div className="section-heading architecture-zone-heading">
+          <div>
+            <h2>Zone Board</h2>
+            <span className="mini-status">Scale to fit first • scroll when the board still needs more room</span>
+          </div>
+          <div className="button-row architecture-scale-controls" aria-label="Architecture board zoom controls">
+            {ARCHITECTURE_BOARD_SCALE_OPTIONS.map((scale) => (
+              <button
+                key={scale}
+                type="button"
+                className={`toolbar-button search-inline-button ${zoneBoardScale === scale ? 'primary' : ''}`}
+                onClick={() => setZoneBoardScale(scale)}
+                aria-pressed={zoneBoardScale === scale}
+                data-testid="arch-board-scale-btn"
+              >
+                {formatScaleLabel(scale)}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="architecture-stage-board">
-          {visibleStageBuckets.map((bucket) => {
+        <div className="architecture-stage-scroll" data-testid="arch-stage-scroll">
+          <div
+            className="architecture-stage-scale-frame"
+            style={{ '--architecture-board-scale': zoneBoardScale } as CSSProperties}
+            data-testid="arch-stage-scale-frame"
+          >
+            <div className="architecture-stage-board">
+              {visibleStageBuckets.map((bucket) => {
             const meta = ARCHITECTURE_STAGE_META[bucket.stage]
             return (
               <section key={bucket.stage} className="architecture-stage-column">
@@ -1278,7 +1307,9 @@ export function ArchitecturePage() {
                 </div>
               </section>
             )
-          })}
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
