@@ -68,10 +68,13 @@ for (const stateName of expectedStates) {
 }
 
 // ============================================================
-// Section 5: ArchitecturePage export functionality
+// Section 5: ArchitecturePage export and copy functionality
 // ============================================================
 assert.match(archPageCode, /createExport/, 'ArchitecturePage should use createExport')
 assert.match(archPageCode, /export|Export/i, 'ArchitecturePage should have export functionality')
+assert.match(archPageCode, /handleCopySvg/, 'ArchitecturePage should have Copy SVG clipboard function')
+assert.match(archPageCode, /arch-copy-btn/, 'ArchitecturePage should render Copy SVG button with test id')
+assert.match(archPageCode, /navigator\.clipboard/, 'ArchitecturePage Copy SVG should use Clipboard API')
 
 // ============================================================
 // Section 6: ArchitecturePage URL param handling

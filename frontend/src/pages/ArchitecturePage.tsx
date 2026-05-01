@@ -587,6 +587,33 @@ export function ArchitecturePage() {
     }
   }
 
+  async function handleCopySvg() {
+    if (!visibleNodes.length) {
+      setExportMessage('Architecture diagram copy is unavailable without visible nodes.')
+      return
+    }
+
+    try {
+      setExportLoading(true)
+      setExportMessage('')
+
+      if (typeof navigator === 'undefined' || !navigator.clipboard) {
+        setExportMessage('Clipboard API is not available in this browser.')
+        return
+      }
+
+      const pngDataUrl = await rasterizeSvg(svgDiagram.svg, svgDiagram.width, svgDiagram.height)
+      const response = await fetch(pngDataUrl)
+      const blob = await response.blob()
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      setExportMessage('Copied architecture diagram to clipboard as PNG.')
+    } catch (err) {
+      setExportMessage(err instanceof Error ? err.message : 'Clipboard copy failed')
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   async function handleExport(format: 'png' | 'pdf') {
     if (!selectedWorkspaceId || !visibleNodes.length) {
       setExportMessage('Architecture diagram export is unavailable without visible nodes.')
@@ -790,6 +817,9 @@ export function ArchitecturePage() {
               <button type="button" className="toolbar-button" onClick={() => void handleExport('pdf')} disabled={exportLoading || !visibleNodes.length}>
                 {exportLoading ? 'Exporting…' : 'Export PDF'}
               </button>
+              <button type="button" className="toolbar-button" onClick={() => void handleCopySvg()} disabled={exportLoading || !visibleNodes.length} data-testid="arch-copy-btn">
+                {exportLoading ? 'Copying…' : 'Copy SVG'}
+              </button>
             </div>
           </div>
           <div className="control-grid architecture-control-grid">
@@ -822,6 +852,7 @@ export function ArchitecturePage() {
             Override delta is stored separately by workspace + subscription + RG scope and tracks hidden
             source topology node keys plus label/stage overrides, so the topology source remains intact even when grouping threshold changes.
             The infra overlay can be hidden for presentation exports without removing network resources from the source topology.
+            Copy SVG rasterizes the current diagram to PNG and writes it to the system clipboard.
           </p>
         </article>
 
