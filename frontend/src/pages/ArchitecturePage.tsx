@@ -98,7 +98,7 @@ function isArchitectureStage(value: string): value is ArchitectureStage {
   return Object.prototype.hasOwnProperty.call(ARCHITECTURE_STAGE_META, value)
 }
 
-function normalizeNodeOverrides(overrides?: Record<string, { displayNameOverride?: string; stageKeyOverride?: string }>) {
+function normalizeNodeOverrides(overrides?: Record<string, { displayNameOverride?: string; stageKeyOverride?: string; position?: { order?: number } }>) {
   const result: Record<string, ArchitectureNodeOverride> = {}
 
   for (const [nodeKey, override] of Object.entries(overrides ?? {})) {
@@ -111,7 +111,10 @@ function normalizeNodeOverrides(overrides?: Record<string, { displayNameOverride
     if (stageKeyOverride && isArchitectureStage(stageKeyOverride)) {
       next.stageKeyOverride = stageKeyOverride
     }
-    if (next.displayNameOverride || next.stageKeyOverride) {
+    if (override.position && Number.isFinite(override.position.order)) {
+      next.position = { order: Number(override.position.order) }
+    }
+    if (next.displayNameOverride || next.stageKeyOverride || next.position) {
       result[nodeKey] = next
     }
   }
@@ -217,6 +220,7 @@ export function ArchitecturePage() {
   const [annotations, setAnnotations] = useState<ArchitectureAnnotation[]>([])
   const [annotationDraft, setAnnotationDraft] = useState('')
   const [annotationTone, setAnnotationTone] = useState<ArchitectureAnnotation['tone']>('note')
+  const [draggedNodeId, setDraggedNodeId] = useState('')
   const [overridesReady, setOverridesReady] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState('')
   const [exportLoading, setExportLoading] = useState(false)
@@ -486,12 +490,31 @@ export function ArchitecturePage() {
     [groupThreshold, hiddenTopology, nodeOverrides],
   )
 
+  function nodePresentationOrder(node: ArchitectureNode): number | null {
+    const values = node.sourceNodeKeys
+      .map((nodeKey) => nodeOverrides[nodeKey]?.position?.order)
+      .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+    return values.length ? Math.min(...values) : null
+  }
+
+  function sortArchitectureNodes(nodes: ArchitectureNode[]): ArchitectureNode[] {
+    return nodes.slice().sort((left, right) => {
+      const leftOrder = nodePresentationOrder(left)
+      const rightOrder = nodePresentationOrder(right)
+      if (leftOrder !== null || rightOrder !== null) {
+        return (leftOrder ?? Number.MAX_SAFE_INTEGER) - (rightOrder ?? Number.MAX_SAFE_INTEGER)
+      }
+      return 0
+    })
+  }
+
   const visibleStageBuckets = useMemo(
     () =>
-      architectureModel.stageBuckets.map((bucket) =>
-        bucket.stage === 'infra' && !showInfraOverlay ? { ...bucket, nodes: [] } : bucket,
-      ),
-    [architectureModel.stageBuckets, showInfraOverlay],
+      architectureModel.stageBuckets.map((bucket) => {
+        const nodes = bucket.stage === 'infra' && !showInfraOverlay ? [] : sortArchitectureNodes(bucket.nodes)
+        return { ...bucket, nodes }
+      }),
+    [architectureModel.stageBuckets, nodeOverrides, showInfraOverlay],
   )
   const visibleNodes = useMemo(
     () => visibleStageBuckets.flatMap((bucket) => bucket.nodes),
@@ -609,6 +632,54 @@ export function ArchitecturePage() {
       }
       return next
     })
+  }
+
+  function setStageNodeOrder(nodes: ArchitectureNode[]) {
+    setNodeOverrides((current) => {
+      const next = { ...current }
+      nodes.forEach((node, index) => {
+        const order = (index + 1) * 10
+        for (const nodeKey of node.sourceNodeKeys) {
+          next[nodeKey] = { ...(next[nodeKey] ?? {}), position: { order } }
+        }
+      })
+      return next
+    })
+  }
+
+  function moveArchitectureNode(node: ArchitectureNode, direction: -1 | 1) {
+    const bucket = visibleStageBuckets.find((stageBucket) => stageBucket.stage === node.stage)
+    if (!bucket) {
+      return
+    }
+    const nodes = bucket.nodes.slice()
+    const index = nodes.findIndex((item) => item.id === node.id)
+    const targetIndex = index + direction
+    if (index < 0 || targetIndex < 0 || targetIndex >= nodes.length) {
+      return
+    }
+    const [moved] = nodes.splice(index, 1)
+    nodes.splice(targetIndex, 0, moved)
+    setStageNodeOrder(nodes)
+  }
+
+  function handleArchitectureNodeDrop(targetNode: ArchitectureNode) {
+    if (!draggedNodeId || draggedNodeId === targetNode.id) {
+      setDraggedNodeId('')
+      return
+    }
+    const bucket = visibleStageBuckets.find((stageBucket) => stageBucket.stage === targetNode.stage)
+    const draggedNode = bucket?.nodes.find((node) => node.id === draggedNodeId)
+    if (!bucket || !draggedNode) {
+      setDraggedNodeId('')
+      return
+    }
+    const nodes = bucket.nodes.filter((node) => node.id !== draggedNodeId)
+    const targetIndex = nodes.findIndex((node) => node.id === targetNode.id)
+    nodes.splice(Math.max(targetIndex, 0), 0, draggedNode)
+    setStageNodeOrder(nodes)
+    setSelectedNodeId(draggedNode.id)
+    setDraggedNodeId('')
   }
 
   function resetHiddenNodes() {
@@ -929,7 +1000,7 @@ export function ArchitecturePage() {
           </div>
           <p className="hint architecture-hint-copy">
             Override delta is stored separately by workspace + subscription + RG scope and tracks hidden
-            source topology node keys plus label/stage overrides and presentation annotations, so the topology source remains intact even when grouping threshold changes.
+            source topology node keys plus label/stage/order overrides and presentation annotations, so the topology source remains intact even when grouping threshold changes.
             The infra overlay can be hidden for presentation exports without removing network resources from the source topology.
             Copy SVG rasterizes the current diagram to PNG and writes it to the system clipboard.
           </p>
@@ -1012,7 +1083,7 @@ export function ArchitecturePage() {
                   disabled={!selectedNode.sourceNodeKeys.some((nodeKey) => nodeOverrides[nodeKey])}
                   data-testid="arch-detail-clear-presentation-btn"
                 >
-                  Clear label/stage override
+                  Clear label/stage/order override
                 </button>
               </div>
               <div className="architecture-source-list">
@@ -1135,12 +1206,17 @@ export function ArchitecturePage() {
                   {isInitialTopologyLoad && !bucket.nodes.length ? (
                     <div className="architecture-stage-empty">Loading…</div>
                   ) : bucket.nodes.length ? (
-                    bucket.nodes.map((node) => (
+                    bucket.nodes.map((node, index) => (
                       <article
                         key={node.id}
-                        className={`architecture-node-card ${selectedNode?.id === node.id ? 'selected' : ''}`}
+                        className={`architecture-node-card ${selectedNode?.id === node.id ? 'selected' : ''} ${draggedNodeId === node.id ? 'dragging' : ''}`}
                         data-testid="arch-node-card"
                         data-node-id={node.id}
+                        draggable
+                        onDragStart={() => setDraggedNodeId(node.id)}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => handleArchitectureNodeDrop(node)}
+                        onDragEnd={() => setDraggedNodeId('')}
                       >
                         <button
                           type="button"
@@ -1163,6 +1239,26 @@ export function ArchitecturePage() {
                             data-testid="arch-node-select-btn"
                           >
                             {selectedNode?.id === node.id ? 'Selected' : 'Select'}
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => moveArchitectureNode(node, -1)}
+                            disabled={index === 0}
+                            aria-label={`Move ${node.shortLabel} earlier in ${meta.label}`}
+                            data-testid="arch-node-move-earlier-btn"
+                          >
+                            Earlier
+                          </button>
+                          <button
+                            type="button"
+                            className="toolbar-button search-inline-button"
+                            onClick={() => moveArchitectureNode(node, 1)}
+                            disabled={index === bucket.nodes.length - 1}
+                            aria-label={`Move ${node.shortLabel} later in ${meta.label}`}
+                            data-testid="arch-node-move-later-btn"
+                          >
+                            Later
                           </button>
                           <button
                             type="button"

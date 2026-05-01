@@ -75,6 +75,7 @@ export type ArchitectureViewModel = {
 export type ArchitectureNodeOverride = {
   displayNameOverride?: string
   stageKeyOverride?: ArchitectureStage
+  position?: { order: number }
 }
 
 export type ArchitectureAnnotation = {

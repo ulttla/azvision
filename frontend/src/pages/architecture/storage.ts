@@ -1,6 +1,7 @@
 export type ArchitectureNodeOverrideState = {
   displayNameOverride?: string
   stageKeyOverride?: string
+  position?: { order: number }
 }
 
 export type ArchitectureAnnotationState = {
@@ -109,9 +110,22 @@ export function saveArchitectureOverrideState(
 
   const states = readAllStates()
   const nodeOverrides = Object.fromEntries(
-    Object.entries(state.nodeOverrides ?? {}).filter(([, override]) =>
-      Boolean(override.displayNameOverride?.trim() || override.stageKeyOverride?.trim()),
-    ),
+    Object.entries(state.nodeOverrides ?? {})
+      .map(([nodeKey, override]) => [
+        nodeKey,
+        {
+          displayNameOverride: override.displayNameOverride,
+          stageKeyOverride: override.stageKeyOverride,
+          position:
+            override.position && Number.isFinite(override.position.order)
+              ? { order: override.position.order }
+              : undefined,
+        },
+      ])
+      .filter(([, override]) => {
+        const value = override as ArchitectureNodeOverrideState
+        return Boolean(value.displayNameOverride?.trim() || value.stageKeyOverride?.trim() || value.position)
+      }),
   )
 
   states[scopeKey] = {

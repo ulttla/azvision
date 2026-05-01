@@ -156,4 +156,14 @@ assert.match(archPageCode, /arch-annotation-delete-btn/, 'ArchitecturePage shoul
 assert.match(archPageCode, /Presentation Notes/, 'ArchitecturePage should render a presentation notes panel')
 assert.match(archPageCode, /presentation annotations/, 'ArchitecturePage should describe annotations as source-safe override delta')
 
+// ============================================================
+// Section 16: Presentation order / drag reposition
+// ============================================================
+assert.match(archModelCode, /position\?: \{ order: number \}/, 'architecture/model should define position order override')
+assert.match(archStorageCode, /position/, 'architecture/storage should persist position/order overrides')
+assert.match(archPageCode, /draggable/, 'ArchitecturePage should make cards draggable for presentation ordering')
+assert.match(archPageCode, /handleArchitectureNodeDrop/, 'ArchitecturePage should handle drag/drop ordering')
+assert.match(archPageCode, /arch-node-move-earlier-btn/, 'ArchitecturePage should expose keyboard-accessible earlier ordering action')
+assert.match(archPageCode, /arch-node-move-later-btn/, 'ArchitecturePage should expose keyboard-accessible later ordering action')
+
 console.log('architecture_page_semantics_smoke.mts: all assertions passed')
