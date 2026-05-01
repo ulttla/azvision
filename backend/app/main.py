@@ -101,5 +101,6 @@ def root() -> dict[str, str]:
 
 
 @app.get("/healthz")
+@app.get(f"{settings.api_v1_prefix}/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok"}

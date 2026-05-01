@@ -51,4 +51,10 @@ for (const route of routerImports) {
   assert.match(appCode, new RegExp(`\\b${route}\\b`), `app.py should reference ${route} routes`)
 }
 
+// ============================================================
+// Section 4: health endpoint should be available through root and API prefix
+// ============================================================
+assert.match(appCode, /@app\.get\("\/healthz"\)/, 'app.py should expose root healthz endpoint')
+assert.match(appCode, /@app\.get\(f"\{settings\.api_v1_prefix\}\/healthz"\)/, 'app.py should expose API-prefixed healthz endpoint for frontend fetchJson')
+
 console.log('✅ backend_api_routes_semantics_smoke.mts: all assertions passed')
