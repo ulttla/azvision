@@ -1682,14 +1682,14 @@ select {
 
 .architecture-stage-board {
   display: grid;
-  grid-template-columns: repeat(7, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: 16px;
-  overflow-x: auto;
+  overflow-x: visible;
   padding-bottom: 4px;
 }
 
 .architecture-stage-column {
-  min-width: 220px;
+  min-width: 0;
   display: grid;
   align-content: start;
   gap: 10px;
@@ -1719,6 +1719,7 @@ select {
 .architecture-stage-card-list {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .architecture-node-card {
@@ -1742,6 +1743,18 @@ select {
 
 .architecture-node-button {
   gap: 12px;
+  min-width: 0;
+}
+
+.architecture-node-button > div {
+  min-width: 0;
+}
+
+.architecture-node-button .mini-chip {
+  max-width: 48%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .architecture-node-button strong {
@@ -1757,6 +1770,12 @@ select {
 
 .architecture-node-actions {
   justify-content: flex-end;
+  gap: 6px;
+}
+
+.architecture-node-actions .toolbar-button {
+  padding: 6px 8px;
+  font-size: 12px;
 }
 
 .architecture-stage-empty {
