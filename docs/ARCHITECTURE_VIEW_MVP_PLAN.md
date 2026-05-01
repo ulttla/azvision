@@ -346,6 +346,7 @@ export type ArchitectureViewOverrideState = {
   - scope reset: `Reset all overrides`
 - infra overlay lane toggle 반영 완료. 발표/export용으로 infra lane을 숨겨도 원본 topology는 변경하지 않음
 - presentation notes panel 반영 완료. 짧은 발표용 메모를 topology source와 분리된 local override delta로 저장함
+- presentation notes는 export-safe SVG에도 함께 렌더링되어 PNG/PDF/clipboard 출력에 포함됨
 - export PNG/PDF, clipboard PNG copy, group threshold, network inference toggle 연결 완료
 - lightweight readiness badges 반영 완료. backend health, auth readiness, topology generated time을 Architecture View 상단에서 확인 가능
 - label readability pass 반영 완료

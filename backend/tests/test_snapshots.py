@@ -1026,10 +1026,8 @@ class TestTopologyCompareRoute:
             "nodes": [{"node_key": "a", "display_name": "A"}],
             "edges": [],
         })
-        snap_b = self._snap(client, "NoArchive", {
-            "nodes": [{"node_key": "b", "display_name": "B"}],
-            "edges": [],
-        })
+        # Create target without topology payload so auto-archive does not store one.
+        snap_b = self._snap(client, "NoArchive")
 
         # Only archive snap_a
         client.post(
