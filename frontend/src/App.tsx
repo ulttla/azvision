@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 
-import { getAuthConfigCheck, getBackendHealth } from './lib/api'
+import { getAuthConfigCheck, getBackendHealth, getTopologyFreshness, getWorkspaces } from './lib/api'
 
 const TopologyPage = lazy(async () => {
   const module = await import('./pages/TopologyPage')
@@ -25,6 +25,7 @@ const SimulationPage = lazy(async () => {
 type ViewMode = 'topology' | 'architecture' | 'cost' | 'simulation'
 type BackendConnectivityStatus = 'checking' | 'online' | 'offline'
 type AuthConnectivityStatus = 'checking' | 'ready' | 'not-configured'
+type TopologyFreshnessStatus = 'checking' | 'fresh' | 'stale' | 'empty'
 
 function LoadingShell() {
   return (
@@ -40,6 +41,8 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('topology')
   const [backendConnectivity, setBackendConnectivity] = useState<BackendConnectivityStatus>('checking')
   const [authConnectivity, setAuthConnectivity] = useState<AuthConnectivityStatus>('checking')
+  const [topologyFreshness, setTopologyFreshness] = useState<TopologyFreshnessStatus>('checking')
+  const [topologyNodeCount, setTopologyNodeCount] = useState<number | null>(null)
 
   useEffect(() => {
     let active = true
@@ -70,15 +73,44 @@ export default function App() {
       }
     }
 
+    async function refreshTopologyFreshness() {
+      try {
+        const workspaces = await getWorkspaces()
+        if (!active || workspaces.length === 0) {
+          if (active) setTopologyFreshness('empty')
+          return
+        }
+        const freshness = await getTopologyFreshness(workspaces[0].id)
+        if (!active) return
+        if (freshness.generated_at === null) {
+          setTopologyFreshness('empty')
+          setTopologyNodeCount(null)
+          return
+        }
+        // stale if older than 24h
+        const ageMs = Date.now() - new Date(freshness.generated_at).getTime()
+        setTopologyFreshness(ageMs < 24 * 60 * 60 * 1000 ? 'fresh' : 'stale')
+        setTopologyNodeCount(freshness.node_count)
+      } catch {
+        if (active) {
+          setTopologyFreshness('empty')
+          setTopologyNodeCount(null)
+        }
+      }
+    }
+
     void refreshBackendConnectivity()
     void refreshAuthConnectivity()
+    void refreshTopologyFreshness()
     const intervalId = window.setInterval(refreshBackendConnectivity, 30000)
     const authIntervalId = window.setInterval(refreshAuthConnectivity, 30000)
+    const topologyIntervalId = window.setInterval(refreshTopologyFreshness, 60000)
 
     return () => {
       active = false
       window.clearInterval(intervalId)
       window.clearInterval(authIntervalId)
+      window.clearInterval(topologyIntervalId)
     }
   }, [])
 
@@ -110,6 +142,16 @@ export default function App() {
                 />
                 <span className="workspace-connectivity-copy">
                   Auth {authConnectivity === 'ready' ? 'ready' : authConnectivity === 'checking' ? 'checking' : 'not configured'}
+                </span>
+              </span>
+              <span className="workspace-connectivity-sep" aria-hidden="true">•</span>
+              <span className="workspace-connectivity-group">
+                <span
+                  className={`connectivity-dot ${topologyFreshness === 'fresh' ? 'online' : topologyFreshness === 'checking' ? 'checking' : 'offline'}`}
+                  aria-hidden="true"
+                />
+                <span className="workspace-connectivity-copy">
+                  Topology {topologyFreshness === 'fresh' ? 'fresh' : topologyFreshness === 'stale' ? 'stale' : topologyFreshness === 'checking' ? 'checking' : 'no data'}{topologyNodeCount !== null ? ` (${topologyNodeCount} nodes)` : ''}
                 </span>
               </span>
             </div>

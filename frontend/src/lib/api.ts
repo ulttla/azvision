@@ -872,6 +872,30 @@ export async function getAuthConfigCheck(): Promise<{
   return fetchJson('/auth/config-check')
 }
 
+export type TopologyFreshness = {
+  generated_at: string | null
+  node_count: number | null
+  edge_count: number | null
+}
+
+/** Lightweight topology-freshness check via latest snapshot metadata (no full graph fetch). */
+export async function getTopologyFreshness(workspaceId: string): Promise<TopologyFreshness> {
+  const snapshots = await fetchJson<SnapshotApiRecord[]>(
+    `/workspaces/${workspaceId}/snapshots?sortBy=updated_at&sortOrder=desc&limit=1`,
+  )
+  // API returns { items: [...] } shape; access the array
+  const items = Array.isArray(snapshots) ? snapshots : (snapshots as any)?.items ?? []
+  if (items.length === 0) {
+    return { generated_at: null, node_count: null, edge_count: null }
+  }
+  const latest = items[0]
+  return {
+    generated_at: latest.topology_generated_at || null,
+    node_count: latest.visible_node_count ?? null,
+    edge_count: latest.edge_count ?? null,
+  }
+}
+
 export async function getTopologySnapshots(
   workspaceId: string,
   options?: {
