@@ -52,10 +52,10 @@ echo "ROOT_DIR=$ROOT_DIR"
 
 cd "$ROOT_DIR"
 
-echo "[1/12] docs mirror check"
+echo "[1/13] docs mirror check"
 bash scripts/check_doc_mirror.sh
 
-echo "[2/12] script syntax"
+echo "[2/13] script syntax"
 bash -n scripts/run_dev.sh
 bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
@@ -65,32 +65,52 @@ bash -n scripts/snapshot_compare_smoke.sh
 bash -n scripts/cost_report_smoke.sh
 bash -n scripts/cost_insights_smoke.sh
 python3 -m py_compile scripts/sqlite_health_check.py
+python3 -m py_compile scripts/archive_retention_dry_run.py
 
-echo "[3/12] local readiness preflight"
+echo "[3/13] local readiness preflight"
 scripts/check_personal_use_ready.sh
 
-echo "[4/12] backend tests"
+echo "[4/13] backend tests"
 (
   cd backend
   .venv/bin/python -m pytest -q
 )
 
-echo "[5/12] frontend build"
+echo "[5/13] frontend build"
 npm --prefix frontend run build
 
-echo "[6/12] frontend semantics smokes"
+echo "[6/13] frontend semantics smokes"
 npm --prefix frontend run smoke:semantics
 
-echo "[7/12] SQLite health check"
+echo "[7/13] SQLite health check"
 scripts/sqlite_health_check.py
 
-echo "[8/12] SQLite backup"
+echo "[8/13] archive retention dry-run smoke"
+retention_json_file="$(mktemp -t azvision-retention-dry-run.XXXXXX.json)"
+python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run >"$retention_json_file"
+python3 - "$retention_json_file" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+if payload.get("dry_run") is not True:
+    raise SystemExit("archive retention dry-run did not report dry_run=true")
+print(
+    "[ok] archive retention dry-run "
+    f"archives={payload.get('archive_count')} "
+    f"candidates={payload.get('candidate_count')} "
+    f"estimated_freed_bytes={payload.get('estimated_freed_bytes')}"
+)
+PY
+rm -f "$retention_json_file"
+
+echo "[9/13] SQLite backup"
 scripts/backup_sqlite.sh
 
-echo "[9/12] SQLite backup verification"
+echo "[10/13] SQLite backup verification"
 scripts/verify_sqlite_backup.sh
 
-echo "[10/12] personal workflow smoke"
+echo "[11/13] personal workflow smoke"
 if [ "$RUN_LIVE_SMOKE" = "1" ]; then
   start_backend_if_needed
   scripts/personal_use_smoke.sh
@@ -98,11 +118,11 @@ else
   echo "[skip] personal workflow smoke skipped because AZVISION_ACCEPTANCE_LIVE_SMOKE=$RUN_LIVE_SMOKE"
 fi
 
-echo "[11/12] snapshot compare smoke"
+echo "[12/13] snapshot compare smoke"
 start_backend_if_needed
 scripts/snapshot_compare_smoke.sh
 
-echo "[12/12] cost report smoke"
+echo "[13/13] cost report smoke"
 start_backend_if_needed
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh

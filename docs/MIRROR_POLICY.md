@@ -24,7 +24,7 @@
 ## Deferred Drift
 | Path | Side | Reason | Owner | Expiry |
 |---|---|---|---|---|
-| `README.md` | workspace-only | Workspace mirror entrypoint and local operating note; not canonical project documentation. | NOVA | 2026-05-01 |
+| `README.md` | workspace-only | Workspace mirror entrypoint and local operating note; not canonical project documentation. | NOVA | 2026-05-15 |
 
 ## Tooling
 - `scripts/check_doc_mirror.sh` is visibility-only. It prints repo/workspace doc drift and always exits 0.

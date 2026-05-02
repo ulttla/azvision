@@ -20,6 +20,9 @@ exports/
 secrets/
 tmp/
 
+# Checkpoints (work-in-progress campaign notes)
+checkpoints/
+
 # Frontend
 frontend/.env.local
 frontend/node_modules/

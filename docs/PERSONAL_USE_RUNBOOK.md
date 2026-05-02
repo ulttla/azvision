@@ -4,8 +4,8 @@ Purpose: make AzVision usable as Gun's single-user local/dev app without opening
 
 ## Readiness target
 - Target: personal-use v0.9
-- In scope: local backend/frontend execution, Azure read diagnostics, topology view, manual modeling, server-backed snapshot/history, SQLite backup/restore path, quick smoke validation
-- Out of scope: public deployment, user login, multi-user permissions, object storage thumbnails, cost intelligence, simulation, AI copilot
+- In scope: local backend/frontend execution, Azure read diagnostics, topology view, manual modeling, server-backed snapshot/history, SQLite backup/restore path, quick smoke validation, rule-based Cost Insights, and rule-based Simulation smokes
+- Out of scope: public deployment, user login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot
 
 ## Start the app
 
@@ -72,6 +72,7 @@ scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
 scripts/simulation_smoke.sh
 scripts/sqlite_health_check.py
+python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run
 python3 scripts/sqlite_health_check_selftest.py
 npm --prefix frontend run smoke:semantics # includes topology_archive_smoke.mts
 ```
@@ -99,6 +100,10 @@ Default backup target:
 The script copies both known local DB locations if present:
 - `azvision.db`
 - `backend/azvision.db`
+
+Canonical local runtime note:
+- `scripts/run_dev.sh` starts the backend from `backend/`. With the current `.env` value `AZVISION_DATABASE_URL=sqlite:///./azvision.db`, the live app resolves the database to `backend/azvision.db`.
+- A root-level `azvision.db` can still exist from older/manual runs and is backed up for safety, but it is not the normal `run_dev.sh` runtime DB. Do not move, delete, or reconcile either DB without a fresh backup and explicit approval.
 
 Each backup writes a `manifest.txt` with byte size, SHA-256, source path, backup path, and SQLite `PRAGMA integrity_check` result. When `sqlite3` is available, the script uses SQLite's `.backup` command instead of raw file copy.
 

@@ -64,8 +64,18 @@ else
   warn "personal acceptance script is not executable: scripts/personal_use_acceptance.sh"
 fi
 
-if [ -f "$ROOT_DIR/azvision.db" ] || [ -f "$ROOT_DIR/backend/azvision.db" ]; then
+ROOT_DB="$ROOT_DIR/azvision.db"
+BACKEND_DB="$ROOT_DIR/backend/azvision.db"
+if [ -f "$ROOT_DB" ] || [ -f "$BACKEND_DB" ]; then
   ok "local SQLite state present"
+  if [ -f "$BACKEND_DB" ]; then
+    ok "canonical run_dev SQLite path: backend/azvision.db"
+  fi
+  if [ -f "$ROOT_DB" ] && [ -f "$BACKEND_DB" ]; then
+    warn "both azvision.db and backend/azvision.db exist; run_dev.sh uses backend/azvision.db. Do not remove either DB without backup and explicit approval."
+  elif [ -f "$ROOT_DB" ]; then
+    warn "only root azvision.db exists; run_dev.sh normally uses backend/azvision.db when AZVISION_DATABASE_URL is sqlite:///./azvision.db"
+  fi
 else
   warn "no local SQLite DB found yet; it will be created when the backend starts"
 fi

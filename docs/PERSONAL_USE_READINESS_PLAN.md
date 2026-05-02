@@ -14,7 +14,7 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
 
 - Optimize this slice for **v0.9 stable personal-use**.
 - Keep the product roadmap intact, but do not block personal use on productization work.
-- Treat external deployment, user login, multi-user permission model, object-storage thumbnail redesign, cost intelligence, simulation, and AI copilot as deferred product-track work.
+- Treat external deployment, user login, multi-user permission model, object-storage thumbnail redesign, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot as deferred product-track work.
 
 ## v0.9 in scope
 
@@ -42,6 +42,9 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
    - daily-use checklist
    - known limits
    - smoke command and fallback skip-live mode
+6. Rule-based planning helpers
+   - Cost Insights and Simulation remain rule-based/non-deployable first-pass helpers
+   - acceptance keeps cost report/insights smokes green, while real Azure cost ingestion and deployable simulation templates stay product-track
 
 ## v0.9 out of scope
 
@@ -50,7 +53,7 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
 - multi-user collaboration / permissions
 - object storage for thumbnails
 - full historical Azure inventory archive
-- cost intelligence / simulation / AI copilot
+- real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot
 - Azure write/remediation operations
 
 ## Acceptance checklist
@@ -61,7 +64,7 @@ Run the full acceptance wrapper from `/Users/gun/dev/azvision`.
 scripts/personal_use_acceptance.sh
 ```
 
-The wrapper performs the same checks as the manual sequence below:
+The wrapper performs the checks below:
 
 ```bash
 bash scripts/check_doc_mirror.sh
@@ -70,19 +73,37 @@ bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
 bash -n scripts/verify_sqlite_backup.sh
 bash -n scripts/personal_use_smoke.sh
-bash -n scripts/personal_use_acceptance.sh
+bash -n scripts/snapshot_compare_smoke.sh
+bash -n scripts/cost_report_smoke.sh
+bash -n scripts/cost_insights_smoke.sh
+python3 -m py_compile scripts/sqlite_health_check.py
+python3 -m py_compile scripts/archive_retention_dry_run.py
 scripts/check_personal_use_ready.sh
-npm --prefix frontend run build
 cd backend && .venv/bin/python -m pytest -q
+npm --prefix frontend run build
+npm --prefix frontend run smoke:semantics
+scripts/sqlite_health_check.py
+python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run
+scripts/backup_sqlite.sh
+scripts/verify_sqlite_backup.sh
+scripts/personal_use_smoke.sh
+scripts/snapshot_compare_smoke.sh
+scripts/cost_report_smoke.sh
+scripts/cost_insights_smoke.sh
 ```
 
 With backend running, the workflow-specific checks are:
 
 ```bash
 scripts/personal_use_smoke.sh
+scripts/snapshot_compare_smoke.sh
+scripts/cost_report_smoke.sh
+scripts/cost_insights_smoke.sh
 scripts/backup_sqlite.sh
 scripts/verify_sqlite_backup.sh
 ```
+
+The archive retention check is dry-run only. Archive pruning or DB reconciliation is not part of routine acceptance and still requires a fresh backup, candidate review, and explicit approval.
 
 With backend and frontend running, the path-analysis visual check is:
 
@@ -97,6 +118,7 @@ Expected result:
 - backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt`, records `integrity_check=ok`, and passes `scripts/verify_sqlite_backup.sh`
 - readiness preflight reports required local prerequisites, optional local DB presence, and config booleans without printing secret values
 - docs mirror check shows only expected deferred drift
+- archive retention dry-run reports `dry_run=true` and summarizes candidates without deleting or reconciling archives
 
 ## Go / no-go rule
 
@@ -110,6 +132,7 @@ Expected result:
 - snapshot create/list/detail/restore path passes
 - smoke-created manual/snapshot records are cleaned up
 - backup script creates a manifest
+- archive retention dry-run completes without mutation
 
 ### No-go until fixed
 - backend cannot start

@@ -168,7 +168,7 @@ npm run dev
 - error response contract 점검은 `bash scripts/error_response_smoke.sh` 로 representative 400/404 응답 shape를 확인 가능
 - snapshot summary/detail payload 점검은 `bash scripts/snapshot_payload_smoke.sh` 로 list는 thumbnail 제외, detail은 thumbnail 포함 계약과 invalid/oversized thumbnail sanitize 경로를 확인 가능
 - snapshot compare endpoint 점검은 `bash scripts/snapshot_compare_smoke.sh` 로 metadata-level count/scope/compare_refs delta 계약을 확인 가능
-- raw topology archive/retention health 계약은 `node --experimental-strip-types scripts/topology_archive_smoke.mts` 와 `python3 scripts/sqlite_health_check_selftest.py` 로 확인 가능
+- raw topology archive/retention health 계약은 `node --experimental-strip-types scripts/topology_archive_smoke.mts`, `python3 scripts/sqlite_health_check_selftest.py`, `python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run` 으로 확인 가능
 - cost markdown report endpoint 점검은 `bash scripts/cost_report_smoke.sh` 로 rule-based report payload와 guardrail 문구를 확인 가능
 - scoped cost insights endpoint 점검은 `bash scripts/cost_insights_smoke.sh` 로 summary/resources/recommendations/report 계약을 확인 가능
 - simulation endpoint 점검은 `bash scripts/simulation_smoke.sh` 로 create/list/detail/template/report/fit 계약을 확인 가능
