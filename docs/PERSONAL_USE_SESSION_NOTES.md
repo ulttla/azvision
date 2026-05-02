@@ -10,7 +10,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - **Daily smoke:** `scripts/personal_use_smoke.sh`
 - **Snapshot compare smoke:** `scripts/snapshot_compare_smoke.sh`
 - **Cost smoke:** `scripts/cost_report_smoke.sh` and `scripts/cost_insights_smoke.sh`
-- **Simulation smoke:** `scripts/simulation_smoke.sh`
+- **Simulation smoke:** `scripts/simulation_smoke.sh` (focused; creates a timestamped smoke simulation record)
 - **SQLite health:** `scripts/sqlite_health_check.py`
 - **Archive retention dry-run:** `python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run`
 - **Data safety:** `scripts/backup_sqlite.sh` followed by `scripts/verify_sqlite_backup.sh`
@@ -32,7 +32,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - SQLite health signal for snapshots, thumbnails, manual records, simulations, and topology archive warnings
 - dry-run-only archive retention candidate summary
 - rule-based cost report and scoped cost insights smoke
-- rule-based simulation create/list/detail/template/report/fit smoke
+- rule-based simulation create/list/detail/template/report/fit smoke, run as a focused check because it creates a timestamped smoke simulation record
 - run script start and stop cleanup behavior
 
 ## When to run acceptance
@@ -57,7 +57,7 @@ cd /Users/gun/dev/azvision
 scripts/snapshot_compare_smoke.sh
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
-scripts/simulation_smoke.sh
+scripts/simulation_smoke.sh  # focused check; creates a timestamped smoke simulation record
 scripts/sqlite_health_check.py
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run
 ```
@@ -71,6 +71,7 @@ python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspac
 - Thumbnail preview is optional and may be removed by guard checks.
 - `scripts/run_dev.sh` uses `backend/azvision.db` with the current relative SQLite URL. A root-level `azvision.db` may still exist as legacy state and is backed up, but should not be moved or reconciled without explicit approval.
 - Azure live smoke depends on local credentials, certificate path, and network access.
+- Simulation smoke records are small but persistent until a simulation delete/cleanup path exists; avoid running that smoke as a tight loop.
 - Productization items remain deferred: login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot.
 
 ## If something fails

@@ -44,7 +44,7 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
    - smoke command and fallback skip-live mode
 6. Rule-based planning helpers
    - Cost Insights and Simulation remain rule-based/non-deployable first-pass helpers
-   - acceptance keeps cost report/insights smokes green, while real Azure cost ingestion and deployable simulation templates stay product-track
+   - acceptance keeps cost report/insights smokes green; simulation smoke remains a focused check because it creates a timestamped smoke simulation record until a delete/cleanup path exists
 
 ## v0.9 out of scope
 

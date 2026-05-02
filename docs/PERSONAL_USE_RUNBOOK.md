@@ -4,7 +4,7 @@ Purpose: make AzVision usable as Gun's single-user local/dev app without opening
 
 ## Readiness target
 - Target: personal-use v0.9
-- In scope: local backend/frontend execution, Azure read diagnostics, topology view, manual modeling, server-backed snapshot/history, SQLite backup/restore path, quick smoke validation, rule-based Cost Insights, and rule-based Simulation smokes
+- In scope: local backend/frontend execution, Azure read diagnostics, topology view, manual modeling, server-backed snapshot/history, SQLite backup/restore path, quick smoke validation, rule-based Cost Insights, and focused rule-based Simulation smoke
 - Out of scope: public deployment, user login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot
 
 ## Start the app
@@ -70,12 +70,15 @@ cd /Users/gun/dev/azvision
 scripts/snapshot_compare_smoke.sh
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
-scripts/simulation_smoke.sh
+scripts/simulation_smoke.sh  # focused check; creates a timestamped simulation smoke workspace
 scripts/sqlite_health_check.py
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run
 python3 scripts/sqlite_health_check_selftest.py
 npm --prefix frontend run smoke:semantics # includes topology_archive_smoke.mts
 ```
+
+Simulation smoke note:
+- `scripts/simulation_smoke.sh` creates a timestamped simulation smoke workspace and does not currently delete that record because the app has no simulation delete endpoint. Use it as a focused check when simulation behavior changes or before a release-quality baseline, not as a high-frequency routine cleanup loop.
 
 Useful options:
 
