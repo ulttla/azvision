@@ -83,6 +83,7 @@ textarea {
   color: #bfd0ea;
   font-size: 13px;
   font-weight: 600;
+  flex-wrap: wrap;
 }
 
 .connectivity-dot {
