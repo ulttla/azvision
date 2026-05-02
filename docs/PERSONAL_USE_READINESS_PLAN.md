@@ -145,7 +145,7 @@ Expected result:
 ## Next development priorities after v0.9
 
 1. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
-2. Add PDF export smoke if PDF becomes part of the immediate personal workflow.
+2. Maintain the existing PDF export smoke/tests as part of the immediate personal workflow when export behavior changes.
 3. Consider a shared app-shell readiness badge only if the same health/auth/topology-age signal becomes useful outside Architecture View.
 4. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
 5. Re-enter productization planning separately when external-user goals return.
