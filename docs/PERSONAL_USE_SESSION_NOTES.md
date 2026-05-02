@@ -69,7 +69,7 @@ python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspac
 - Snapshot compare UI is metadata-first and also surfaces bounded raw topology diff details/markdown export when archives are available. Real archive prune/delete remains approval-gated; routine acceptance only runs dry-run candidate review.
 - Network Path Analysis is conservative: missing/ambiguous NSG or route data remains `unknown` rather than assumed allowed.
 - Thumbnail preview is optional and may be removed by guard checks.
-- `scripts/run_dev.sh` uses `backend/azvision.db` with the current relative SQLite URL. A root-level `azvision.db` may still exist as legacy state and is backed up, but should not be moved or reconciled without explicit approval.
+- `scripts/run_dev.sh` uses `backend/azvision.db` with the current relative SQLite URL. A root-level `azvision.db` exists as known legacy state; current health checks show it has no snapshots/manual records/simulations and only historical orphan topology archive rows. It is backed up for safety, but should not be moved or reconciled without explicit approval.
 - Azure live smoke depends on local credentials, certificate path, and network access.
 - Simulation smoke records are small but persistent until a simulation delete/cleanup path exists; avoid running that smoke as a tight loop.
 - Productization items remain deferred: login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot.
