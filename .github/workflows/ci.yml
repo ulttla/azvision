@@ -75,6 +75,7 @@ jobs:
           bash ../scripts/cost_report_smoke.sh
           bash ../scripts/cost_insights_smoke.sh
           bash ../scripts/simulation_smoke.sh
+          python ../scripts/sqlite_health_check.py ci-azvision.db
 
   frontend:
     name: Frontend build
