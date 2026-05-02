@@ -1,4 +1,6 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
+
+import { getBackendHealth } from './lib/api'
 
 const TopologyPage = lazy(async () => {
   const module = await import('./pages/TopologyPage')
@@ -21,6 +23,7 @@ const SimulationPage = lazy(async () => {
 })
 
 type ViewMode = 'topology' | 'architecture' | 'cost' | 'simulation'
+type BackendConnectivityStatus = 'checking' | 'online' | 'offline'
 
 function LoadingShell() {
   return (
@@ -34,6 +37,32 @@ function LoadingShell() {
 
 export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('topology')
+  const [backendConnectivity, setBackendConnectivity] = useState<BackendConnectivityStatus>('checking')
+
+  useEffect(() => {
+    let active = true
+
+    async function refreshBackendConnectivity() {
+      try {
+        const health = await getBackendHealth()
+        if (active) {
+          setBackendConnectivity(health.status === 'ok' ? 'online' : 'offline')
+        }
+      } catch {
+        if (active) {
+          setBackendConnectivity('offline')
+        }
+      }
+    }
+
+    void refreshBackendConnectivity()
+    const intervalId = window.setInterval(refreshBackendConnectivity, 30000)
+
+    return () => {
+      active = false
+      window.clearInterval(intervalId)
+    }
+  }, [])
 
   return (
     <>
@@ -45,6 +74,15 @@ export default function App() {
             <p className="subtext workspace-shell-subtext">
               Switch between topology exploration, presentation architecture, cost triage, and simulation planning.
             </p>
+            <div className="workspace-connectivity-row" aria-live="polite" data-testid="app-connectivity-row">
+              <span
+                className={`connectivity-dot ${backendConnectivity}`}
+                aria-hidden="true"
+              />
+              <span className="workspace-connectivity-copy">
+                Backend {backendConnectivity === 'online' ? 'online' : backendConnectivity === 'checking' ? 'checking' : 'offline'}
+              </span>
+            </div>
           </div>
 
           <div className="view-toggle" role="tablist" aria-label="AzVision view mode">

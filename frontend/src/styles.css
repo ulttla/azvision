@@ -75,6 +75,38 @@ textarea {
   max-width: 720px;
 }
 
+.workspace-connectivity-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #bfd0ea;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.connectivity-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
+}
+
+.connectivity-dot.online {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
+}
+
+.connectivity-dot.checking {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+}
+
+.connectivity-dot.offline {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
+}
+
 .view-toggle {
   display: inline-flex;
   gap: 8px;
