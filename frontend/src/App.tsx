@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 
-import { getBackendHealth } from './lib/api'
+import { getAuthConfigCheck, getBackendHealth } from './lib/api'
 
 const TopologyPage = lazy(async () => {
   const module = await import('./pages/TopologyPage')
@@ -24,6 +24,7 @@ const SimulationPage = lazy(async () => {
 
 type ViewMode = 'topology' | 'architecture' | 'cost' | 'simulation'
 type BackendConnectivityStatus = 'checking' | 'online' | 'offline'
+type AuthConnectivityStatus = 'checking' | 'ready' | 'not-configured'
 
 function LoadingShell() {
   return (
@@ -38,6 +39,7 @@ function LoadingShell() {
 export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('topology')
   const [backendConnectivity, setBackendConnectivity] = useState<BackendConnectivityStatus>('checking')
+  const [authConnectivity, setAuthConnectivity] = useState<AuthConnectivityStatus>('checking')
 
   useEffect(() => {
     let active = true
@@ -55,12 +57,28 @@ export default function App() {
       }
     }
 
+    async function refreshAuthConnectivity() {
+      try {
+        const auth = await getAuthConfigCheck()
+        if (active) {
+          setAuthConnectivity(auth.auth_ready ? 'ready' : 'not-configured')
+        }
+      } catch {
+        if (active) {
+          setAuthConnectivity('not-configured')
+        }
+      }
+    }
+
     void refreshBackendConnectivity()
+    void refreshAuthConnectivity()
     const intervalId = window.setInterval(refreshBackendConnectivity, 30000)
+    const authIntervalId = window.setInterval(refreshAuthConnectivity, 30000)
 
     return () => {
       active = false
       window.clearInterval(intervalId)
+      window.clearInterval(authIntervalId)
     }
   }, [])
 
@@ -75,12 +93,24 @@ export default function App() {
               Switch between topology exploration, presentation architecture, cost triage, and simulation planning.
             </p>
             <div className="workspace-connectivity-row" aria-live="polite" data-testid="app-connectivity-row">
-              <span
-                className={`connectivity-dot ${backendConnectivity}`}
-                aria-hidden="true"
-              />
-              <span className="workspace-connectivity-copy">
-                Backend {backendConnectivity === 'online' ? 'online' : backendConnectivity === 'checking' ? 'checking' : 'offline'}
+              <span className="workspace-connectivity-group">
+                <span
+                  className={`connectivity-dot ${backendConnectivity}`}
+                  aria-hidden="true"
+                />
+                <span className="workspace-connectivity-copy">
+                  Backend {backendConnectivity === 'online' ? 'online' : backendConnectivity === 'checking' ? 'checking' : 'offline'}
+                </span>
+              </span>
+              <span className="workspace-connectivity-sep" aria-hidden="true">•</span>
+              <span className="workspace-connectivity-group">
+                <span
+                  className={`connectivity-dot ${authConnectivity === 'ready' ? 'online' : authConnectivity === 'checking' ? 'checking' : 'offline'}`}
+                  aria-hidden="true"
+                />
+                <span className="workspace-connectivity-copy">
+                  Auth {authConnectivity === 'ready' ? 'ready' : authConnectivity === 'checking' ? 'checking' : 'not configured'}
+                </span>
               </span>
             </div>
           </div>

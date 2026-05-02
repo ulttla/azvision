@@ -107,6 +107,18 @@ textarea {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
 }
 
+.workspace-connectivity-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workspace-connectivity-sep {
+  color: #64748b;
+  margin: 0 6px;
+  user-select: none;
+}
+
 .view-toggle {
   display: inline-flex;
   gap: 8px;
