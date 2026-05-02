@@ -106,7 +106,7 @@ The script copies both known local DB locations if present:
 
 Canonical local runtime note:
 - `scripts/run_dev.sh` starts the backend from `backend/`. With the current `.env` value `AZVISION_DATABASE_URL=sqlite:///./azvision.db`, the live app resolves the database to `backend/azvision.db`.
-- A root-level `azvision.db` can still exist from older/manual runs and is backed up for safety, but it is not the normal `run_dev.sh` runtime DB. Do not move, delete, or reconcile either DB without a fresh backup and explicit approval.
+- A root-level `azvision.db` can still exist from older/manual runs and is backed up for safety, but it is not the normal `run_dev.sh` runtime DB. Current local health checks classify the root DB as legacy state with no snapshots/manual records/simulations and historical orphan topology archive rows only. Do not move, delete, or reconcile either DB without a fresh backup and explicit approval.
 
 Each backup writes a `manifest.txt` with byte size, SHA-256, source path, backup path, and SQLite `PRAGMA integrity_check` result. When `sqlite3` is available, the script uses SQLite's `.backup` command instead of raw file copy.
 

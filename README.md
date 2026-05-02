@@ -60,7 +60,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
   - CI/frontend acceptance now runs `npm --prefix frontend run smoke:semantics` for browserless snapshot sort and thumbnail guard copy/contract drift
   - `docs/MIRROR_POLICY.md` 와 `scripts/check_doc_mirror.sh` 로 repo docs와 workspace docs mirror drift를 visibility-only 방식으로 점검 가능
-  - `docs/PERSONAL_USE_RUNBOOK.md`, `docs/PERSONAL_USE_READINESS_PLAN.md`, `scripts/check_personal_use_ready.sh`, `scripts/run_dev.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh` 로 Gun 단독 실사용 v0.9 사전점검·실행·검증·백업 경로를 점검 가능
+  - `docs/PERSONAL_USE_RUNBOOK.md`, `docs/PERSONAL_USE_READINESS_PLAN.md`, `docs/PERSONAL_USE_SESSION_NOTES.md`, `scripts/check_personal_use_ready.sh`, `scripts/run_dev.sh`, `scripts/personal_use_acceptance.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh`, `scripts/verify_sqlite_backup.sh` 로 Gun 단독 실사용 v0.9 사전점검·실행·검증·백업 경로를 점검 가능
 - 참고
   - 세부 API 응답 구조는 `docs/API_CONTRACT.md`, snapshot/history 상태는 `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 와 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md`, raw topology diff/retention 상태는 `docs/RAW_TOPOLOGY_DIFF_PLAN.md` 와 `docs/RETENTION_POLICY.md` 를 기준으로 본다.
   - 다음 개발 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 의 `Next development priorities after v0.9` 섹션을 기준으로 한다. 현재는 Architecture View personal-use polish가 stable path에 들어왔고, export smoke/test 유지, 필요 시 shared readiness badge, Azure Arc/hybrid 확장, productization 재진입 순서로 관리한다.
