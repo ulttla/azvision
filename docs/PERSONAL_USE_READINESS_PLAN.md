@@ -146,6 +146,6 @@ Expected result:
 
 1. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
 2. Maintain the existing PDF export smoke/tests as part of the immediate personal workflow when export behavior changes.
-3. Shared app-shell readiness is now useful outside Architecture View: keep the Backend/Auth/Topology freshness signals and manual `Refresh status` action covered by browserless smoke when shell behavior changes.
+3. Shared app-shell readiness is now useful outside Architecture View: keep the Backend/Auth/Topology freshness signals and manual `Refresh status` action covered by browserless smoke when shell behavior changes. Keep duplicate-click/busy-state behavior intact so the local operator cannot stack repeated health checks.
 4. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
 5. Re-enter productization planning separately when external-user goals return.
