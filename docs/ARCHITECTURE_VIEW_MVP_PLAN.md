@@ -120,9 +120,15 @@
 | `microsoft.analysisservices/servers` | `serve` 또는 `store` | semantic serving이면 serve 우선 |
 | `microsoft.machinelearningservices/*` | `serve` | ML inferencing/serving |
 | `microsoft.web/sites` | `serve` | app/API serving |
+| `microsoft.keyvault/vaults` | `infra` | shared security support |
+| `microsoft.insights/*` | `infra` | Application Insights, alerting, workbooks 등 monitoring support |
+| `microsoft.operationalinsights/workspaces` | `infra` | Log Analytics workspace |
+| `microsoft.operationsmanagement/solutions` | `infra` | OMS solution |
 | `microsoft.network/*` | `infra` | overlay 또는 별도 lane |
-| `microsoft.compute/virtualmachines` | `process` 또는 `serve` | tag/name 기반 보정 가능 |
-| `microsoft.containerapp/containerapps` | `serve` 또는 `process` | workload 역할 기준 |
+| `microsoft.compute/virtualmachines` | `process` | VM 기반 workload |
+| `microsoft.app/containerapps` | `source`, `serve`, 또는 `process` | frontend/API/worker 이름 기반 보정 |
+| `microsoft.containerinstance/containergroups` | `process` | short-lived/container workload |
+| `microsoft.containerservice/managedclusters` | `process` | AKS/container compute |
 
 ### 보정 규칙
 - tag / name token / kind 기반으로 stage 재분류 허용
