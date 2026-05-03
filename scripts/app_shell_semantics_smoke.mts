@@ -21,6 +21,8 @@ assert.match(appCode, /window\.setInterval\(refreshBackendConnectivity, 30000\)/
 assert.match(appCode, /window\.setInterval\(refreshAuthConnectivity, 30000\)/, 'Auth connectivity should refresh on a bounded interval')
 assert.match(appCode, /window\.setInterval\(refreshTopologyFreshness, 60000\)/, 'Topology freshness should refresh on a bounded interval')
 assert.match(appCode, /data-testid="app-connectivity-row"/, 'Connectivity row should be test-addressable')
+assert.match(appCode, /aria-live="polite"/, 'Connectivity row should announce status changes politely')
+assert.match(appCode, /role="status"/, 'Manual refresh result message should expose status semantics')
 assert.match(appCode, /Backend \{backendConnectivity === 'online'/, 'Connectivity row should render backend status copy')
 assert.match(appCode, /Auth \{authConnectivity === 'ready'/, 'Connectivity row should render auth status copy')
 assert.match(appCode, /Topology \{topologyFreshness === 'fresh'/, 'Connectivity row should render topology freshness copy')
