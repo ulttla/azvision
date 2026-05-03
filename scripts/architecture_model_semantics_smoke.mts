@@ -407,7 +407,7 @@ function topologyEdge(
   }
   const vm = buildArchitectureViewModel(t)
   assert.equal(vm.nodes[0].stage, 'serve', 'Container App API → serve')
-  assert.equal(vm.nodes[0].family, 'container-app')
+  assert.equal(vm.nodes[0].family, 'container-compute')
 }
 
 {
@@ -422,7 +422,7 @@ function topologyEdge(
   }
   const vm = buildArchitectureViewModel(t)
   assert.equal(vm.nodes[0].stage, 'process', 'AKS → process')
-  assert.equal(vm.nodes[0].family, 'container-app')
+  assert.equal(vm.nodes[0].family, 'container-compute')
 }
 
 
@@ -438,7 +438,7 @@ function topologyEdge(
   }
   const vm = buildArchitectureViewModel(t)
   assert.equal(vm.nodes[0].stage, 'source', 'Container App frontend → source')
-  assert.equal(vm.nodes[0].family, 'container-app')
+  assert.equal(vm.nodes[0].family, 'container-compute')
 }
 
 {
@@ -453,8 +453,24 @@ function topologyEdge(
   }
   const vm = buildArchitectureViewModel(t)
   assert.equal(vm.nodes[0].stage, 'process', 'Container App worker → process')
-  assert.equal(vm.nodes[0].family, 'container-app')
+  assert.equal(vm.nodes[0].family, 'container-compute')
 }
+
+{
+  // Container App portal-worker should not overmatch portal as serve
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'ca-portal-worker', display_name: 'portal-worker', resource_type: 'Microsoft.App/containerApps' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'process', 'Container App portal-worker → process')
+  assert.equal(vm.nodes[0].family, 'container-compute')
+}
+
 
 {
   // Container Instance → process
@@ -468,7 +484,7 @@ function topologyEdge(
   }
   const vm = buildArchitectureViewModel(t)
   assert.equal(vm.nodes[0].stage, 'process', 'Container Instance → process')
-  assert.equal(vm.nodes[0].family, 'container-app')
+  assert.equal(vm.nodes[0].family, 'container-compute')
 }
 
 // -------------------------------------------------------------------------
@@ -1024,7 +1040,7 @@ function topologyEdge(
     status: 'ok',
   }
   const started = Date.now()
-  const vm = buildArchitectureViewModel(t, { groupThreshold: 10, includeNetworkOverlay: true })
+  const vm = buildArchitectureViewModel(t, { groupThreshold: 10 })
   const populatedBuckets = vm.stageBuckets.filter(bucket => bucket.nodes.length > 0)
   const svg = renderArchitectureSvg(populatedBuckets, vm.edges)
   const elapsedMs = Date.now() - started

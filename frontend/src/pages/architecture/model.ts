@@ -24,7 +24,7 @@ export type ArchitectureFamily =
   | 'data-factory'
   | 'databricks'
   | 'compute'
-  | 'container-app'
+  | 'container-compute'
   | 'key-vault'
   | 'monitoring'
   | 'network'
@@ -193,7 +193,7 @@ const GENERIC_NAME_TOKENS = new Set([
   'networkwatcher',
 ])
 
-const SOURCE_EXPERIENCE_NAME_HINTS = ['portal', 'frontend', 'ui', 'spa', 'dashboard', 'client', 'www']
+const SOURCE_EXPERIENCE_NAME_HINTS = ['frontend', 'ui', 'spa', 'dashboard', 'client', 'www']
 
 const TITLE_CASE_TOKEN_MAP: Record<string, string> = {
   api: 'API',
@@ -247,7 +247,7 @@ const FAMILY_WORKLOAD_STOP_TOKENS: Partial<Record<ArchitectureFamily, string[]>>
   'data-factory': ['data', 'factory', 'adf'],
   databricks: ['databricks', 'workspace'],
   compute: ['vm', 'virtual', 'machine', 'compute'],
-  'container-app': ['container', 'app', 'apps', 'containerapp', 'containerapps', 'containergroup', 'containergroups', 'aks'],
+  'container-compute': ['container', 'app', 'apps', 'containerapp', 'containerapps', 'containergroup', 'containergroups', 'aks'],
   certificate: ['cert', 'certificate', 'tls', 'ssl'],
   network: ['network', 'vnet', 'nsg', 'rt', 'route', 'routes', 'subnet', 'private', 'endpoint', 'pep'],
 }
@@ -318,8 +318,8 @@ const TYPE_FAMILY_RULES: Array<{
     prefixes: ['microsoft.compute/virtualmachines'],
   },
   {
-    family: 'container-app',
-    label: 'Container App',
+    family: 'container-compute',
+    label: 'Container / AKS',
     prefixes: [
       'microsoft.app/containerapps',
       'microsoft.containerinstance/containergroups',
@@ -683,8 +683,8 @@ function stageForNode(node: TopologyNode): ArchitectureStage {
     return 'process'
   }
 
-  if (family === 'container-app') {
-    return isSourceExperience ? 'source' : name.includes('api') || name.includes('portal') ? 'serve' : 'process'
+  if (family === 'container-compute') {
+    return isSourceExperience ? 'source' : hasAnyToken(node.display_name, ['api']) || name.endsWith('portal') || name.includes('-portal') ? 'serve' : 'process'
   }
 
   if (
