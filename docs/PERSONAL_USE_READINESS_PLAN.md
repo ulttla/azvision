@@ -76,6 +76,7 @@ bash -n scripts/personal_use_smoke.sh
 bash -n scripts/snapshot_compare_smoke.sh
 bash -n scripts/cost_report_smoke.sh
 bash -n scripts/cost_insights_smoke.sh
+bash -n scripts/simulation_smoke.sh
 python3 -m py_compile scripts/sqlite_health_check.py
 python3 -m py_compile scripts/archive_retention_dry_run.py
 scripts/check_personal_use_ready.sh
