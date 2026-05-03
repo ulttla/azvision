@@ -120,6 +120,27 @@ textarea {
   user-select: none;
 }
 
+.workspace-connectivity-refresh {
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #dbeafe;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workspace-connectivity-refresh:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.workspace-connectivity-refresh-message {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .view-toggle {
   display: inline-flex;
   gap: 8px;

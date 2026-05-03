@@ -26,10 +26,14 @@ assert.match(appCode, /Auth \{authConnectivity === 'ready'/, 'Connectivity row s
 assert.match(appCode, /Topology \{topologyFreshness === 'fresh'/, 'Connectivity row should render topology freshness copy')
 assert.match(appCode, /workspace-connectivity-group/, 'Workspace connectivity group should be present')
 assert.match(appCode, /workspace-connectivity-sep/, 'Workspace connectivity separator should be present')
+assert.match(appCode, /handleRefreshConnectivity/, 'App shell should expose a manual connectivity refresh handler')
+assert.match(appCode, /data-testid="app-connectivity-refresh"/, 'Connectivity row should render a test-addressable manual refresh button')
+assert.match(appCode, /Promise\.allSettled/, 'Manual refresh should update backend, auth, and topology signals together')
 
 assert.match(stylesCode, /\.workspace-connectivity-row/, 'Connectivity row CSS should exist')
 assert.match(stylesCode, /\.connectivity-dot\.online/, 'Online connectivity dot CSS should exist')
 assert.match(stylesCode, /\.connectivity-dot\.checking/, 'Checking connectivity dot CSS should exist')
 assert.match(stylesCode, /\.connectivity-dot\.offline/, 'Offline connectivity dot CSS should exist')
+assert.match(stylesCode, /\.workspace-connectivity-refresh/, 'Manual connectivity refresh button CSS should exist')
 
 console.log('✅ app_shell_semantics_smoke.mts: all assertions passed')
