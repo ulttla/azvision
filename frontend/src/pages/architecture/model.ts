@@ -21,6 +21,8 @@ export type ArchitectureFamily =
   | 'synapse-pool'
   | 'storage'
   | 'cosmos'
+  | 'key-vault'
+  | 'monitoring'
   | 'network'
   | 'certificate'
   | 'other'
@@ -311,6 +313,20 @@ const TYPE_FAMILY_RULES: Array<{
     family: 'cosmos',
     label: 'Cosmos DB',
     prefixes: ['microsoft.documentdb/databaseaccounts'],
+  },
+  {
+    family: 'key-vault',
+    label: 'Key Vault',
+    prefixes: ['microsoft.keyvault/vaults'],
+  },
+  {
+    family: 'monitoring',
+    label: 'Monitoring',
+    prefixes: [
+      'microsoft.insights/',
+      'microsoft.operationalinsights/workspaces',
+      'microsoft.operationsmanagement/solutions',
+    ],
   },
   {
     family: 'network',
@@ -619,7 +635,7 @@ function stageForNode(node: TopologyNode): ArchitectureStage {
     return 'unclassified'
   }
 
-  if (family === 'network' || family === 'certificate' || family === 'app-plan') {
+  if (family === 'network' || family === 'certificate' || family === 'app-plan' || family === 'key-vault' || family === 'monitoring') {
     return 'infra'
   }
 

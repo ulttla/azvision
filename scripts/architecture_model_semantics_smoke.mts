@@ -269,9 +269,85 @@ function topologyEdge(
   assert.equal(vm.nodes[0].stage, 'infra', 'SQL virtual cluster → infra')
 }
 
-// ---------------------------------------------------------------------------
+{
+  // Key Vault → infra
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'kv1', display_name: 'my-keyvault', resource_type: 'Microsoft.KeyVault/vaults' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'infra', 'Key Vault → infra')
+  assert.equal(vm.nodes[0].family, 'key-vault')
+}
+
+{
+  // Log Analytics Workspace → infra
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'law1', display_name: 'my-law', resource_type: 'Microsoft.OperationalInsights/workspaces' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'infra', 'Log Analytics → infra')
+  assert.equal(vm.nodes[0].family, 'monitoring')
+}
+
+{
+  // Application Insights → infra
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'ai1', display_name: 'my-appinsights', resource_type: 'Microsoft.Insights/components' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'infra', 'App Insights → infra')
+  assert.equal(vm.nodes[0].family, 'monitoring')
+}
+
+
+{
+  // Operations Management Solution → infra
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'oms1', display_name: 'oms-solution', resource_type: 'Microsoft.OperationsManagement/solutions' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'infra', 'Operations Management Solution → infra')
+  assert.equal(vm.nodes[0].family, 'monitoring')
+}
+
+{
+  // Insights alert rule catch-all → infra
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'alert1', display_name: 'cpu-alert', resource_type: 'Microsoft.Insights/metricAlerts' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'infra', 'Insights catch-all → infra')
+  assert.equal(vm.nodes[0].family, 'monitoring')
+}
+
+// -------------------------------------------------------------------------
 // Section 4: SQL / Database → store
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 
 {
   // SQL Managed Instance → store
