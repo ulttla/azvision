@@ -131,8 +131,13 @@ textarea {
   font-weight: 700;
 }
 
-.workspace-connectivity-refresh:hover {
+.workspace-connectivity-refresh:hover:not(:disabled) {
   background: rgba(37, 99, 235, 0.2);
+}
+
+.workspace-connectivity-refresh:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .workspace-connectivity-refresh-message {

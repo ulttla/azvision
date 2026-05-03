@@ -44,51 +44,61 @@ export default function App() {
   const [topologyFreshness, setTopologyFreshness] = useState<TopologyFreshnessStatus>('checking')
   const [topologyNodeCount, setTopologyNodeCount] = useState<number | null>(null)
   const [connectivityRefreshMessage, setConnectivityRefreshMessage] = useState('')
+  const [connectivityRefreshing, setConnectivityRefreshing] = useState(false)
 
   async function handleRefreshConnectivity() {
+    if (connectivityRefreshing) {
+      return
+    }
+
+    setConnectivityRefreshing(true)
     setBackendConnectivity('checking')
     setAuthConnectivity('checking')
     setTopologyFreshness('checking')
     setConnectivityRefreshMessage('Refreshing...')
 
-    const [backendResult, authResult, freshnessResult] = await Promise.allSettled([
-      getBackendHealth(),
-      getAuthConfigCheck(),
-      getWorkspaces().then(async (workspaces) => {
-        if (workspaces.length === 0) {
-          return { status: 'empty' as const, nodeCount: null }
-        }
+    try {
+      const [backendResult, authResult, freshnessResult] = await Promise.allSettled([
+        getBackendHealth(),
+        getAuthConfigCheck(),
+        getWorkspaces().then(async (workspaces) => {
+          if (workspaces.length === 0) {
+            return { status: 'empty' as const, nodeCount: null }
+          }
 
-        const freshness = await getTopologyFreshness(workspaces[0].id)
-        if (freshness.generated_at === null) {
-          return { status: 'empty' as const, nodeCount: null }
-        }
+          const freshness = await getTopologyFreshness(workspaces[0].id)
+          if (freshness.generated_at === null) {
+            return { status: 'empty' as const, nodeCount: null }
+          }
 
-        const ageMs = Date.now() - new Date(freshness.generated_at).getTime()
-        return {
-          status: ageMs < 24 * 60 * 60 * 1000 ? ('fresh' as const) : ('stale' as const),
-          nodeCount: freshness.node_count,
-        }
-      }),
-    ])
+          const ageMs = Date.now() - new Date(freshness.generated_at).getTime()
+          return {
+            status: ageMs < 24 * 60 * 60 * 1000 ? ('fresh' as const) : ('stale' as const),
+            nodeCount: freshness.node_count,
+          }
+        }),
+      ])
 
-    setBackendConnectivity(
-      backendResult.status === 'fulfilled' && backendResult.value.status === 'ok' ? 'online' : 'offline',
-    )
-    setAuthConnectivity(
-      authResult.status === 'fulfilled' && authResult.value.auth_ready ? 'ready' : 'not-configured',
-    )
+      setBackendConnectivity(
+        backendResult.status === 'fulfilled' && backendResult.value.status === 'ok' ? 'online' : 'offline',
+      )
+      setAuthConnectivity(
+        authResult.status === 'fulfilled' && authResult.value.auth_ready ? 'ready' : 'not-configured',
+      )
 
-    if (freshnessResult.status === 'fulfilled') {
-      setTopologyFreshness(freshnessResult.value.status)
-      setTopologyNodeCount(freshnessResult.value.nodeCount)
-    } else {
-      setTopologyFreshness('empty')
-      setTopologyNodeCount(null)
+      if (freshnessResult.status === 'fulfilled') {
+        setTopologyFreshness(freshnessResult.value.status)
+        setTopologyNodeCount(freshnessResult.value.nodeCount)
+      } else {
+        setTopologyFreshness('empty')
+        setTopologyNodeCount(null)
+      }
+
+      setConnectivityRefreshMessage('Status refreshed')
+      window.setTimeout(() => setConnectivityRefreshMessage(''), 2500)
+    } finally {
+      setConnectivityRefreshing(false)
     }
-
-    setConnectivityRefreshMessage('Status refreshed')
-    window.setTimeout(() => setConnectivityRefreshMessage(''), 2500)
   }
 
   useEffect(() => {
@@ -205,9 +215,11 @@ export default function App() {
                 type="button"
                 className="workspace-connectivity-refresh"
                 onClick={handleRefreshConnectivity}
+                disabled={connectivityRefreshing}
+                aria-busy={connectivityRefreshing}
                 data-testid="app-connectivity-refresh"
               >
-                Refresh status
+                {connectivityRefreshing ? 'Refreshing...' : 'Refresh status'}
               </button>
               {connectivityRefreshMessage ? (
                 <span className="workspace-connectivity-refresh-message" role="status">
