@@ -107,6 +107,9 @@ Next commands:
   scripts/backup_sqlite.sh
   scripts/verify_sqlite_backup.sh
   scripts/personal_use_acceptance.sh
+
+Optional focused smoke:
+  scripts/simulation_smoke.sh  # creates a timestamped simulation record; do not run in a loop
 EOF
 
 exit "$EXIT_CODE"
