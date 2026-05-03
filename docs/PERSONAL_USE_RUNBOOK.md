@@ -49,6 +49,8 @@ cd /Users/gun/dev/azvision
 scripts/personal_use_acceptance.sh
 ```
 
+The acceptance wrapper syntax-checks `scripts/simulation_smoke.sh` but does not run it as a routine step, because the focused simulation smoke creates a timestamped simulation record until a delete/cleanup path exists.
+
 Run the lighter workflow smoke after starting the backend. It checks backend health, live Azure read/topology, Network Path Analysis on live topology resources when possible, manual node/edge CRUD, snapshot create/list/detail/restore, and cleanup of smoke-created records.
 
 ```bash
