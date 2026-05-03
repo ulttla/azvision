@@ -21,6 +21,10 @@ export type ArchitectureFamily =
   | 'synapse-pool'
   | 'storage'
   | 'cosmos'
+  | 'data-factory'
+  | 'databricks'
+  | 'compute'
+  | 'container-app'
   | 'key-vault'
   | 'monitoring'
   | 'network'
@@ -240,6 +244,10 @@ const FAMILY_WORKLOAD_STOP_TOKENS: Partial<Record<ArchitectureFamily, string[]>>
   'sql-database': ['sql', 'database', 'synapse', 'workspace'],
   'synapse-workspace': ['synapse', 'workspace'],
   'synapse-pool': ['synapse', 'spark', 'pool', 'bigdata', 'workspace'],
+  'data-factory': ['data', 'factory', 'adf'],
+  databricks: ['databricks', 'workspace'],
+  compute: ['vm', 'virtual', 'machine', 'compute'],
+  'container-app': ['container', 'app', 'apps', 'containerapp', 'containerapps', 'containergroup', 'containergroups', 'aks'],
   certificate: ['cert', 'certificate', 'tls', 'ssl'],
   network: ['network', 'vnet', 'nsg', 'rt', 'route', 'routes', 'subnet', 'private', 'endpoint', 'pep'],
 }
@@ -294,6 +302,30 @@ const TYPE_FAMILY_RULES: Array<{
     prefixes: ['microsoft.sql/servers/databases'],
   },
   { family: 'sql-server', label: 'SQL Server', prefixes: ['microsoft.sql/servers'] },
+  {
+    family: 'data-factory',
+    label: 'Data Factory',
+    prefixes: ['microsoft.datafactory/factories'],
+  },
+  {
+    family: 'databricks',
+    label: 'Databricks',
+    prefixes: ['microsoft.databricks/workspaces'],
+  },
+  {
+    family: 'compute',
+    label: 'Compute',
+    prefixes: ['microsoft.compute/virtualmachines'],
+  },
+  {
+    family: 'container-app',
+    label: 'Container App',
+    prefixes: [
+      'microsoft.app/containerapps',
+      'microsoft.containerinstance/containergroups',
+      'microsoft.containerservice/managedclusters',
+    ],
+  },
   {
     family: 'synapse-pool',
     label: 'Spark / Synapse Pool',
@@ -641,6 +673,18 @@ function stageForNode(node: TopologyNode): ArchitectureStage {
 
   if (family === 'cdn' || family === 'static-web') {
     return 'source'
+  }
+
+  if (family === 'data-factory') {
+    return 'ingest'
+  }
+
+  if (family === 'databricks' || family === 'compute') {
+    return 'process'
+  }
+
+  if (family === 'container-app') {
+    return isSourceExperience ? 'source' : name.includes('api') || name.includes('portal') ? 'serve' : 'process'
   }
 
   if (

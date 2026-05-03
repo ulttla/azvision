@@ -345,6 +345,132 @@ function topologyEdge(
   assert.equal(vm.nodes[0].family, 'monitoring')
 }
 
+
+// -------------------------------------------------------------------------
+// Section 3.5: Platform compute and pipeline services
+// -------------------------------------------------------------------------
+
+{
+  // Data Factory → ingest
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'adf1', display_name: 'orders-adf', resource_type: 'Microsoft.DataFactory/factories' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'ingest', 'Data Factory → ingest')
+  assert.equal(vm.nodes[0].family, 'data-factory')
+}
+
+{
+  // Databricks Workspace → process
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'dbx1', display_name: 'etl-databricks', resource_type: 'Microsoft.Databricks/workspaces' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'process', 'Databricks → process')
+  assert.equal(vm.nodes[0].family, 'databricks')
+}
+
+{
+  // Virtual Machine → process
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'vm1', display_name: 'etl-worker-vm', resource_type: 'Microsoft.Compute/virtualMachines' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'process', 'VM → process')
+  assert.equal(vm.nodes[0].family, 'compute')
+}
+
+{
+  // Container App API → serve
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'ca1', display_name: 'orders-api', resource_type: 'Microsoft.App/containerApps' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'serve', 'Container App API → serve')
+  assert.equal(vm.nodes[0].family, 'container-app')
+}
+
+{
+  // AKS cluster → process
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'aks1', display_name: 'etl-aks', resource_type: 'Microsoft.ContainerService/managedClusters' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'process', 'AKS → process')
+  assert.equal(vm.nodes[0].family, 'container-app')
+}
+
+
+{
+  // Container App frontend → source
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'ca-fe', display_name: 'orders-frontend', resource_type: 'Microsoft.App/containerApps' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'source', 'Container App frontend → source')
+  assert.equal(vm.nodes[0].family, 'container-app')
+}
+
+{
+  // Container App worker → process
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'ca-worker', display_name: 'orders-worker', resource_type: 'Microsoft.App/containerApps' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'process', 'Container App worker → process')
+  assert.equal(vm.nodes[0].family, 'container-app')
+}
+
+{
+  // Container Instance → process
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'aci1', display_name: 'batch-container', resource_type: 'Microsoft.ContainerInstance/containerGroups' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'process', 'Container Instance → process')
+  assert.equal(vm.nodes[0].family, 'container-app')
+}
+
 // -------------------------------------------------------------------------
 // Section 4: SQL / Database → store
 // -------------------------------------------------------------------------
