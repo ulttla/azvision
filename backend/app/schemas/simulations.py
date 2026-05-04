@@ -98,3 +98,10 @@ class SimulationListResponse(BaseModel):
     ok: bool = True
     workspace_id: str
     items: list[SimulationRecord]
+
+
+class SimulationDeleteResponse(BaseModel):
+    ok: bool = True
+    workspace_id: str
+    simulation_id: str
+    deleted: bool = True

@@ -119,3 +119,15 @@ class SimulationRepository:
         if row is None:
             return None
         return self._deserialize_row(row)
+
+    def delete(self, workspace_id: str, simulation_id: str) -> bool:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                DELETE FROM simulations
+                WHERE workspace_id = ? AND id = ?
+                """,
+                (workspace_id, simulation_id),
+            )
+            connection.commit()
+            return cursor.rowcount > 0

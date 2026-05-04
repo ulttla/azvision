@@ -44,7 +44,7 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
    - smoke command and fallback skip-live mode
 6. Rule-based planning helpers
    - Cost Insights and Simulation remain rule-based/non-deployable first-pass helpers
-   - acceptance keeps cost report/insights smokes green; simulation smoke remains a focused check because it creates a timestamped smoke simulation record until a delete/cleanup path exists
+   - acceptance keeps cost report/insights smokes green; simulation smoke remains a focused check. It now uses the simulation DELETE cleanup endpoint to remove its timestamped smoke record after create/list/detail/template/report/fit checks.
 
 ## v0.9 out of scope
 
@@ -103,6 +103,8 @@ scripts/cost_insights_smoke.sh
 scripts/backup_sqlite.sh
 scripts/verify_sqlite_backup.sh
 ```
+
+Simulation smoke is still a focused workflow check rather than a routine acceptance step, but it now cleans up its own timestamped simulation record through `DELETE /workspaces/{workspace_id}/simulations/{simulation_id}`.
 
 The archive retention check is dry-run only. Archive pruning or DB reconciliation is not part of routine acceptance and still requires a fresh backup, candidate review, and explicit approval.
 

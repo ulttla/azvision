@@ -186,6 +186,11 @@ class SimulationService:
             raise SimulationNotFoundError(simulation_id)
         return SimulationRecord.model_validate(simulation)
 
+    def delete_simulation(self, workspace_id: str, simulation_id: str) -> None:
+        deleted = self.repository.delete(workspace_id, simulation_id)
+        if not deleted:
+            raise SimulationNotFoundError(simulation_id)
+
     def get_simulation_template(self, workspace_id: str, simulation_id: str) -> SimulationTemplateResponse:
         simulation = self.get_simulation(workspace_id, simulation_id)
         return _build_bicep_outline(simulation)

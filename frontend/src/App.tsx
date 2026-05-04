@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { getAuthConfigCheck, getBackendHealth, getTopologyFreshness, getWorkspaces } from './lib/api'
 
 const TopologyPage = lazy(async () => {
@@ -270,17 +271,19 @@ export default function App() {
         </div>
       </header>
 
-      <Suspense fallback={<LoadingShell />}>
-        {viewMode === 'topology' ? (
-          <TopologyPage />
-        ) : viewMode === 'architecture' ? (
-          <ArchitecturePage />
-        ) : viewMode === 'cost' ? (
-          <CostPage />
-        ) : (
-          <SimulationPage />
-        )}
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingShell />}>
+          {viewMode === 'topology' ? (
+            <TopologyPage />
+          ) : viewMode === 'architecture' ? (
+            <ArchitecturePage />
+          ) : viewMode === 'cost' ? (
+            <CostPage />
+          ) : (
+            <SimulationPage />
+          )}
+        </Suspense>
+      </ErrorBoundary>
     </>
   )
 }

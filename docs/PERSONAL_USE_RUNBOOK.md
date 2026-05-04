@@ -49,7 +49,7 @@ cd /Users/gun/dev/azvision
 scripts/personal_use_acceptance.sh
 ```
 
-The acceptance wrapper syntax-checks `scripts/simulation_smoke.sh` but does not run it as a routine step, because the focused simulation smoke creates a timestamped simulation record until a delete/cleanup path exists.
+The acceptance wrapper syntax-checks `scripts/simulation_smoke.sh` but does not run it as a routine step. The focused simulation smoke now deletes its timestamped simulation record through the simulation cleanup endpoint after its create/list/detail/template/report/fit checks.
 
 Run the lighter workflow smoke after starting the backend. It checks backend health, live Azure read/topology, Network Path Analysis on live topology resources when possible, manual node/edge CRUD, snapshot create/list/detail/restore, and cleanup of smoke-created records.
 
@@ -72,7 +72,7 @@ cd /Users/gun/dev/azvision
 scripts/snapshot_compare_smoke.sh
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
-scripts/simulation_smoke.sh  # focused check; creates a timestamped simulation smoke workspace
+scripts/simulation_smoke.sh  # focused check; creates then deletes a timestamped simulation smoke record
 scripts/sqlite_health_check.py
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run
 python3 scripts/sqlite_health_check_selftest.py
@@ -80,7 +80,7 @@ npm --prefix frontend run smoke:semantics # includes topology_archive_smoke.mts
 ```
 
 Simulation smoke note:
-- `scripts/simulation_smoke.sh` creates a timestamped simulation smoke workspace and does not currently delete that record because the app has no simulation delete endpoint. Use it as a focused check when simulation behavior changes or before a release-quality baseline, not as a high-frequency routine cleanup loop.
+- `scripts/simulation_smoke.sh` creates a timestamped simulation smoke record, exercises list/detail/template/report/fit, then deletes the record through the simulation cleanup endpoint. Use it as a focused check when simulation behavior changes or before a release-quality baseline, not as a high-frequency routine loop.
 
 Useful options:
 

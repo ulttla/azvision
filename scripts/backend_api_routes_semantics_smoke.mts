@@ -52,7 +52,15 @@ for (const route of routerImports) {
 }
 
 // ============================================================
-// Section 4: health endpoint should be available through root and API prefix
+// Section 4: simulation cleanup route should stay wired
+// ============================================================
+const simulationsCode = readFileSync(path.join(repoRoot, 'backend/app/api/routes/simulations.py'), 'utf8')
+assert.match(simulationsCode, /@router\.delete\("\/\{simulation_id\}"/, 'simulations route should expose DELETE cleanup endpoint')
+assert.match(simulationsCode, /SimulationDeleteResponse/, 'simulations DELETE endpoint should return explicit delete response')
+assert.match(simulationsCode, /service\.delete_simulation/, 'simulations DELETE endpoint should call service cleanup')
+
+// ============================================================
+// Section 5: health endpoint should be available through root and API prefix
 // ============================================================
 assert.match(appCode, /@app\.get\("\/healthz"\)/, 'app.py should expose root healthz endpoint')
 assert.match(appCode, /@app\.get\(f"\{settings\.api_v1_prefix\}\/healthz"\)/, 'app.py should expose API-prefixed healthz endpoint for frontend fetchJson')

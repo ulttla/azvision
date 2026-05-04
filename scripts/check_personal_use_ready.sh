@@ -109,7 +109,7 @@ Next commands:
   scripts/personal_use_acceptance.sh
 
 Optional focused smoke:
-  scripts/simulation_smoke.sh  # creates a timestamped simulation record; do not run in a loop
+  scripts/simulation_smoke.sh  # creates then deletes a timestamped simulation record; do not run in a loop
 EOF
 
 exit "$EXIT_CODE"

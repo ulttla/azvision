@@ -101,6 +101,39 @@ def test_simulation_routes_create_list_and_get(client: TestClient) -> None:
     assert "covered_count" in fit
     assert "missing_required_count" in fit
 
+    delete_response = client.delete(f"/api/v1/workspaces/{WORKSPACE}/simulations/{created['simulation_id']}")
+    assert delete_response.status_code == 200
+    deleted = delete_response.json()
+    assert deleted["ok"] is True
+    assert deleted["deleted"] is True
+    assert deleted["simulation_id"] == created["simulation_id"]
+
+    get_after_delete = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/{created['simulation_id']}")
+    assert get_after_delete.status_code == 404
+
+
+def test_simulation_delete_is_workspace_scoped_and_missing_returns_404(client: TestClient) -> None:
+    create_response = client.post(
+        f"/api/v1/workspaces/{WORKSPACE}/simulations",
+        json={"workload_name": "delete-guard", "description": "private api"},
+    )
+    assert create_response.status_code == 200
+    created = create_response.json()
+    simulation_id = created["simulation_id"]
+
+    cross_workspace_delete = client.delete(f"/api/v1/workspaces/other-workspace/simulations/{simulation_id}")
+    assert cross_workspace_delete.status_code == 404
+
+    still_present = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/{simulation_id}")
+    assert still_present.status_code == 200
+
+    delete_response = client.delete(f"/api/v1/workspaces/{WORKSPACE}/simulations/{simulation_id}")
+    assert delete_response.status_code == 200
+
+    second_delete = client.delete(f"/api/v1/workspaces/{WORKSPACE}/simulations/{simulation_id}")
+    assert second_delete.status_code == 404
+    assert second_delete.json()["ok"] is False
+
 
 def test_unknown_simulation_returns_404_envelope(client: TestClient) -> None:
     response = client.get(f"/api/v1/workspaces/{WORKSPACE}/simulations/nope")
