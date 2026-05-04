@@ -197,6 +197,36 @@ function topologyEdge(
 }
 
 {
+  // Event Hub namespace → ingest
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'eh1', display_name: 'events-prod', resource_type: 'Microsoft.EventHub/namespaces' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'ingest', 'Event Hub namespace → ingest')
+  assert.equal(vm.nodes[0].family, 'messaging')
+}
+
+{
+  // Service Bus namespace → ingest
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'sb1', display_name: 'orders-servicebus', resource_type: 'Microsoft.ServiceBus/namespaces' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'ingest', 'Service Bus namespace → ingest')
+  assert.equal(vm.nodes[0].family, 'messaging')
+}
+
+{
   // Web app with frontend hint → source
   const t: TopologyResponse = {
     workspace_id: 'ws1',

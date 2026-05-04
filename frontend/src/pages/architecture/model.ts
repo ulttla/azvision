@@ -23,6 +23,7 @@ export type ArchitectureFamily =
   | 'cosmos'
   | 'data-factory'
   | 'databricks'
+  | 'messaging'
   | 'compute'
   | 'container-compute'
   | 'analysis-services'
@@ -248,6 +249,7 @@ const FAMILY_WORKLOAD_STOP_TOKENS: Partial<Record<ArchitectureFamily, string[]>>
   'synapse-pool': ['synapse', 'spark', 'pool', 'bigdata', 'workspace'],
   'data-factory': ['data', 'factory', 'adf'],
   databricks: ['databricks', 'workspace'],
+  messaging: ['event', 'hub', 'eventhub', 'service', 'bus', 'queue', 'topic', 'namespace'],
   compute: ['vm', 'virtual', 'machine', 'compute'],
   'container-compute': ['container', 'app', 'apps', 'containerapp', 'containerapps', 'containergroup', 'containergroups', 'aks'],
   'analysis-services': ['analysis', 'services', 'semantic', 'model', 'tabular'],
@@ -315,6 +317,11 @@ const TYPE_FAMILY_RULES: Array<{
     family: 'databricks',
     label: 'Databricks',
     prefixes: ['microsoft.databricks/workspaces'],
+  },
+  {
+    family: 'messaging',
+    label: 'Messaging',
+    prefixes: ['microsoft.eventhub/namespaces', 'microsoft.servicebus/namespaces'],
   },
   {
     family: 'compute',
