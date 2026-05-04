@@ -167,6 +167,36 @@ function topologyEdge(
 }
 
 {
+  // Analysis Services → serve
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'as1', display_name: 'semantic-model-prod', resource_type: 'Microsoft.AnalysisServices/servers' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'serve', 'Analysis Services server → serve')
+  assert.equal(vm.nodes[0].family, 'analysis-services')
+}
+
+{
+  // Machine Learning workspace → serve
+  const t: TopologyResponse = {
+    workspace_id: 'ws1',
+    generated_at: '2026-04-01T00:00:00Z',
+    mode: 'live',
+    nodes: [resourceNode({ node_key: 'ml1', display_name: 'aml-inference-prod', resource_type: 'Microsoft.MachineLearningServices/workspaces' })],
+    edges: [],
+    status: 'ok',
+  }
+  const vm = buildArchitectureViewModel(t)
+  assert.equal(vm.nodes[0].stage, 'serve', 'Machine Learning workspace → serve')
+  assert.equal(vm.nodes[0].family, 'machine-learning')
+}
+
+{
   // Web app with frontend hint → source
   const t: TopologyResponse = {
     workspace_id: 'ws1',

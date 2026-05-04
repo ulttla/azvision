@@ -25,6 +25,8 @@ export type ArchitectureFamily =
   | 'databricks'
   | 'compute'
   | 'container-compute'
+  | 'analysis-services'
+  | 'machine-learning'
   | 'key-vault'
   | 'monitoring'
   | 'network'
@@ -248,6 +250,8 @@ const FAMILY_WORKLOAD_STOP_TOKENS: Partial<Record<ArchitectureFamily, string[]>>
   databricks: ['databricks', 'workspace'],
   compute: ['vm', 'virtual', 'machine', 'compute'],
   'container-compute': ['container', 'app', 'apps', 'containerapp', 'containerapps', 'containergroup', 'containergroups', 'aks'],
+  'analysis-services': ['analysis', 'services', 'semantic', 'model', 'tabular'],
+  'machine-learning': ['machine', 'learning', 'ml', 'aml', 'inferencing', 'endpoint'],
   certificate: ['cert', 'certificate', 'tls', 'ssl'],
   network: ['network', 'vnet', 'nsg', 'rt', 'route', 'routes', 'subnet', 'private', 'endpoint', 'pep'],
 }
@@ -325,6 +329,16 @@ const TYPE_FAMILY_RULES: Array<{
       'microsoft.containerinstance/containergroups',
       'microsoft.containerservice/managedclusters',
     ],
+  },
+  {
+    family: 'analysis-services',
+    label: 'Analysis Services',
+    prefixes: ['microsoft.analysisservices/servers'],
+  },
+  {
+    family: 'machine-learning',
+    label: 'Machine Learning',
+    prefixes: ['microsoft.machinelearningservices/workspaces'],
   },
   {
     family: 'synapse-pool',
@@ -747,7 +761,9 @@ function stageForNode(node: TopologyNode): ArchitectureStage {
   if (
     resourceType.startsWith('microsoft.web/sites') ||
     resourceType.startsWith('microsoft.web/serverfarms') ||
-    resourceType.startsWith('microsoft.apimanagement/')
+    resourceType.startsWith('microsoft.apimanagement/') ||
+    resourceType.startsWith('microsoft.analysisservices/servers') ||
+    resourceType.startsWith('microsoft.machinelearningservices/workspaces')
   ) {
     if (resourceType.startsWith('microsoft.web/serverfarms')) {
       return 'infra'
