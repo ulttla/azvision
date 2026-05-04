@@ -145,7 +145,7 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 2. Start app: `scripts/run_dev.sh`
 3. Open UI: `http://127.0.0.1:5173`
 4. Confirm Azure read: `scripts/live_topology_probe.sh` or UI scope load
-5. For network troubleshooting, select source/destination resource nodes and run Network Path Analysis with only the filters you need (`source_port` is usually optional)
+5. For network troubleshooting, select source/destination resource nodes and run Network Path Analysis with only the filters you need (`source_port` is usually optional). For VNet peering results, use the Peering hint as evidence context: direct peering does not require `allowForwardedTraffic`, while forwarded/transitive candidates require `allowForwardedTraffic=true` on every traversed peering direction; missing/false evidence should remain conservative `unknown`/no-path.
 6. If UI behavior changed, run `scripts/path_analysis_visual_smoke.mjs` with backend/frontend running and keep the generated screenshots as temporary evidence
 7. Use topology/manual modeling as needed
 8. Save important states as server snapshots
