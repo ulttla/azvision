@@ -323,6 +323,16 @@ function formatPeeringTraversalLabel(peeringHopCount?: number, isForwardedTraffi
   return 'direct peering'
 }
 
+function formatPeeringEvidenceHint(peeringHopCount?: number, isForwardedTraffic?: boolean | null) {
+  if (!peeringHopCount) {
+    return 'Intra-VNet path; no VNet peering evidence is required.'
+  }
+  if (isForwardedTraffic === true || peeringHopCount > 1) {
+    return 'Forwarded/transitive peering candidate; every traversed peering direction must have allowForwardedTraffic=true in inventory evidence.'
+  }
+  return 'Direct peering candidate; allowForwardedTraffic is not required for single-peering traversal.'
+}
+
 function formatRouteNextHopLabel(nextHopType?: string, nextHopIp?: string) {
   const normalized = String(nextHopType ?? '').trim().toLowerCase()
   if (!normalized) {
@@ -3934,6 +3944,11 @@ export function TopologyPage() {
                       {pathAnalysisResult.path_candidates[0] ? (
                         <p className="hint detail-inline-hint">
                           Peering: {formatPeeringTraversalLabel(
+                            pathAnalysisResult.path_candidates[0].peering_hop_count,
+                            pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
+                          )}
+                          {' — '}
+                          {formatPeeringEvidenceHint(
                             pathAnalysisResult.path_candidates[0].peering_hop_count,
                             pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
                           )}
