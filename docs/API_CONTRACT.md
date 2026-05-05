@@ -154,12 +154,17 @@
   - 응답: `report_type=markdown`, `title`, `content`, `warnings[]`
   - 현재 report는 simulation 결과 기반 전달용 markdown 초안이다.
 
-### Copilot (Phase 3 first-pass implemented)
-- `POST /workspaces/{workspace_id}/chat`
-  - request: `message`
+### Copilot (Phase 3 read-only LLM MVP)
+- `GET /copilot/providers`
+  - 응답: `ok`, `enabled`, `default_provider`, `read_only`, `providers[]`
+  - `providers[]` 는 provider id, label, configured/status, model만 반환하며 API key/token은 반환하지 않는다.
+- `POST /copilot/chat`
+  - request: `workspace_id`, `message`, optional `provider`, `current_view`, `selected_resource_id`
   - query: `subscription_id`, `resource_group_name`, `resource_group_limit`, `resource_limit`
-  - 응답: `ok`, `workspace_id`, `mode`(inventory mode), `copilot_mode`, `provider`, `llm_status`, `answer`, `suggestions[]`, `context`
-  - 현재는 `llm_status=not_configured` 인 rule-based copilot first pass이며, 외부 LLM provider/BYOK 연결은 아직 미구현
+  - 응답: `ok`, `workspace_id`, `mode`(inventory mode), `read_only`, `copilot_mode`, `provider`, `model`, `llm_status`, `answer`, `suggestions[]`, `context`
+- `POST /workspaces/{workspace_id}/chat`
+  - 기존 Cost page 호환 route. request/query/응답 shape는 provider-aware chat과 동일하되 `workspace_id`는 path에서 받는다.
+- 현재 provider는 `rule-based`, `ollama`, `openrouter`를 지원한다. Ollama/OpenRouter 설정이 없거나 `COPILOT_ENABLED=false`이면 rule-based fallback으로 안전하게 응답한다.
 
 ## Response shape principles
 - 모든 핵심 목록 응답은 `ok`, `workspace_id`, `items` 배열을 기본으로 포함한다

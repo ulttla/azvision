@@ -23,12 +23,17 @@ assert.match(apiCode, /suggestions: string\[\]/, 'CopilotResponse should include
 assert.match(apiCode, /ok: boolean/, 'CopilotResponse should include ok field')
 assert.match(apiCode, /workspace_id: string/, 'CopilotResponse should include workspace_id field')
 assert.match(apiCode, /llm_status: string/, 'CopilotResponse should include llm_status field')
+assert.match(apiCode, /read_only\?: boolean/, 'CopilotResponse should include read_only field')
+assert.match(apiCode, /model\?: string \| null/, 'CopilotResponse should include optional model field')
+assert.match(apiCode, /CopilotProviderOption/, 'api.ts should export provider option type')
 
 // ============================================================
 // Section 2: postCopilotMessage function
 // ============================================================
 assert.match(apiCode, /export async function postCopilotMessage[\s\S]*?workspaceId[\s\S]*?message/, 'postCopilotMessage should take workspaceId and message')
+assert.match(apiCode, /postCopilotMessage[\s\S]*?provider\?: CopilotProviderOption/, 'postCopilotMessage should accept provider override')
 assert.match(apiCode, /postCopilotMessage[\s\S]*?buildInventoryQuery/, 'postCopilotMessage should use inventory query options')
+assert.match(apiCode, /current_view: 'cost-insights'/, 'postCopilotMessage should attach current view context label')
 
 // ============================================================
 // Section 3: CostPage copilot usage
@@ -39,6 +44,11 @@ assert.match(costPageCode, /copilotResponse.*useState.*CopilotResponse|useState.
 assert.match(costPageCode, /postCopilotMessage\(workspaceId/, 'CostPage should call postCopilotMessage with workspaceId')
 assert.match(costPageCode, /askCopilot/, 'CostPage should have askCopilot handler')
 assert.match(costPageCode, /copilotPrompt.*useState|useState.*copilotPrompt/, 'CostPage should have copilotPrompt state')
+assert.match(costPageCode, /copilotProvider.*useState|useState.*copilotProvider/, 'CostPage should have copilotProvider state')
+assert.match(costPageCode, /Ollama \/ Ollama Cloud/, 'CostPage should expose Ollama provider selector copy')
+assert.match(costPageCode, /OpenRouter/, 'CostPage should expose OpenRouter provider selector copy')
+assert.match(costPageCode, /Rule-based fallback/, 'CostPage should expose rule-based fallback selector copy')
+assert.match(costPageCode, /read-only/, 'CostPage should show read-only badge/copy')
 
 // ============================================================
 // Section 4: API contract doc — chat endpoint
@@ -48,6 +58,9 @@ assert.match(
   /chat|copilot/i,
   'API contract doc should mention chat/copilot endpoint',
 )
+assert.match(apiContractDoc, /\/copilot\/providers/, 'API contract doc should mention provider status endpoint')
+assert.match(apiContractDoc, /\/copilot\/chat/, 'API contract doc should mention provider-aware chat endpoint')
+assert.match(apiContractDoc, /API key\/token.*return|key\/token.*return|API key\/token.*반환|key\/token.*반환/i, 'API contract doc should state provider status does not return secrets')
 
 // ============================================================
 // Section 5: CostPage copilot loading state
