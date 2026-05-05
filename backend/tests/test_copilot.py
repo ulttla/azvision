@@ -4,6 +4,8 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.services.copilot import (
+    OllamaCopilotProvider,
+    OpenRouterCopilotProvider,
     build_copilot_context,
     build_rule_based_copilot_answer,
     get_default_copilot_provider,
@@ -99,6 +101,42 @@ def test_copilot_provider_status_never_exposes_openrouter_key() -> None:
 
     assert any(provider["id"] == "openrouter" and provider["configured"] is True for provider in providers)
     assert "sk-test-secret" not in str(providers)
+
+
+def test_ollama_provider_error_uses_rule_based_fallback(monkeypatch) -> None:
+    class BrokenResponse:
+        def raise_for_status(self) -> None:
+            raise RuntimeError("boom")
+
+    def broken_post(*args, **kwargs):
+        raise ValueError("bad json")
+
+    monkeypatch.setattr("app.services.copilot.requests.post", broken_post)
+    settings = Settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
+
+    answer = OllamaCopilotProvider(settings).answer("network risk", [])
+
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "ollama_provider_error"
+    assert "Ollama" not in str(answer.get("context", {}))
+
+
+def test_openrouter_provider_error_uses_rule_based_fallback(monkeypatch) -> None:
+    def broken_post(*args, **kwargs):
+        raise ValueError("bad json")
+
+    monkeypatch.setattr("app.services.copilot.requests.post", broken_post)
+    settings = Settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "openrouter_provider_error"
+    assert "sk-test-secret" not in str(answer)
 
 
 def test_copilot_providers_route_returns_read_only_status(client: TestClient) -> None:

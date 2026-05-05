@@ -214,6 +214,13 @@ def _normalized_llm_answer(provider: str, model: str, content: str, context: dic
     }
 
 
+def _provider_error_fallback(provider: str, model: str, message: str, resources: list[dict[str, Any]], context: dict[str, Any]) -> dict[str, Any]:
+    fallback = build_rule_based_copilot_answer(message, resources, context)
+    fallback.update({"provider": "rule-based", "model": model or None, "llm_status": f"{provider}_provider_error"})
+    fallback["answer"] = f"{provider} provider was unavailable, so AzVision used the read-only rule-based fallback.\n" + fallback["answer"]
+    return fallback
+
+
 class RuleBasedCopilotProvider:
     provider_name = "rule-based"
 
@@ -236,14 +243,17 @@ class OllamaCopilotProvider:
         context = context or build_copilot_context(resources)
         if not self.configured:
             return build_rule_based_copilot_answer(message, resources, context) | {"llm_status": "missing_config", "provider": "rule-based"}
-        response = requests.post(
-            urljoin(self.base_url + "/", "api/chat"),
-            json={"model": self.model, "messages": _build_llm_messages(message, context), "stream": False},
-            timeout=30,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        content = str((payload.get("message") or {}).get("content") or payload.get("response") or "")
+        try:
+            response = requests.post(
+                urljoin(self.base_url + "/", "api/chat"),
+                json={"model": self.model, "messages": _build_llm_messages(message, context), "stream": False},
+                timeout=30,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            content = str((payload.get("message") or {}).get("content") or payload.get("response") or "")
+        except (requests.RequestException, ValueError):
+            return _provider_error_fallback("ollama", self.model, message, resources, context)
         return _normalized_llm_answer("ollama", self.model, content, context)
 
 
@@ -263,18 +273,21 @@ class OpenRouterCopilotProvider:
         context = context or build_copilot_context(resources)
         if not self.configured:
             return build_rule_based_copilot_answer(message, resources, context) | {"llm_status": "missing_config", "provider": "rule-based"}
-        response = requests.post(
-            self.base_url + "/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
-            json={"model": self.model, "messages": _build_llm_messages(message, context), "stream": False},
-            timeout=45,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        choices = payload.get("choices") or []
-        content = ""
-        if choices:
-            content = str(((choices[0] or {}).get("message") or {}).get("content") or "")
+        try:
+            response = requests.post(
+                self.base_url + "/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json={"model": self.model, "messages": _build_llm_messages(message, context), "stream": False},
+                timeout=45,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            choices = payload.get("choices") or []
+            content = ""
+            if choices:
+                content = str(((choices[0] or {}).get("message") or {}).get("content") or "")
+        except (requests.RequestException, ValueError):
+            return _provider_error_fallback("openrouter", self.model, message, resources, context)
         return _normalized_llm_answer("openrouter", self.model, content, context)
 
 
