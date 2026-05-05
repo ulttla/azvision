@@ -736,7 +736,7 @@ export function ArchitecturePage() {
     setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId))
   }
 
-  async function handleCopySvg() {
+  async function handleCopyPngToClipboard() {
     if (!visibleNodes.length) {
       setExportMessage('Architecture diagram copy is unavailable without visible nodes.')
       return
@@ -974,8 +974,8 @@ export function ArchitecturePage() {
               <button type="button" className="toolbar-button" onClick={() => void handleExport('pdf')} disabled={exportLoading || !visibleNodes.length}>
                 {exportLoading ? 'Exporting…' : 'Export PDF'}
               </button>
-              <button type="button" className="toolbar-button" onClick={() => void handleCopySvg()} disabled={exportLoading || !visibleNodes.length} data-testid="arch-copy-btn">
-                {exportLoading ? 'Copying…' : 'Copy SVG'}
+              <button type="button" className="toolbar-button" onClick={() => void handleCopyPngToClipboard()} disabled={exportLoading || !visibleNodes.length} data-testid="arch-copy-btn">
+                {exportLoading ? 'Copying…' : 'Copy PNG'}
               </button>
             </div>
           </div>
@@ -1009,7 +1009,7 @@ export function ArchitecturePage() {
             Override delta is stored separately by workspace + subscription + RG scope and tracks hidden
             source topology node keys plus label/stage/order overrides and presentation annotations, so the topology source remains intact even when grouping threshold changes.
             The infra overlay can be hidden for presentation exports without removing network resources from the source topology.
-            Copy SVG rasterizes the current diagram to PNG and writes it to the system clipboard.
+            Copy PNG rasterizes the current diagram and writes the PNG image to the system clipboard.
           </p>
         </article>
 

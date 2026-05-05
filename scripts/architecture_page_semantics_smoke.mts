@@ -73,9 +73,10 @@ for (const stateName of expectedStates) {
 // ============================================================
 assert.match(archPageCode, /createExport/, 'ArchitecturePage should use createExport')
 assert.match(archPageCode, /export|Export/i, 'ArchitecturePage should have export functionality')
-assert.match(archPageCode, /handleCopySvg/, 'ArchitecturePage should have Copy SVG clipboard function')
-assert.match(archPageCode, /arch-copy-btn/, 'ArchitecturePage should render Copy SVG button with test id')
-assert.match(archPageCode, /navigator\.clipboard/, 'ArchitecturePage Copy SVG should use Clipboard API')
+assert.match(archPageCode, /handleCopyPngToClipboard/, 'ArchitecturePage should have PNG clipboard function')
+assert.match(archPageCode, /arch-copy-btn/, 'ArchitecturePage should render PNG clipboard button with test id')
+assert.match(archPageCode, /Copy PNG/, 'ArchitecturePage should label clipboard copy according to the PNG output format')
+assert.match(archPageCode, /navigator\.clipboard/, 'ArchitecturePage PNG clipboard copy should use Clipboard API')
 
 // ============================================================
 // Section 6: ArchitecturePage URL param handling
