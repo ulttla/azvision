@@ -25,6 +25,7 @@
 | Path | Side | Reason | Owner | Expiry |
 |---|---|---|---|---|
 | `README.md` | workspace-only | Workspace mirror entrypoint and local operating note; not canonical project documentation. | NOVA | 2026-05-15 |
+| `archive/` | repo-only | Historical project docs retained in canonical repo; not needed for routine Discord recovery mirror. | NOVA | 2026-05-15 |
 
 ## Tooling
 - `scripts/check_doc_mirror.sh` is visibility-only. It prints repo/workspace doc drift and always exits 0.
