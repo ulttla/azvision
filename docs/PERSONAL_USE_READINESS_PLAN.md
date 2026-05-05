@@ -77,12 +77,14 @@ bash -n scripts/snapshot_compare_smoke.sh
 bash -n scripts/cost_report_smoke.sh
 bash -n scripts/cost_insights_smoke.sh
 bash -n scripts/simulation_smoke.sh
+node --experimental-strip-types scripts/path_analysis_semantics_smoke.mts
 python3 -m py_compile scripts/sqlite_health_check.py
 python3 -m py_compile scripts/archive_retention_dry_run.py
 scripts/check_personal_use_ready.sh
 cd backend && .venv/bin/python -m pytest -q
 npm --prefix frontend run build
 npm --prefix frontend run smoke:semantics
+# smoke:semantics includes browserless Path Analysis UI/API contract coverage
 scripts/sqlite_health_check.py
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run
 scripts/backup_sqlite.sh
@@ -107,6 +109,8 @@ scripts/verify_sqlite_backup.sh
 Simulation smoke is still a focused workflow check rather than a routine acceptance step, but it now cleans up its own timestamped simulation record through `DELETE /workspaces/{workspace_id}/simulations/{simulation_id}`.
 
 The archive retention check is dry-run only. Archive pruning or DB reconciliation is not part of routine acceptance and still requires a fresh backup, candidate review, and explicit approval.
+
+Browserless path-analysis contract coverage is included in `npm --prefix frontend run smoke:semantics` through `scripts/path_analysis_semantics_smoke.mts`; it checks API types, accessible controls, peering evidence copy, and conservative unknown/no-path wording without live Azure or a browser.
 
 With backend and frontend running, the path-analysis visual check is:
 

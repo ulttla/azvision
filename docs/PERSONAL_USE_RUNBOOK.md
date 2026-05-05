@@ -76,7 +76,7 @@ scripts/simulation_smoke.sh  # focused check; creates then deletes a timestamped
 scripts/sqlite_health_check.py
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run
 python3 scripts/sqlite_health_check_selftest.py
-npm --prefix frontend run smoke:semantics # includes topology_archive_smoke.mts
+npm --prefix frontend run smoke:semantics # includes path_analysis_semantics_smoke.mts and topology_archive_smoke.mts
 ```
 
 Simulation smoke note:
@@ -146,7 +146,7 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 3. Open UI: `http://127.0.0.1:5173`
 4. Confirm Azure read: `scripts/live_topology_probe.sh` or UI scope load
 5. For network troubleshooting, select source/destination resource nodes and run Network Path Analysis with only the filters you need (`source_port` is usually optional). For VNet peering results, use the Peering hint as evidence context: direct peering does not require `allowForwardedTraffic`, while forwarded/transitive candidates require `allowForwardedTraffic=true` on every traversed peering direction; missing/false evidence should remain conservative `unknown`/no-path.
-6. If UI behavior changed, run `scripts/path_analysis_visual_smoke.mjs` with backend/frontend running and keep the generated screenshots as temporary evidence
+6. If Network Path Analysis UI behavior changed, first run `npm --prefix frontend run smoke:semantics` for browserless path-analysis contract coverage; then run `scripts/path_analysis_visual_smoke.mjs` with backend/frontend running and keep the generated screenshots as temporary evidence
 7. Use topology/manual modeling as needed
 8. Save important states as server snapshots
 9. Compare two server snapshots in the UI when you need a quick metadata-level delta for visible/loaded nodes, edges, scope, or compare refs
