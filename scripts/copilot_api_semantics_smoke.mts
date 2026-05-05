@@ -77,12 +77,19 @@ assert.match(costPageCode, /ApiError/, 'CostPage should handle ApiError type')
 console.log('✅ copilot_api_semantics_smoke.mts: all assertions passed')
 
 // ============================================================
-// Section 8: provider health smoke endpoint
+// Section 8: provider health smoke endpoint (backend)
 // ============================================================
-assert.match(apiCode, /health_smoke/, 'api.ts config should mention health_smoke parameter')
+const copilotServicesCode = readFileSync(path.join(repoRoot, 'backend/app/services/copilot.py'), 'utf8')
+const copilotRoutesCode = readFileSync(path.join(repoRoot, 'backend/app/api/routes/copilot.py'), 'utf8')
+
+assert.match(copilotServicesCode, /probe_provider_health/, 'copilot services should export probe_provider_health')
+assert.match(copilotServicesCode, /_probe_ollama_connectivity/, 'copilot services should have ollama connectivity probe')
+assert.match(copilotServicesCode, /_probe_openrouter_connectivity/, 'copilot services should have openrouter connectivity probe')
+assert.match(copilotRoutesCode, /health_smoke/, 'copilot route should accept health_smoke query param')
+assert.match(copilotRoutesCode, /provider_health/, 'copilot route should attach provider_health when health_smoke=true')
 assert.match(costPageCode, /parseCopilotAnswerSections/, 'CostPage should have section parser for copilot answers')
 assert.match(costPageCode, /cost-copilot-section-heading/, 'CostPage should render section headings')
 assert.match(costPageCode, /Suggested next checks/, 'CostPage should label suggestions as Suggested next checks')
 assert.match(costPageCode, /cost-copilot-section/, 'CostPage should split answer into cost-copilot-section blocks')
 
-console.log('✅ copilot_api_semantics_smoke.mts: section-formatting smoke passed')
+console.log('✅ copilot_api_semantics_smoke.mts: section-formatting + provider-health smoke passed')
