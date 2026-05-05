@@ -14,6 +14,7 @@ import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const archPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/ArchitecturePage.tsx'), 'utf8')
+const packageCode = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
 
 // ============================================================
 // Section 1: formatDateTime — date formatting with edge cases
@@ -551,8 +552,10 @@ assert.equal(inferredInHidden?.nodes[0].node_key, 'res1', 'complement: only the 
 assert.match(archPageCode, /function filterTopologyByHiddenSourceKeys/, 'ArchitecturePage should define filterTopologyByHiddenSourceKeys')
 
 // ============================================================
-// Section 8: Verify all eight helpers are present and used
+// Section 8: Verify helper source presence and smoke-chain wiring
 // ============================================================
+assert.match(packageCode, /architecture_page_functions_smoke\.mts/, 'frontend smoke:semantics should include ArchitecturePage function behavior smoke')
+
 const requiredFunctions = [
   'formatDateTime',
   'formatScaleLabel',

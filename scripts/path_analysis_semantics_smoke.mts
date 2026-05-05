@@ -12,6 +12,7 @@ const repoRoot = path.resolve(import.meta.dirname, '..')
 const topoPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 const acceptanceCode = readFileSync(path.join(repoRoot, 'scripts/personal_use_acceptance.sh'), 'utf8')
+const packageCode = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
 
 // ============================================================
 // Section 1: API response contract
@@ -68,8 +69,9 @@ assert.match(topoPageCode, /conservative unknown\/no-path/, 'Path-analysis copy 
 assert.match(topoPageCode, /Peering boundary/, 'Hop list should expose peering boundary chips')
 
 // ============================================================
-// Section 4: Acceptance wrapper awareness
+// Section 4: Smoke chain and acceptance wrapper awareness
 // ============================================================
+assert.match(packageCode, /path_analysis_semantics_smoke\.mts/, 'frontend smoke:semantics should include the path-analysis contract smoke')
 assert.match(acceptanceCode, /personal_use_smoke\.sh/, 'Personal-use acceptance should include the live/conditional path-analysis smoke wrapper')
 assert.match(acceptanceCode, /path_analysis_semantics_smoke\.mts/, 'Personal-use acceptance should syntax-check the browserless path-analysis contract smoke')
 
