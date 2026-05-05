@@ -9,9 +9,15 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
+const packageCode = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 const modelCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/model.ts'), 'utf8')
 const diffCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/topology-diff.ts'), 'utf8')
+
+// ============================================================
+// Section 0: Smoke-chain wiring
+// ============================================================
+assert.match(packageCode, /frontend_types_semantics_smoke\.mts/, 'frontend smoke:semantics should include frontend types smoke')
 
 // ============================================================
 // Section 1: API types — all should be exported

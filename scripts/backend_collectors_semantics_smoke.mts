@@ -9,6 +9,12 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
+const packageCode = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
+
+// ============================================================
+// Section 0: Smoke-chain wiring
+// ============================================================
+assert.match(packageCode, /backend_collectors_semantics_smoke\.mts/, 'frontend smoke:semantics should include backend collectors smoke')
 
 // ============================================================
 // Section 1: Azure inventory collector should exist

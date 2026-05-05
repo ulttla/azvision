@@ -9,6 +9,12 @@ import { readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
+const packageCode = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
+
+// ============================================================
+// Section 0: Smoke-chain wiring
+// ============================================================
+assert.match(packageCode, /backend_api_routes_semantics_smoke\.mts/, 'frontend smoke:semantics should include backend API routes smoke')
 
 // ============================================================
 // Section 1: Route files existence
