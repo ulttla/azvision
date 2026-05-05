@@ -3858,7 +3858,7 @@ export function TopologyPage() {
                     </p>
                   ) : null}
                   <p className="hint detail-inline-hint">
-                    MVP note: path analysis evaluates inbound/outbound NSG checkpoints, peering traversal type, source/destination prefix filters, source/destination ports, service tags, and route evidence conservatively. Source port filtering is rarely needed; specify it only when you want stricter NSG matching.
+                    MVP note: path analysis evaluates inbound/outbound NSG checkpoints, peering traversal type, source/destination prefix filters, source/destination ports, service tags, and route evidence conservatively. For peering, direct traversal does not require allowForwardedTraffic, while forwarded/transitive traversal requires allowForwardedTraffic=true on every traversed peering direction; missing evidence remains conservative unknown/no-path. Source port filtering is rarely needed; specify it only when you want stricter NSG matching.
                   </p>
                   <div className="search-form detail-inline-hint">
                     <input
@@ -3959,7 +3959,11 @@ export function TopologyPage() {
                           {pathAnalysisResult.path_candidates[0].hops.slice(0, 6).map((hop, index) => (
                             <span key={`${hop.resource_id}-${index}`} className="sample-chip">
                               {hop.display_name} • {hop.hop_type}
-                              {hop.is_peering_boundary ? <span className="mini-chip">Peering boundary</span> : null}
+                              {hop.is_peering_boundary ? (
+                                <span className="mini-chip" title="Boundary between VNets; use the peering evidence hint above to interpret direct versus forwarded traversal.">
+                                  Peering boundary
+                                </span>
+                              ) : null}
                               {hop.nsg_verdict ? (
                                 <span className="mini-chip" title={[hop.nsg_name, hop.nsg_rule_name].filter(Boolean).join(' / ') || undefined}>
                                   NSG{hop.nsg_direction ? ` ${hop.nsg_direction}` : ''}: {hop.nsg_verdict}

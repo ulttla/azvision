@@ -55,7 +55,7 @@ cd "$ROOT_DIR"
 echo "[1/13] docs mirror check"
 bash scripts/check_doc_mirror.sh
 
-echo "[2/13] script syntax"
+echo "[2/13] script syntax and browserless smoke imports"
 bash -n scripts/run_dev.sh
 bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
@@ -65,6 +65,7 @@ bash -n scripts/snapshot_compare_smoke.sh
 bash -n scripts/cost_report_smoke.sh
 bash -n scripts/cost_insights_smoke.sh
 bash -n scripts/simulation_smoke.sh
+node --experimental-strip-types scripts/path_analysis_semantics_smoke.mts
 python3 -m py_compile scripts/sqlite_health_check.py
 python3 -m py_compile scripts/archive_retention_dry_run.py
 
