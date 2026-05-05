@@ -64,6 +64,18 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4.5
 
 If provider config is missing or provider calls fail, AzVision falls back to the rule-based copilot and returns a provider status without secrets.
 
+Provider status smoke after backend start:
+
+```bash
+curl -fsS http://127.0.0.1:8000/api/v1/copilot/providers
+curl -fsS 'http://127.0.0.1:8000/api/v1/copilot/providers?health_smoke=true'
+```
+
+Expected baseline without provider secrets:
+- `rule-based` is available.
+- Ollama/OpenRouter may show `missing_config` or `unreachable`; this is safe and should not block the rest of personal-use validation.
+- No API key/token values should appear in either response.
+
 ## Personal-use acceptance and smoke
 
 For a full v0.9 acceptance pass, run:
