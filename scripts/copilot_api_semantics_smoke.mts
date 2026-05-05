@@ -33,7 +33,8 @@ assert.match(apiCode, /CopilotProviderOption/, 'api.ts should export provider op
 assert.match(apiCode, /export async function postCopilotMessage[\s\S]*?workspaceId[\s\S]*?message/, 'postCopilotMessage should take workspaceId and message')
 assert.match(apiCode, /postCopilotMessage[\s\S]*?provider\?: CopilotProviderOption/, 'postCopilotMessage should accept provider override')
 assert.match(apiCode, /postCopilotMessage[\s\S]*?buildInventoryQuery/, 'postCopilotMessage should use inventory query options')
-assert.match(apiCode, /current_view: 'cost-insights'/, 'postCopilotMessage should attach current view context label')
+assert.match(apiCode, /currentView = 'cost-insights'/, 'postCopilotMessage should default current view context label')
+assert.match(apiCode, /current_view: currentView/, 'postCopilotMessage should send dynamic current view context label')
 
 // ============================================================
 // Section 3: CostPage copilot usage
@@ -74,3 +75,14 @@ assert.match(costPageCode, /setCopilotResponse/, 'CostPage should set copilotRes
 assert.match(costPageCode, /ApiError/, 'CostPage should handle ApiError type')
 
 console.log('✅ copilot_api_semantics_smoke.mts: all assertions passed')
+
+// ============================================================
+// Section 8: provider health smoke endpoint
+// ============================================================
+assert.match(apiCode, /health_smoke/, 'api.ts config should mention health_smoke parameter')
+assert.match(costPageCode, /parseCopilotAnswerSections/, 'CostPage should have section parser for copilot answers')
+assert.match(costPageCode, /cost-copilot-section-heading/, 'CostPage should render section headings')
+assert.match(costPageCode, /Suggested next checks/, 'CostPage should label suggestions as Suggested next checks')
+assert.match(costPageCode, /cost-copilot-section/, 'CostPage should split answer into cost-copilot-section blocks')
+
+console.log('✅ copilot_api_semantics_smoke.mts: section-formatting smoke passed')

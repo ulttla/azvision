@@ -47,17 +47,22 @@ Contract shape:
 class CopilotProvider(Protocol):
     provider_name: str
 
-    def answer(self, message: str, resources: list[dict[str, Any]]) -> dict[str, Any]: ...
+    def answer(
+        self,
+        message: str,
+        resources: list[dict[str, Any]],
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]: ...
 ```
 
-Next planned read-only LLM provider work is documented in `docs/COPILOT_LLM_MVP_PLAN.md`.
+Read-only LLM provider skeleton work is documented in `docs/COPILOT_LLM_MVP_PLAN.md`.
 
 Provider targets:
 - `RuleBasedCopilotProvider`: always-available fallback.
 - `OllamaCopilotProvider`: local Ollama API, including Ollama Cloud subscription models through local Ollama.
 - `OpenRouterCopilotProvider`: OpenRouter API-key path for local or hosted deployments.
 
-LLM providers should preserve or extend the route response shape without breaking existing clients:
+LLM providers should preserve or extend the route response shape without breaking existing clients. `suggestions[]` may be empty for a successful LLM response until structured answer sections are added:
 - `copilot_mode`
 - `provider`
 - `llm_status`
@@ -74,5 +79,5 @@ Guardrail:
 
 ## Current MVP stance
 - Cost Intelligence is a triage layer, not spend reporting.
-- Copilot is currently deterministic rule-based guidance. The next planned extension is a read-only personal LLM Copilot MVP with Ollama and OpenRouter adapters.
+- Copilot has a deterministic rule-based fallback plus a read-only personal LLM provider skeleton for Ollama and OpenRouter adapters. If provider config is missing or provider calls fail, the route falls back to rule-based guidance.
 - Simulation templates/reports are planning artifacts, not deployable infrastructure.

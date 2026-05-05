@@ -10,7 +10,17 @@ import requests
 from app.core.config import Settings
 from app.services.cost_analysis import build_cost_recommendations
 
-SECRET_KEY_PARTS = ("secret", "password", "token", "key", "credential", "thumbprint", "connectionstring")
+SECRET_KEY_PARTS = (
+    "secret",
+    "password",
+    "token",
+    "key",
+    "credential",
+    "thumbprint",
+    "connectionstring",
+    "privatekey",
+    "private_key",
+)
 MAX_CONTEXT_STRING = 500
 
 
@@ -237,7 +247,7 @@ class OllamaCopilotProvider:
 
     @property
     def configured(self) -> bool:
-        return bool(self.base_url and self.model)
+        return bool(self.base_url.strip() and self.model.strip())
 
     def answer(self, message: str, resources: list[dict[str, Any]], context: dict[str, Any] | None = None) -> dict[str, Any]:
         context = context or build_copilot_context(resources)
@@ -267,7 +277,7 @@ class OpenRouterCopilotProvider:
 
     @property
     def configured(self) -> bool:
-        return bool(self.base_url and self.model and self.api_key)
+        return bool(self.base_url.strip() and self.model.strip() and self.api_key.strip())
 
     def answer(self, message: str, resources: list[dict[str, Any]], context: dict[str, Any] | None = None) -> dict[str, Any]:
         context = context or build_copilot_context(resources)
@@ -291,24 +301,73 @@ class OpenRouterCopilotProvider:
         return _normalized_llm_answer("openrouter", self.model, content, context)
 
 
+def _probe_ollama_connectivity(settings: Settings) -> str:
+    """Probe Ollama endpoint health. Returns 'reachable', 'unreachable', or 'not_configured'."""
+    if not settings.ollama_base_url.strip() or not settings.ollama_model.strip():
+        return "not_configured"
+    try:
+        response = requests.get(urljoin(settings.ollama_base_url.rstrip("/") + "/", "api/tags"), timeout=5)
+        response.raise_for_status()
+        return "reachable"
+    except Exception:
+        return "unreachable"
+
+
+def _probe_openrouter_connectivity(settings: Settings) -> str:
+    """Probe OpenRouter API health. Returns 'reachable', 'unreachable', or 'not_configured'.
+    Uses a lightweight model-list probe without incurring inference cost."""
+    if not settings.openrouter_api_key.strip() or not settings.openrouter_model.strip():
+        return "not_configured"
+    try:
+        response = requests.get(
+            settings.openrouter_base_url.rstrip("/") + "/models",
+            headers={"Authorization": f"Bearer {settings.openrouter_api_key}"},
+            timeout=8,
+        )
+        response.raise_for_status()
+        return "reachable"
+    except Exception:
+        return "unreachable"
+
+
 def list_copilot_providers(settings: Settings) -> list[dict[str, Any]]:
     return [
         {"id": "rule-based", "label": "Rule-based fallback", "configured": True, "status": "available", "model": None},
         {
             "id": "ollama",
             "label": "Ollama / Ollama Cloud",
-            "configured": bool(settings.ollama_base_url and settings.ollama_model),
-            "status": "available" if settings.ollama_base_url and settings.ollama_model else "missing_config",
+            "configured": bool(settings.ollama_base_url.strip() and settings.ollama_model.strip()),
+            "status": "available" if settings.ollama_base_url.strip() and settings.ollama_model.strip() else "missing_config",
             "model": settings.ollama_model or None,
         },
         {
             "id": "openrouter",
             "label": "OpenRouter",
-            "configured": bool(settings.openrouter_base_url and settings.openrouter_model and settings.openrouter_api_key),
-            "status": "available" if settings.openrouter_base_url and settings.openrouter_model and settings.openrouter_api_key else "missing_config",
+            "configured": bool(settings.openrouter_base_url.strip() and settings.openrouter_model.strip() and settings.openrouter_api_key.strip()),
+            "status": "available" if settings.openrouter_base_url.strip() and settings.openrouter_model.strip() and settings.openrouter_api_key.strip() else "missing_config",
             "model": settings.openrouter_model or None,
         },
     ]
+
+
+def probe_provider_health(settings: Settings) -> dict[str, Any]:
+    """Probe provider connectivity. Returns smoke signals without secrets or inference cost."""
+    ollama_status = _probe_ollama_connectivity(settings)
+    openrouter_status = _probe_openrouter_connectivity(settings)
+    return {
+        "ollama": {
+            "configured": bool(settings.ollama_base_url.strip() and settings.ollama_model.strip()),
+            "reachable": ollama_status == "reachable",
+            "detail": ollama_status,
+            "model": settings.ollama_model or None,
+        },
+        "openrouter": {
+            "configured": bool(settings.openrouter_api_key.strip() and settings.openrouter_model.strip()),
+            "reachable": openrouter_status == "reachable",
+            "detail": openrouter_status,
+            "model": settings.openrouter_model or None,
+        },
+    }
 
 
 def get_configured_copilot_provider(settings: Settings, provider_override: str | None = None) -> CopilotProvider:

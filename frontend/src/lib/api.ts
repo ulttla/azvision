@@ -147,6 +147,20 @@ export type CostReportResponse = {
   warnings: string[]
 }
 
+export type CopilotContext = {
+  workspace_id?: string
+  inventory_mode?: string
+  current_view?: string
+  facts_label?: string
+  resource_count: number
+  recommendation_count?: number
+  top_resource_types?: string[]
+  resource_groups?: string[]
+  selected_resource?: Record<string, unknown> | null
+  sample_resources?: Record<string, unknown>[]
+  limits?: Record<string, boolean | string | number>
+}
+
 export type CopilotResponse = {
   ok: boolean
   workspace_id: string
@@ -158,16 +172,27 @@ export type CopilotResponse = {
   llm_status: string
   answer: string
   suggestions: string[]
-  context: {
-    resource_count: number
-    recommendation_count?: number
-    top_resource_types?: string[]
-    limits?: Record<string, boolean | string | number>
-  }
+  context: CopilotContext
   warning?: string | null
 }
 
 export type CopilotProviderOption = 'ollama' | 'openrouter' | 'rule-based'
+
+export type CopilotProviderStatus = {
+  id: CopilotProviderOption
+  label: string
+  configured: boolean
+  status: string
+  model?: string | null
+}
+
+export type CopilotProviderStatusResponse = {
+  ok: boolean
+  enabled: boolean
+  default_provider: string
+  read_only: boolean
+  providers: CopilotProviderStatus[]
+}
 
 export type SimulationResourceRecommendation = {
   resource_type: string
@@ -674,16 +699,21 @@ export async function getCostRecommendations(
   )
 }
 
+export async function getCopilotProviders(): Promise<CopilotProviderStatusResponse> {
+  return fetchJson<CopilotProviderStatusResponse>('/copilot/providers')
+}
+
 export async function postCopilotMessage(
   workspaceId: string,
   message: string,
   options?: CostQueryOptions,
   provider?: CopilotProviderOption,
+  currentView = 'cost-insights',
 ): Promise<CopilotResponse> {
   return fetchJson<CopilotResponse>(`/workspaces/${workspaceId}/chat${buildInventoryQuery(options)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, provider, current_view: 'cost-insights' }),
+    body: JSON.stringify({ message, provider, current_view: currentView }),
   })
 }
 

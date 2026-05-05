@@ -10,6 +10,7 @@ from app.services.copilot import (
     build_rule_based_copilot_answer,
     get_default_copilot_provider,
     list_copilot_providers,
+    probe_provider_health,
     redact_copilot_value,
 )
 
@@ -183,3 +184,98 @@ def test_copilot_chat_route_returns_contextual_answer(client: TestClient) -> Non
     assert body["answer"]
     assert body["suggestions"]
     assert body["context"]["resource_count"] >= 1
+
+
+def test_provider_health_ollama_not_configured_without_settings() -> None:
+    settings = Settings(ollama_base_url="", ollama_model="")
+    result = probe_provider_health(settings)
+    assert result["ollama"]["configured"] is False
+    assert result["ollama"]["reachable"] is False
+    assert result["ollama"]["detail"] == "not_configured"
+
+
+def test_provider_health_openrouter_not_configured_without_key() -> None:
+    settings = Settings(openrouter_api_key="", openrouter_model="")
+    result = probe_provider_health(settings)
+    assert result["openrouter"]["configured"] is False
+    assert result["openrouter"]["reachable"] is False
+    assert result["openrouter"]["detail"] == "not_configured"
+
+
+def test_provider_health_ollama_unreachable_when_down(monkeypatch) -> None:
+    def broken_get(*args, **kwargs):
+        raise ValueError("timeout")
+
+    monkeypatch.setattr("app.services.copilot.requests.get", broken_get)
+    settings = Settings(ollama_base_url="http://127.0.0.1:11434", ollama_model="test-model")
+    result = probe_provider_health(settings)
+    assert result["ollama"]["configured"] is True
+    assert result["ollama"]["reachable"] is False
+    assert result["ollama"]["detail"] == "unreachable"
+
+
+def test_provider_health_openrouter_unreachable_when_down(monkeypatch) -> None:
+    def broken_get(*args, **kwargs):
+        raise ValueError("timeout")
+
+    monkeypatch.setattr("app.services.copilot.requests.get", broken_get)
+    settings = Settings(
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+    result = probe_provider_health(settings)
+    assert result["openrouter"]["configured"] is True
+    assert result["openrouter"]["reachable"] is False
+    assert result["openrouter"]["detail"] == "unreachable"
+    assert "sk-test-secret" not in str(result)
+
+
+def test_provider_health_ollama_reachable_when_up(monkeypatch) -> None:
+    class ReachableResponse:
+        def raise_for_status(self) -> None:
+            pass
+
+    def reachable_get(*args, **kwargs):
+        return ReachableResponse()
+
+    monkeypatch.setattr("app.services.copilot.requests.get", reachable_get)
+    settings = Settings(ollama_base_url="http://127.0.0.1:11434", ollama_model="test-model")
+    result = probe_provider_health(settings)
+    assert result["ollama"]["configured"] is True
+    assert result["ollama"]["reachable"] is True
+    assert result["ollama"]["detail"] == "reachable"
+
+
+def test_provider_health_openrouter_reachable_when_up(monkeypatch) -> None:
+    class ReachableResponse:
+        def raise_for_status(self) -> None:
+            pass
+
+    def reachable_get(*args, **kwargs):
+        return ReachableResponse()
+
+    monkeypatch.setattr("app.services.copilot.requests.get", reachable_get)
+    settings = Settings(
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+    result = probe_provider_health(settings)
+    assert result["openrouter"]["configured"] is True
+    assert result["openrouter"]["reachable"] is True
+    assert result["openrouter"]["detail"] == "reachable"
+    assert "sk-test-secret" not in str(result)
+
+
+def test_copilot_providers_route_health_smoke_no_probe_without_flag(client: TestClient) -> None:
+    response = client.get("/api/v1/copilot/providers")
+    body = response.json()
+    assert "provider_health" not in body
+
+
+def test_copilot_providers_route_health_smoke_returns_probe_with_flag(client: TestClient) -> None:
+    response = client.get("/api/v1/copilot/providers?health_smoke=true")
+    assert response.status_code == 200
+    body = response.json()
+    assert "provider_health" in body
+    assert "ollama" in body["provider_health"]
+    assert "openrouter" in body["provider_health"]

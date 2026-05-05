@@ -6,8 +6,10 @@ import {
   getCostReport,
   getCostResources,
   getCostSummary,
+  getCopilotProviders,
   postCopilotMessage,
   type CopilotProviderOption,
+  type CopilotProviderStatus,
   type CopilotResponse,
   type CostRecommendation,
   type CostResourceRow,
@@ -15,6 +17,67 @@ import {
 } from '../lib/api'
 
 const DEFAULT_WORKSPACE_ID = import.meta.env.VITE_DEFAULT_WORKSPACE_ID ?? 'local-demo'
+
+type CopilotSection = { heading: string; body: string[]; isSuggestions?: boolean }
+
+/**
+ * Parse a copilot answer into structured sections.
+ * Detects common heading patterns: `## Heading`, `**Heading:**`, `Heading:`, `1.` numbered items.
+ * Falls back to a single-section rendering when no markers found.
+ */
+function parseCopilotAnswerSections(answer: string): CopilotSection[] {
+  const lines = answer.split('\n').map((l) => l.trimEnd())
+  const sections: CopilotSection[] = []
+  let current: CopilotSection | null = null
+
+  const headingPatterns: Array<{ regex: RegExp; extract: (m: RegExpMatchArray) => string }> = [
+    { regex: /^##\s+(.+?)(?:#+)?$/, extract: (m) => m[1].trim() },
+    { regex: /^\*\*(.+?)\*\*\s*:?\s*$/, extract: (m) => m[1].trim() },
+    { regex: /^([A-Z][A-Za-z\s]{2,40}):\s*$/, extract: (m) => m[1].trim() },
+  ]
+
+  function finalizeSection() {
+    if (current && current.body.length > 0) {
+      sections.push(current)
+    }
+    current = null
+  }
+
+  for (const line of lines) {
+    let matched = false
+    for (const { regex, extract } of headingPatterns) {
+      const match = line.match(regex)
+      if (match) {
+        finalizeSection()
+        current = { heading: extract(match), body: [] }
+        matched = true
+        break
+      }
+    }
+    if (matched) continue
+
+    if (line.length === 0) {
+      // blank line — flush a section only if we already have content
+      if (current && current.body.length > 0) {
+        current.body.push('')
+      }
+      continue
+    }
+
+    if (!current) {
+      current = { heading: 'Answer', body: [] }
+    }
+    current.body.push(line)
+  }
+  finalizeSection()
+
+  if (sections.length === 0) {
+    // No sections parsed — return the whole answer as one section
+    return [{ heading: 'Answer', body: lines.filter((l) => l.length > 0) }]
+  }
+
+  return sections
+}
 
 function formatCountMap(value: Record<string, number>) {
   const entries = Object.entries(value)
@@ -57,6 +120,7 @@ export function CostPage() {
   const [resourceLimit, setResourceLimit] = useState(500)
   const [copilotPrompt, setCopilotPrompt] = useState('How can I reduce cost or improve this architecture?')
   const [copilotProvider, setCopilotProvider] = useState<CopilotProviderOption>('rule-based')
+  const [copilotProviders, setCopilotProviders] = useState<CopilotProviderStatus[]>([])
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
   const [copilotLoading, setCopilotLoading] = useState(false)
   const [reportLoading, setReportLoading] = useState(false)
@@ -117,6 +181,29 @@ export function CostPage() {
     () => [...resources].sort((left, right) => right.recommendation_count - left.recommendation_count).slice(0, 8),
     [resources],
   )
+  const selectedProviderStatus = copilotProviders.find((provider) => provider.id === copilotProvider)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCopilotProviders() {
+      try {
+        const result = await getCopilotProviders()
+        if (!cancelled) {
+          setCopilotProviders(result.providers)
+        }
+      } catch {
+        if (!cancelled) {
+          setCopilotProviders([])
+        }
+      }
+    }
+
+    loadCopilotProviders()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function askCopilot() {
     if (!copilotPrompt.trim()) {
@@ -125,7 +212,7 @@ export function CostPage() {
     setCopilotLoading(true)
     setError('')
     try {
-      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), costQueryOptions, copilotProvider))
+      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), costQueryOptions, copilotProvider, 'cost-insights'))
     } catch (err) {
       setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to ask copilot')
     } finally {
@@ -267,18 +354,36 @@ export function CostPage() {
               value={copilotProvider}
               onChange={(event) => setCopilotProvider(event.target.value as CopilotProviderOption)}
             >
-              <option value="ollama">Ollama / Ollama Cloud</option>
-              <option value="openrouter">OpenRouter</option>
-              <option value="rule-based">Rule-based fallback</option>
+              {(copilotProviders.length
+                ? copilotProviders
+                : [
+                    { id: 'rule-based' as const, label: 'Rule-based fallback', configured: true, status: 'available', model: null },
+                    { id: 'ollama' as const, label: 'Ollama / Ollama Cloud', configured: false, status: 'missing_config', model: null },
+                    { id: 'openrouter' as const, label: 'OpenRouter', configured: false, status: 'missing_config', model: null },
+                  ]
+              ).map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.label}{provider.configured ? '' : ' — not configured'}
+                </option>
+              ))}
             </select>
           </label>
           <span className="mini-chip">Attach current view context</span>
+          {selectedProviderStatus && !selectedProviderStatus.configured ? (
+            <span className="mini-chip severity-medium">{selectedProviderStatus.label} not configured; rule-based fallback will answer</span>
+          ) : null}
         </div>
         <div className="cost-copilot-input-row">
           <textarea
             className="search-input cost-copilot-input"
             value={copilotPrompt}
             onChange={(event) => setCopilotPrompt(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                event.preventDefault()
+                void askCopilot()
+              }
+            }}
             rows={3}
           />
           <button type="button" className="toolbar-button primary" onClick={askCopilot} disabled={copilotLoading}>
@@ -294,12 +399,32 @@ export function CostPage() {
                 {copilotResponse.model ? ` • Model: ${copilotResponse.model}` : ''} • read-only: {copilotResponse.read_only === false ? 'no' : 'yes'}
               </span>
             </div>
-            <p>{copilotResponse.answer}</p>
-            <ul>
-              {copilotResponse.suggestions.map((suggestion) => (
-                <li key={suggestion}>{suggestion}</li>
-              ))}
-            </ul>
+            {(() => {
+              const sections = parseCopilotAnswerSections(copilotResponse.answer)
+              const hasSuggestions = copilotResponse.suggestions.length > 0
+              return (
+                <>
+                  {sections.map((section, index) => (
+                    <div key={`${index}-${section.heading}`} className="cost-copilot-section">
+                      <strong className="cost-copilot-section-heading">{section.heading}</strong>
+                      {section.body.map((line, lineIndex) => (
+                        <p key={lineIndex}>{line || '\u00A0'}</p>
+                      ))}
+                    </div>
+                  ))}
+                  {hasSuggestions ? (
+                    <div className="cost-copilot-section">
+                      <strong className="cost-copilot-section-heading">Suggested next checks</strong>
+                      <ul>
+                        {copilotResponse.suggestions.map((suggestion) => (
+                          <li key={suggestion}>{suggestion}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </>
+              )
+            })()}
           </div>
         ) : null}
       </section>

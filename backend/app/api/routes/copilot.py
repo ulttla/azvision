@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query
 
 from app.collectors.azure_inventory import resolve_inventory_collection
 from app.core.config import get_settings
-from app.services.copilot import build_copilot_context, get_configured_copilot_provider, list_copilot_providers
+from app.services.copilot import build_copilot_context, get_configured_copilot_provider, list_copilot_providers, probe_provider_health
 
 router = APIRouter(tags=["copilot"])
 
@@ -66,15 +66,18 @@ def _answer_payload(
 
 
 @router.get("/copilot/providers")
-def get_copilot_providers() -> dict[str, Any]:
+def get_copilot_providers(health_smoke: bool = Query(default=False)) -> dict[str, Any]:
     settings = get_settings()
-    return {
+    result: dict[str, Any] = {
         "ok": True,
         "enabled": settings.copilot_enabled,
         "default_provider": settings.copilot_default_provider,
         "read_only": True,
         "providers": list_copilot_providers(settings),
     }
+    if health_smoke:
+        result["provider_health"] = probe_provider_health(settings)
+    return result
 
 
 @router.post("/copilot/chat")
