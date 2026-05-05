@@ -360,7 +360,7 @@ export type ArchitectureViewOverrideState = {
 - label readability pass 반영 완료
   - domain token split / acronym prettify / singleton label polish 적용
   - short-only compact alias 2차 적용(`Synapse WS`, `MI`, `MI Support Net`, `SQL MI SW Dev Net`, `Pricing Calculator CDN` 류)
-- 검증 상태: `npm --prefix frontend run build`, `npm --prefix frontend run smoke:semantics` PASS. 최신 C1 hardening slice에서는 `scripts/check_personal_use_ready.sh`, `bash -n scripts/personal_use_acceptance.sh`, `bash -n scripts/simulation_smoke.sh`까지 확인했으며, full `scripts/personal_use_acceptance.sh`는 release-quality baseline 선언 전에 별도 실행한다.
+- 검증 상태: `npm --prefix frontend run build`, `npm --prefix frontend run smoke:semantics` PASS. `smoke:semantics`에는 Architecture View helper behavior smoke(`scripts/architecture_page_functions_smoke.mts`)가 포함되어 format/override/annotation/topology visibility helper contract를 browserless로 확인한다. 최신 hardening slice에서는 backend tests 336 PASS와 `AZVISION_ACCEPTANCE_LIVE_SMOKE=0 scripts/personal_use_acceptance.sh` PASS까지 확인했다.
 - Browser/CDP evidence: channel profile `azvision-dev`에서 Architecture View live render, layout clipping fix, scale/scroll UX smoke 확인. 관련 screenshot은 `tmp/architecture-view-layout-fix-smoke.png`, `tmp/architecture-view-scale-scroll-smoke.png`.
 
 ## reviewer check 요청 포인트

@@ -35,7 +35,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - server save-after warning copy도 `server validation or thumbnail guard checks` 기준으로 정렬해 guide와 실제 warning 문구 drift를 줄임
   - `fetchJson`이 non-2xx JSON body의 `message`를 `ApiError`로 surface 하도록 정리됨
   - `tsc --noEmit`, `vite build` 통과
-  - `npm --prefix frontend run smoke:semantics` 로 app-shell connectivity row render, connectivity state transition, 및 accessibility contract(`aria-live`, `data-testid`)를 browserless smoke 가능
+  - `npm --prefix frontend run smoke:semantics` 로 app-shell connectivity, Architecture View helper behavior, Path Analysis UI/API contract, snapshot/topology archive, accessibility contract(`aria-live`, `data-testid`)를 browserless smoke 가능
 - 검증
   - manual node/edge CRUD / PATCH / cleanup smoke 통과
   - manual edge full E2E(create/list/update/delete) smoke 통과
@@ -61,7 +61,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `scripts/check_doc_mirror.sh` 는 기본 visibility-only이고, `AZVISION_DOC_MIRROR_STRICT=1` 설정 시 mirror drift를 실패로 처리 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
-  - CI/frontend acceptance now runs `npm --prefix frontend run smoke:semantics` for browserless snapshot sort and thumbnail guard copy/contract drift
+  - CI/frontend acceptance now runs `npm --prefix frontend run smoke:semantics` for browserless snapshot sort, thumbnail guard copy/contract drift, Architecture View helper behavior, and Path Analysis peering evidence contract coverage
   - `docs/MIRROR_POLICY.md` 와 `scripts/check_doc_mirror.sh` 로 repo docs와 workspace docs mirror drift를 visibility-only 방식으로 점검 가능
   - `docs/PERSONAL_USE_RUNBOOK.md`, `docs/PERSONAL_USE_READINESS_PLAN.md`, `docs/PERSONAL_USE_SESSION_NOTES.md`, `scripts/check_personal_use_ready.sh`, `scripts/run_dev.sh`, `scripts/personal_use_acceptance.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh`, `scripts/verify_sqlite_backup.sh` 로 Gun 단독 실사용 v0.9 사전점검·실행·검증·백업 경로를 점검 가능
 - 참고
@@ -156,7 +156,7 @@ npm run dev
   - `python -m compileall app`
   - backend app import smoke
   - backend API smoke (`scripts/error_response_smoke.sh`, `scripts/snapshot_payload_smoke.sh`, `scripts/snapshot_sort_api_smoke.sh`, `scripts/snapshot_compare_smoke.sh`, `scripts/cost_report_smoke.sh`, `scripts/cost_insights_smoke.sh`, `scripts/simulation_smoke.sh`)
-  - browserless frontend semantics smoke (`npm --prefix frontend run smoke:semantics`)
+  - browserless frontend semantics smoke (`npm --prefix frontend run smoke:semantics`; includes Architecture View helper behavior and Path Analysis contract coverage)
   - read-only SQLite health check (`scripts/sqlite_health_check.py`)
   - frontend `npm ci` + `npm run build`
 - Azure live auth/read-test, 실제 credential 의존 검증은 CI 범위에서 제외
