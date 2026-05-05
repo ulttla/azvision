@@ -14,7 +14,8 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
 
 - Optimize this slice for **v0.9 stable personal-use**.
 - Keep the product roadmap intact, but do not block personal use on productization work.
-- Treat external deployment, user login, multi-user permission model, object-storage thumbnail redesign, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot as deferred product-track work.
+- Treat external deployment, user login, multi-user permission model, object-storage thumbnail redesign, real Azure Cost Management ingestion, deployable simulation templates, and product-grade LLM copilot as deferred product-track work.
+- Allow a **read-only local/personal LLM Copilot MVP** to move earlier after v0.9 stabilization. It must use backend-only provider credentials, preserve the rule-based fallback, and stay read-only. See `docs/COPILOT_LLM_MVP_PLAN.md`.
 
 ## v0.9 in scope
 
@@ -53,7 +54,8 @@ Purpose: reprioritize AzVision around Gun's single-user internal use so it can b
 - multi-user collaboration / permissions
 - object storage for thumbnails
 - full historical Azure inventory archive
-- real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot
+- real Azure Cost Management ingestion and deployable simulation templates
+- product-grade LLM copilot with login, shared chat history, multi-user permissions, or Azure write/remediation
 - Azure write/remediation operations
 
 ## Acceptance checklist
@@ -151,8 +153,9 @@ Expected result:
 
 ## Next development priorities after v0.9
 
-1. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
-2. Maintain the existing PDF export smoke/tests as part of the immediate personal workflow when export behavior changes.
-3. Shared app-shell readiness is now useful outside Architecture View: keep the Backend/Auth/Topology freshness signals and manual `Refresh status` action covered by browserless smoke when shell behavior changes. Keep duplicate-click/busy-state behavior intact so the local operator cannot stack repeated health checks.
-4. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
-5. Re-enter productization planning separately when external-user goals return.
+1. Read-only LLM Copilot MVP can be the next personal-use slice: support Ollama/local Ollama Cloud and OpenRouter providers behind a backend-only provider interface, keep rule-based fallback, and avoid Azure write/remediation. See `docs/COPILOT_LLM_MVP_PLAN.md`.
+2. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
+3. Maintain the existing PDF export smoke/tests as part of the immediate personal workflow when export behavior changes.
+4. Shared app-shell readiness is now useful outside Architecture View: keep the Backend/Auth/Topology freshness signals and manual `Refresh status` action covered by browserless smoke when shell behavior changes. Keep duplicate-click/busy-state behavior intact so the local operator cannot stack repeated health checks.
+5. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
+6. Re-enter productization planning separately when external-user goals return.

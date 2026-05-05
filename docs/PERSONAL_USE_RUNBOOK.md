@@ -5,7 +5,8 @@ Purpose: make AzVision usable as Gun's single-user local/dev app without opening
 ## Readiness target
 - Target: personal-use v0.9
 - In scope: local backend/frontend execution, Azure read diagnostics, topology view, manual modeling, server-backed snapshot/history, SQLite backup/restore path, quick smoke validation, rule-based Cost Insights, and focused rule-based Simulation smoke
-- Out of scope: public deployment, user login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot
+- Out of scope: public deployment, user login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and product-grade LLM copilot
+- Next optional personal-use extension: read-only LLM Copilot MVP with backend-only Ollama/OpenRouter provider settings. See `docs/COPILOT_LLM_MVP_PLAN.md`.
 
 ## Start the app
 

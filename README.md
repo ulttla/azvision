@@ -66,10 +66,11 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `docs/PERSONAL_USE_RUNBOOK.md`, `docs/PERSONAL_USE_READINESS_PLAN.md`, `docs/PERSONAL_USE_SESSION_NOTES.md`, `scripts/check_personal_use_ready.sh`, `scripts/run_dev.sh`, `scripts/personal_use_acceptance.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh`, `scripts/verify_sqlite_backup.sh` 로 Gun 단독 실사용 v0.9 사전점검·실행·검증·백업 경로를 점검 가능
 - 참고
   - 세부 API 응답 구조는 `docs/API_CONTRACT.md`, snapshot/history 상태는 `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 와 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md`, raw topology diff/retention 상태는 `docs/RAW_TOPOLOGY_DIFF_PLAN.md` 와 `docs/RETENTION_POLICY.md` 를 기준으로 본다.
-  - 다음 개발 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 의 `Next development priorities after v0.9` 섹션을 기준으로 한다. 현재는 Architecture View personal-use polish가 stable path에 들어왔고, export smoke/test 유지, 필요 시 shared readiness badge, Azure Arc/hybrid 확장, productization 재진입 순서로 관리한다.
+  - 다음 개발 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 의 `Next development priorities after v0.9` 섹션을 기준으로 한다. 현재 다음 추천 slice는 read-only LLM Copilot MVP이며, Ollama/local Ollama Cloud + OpenRouter provider adapter 계획은 `docs/COPILOT_LLM_MVP_PLAN.md` 에서 관리한다. Architecture View polish는 stable path에 들어왔고, export smoke/test 유지, Azure Arc/hybrid 확장, productization 재진입은 후속 순서로 관리한다.
 
 ## Provider extension notes
 - Cost ingestion / Copilot provider hook의 현재 계약과 향후 교체 지점은 `docs/PROVIDER_EXTENSION_NOTES.md` 참고.
+- Read-only LLM Copilot MVP 계획은 `docs/COPILOT_LLM_MVP_PLAN.md` 참고. 1차 provider는 local Ollama/Ollama Cloud와 OpenRouter API key 경로를 동시에 고려한다.
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`

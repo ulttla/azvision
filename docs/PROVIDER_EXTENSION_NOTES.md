@@ -50,19 +50,29 @@ class CopilotProvider(Protocol):
     def answer(self, message: str, resources: list[dict[str, Any]]) -> dict[str, Any]: ...
 ```
 
-Future LLM provider should preserve the route response shape:
+Next planned read-only LLM provider work is documented in `docs/COPILOT_LLM_MVP_PLAN.md`.
+
+Provider targets:
+- `RuleBasedCopilotProvider`: always-available fallback.
+- `OllamaCopilotProvider`: local Ollama API, including Ollama Cloud subscription models through local Ollama.
+- `OpenRouterCopilotProvider`: OpenRouter API-key path for local or hosted deployments.
+
+LLM providers should preserve or extend the route response shape without breaking existing clients:
 - `copilot_mode`
 - `provider`
 - `llm_status`
 - `answer`
 - `suggestions[]`
 - `context`
+- optional `model`, `confidence`, and `read_only=true`
 
 Guardrail:
 - LLM/BYOK integration must not become required for core topology, cost triage, or simulation features.
 - If no LLM is configured, rule-based copilot remains the fallback.
+- Provider credentials stay backend-only; frontend must never receive API keys or tokens.
+- First LLM slice is read-only only: no Azure write/remediation, no deployment action, and no product-grade shared chat history.
 
 ## Current MVP stance
 - Cost Intelligence is a triage layer, not spend reporting.
-- Copilot is deterministic rule-based guidance, not an LLM answer.
+- Copilot is currently deterministic rule-based guidance. The next planned extension is a read-only personal LLM Copilot MVP with Ollama and OpenRouter adapters.
 - Simulation templates/reports are planning artifacts, not deployable infrastructure.
