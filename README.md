@@ -18,7 +18,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - frontend `Cost Insights` view에서 subscription/resource group/resource group limit/resource limit scope 기준 rule-based cost summary/recommendations/resource prompts 및 markdown report download 확인 가능
   - app shell shared multi-signal readiness/status bar가 모든 view 상단에 표시되며, backend connectivity (`online`/`checking`/`offline`), auth config health, topology freshness signal을 개별 dot으로 동시에 노출함. healthz + auth config-check + topology freshness polling 기반으로 workspace shell 수준에서 3개 signal을 독립적으로 확인 가능하며, `Refresh status` 버튼으로 페이지 전환/새로고침 없이 즉시 재확인 가능. 수동 refresh 중에는 중복 클릭을 막기 위해 버튼을 disabled/busy 상태로 전환
   - Architecture View resource-type classifier는 Key Vault / monitoring(Log Analytics, App Insights, OMS, Insights 계열), Data Factory, Databricks, VM compute, Container Apps/ACI/AKS를 explicit family로 분류한다. Stage routing은 security/monitoring infra, Data Factory ingest, Databricks/VM/container worker process, frontend/API container workload는 source/serve 쪽으로 보수 보정한다.
-  - `/chat` rule-based copilot first-pass 구현 완료. 현재는 `llm_status=not_configured`, `provider=rule-based` 로 실제 LLM 연결 전 구조/비용/네트워크 질문에 대한 deterministic answer/suggestions를 반환
+  - `/chat` copilot은 read-only LLM provider MVP skeleton까지 확장됨. `GET /copilot/providers`, `POST /copilot/chat`, 기존 `POST /workspaces/{workspace_id}/chat` 호환 route를 제공하며, Ollama/Ollama Cloud와 OpenRouter backend-only provider 설정을 지원한다. provider 미설정, disabled, provider 오류 시 secret 노출 없이 rule-based fallback으로 응답한다.
   - `/simulations` rule-based first-pass 구현 완료. workload 설명 기반 recommended resources, architecture/cost/security notes, next actions, assumptions를 생성하고 SQLite에 저장. 각 simulation은 markdown report, non-deployable Bicep outline template, resource-limit scoped current inventory fit 비교와 frontend download action으로 확인 가능
   - global exception handling 기준으로 `HTTPException` / `AzureClientError` non-2xx 응답이 `{ ok, status, message }` JSON shape로 정규화됨
   - local runtime smoke 기준 `/` / `/healthz` 200 확인
@@ -66,11 +66,11 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `docs/PERSONAL_USE_RUNBOOK.md`, `docs/PERSONAL_USE_READINESS_PLAN.md`, `docs/PERSONAL_USE_SESSION_NOTES.md`, `scripts/check_personal_use_ready.sh`, `scripts/run_dev.sh`, `scripts/personal_use_acceptance.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh`, `scripts/verify_sqlite_backup.sh` 로 Gun 단독 실사용 v0.9 사전점검·실행·검증·백업 경로를 점검 가능
 - 참고
   - 세부 API 응답 구조는 `docs/API_CONTRACT.md`, snapshot/history 상태는 `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 와 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md`, raw topology diff/retention 상태는 `docs/RAW_TOPOLOGY_DIFF_PLAN.md` 와 `docs/RETENTION_POLICY.md` 를 기준으로 본다.
-  - 다음 개발 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 의 `Next development priorities after v0.9` 섹션을 기준으로 한다. 현재 다음 추천 slice는 read-only LLM Copilot MVP이며, Ollama/local Ollama Cloud + OpenRouter provider adapter 계획은 `docs/COPILOT_LLM_MVP_PLAN.md` 에서 관리한다. Architecture View polish는 stable path에 들어왔고, export smoke/test 유지, Azure Arc/hybrid 확장, productization 재진입은 후속 순서로 관리한다.
+  - 다음 개발 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 의 `Next development priorities after v0.9` 섹션을 기준으로 한다. read-only LLM Copilot MVP는 provider/config/context/selector skeleton이 들어왔고, 다음 slice는 실제 local Ollama smoke 또는 OpenRouter mocked/live opt-in smoke, chat UX section formatting, runbook cleanup이다. Architecture View polish는 stable path에 들어왔고, export smoke/test 유지, Azure Arc/hybrid 확장, productization 재진입은 후속 순서로 관리한다.
 
 ## Provider extension notes
 - Cost ingestion / Copilot provider hook의 현재 계약과 향후 교체 지점은 `docs/PROVIDER_EXTENSION_NOTES.md` 참고.
-- Read-only LLM Copilot MVP 계획은 `docs/COPILOT_LLM_MVP_PLAN.md` 참고. 1차 provider는 local Ollama/Ollama Cloud와 OpenRouter API key 경로를 동시에 고려한다.
+- Read-only LLM Copilot MVP 계획은 `docs/COPILOT_LLM_MVP_PLAN.md` 참고. 1차 provider skeleton은 local Ollama/Ollama Cloud와 OpenRouter API key 경로를 지원하며, API key/token은 backend env only로 유지한다.
 
 ## 운영 메모
 - canonical working repo: `/Users/gun/dev/azvision`

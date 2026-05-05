@@ -4,9 +4,9 @@ Purpose: make AzVision usable as Gun's single-user local/dev app without opening
 
 ## Readiness target
 - Target: personal-use v0.9
-- In scope: local backend/frontend execution, Azure read diagnostics, topology view, manual modeling, server-backed snapshot/history, SQLite backup/restore path, quick smoke validation, rule-based Cost Insights, and focused rule-based Simulation smoke
-- Out of scope: public deployment, user login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and product-grade LLM copilot
-- Next optional personal-use extension: read-only LLM Copilot MVP with backend-only Ollama/OpenRouter provider settings. See `docs/COPILOT_LLM_MVP_PLAN.md`.
+- In scope: local backend/frontend execution, Azure read diagnostics, topology view, manual modeling, server-backed snapshot/history, SQLite backup/restore path, quick smoke validation, rule-based Cost Insights, focused rule-based Simulation smoke, and read-only LLM Copilot MVP skeleton.
+- Out of scope: public deployment, user login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, product-grade LLM copilot, and Azure write/remediation from chat.
+- Copilot provider status: backend-only Ollama/Ollama Cloud and OpenRouter provider settings are supported behind rule-based fallback. See `docs/COPILOT_LLM_MVP_PLAN.md`.
 
 ## Start the app
 
@@ -40,6 +40,29 @@ curl -fsS http://127.0.0.1:8000/api/v1/auth/config-check
 Expected personal-use baseline:
 - `/healthz` returns `{"status":"ok"}`
 - `auth/config-check` shows Azure tenant/client/certificate inputs present and certificate path exists
+
+## Optional read-only Copilot provider settings
+
+Local Mac mini / Ollama profile:
+
+```bash
+COPILOT_ENABLED=true
+COPILOT_DEFAULT_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=deepseek-v4-pro:cloud
+```
+
+Hosted / OpenRouter profile:
+
+```bash
+COPILOT_ENABLED=true
+COPILOT_DEFAULT_PROVIDER=openrouter
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=anthropic/claude-sonnet-4.5
+# OPENROUTER_API_KEY stays in backend env only; never expose it to frontend code.
+```
+
+If provider config is missing or provider calls fail, AzVision falls back to the rule-based copilot and returns a provider status without secrets.
 
 ## Personal-use acceptance and smoke
 
