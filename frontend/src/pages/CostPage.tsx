@@ -7,6 +7,7 @@ import {
   getCostResources,
   getCostSummary,
   postCopilotMessage,
+  type CopilotProviderOption,
   type CopilotResponse,
   type CostRecommendation,
   type CostResourceRow,
@@ -55,6 +56,7 @@ export function CostPage() {
   const [resourceGroupLimit, setResourceGroupLimit] = useState(200)
   const [resourceLimit, setResourceLimit] = useState(500)
   const [copilotPrompt, setCopilotPrompt] = useState('How can I reduce cost or improve this architecture?')
+  const [copilotProvider, setCopilotProvider] = useState<CopilotProviderOption>('rule-based')
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
   const [copilotLoading, setCopilotLoading] = useState(false)
   const [reportLoading, setReportLoading] = useState(false)
@@ -123,7 +125,7 @@ export function CostPage() {
     setCopilotLoading(true)
     setError('')
     try {
-      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), costQueryOptions))
+      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), costQueryOptions, copilotProvider))
     } catch (err) {
       setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to ask copilot')
     } finally {
@@ -252,8 +254,26 @@ export function CostPage() {
       </section>
 
       <section className="panel-card cost-copilot-card">
-        <h3>Rule-based copilot</h3>
-        <p className="hint">LLM provider is not connected yet; this first pass answers from inventory and rule-based recommendations.</p>
+        <div className="cost-recommendation-heading">
+          <h3>Read-only LLM copilot</h3>
+          <span className="mini-chip">read-only</span>
+        </div>
+        <p className="hint">Choose Ollama, OpenRouter, or the local rule-based fallback. Provider keys stay backend-only; this panel sends summarized current-view context.</p>
+        <div className="control-row">
+          <label className="field-label">
+            Provider
+            <select
+              className="search-input"
+              value={copilotProvider}
+              onChange={(event) => setCopilotProvider(event.target.value as CopilotProviderOption)}
+            >
+              <option value="ollama">Ollama / Ollama Cloud</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="rule-based">Rule-based fallback</option>
+            </select>
+          </label>
+          <span className="mini-chip">Attach current view context</span>
+        </div>
         <div className="cost-copilot-input-row">
           <textarea
             className="search-input cost-copilot-input"
@@ -269,7 +289,10 @@ export function CostPage() {
           <div className="cost-copilot-answer">
             <div className="cost-recommendation-heading">
               <strong>{copilotResponse.copilot_mode} answer</strong>
-              <span className="mini-chip">Provider: {copilotResponse.provider ?? copilotResponse.copilot_mode} • LLM: {copilotResponse.llm_status}</span>
+              <span className="mini-chip">
+                Provider: {copilotResponse.provider ?? copilotResponse.copilot_mode} • LLM: {copilotResponse.llm_status}
+                {copilotResponse.model ? ` • Model: ${copilotResponse.model}` : ''} • read-only: {copilotResponse.read_only === false ? 'no' : 'yes'}
+              </span>
             </div>
             <p>{copilotResponse.answer}</p>
             <ul>

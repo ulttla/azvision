@@ -70,6 +70,35 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("TOPOLOGY_MODE", "AZVISION_TOPOLOGY_MODE"),
     )
 
+    copilot_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("COPILOT_ENABLED", "AZVISION_COPILOT_ENABLED"),
+    )
+    copilot_default_provider: str = Field(
+        default="rule-based",
+        validation_alias=AliasChoices("COPILOT_DEFAULT_PROVIDER", "AZVISION_COPILOT_DEFAULT_PROVIDER"),
+    )
+    ollama_base_url: str = Field(
+        default="http://127.0.0.1:11434",
+        validation_alias=AliasChoices("OLLAMA_BASE_URL", "AZVISION_OLLAMA_BASE_URL"),
+    )
+    ollama_model: str = Field(
+        default="",
+        validation_alias=AliasChoices("OLLAMA_MODEL", "AZVISION_OLLAMA_MODEL"),
+    )
+    openrouter_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("OPENROUTER_API_KEY", "AZVISION_OPENROUTER_API_KEY"),
+    )
+    openrouter_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        validation_alias=AliasChoices("OPENROUTER_BASE_URL", "AZVISION_OPENROUTER_BASE_URL"),
+    )
+    openrouter_model: str = Field(
+        default="",
+        validation_alias=AliasChoices("OPENROUTER_MODEL", "AZVISION_OPENROUTER_MODEL"),
+    )
+
     workspace_default_id: str = "local-demo"
     workspace_default_name: str = "AzVision Demo Workspace"
     export_root: str = str(PROJECT_DIR / "exports")
@@ -78,6 +107,7 @@ class Settings(BaseSettings):
         env_prefix="AZVISION_",
         env_file=tuple(str(path) for path in ENV_FILE_CANDIDATES),
         extra="ignore",
+        populate_by_name=True,
     )
 
     @property

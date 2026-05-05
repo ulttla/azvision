@@ -151,18 +151,23 @@ export type CopilotResponse = {
   ok: boolean
   workspace_id: string
   mode?: string
+  read_only?: boolean
   copilot_mode: string
   provider?: string
+  model?: string | null
   llm_status: string
   answer: string
   suggestions: string[]
   context: {
     resource_count: number
-    recommendation_count: number
-    top_resource_types: string[]
+    recommendation_count?: number
+    top_resource_types?: string[]
+    limits?: Record<string, boolean | string | number>
   }
   warning?: string | null
 }
+
+export type CopilotProviderOption = 'ollama' | 'openrouter' | 'rule-based'
 
 export type SimulationResourceRecommendation = {
   resource_type: string
@@ -673,11 +678,12 @@ export async function postCopilotMessage(
   workspaceId: string,
   message: string,
   options?: CostQueryOptions,
+  provider?: CopilotProviderOption,
 ): Promise<CopilotResponse> {
   return fetchJson<CopilotResponse>(`/workspaces/${workspaceId}/chat${buildInventoryQuery(options)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, provider, current_view: 'cost-insights' }),
   })
 }
 

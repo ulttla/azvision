@@ -6,12 +6,97 @@ from fastapi import APIRouter, Query
 
 from app.collectors.azure_inventory import resolve_inventory_collection
 from app.core.config import get_settings
-from app.services.copilot import get_default_copilot_provider
+from app.services.copilot import build_copilot_context, get_configured_copilot_provider, list_copilot_providers
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/chat", tags=["copilot"])
+router = APIRouter(tags=["copilot"])
 
 
-@router.post("")
+def _resolve_resources(
+    *,
+    subscription_id: str | None,
+    resource_group_name: str | None,
+    resource_group_limit: int,
+    resource_limit: int,
+):
+    return resolve_inventory_collection(
+        get_settings(),
+        subscription_id=subscription_id,
+        resource_group_name=resource_group_name,
+        resource_group_limit=resource_group_limit,
+        resource_limit=resource_limit,
+    )
+
+
+def _answer_payload(
+    *,
+    workspace_id: str,
+    payload: dict[str, Any],
+    subscription_id: str | None,
+    resource_group_name: str | None,
+    resource_group_limit: int,
+    resource_limit: int,
+) -> dict[str, Any]:
+    settings = get_settings()
+    message = str(payload.get("message") or "")
+    provider_override = payload.get("provider")
+    resolution = _resolve_resources(
+        subscription_id=subscription_id,
+        resource_group_name=resource_group_name,
+        resource_group_limit=resource_group_limit,
+        resource_limit=resource_limit,
+    )
+    context = build_copilot_context(
+        resolution.collection.resources,
+        workspace_id=workspace_id,
+        current_view=str(payload.get("current_view") or payload.get("context_scope") or "unknown"),
+        selected_resource_id=payload.get("selected_resource_id"),
+    )
+    provider = get_configured_copilot_provider(settings, str(provider_override) if provider_override else None)
+    answer = provider.answer(message, resolution.collection.resources, context)
+    response: dict[str, Any] = {
+        "ok": True,
+        "workspace_id": workspace_id,
+        "mode": resolution.mode,
+        "read_only": True,
+        **answer,
+    }
+    if resolution.warning:
+        response["warning"] = resolution.warning
+    return response
+
+
+@router.get("/copilot/providers")
+def get_copilot_providers() -> dict[str, Any]:
+    settings = get_settings()
+    return {
+        "ok": True,
+        "enabled": settings.copilot_enabled,
+        "default_provider": settings.copilot_default_provider,
+        "read_only": True,
+        "providers": list_copilot_providers(settings),
+    }
+
+
+@router.post("/copilot/chat")
+def post_provider_aware_copilot_message(
+    payload: dict[str, Any],
+    subscription_id: str | None = Query(default=None),
+    resource_group_name: str | None = Query(default=None),
+    resource_group_limit: int = Query(default=200, ge=1, le=1000),
+    resource_limit: int = Query(default=500, ge=1, le=5000),
+) -> dict[str, Any]:
+    workspace_id = str(payload.get("workspace_id") or get_settings().workspace_default_id)
+    return _answer_payload(
+        workspace_id=workspace_id,
+        payload=payload,
+        subscription_id=subscription_id,
+        resource_group_name=resource_group_name,
+        resource_group_limit=resource_group_limit,
+        resource_limit=resource_limit,
+    )
+
+
+@router.post("/workspaces/{workspace_id}/chat")
 def post_copilot_message(
     workspace_id: str,
     payload: dict[str, Any],
@@ -20,21 +105,11 @@ def post_copilot_message(
     resource_group_limit: int = Query(default=200, ge=1, le=1000),
     resource_limit: int = Query(default=500, ge=1, le=5000),
 ) -> dict[str, Any]:
-    message = str(payload.get("message") or "")
-    resolution = resolve_inventory_collection(
-        get_settings(),
+    return _answer_payload(
+        workspace_id=workspace_id,
+        payload=payload,
         subscription_id=subscription_id,
         resource_group_name=resource_group_name,
         resource_group_limit=resource_group_limit,
         resource_limit=resource_limit,
     )
-    answer = get_default_copilot_provider().answer(message, resolution.collection.resources)
-    response: dict[str, Any] = {
-        "ok": True,
-        "workspace_id": workspace_id,
-        "mode": resolution.mode,
-        **answer,
-    }
-    if resolution.warning:
-        response["warning"] = resolution.warning
-    return response
