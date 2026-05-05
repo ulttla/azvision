@@ -138,7 +138,11 @@ function normalizeAnnotations(annotations?: Array<{ id?: string; text?: string; 
     }
     const tone: ArchitectureAnnotation['tone'] =
       annotation.tone === 'warning' || annotation.tone === 'info' ? annotation.tone : 'note'
-    result.push({ id: annotation.id, text, tone, updatedAt: annotation.updatedAt })
+    const next: ArchitectureAnnotation = { id: annotation.id, text, tone }
+    if (annotation.updatedAt) {
+      next.updatedAt = annotation.updatedAt
+    }
+    result.push(next)
   }
 
   return result
