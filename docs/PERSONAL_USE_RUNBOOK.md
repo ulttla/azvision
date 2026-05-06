@@ -69,6 +69,7 @@ Provider status smoke after backend start:
 ```bash
 curl -fsS http://127.0.0.1:8000/api/v1/copilot/providers
 curl -fsS 'http://127.0.0.1:8000/api/v1/copilot/providers?health_smoke=true'
+scripts/copilot_provider_smoke.sh
 ```
 
 Expected baseline without provider secrets:
