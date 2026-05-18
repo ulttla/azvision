@@ -1961,9 +1961,9 @@ export function TopologyPage() {
       const summary = result.summary.length ? result.summary.join(' • ') : t('topology.snapshot.noMetadataDiff')
       const archiveSummary =
         topologyResult.archive_status === 'available'
-          ? `topology nodes ${formatDeltaCounts(topologyResult.node_delta)}, edges ${formatDeltaCounts(topologyResult.edge_delta)}`
+          ? `${t('topology.snapshot.topologyNodes')} ${formatDeltaCounts(topologyResult.node_delta)}, ${t('topology.snapshot.edges')} ${formatDeltaCounts(topologyResult.edge_delta)}`
           : t('topology.snapshot.archiveMissingFallback')
-      setExportMessage(`Snapshot compare: ${result.base_name} → ${result.target_name} — ${summary} — ${archiveSummary}`)
+      setExportMessage(`${t('topology.snapshot.comparePrefix')}: ${result.base_name} → ${result.target_name} — ${summary} — ${archiveSummary}`)
     } catch (error) {
       setSnapshotTopologyCompareResult(null)
       setExportMessage(error instanceof Error ? error.message : t('topology.snapshot.compareFailed'))
@@ -3849,19 +3849,19 @@ export function TopologyPage() {
                   <span>{t('topology.detail.pathAnalysis')}</span>
                   <strong>
                     {pathAnalysisResult
-                      ? `Verdict: ${pathAnalysisResult.overall_verdict} (NSG + route evidence)`
-                      : 'Select source and destination'}
+                      ? `${t('topology.detail.pathVerdict')}: ${pathAnalysisResult.overall_verdict} (${t('topology.detail.pathNsgRouteEvidence')})`
+                      : t('topology.detail.pathSelectSourceAndDest')}
                   </strong>
                   <p className="hint detail-inline-hint">
-                    Source: {pathSourceNode?.display_name ?? '-'} • Destination: {pathDestinationNode?.display_name ?? '-'}
+                    {t('topology.detail.pathSource')}: {pathSourceNode?.display_name ?? '-'} • {t('topology.detail.pathDestination')}: {pathDestinationNode?.display_name ?? '-'}
                   </p>
                   {pathAnalysisFilterSummary.length ? (
                     <p className="hint detail-inline-hint">
-                      Active filters: {pathAnalysisFilterSummary.join(' • ')}
+                      {t('topology.detail.pathActiveFilters')}: {pathAnalysisFilterSummary.join(' • ')}
                     </p>
                   ) : null}
                   <p className="hint detail-inline-hint">
-                    MVP note: path analysis evaluates inbound/outbound NSG checkpoints, peering traversal type, source/destination prefix filters, source/destination ports, service tags, and route evidence conservatively. For peering, direct traversal does not require allowForwardedTraffic, while forwarded/transitive traversal requires allowForwardedTraffic=true on every traversed peering direction; missing evidence remains conservative unknown/no-path. Source port filtering is rarely needed; specify it only when you want stricter NSG matching.
+                    {t('topology.detail.pathMvpNote')}
                   </p>
                   <div className="search-form detail-inline-hint">
                     <input
@@ -3942,11 +3942,11 @@ export function TopologyPage() {
                   {pathAnalysisResult ? (
                     <div className="detail-inline-hint">
                       <p className="hint">
-                        {pathAnalysisResult.path_candidates[0]?.reason ?? pathAnalysisResult.warnings[0] ?? 'No path candidate returned.'}
+                        {pathAnalysisResult.path_candidates[0]?.reason ?? pathAnalysisResult.warnings[0] ?? t('topology.detail.pathNoCandidate')}
                       </p>
                       {pathAnalysisResult.path_candidates[0] ? (
                         <p className="hint detail-inline-hint">
-                          Peering: {formatPeeringTraversalLabel(
+                          {t('topology.detail.pathPeering')}: {formatPeeringTraversalLabel(
                             pathAnalysisResult.path_candidates[0].peering_hop_count,
                             pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
                           )}
@@ -3963,32 +3963,32 @@ export function TopologyPage() {
                             <span key={`${hop.resource_id}-${index}`} className="sample-chip">
                               {hop.display_name} • {hop.hop_type}
                               {hop.is_peering_boundary ? (
-                                <span className="mini-chip" title="Boundary between VNets; use the peering evidence hint above to interpret direct versus forwarded traversal.">
-                                  Peering boundary
+                                <span className="mini-chip" title={t('topology.detail.pathPeeringBoundaryHint')}>
+                                  {t('topology.detail.pathPeeringBoundary')}
                                 </span>
                               ) : null}
                               {hop.nsg_verdict ? (
                                 <span className="mini-chip" title={[hop.nsg_name, hop.nsg_rule_name].filter(Boolean).join(' / ') || undefined}>
-                                  NSG{hop.nsg_direction ? ` ${hop.nsg_direction}` : ''}: {hop.nsg_verdict}
+                                  {t('topology.detail.pathNsg')}{hop.nsg_direction ? ` ${hop.nsg_direction}` : ''}: {hop.nsg_verdict}
                                   {hop.nsg_rule_name ? ` (${hop.nsg_rule_name})` : ''}
                                 </span>
                               ) : null}
                               {hop.nsg_outbound_verdict ? (
                                 <span className="mini-chip" title={[hop.nsg_outbound_name, hop.nsg_outbound_rule_name].filter(Boolean).join(' / ') || undefined}>
-                                  NSG outbound: {hop.nsg_outbound_verdict}
+                                  {t('topology.detail.pathNsgOutbound')}: {hop.nsg_outbound_verdict}
                                   {hop.nsg_outbound_rule_name ? ` (${hop.nsg_outbound_rule_name})` : ''}
                                 </span>
                               ) : null}
                               {hop.route_verdict ? (
                                 <span className="mini-chip" title={[hop.route_table_name, hop.route_name, hop.route_next_hop_type, hop.route_next_hop_ip].filter(Boolean).join(' / ') || undefined}>
-                                  Route: {hop.route_verdict}{hop.route_name ? ` (${hop.route_name})` : ''}{hop.route_next_hop_type ? ` — ${formatRouteNextHopLabel(hop.route_next_hop_type, hop.route_next_hop_ip)}` : ''}
+                                  {t('topology.detail.pathRoute')}: {hop.route_verdict}{hop.route_name ? ` (${hop.route_name})` : ''}{hop.route_next_hop_type ? ` — ${formatRouteNextHopLabel(hop.route_next_hop_type, hop.route_next_hop_ip)}` : ''}
                                 </span>
                               ) : null}
                             </span>
                           ))}
                           {pathAnalysisResult.path_candidates[0].hops.length > 6 ? (
                             <span className="sample-chip">
-                              +{pathAnalysisResult.path_candidates[0].hops.length - 6} more hops
+                              {t('topology.detail.pathMoreHops').replace('{count}', String(pathAnalysisResult.path_candidates[0].hops.length - 6))}
                             </span>
                           ) : null}
                         </div>
