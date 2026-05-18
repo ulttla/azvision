@@ -26,3 +26,10 @@
 - `tmp/lww-c1-evidence/validation-matrix-draft.md`
 - `tmp/lww-c1-evidence/closeout-draft.md`
 - `tmp/lww-c1-evidence/c2-handoff-draft.md`
+
+## Final validation refresh (2026-05-17 23:16 PDT)
+
+- `npm --prefix frontend run smoke:semantics` — PASS.
+- `npm --prefix frontend run build` — PASS.
+- `backend/.venv/bin/python -m pytest backend/tests/test_copilot.py -q` — PASS, 21 tests.
+- No git push, no Azure write/remediation, no destructive cleanup, no gateway/config/update/restart.

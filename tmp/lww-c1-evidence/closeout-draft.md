@@ -43,3 +43,10 @@
 
 - C2 skeleton exists and should start only after C1 closeout/read-back/archive/checkpoint/context gate.
 - C2 should continue local-only stabilization unless Gun explicitly approves push or live actions.
+
+## Final validation refresh (2026-05-17 23:16 PDT)
+
+- `npm --prefix frontend run smoke:semantics` — PASS.
+- `npm --prefix frontend run build` — PASS.
+- `backend/.venv/bin/python -m pytest backend/tests/test_copilot.py -q` — PASS, 21 tests.
+- No git push, no Azure write/remediation, no destructive cleanup, no gateway/config/update/restart.
