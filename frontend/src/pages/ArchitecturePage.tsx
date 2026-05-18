@@ -1236,12 +1236,12 @@ export function ArchitecturePage() {
               <section key={bucket.stage} className="architecture-stage-column">
                 <div className="architecture-stage-header" style={{ borderColor: meta.accent }}>
                   <strong>{meta.label}</strong>
-                  <span>{bucket.nodes.length} card{bucket.nodes.length === 1 ? '' : 's'}</span>
+                  <span>{bucket.nodes.length} {bucket.nodes.length === 1 ? t('arch.diagram.card') : t('arch.diagram.cards')}</span>
                 </div>
                 <p className="hint architecture-stage-copy">{bucket.description}</p>
                 <div className="architecture-stage-card-list">
                   {isInitialTopologyLoad && !bucket.nodes.length ? (
-                    <div className="architecture-stage-empty">Loading…</div>
+                    <div className="architecture-stage-empty">{t('arch.detail.loading')}</div>
                   ) : bucket.nodes.length ? (
                     bucket.nodes.map((node, index) => (
                       <article

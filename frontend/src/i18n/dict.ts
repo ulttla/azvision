@@ -375,6 +375,8 @@ export const dict = {
     // ── Architecture Page diagram ─────────────────────────
     'arch.diagram.heading': 'Compact Diagram',
     'arch.diagram.svgExportSafe': 'SVG-based export-safe rendering',
+    'arch.diagram.card': 'card',
+    'arch.diagram.cards': 'cards',
 
     // ── Architecture Page annotations ─────────────────────
     'arch.notes.heading': 'Presentation Notes',
@@ -814,6 +816,8 @@ export const dict = {
     // ── Architecture Page diagram ─────────────────────────
     'arch.diagram.heading': '컴팩트 다이어그램',
     'arch.diagram.svgExportSafe': 'SVG 기반 내보내기 안전 렌더링',
+    'arch.diagram.card': '카드',
+    'arch.diagram.cards': '카드',
 
     // ── Architecture Page annotations ─────────────────────
     'arch.notes.heading': '프레젠테이션 노트',
