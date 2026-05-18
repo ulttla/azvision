@@ -2234,7 +2234,7 @@ export function TopologyPage() {
       setLastExport(exportRecord)
       setExportMessage(`${UI_TEXT.exportSavedPrefix} ${exportRecord.output_path}`)
     } catch (err) {
-      setExportMessage(err instanceof Error ? err.message : 'PNG export failed')
+      setExportMessage(err instanceof Error ? err.message : t('topology.canvas.pngExportFailed'))
     } finally {
       setExportLoading(false)
     }
@@ -2262,7 +2262,7 @@ export function TopologyPage() {
       img.src = imageDataUrl
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve()
-        img.onerror = () => reject(new Error('Failed to load topology image for PDF'))
+        img.onerror = () => reject(new Error(t('topology.canvas.pdfImageLoadFailed')))
       })
 
       const orientation = img.width > img.height ? 'landscape' : 'portrait'
@@ -2274,7 +2274,7 @@ export function TopologyPage() {
       setLastExport(exportRecord)
       setExportMessage(`${UI_TEXT.exportSavedPrefix} ${exportRecord.output_path}`)
     } catch (err) {
-      setExportMessage(err instanceof Error ? err.message : 'PDF export failed')
+      setExportMessage(err instanceof Error ? err.message : t('topology.canvas.pdfExportFailed'))
     } finally {
       setExportLoading(false)
     }
@@ -2342,7 +2342,7 @@ export function TopologyPage() {
 
   async function handleCreateManualNode() {
     if (!selectedWorkspaceId || !manualNodeNameInput.trim()) {
-      setExportMessage('Manual node name is required')
+      setExportMessage(t('topology.manual.nodeNameRequired'))
       return
     }
 
@@ -2362,14 +2362,14 @@ export function TopologyPage() {
       setManualNodeEnvironmentInput('')
       setManualNodeNotesInput('')
       setManualEdgeSourceNodeKey((current) => current || created.node_key || `manual:${created.manual_ref}`)
-      setExportMessage(`Manual node created: ${created.display_name}`)
+      setExportMessage(t('topology.manual.nodeCreated').replace('{name}', created.display_name))
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : 'Manual node create failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.manual.nodeCreateFailed'))
     }
   }
 
   async function handleDeleteManualNodeItem(node: ManualNode) {
-    if (typeof window !== 'undefined' && !window.confirm(`Delete manual node "${node.display_name}"?`)) {
+    if (typeof window !== 'undefined' && !window.confirm(t('topology.manual.confirmDeleteNode').replace('{name}', node.display_name))) {
       return
     }
 
@@ -2384,15 +2384,15 @@ export function TopologyPage() {
       if (manualEdgeTargetNodeKey === nodeKey) {
         setManualEdgeTargetNodeKey('')
       }
-      setExportMessage(`Manual node deleted: ${node.display_name}`)
+      setExportMessage(t('topology.manual.nodeDeleted').replace('{name}', node.display_name))
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : 'Manual node delete failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.manual.nodeDeleteFailed'))
     }
   }
 
   async function handleCreateManualEdge() {
     if (!selectedWorkspaceId || !manualEdgeSourceNodeKey || !manualEdgeTargetNodeKey) {
-      setExportMessage('Manual edge source and target are required')
+      setExportMessage(t('topology.manual.edgeRequired'))
       return
     }
 
@@ -2406,14 +2406,14 @@ export function TopologyPage() {
       await refreshManualModeling(selectedWorkspaceId)
       setManualModelRefreshKey((current) => current + 1)
       setManualEdgeNotesInput('')
-      setExportMessage(`Manual edge created: ${manualEdgeRelationTypeInput}`)
+      setExportMessage(t('topology.manual.edgeCreated').replace('{relation}', manualEdgeRelationTypeInput))
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : 'Manual edge create failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.manual.edgeCreateFailed'))
     }
   }
 
   async function handleDeleteManualEdgeItem(edge: ManualEdge) {
-    if (typeof window !== 'undefined' && !window.confirm(`Delete manual edge "${edge.relation_type}"?`)) {
+    if (typeof window !== 'undefined' && !window.confirm(t('topology.manual.confirmDeleteEdge').replace('{relation}', edge.relation_type))) {
       return
     }
 
@@ -2421,9 +2421,9 @@ export function TopologyPage() {
       await deleteManualEdge(selectedWorkspaceId, edge.manual_edge_ref)
       await refreshManualModeling(selectedWorkspaceId)
       setManualModelRefreshKey((current) => current + 1)
-      setExportMessage(`Manual edge deleted: ${edge.relation_type}`)
+      setExportMessage(t('topology.manual.edgeDeleted').replace('{relation}', edge.relation_type))
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : 'Manual edge delete failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.manual.edgeDeleteFailed'))
     }
   }
 
@@ -2468,9 +2468,9 @@ export function TopologyPage() {
       await refreshManualModeling(selectedWorkspaceId)
       setManualModelRefreshKey((current) => current + 1)
       setEditingManualNodeRef('')
-      setExportMessage('Manual node updated')
+      setExportMessage(t('topology.manual.nodeUpdated'))
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : 'Manual node update failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.manual.nodeUpdateFailed'))
     }
   }
 
@@ -2511,9 +2511,9 @@ export function TopologyPage() {
       await refreshManualModeling(selectedWorkspaceId)
       setManualModelRefreshKey((current) => current + 1)
       setEditingManualEdgeRef('')
-      setExportMessage('Manual edge updated')
+      setExportMessage(t('topology.manual.edgeUpdated'))
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : 'Manual edge update failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.manual.edgeUpdateFailed'))
     }
   }
 
@@ -3503,7 +3503,7 @@ export function TopologyPage() {
 
           <p className="hint compare-layout-hint">Layout: {compareLayoutStatus}</p>
           <p className="hint compare-layout-hint compare-path-hint">Selection: {selectedPathStatus}</p>
-          {graphRuntimeLoading ? <p className="hint compare-layout-hint">Graph engine loading...</p> : null}
+          {graphRuntimeLoading ? <p className="hint compare-layout-hint">{t('topology.canvas.graphEngineLoading')}</p> : null}
 
           <div className="graph-toolbar">
             <div className="button-row">
