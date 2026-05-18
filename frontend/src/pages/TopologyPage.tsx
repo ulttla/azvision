@@ -993,24 +993,24 @@ export function TopologyPage() {
     ? Number(pathDestinationPortInput)
     : undefined
   const pathAnalysisFilterSummary = [
-    pathProtocolInput.trim() ? `Protocol ${pathProtocolInput.trim()}` : null,
-    pathSourceAddressInput.trim() ? `Source ${pathSourceAddressInput.trim()}` : null,
-    pathDestinationAddressInput.trim() ? `Destination ${pathDestinationAddressInput.trim()}` : null,
-    hasPathSourcePortInput ? `Source port ${pathSourcePortInput.trim()}` : null,
-    hasPathDestinationPortInput ? `Destination port ${pathDestinationPortInput.trim()}` : null,
+    pathProtocolInput.trim() ? `${t('topology.detail.pathProtocol')} ${pathProtocolInput.trim()}` : null,
+    pathSourceAddressInput.trim() ? `${t('topology.detail.pathSource')} ${pathSourceAddressInput.trim()}` : null,
+    pathDestinationAddressInput.trim() ? `${t('topology.detail.pathDestination')} ${pathDestinationAddressInput.trim()}` : null,
+    hasPathSourcePortInput ? `${t('topology.detail.pathSourcePort')} ${pathSourcePortInput.trim()}` : null,
+    hasPathDestinationPortInput ? `${t('topology.detail.pathDestinationPort')} ${pathDestinationPortInput.trim()}` : null,
   ].filter((item): item is string => Boolean(item))
 
   async function runPathAnalysis() {
     if (!selectedWorkspaceId || !pathSourceNodeRef || !pathDestinationNodeRef) {
-      setPathAnalysisMessage('Select both source and destination resource nodes first.')
+      setPathAnalysisMessage(t('topology.detail.pathSelectBoth'))
       return
     }
     if (hasPathSourcePortInput && (!Number.isInteger(pathSourcePortNumber) || Number(pathSourcePortNumber) < 0 || Number(pathSourcePortNumber) > 65535)) {
-      setPathAnalysisMessage('Source port must be an integer between 0 and 65535.')
+      setPathAnalysisMessage(t('topology.detail.pathSourcePortInvalid'))
       return
     }
     if (hasPathDestinationPortInput && (!Number.isInteger(pathDestinationPortNumber) || Number(pathDestinationPortNumber) < 0 || Number(pathDestinationPortNumber) > 65535)) {
-      setPathAnalysisMessage('Destination port must be an integer between 0 and 65535.')
+      setPathAnalysisMessage(t('topology.detail.pathDestinationPortInvalid'))
       return
     }
 
@@ -1035,7 +1035,7 @@ export function TopologyPage() {
       setPathAnalysisResult(result)
     } catch (err) {
       setPathAnalysisResult(null)
-      setPathAnalysisMessage(err instanceof Error ? err.message : 'Path analysis failed')
+      setPathAnalysisMessage(err instanceof Error ? err.message : t('topology.detail.pathAnalysisFailed'))
     } finally {
       setPathAnalysisLoading(false)
     }
