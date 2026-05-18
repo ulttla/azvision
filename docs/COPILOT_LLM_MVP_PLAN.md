@@ -68,7 +68,7 @@ Initial route additions:
 - `GET /api/v1/copilot/providers`
   - report configured providers and health/status without secrets
 - `POST /api/v1/copilot/chat`
-  - accept provider override, workspace id, current-view context scope, selected resource id, and user message
+  - accept provider override, workspace id, current-view context scope, current UI language, selected resource id, and user message
 
 The existing workspace chat route can remain compatible while the new provider-aware route is introduced.
 
@@ -89,6 +89,7 @@ Required prompt safety:
 - cap context size
 - label facts as `observed`, `inferred`, or `unknown`
 - instruct provider to avoid Azure write/remediation instructions unless user explicitly asks outside AzVision and the app is later authorized for that mode
+- carry the current UI language (`en`/`ko`) into context and tell LLM providers to answer in the matching language unless the user explicitly asks otherwise
 
 ## Frontend MVP
 
@@ -101,6 +102,7 @@ Required prompt safety:
   - `Observed evidence`
   - `Risks / unknowns`
   - `Suggested next read-only checks`
+- Pass the active UI locale with each copilot request so Korean UI sessions receive Korean-first LLM guidance while English UI sessions stay English-first.
 
 ## Test and validation plan
 
@@ -108,7 +110,7 @@ Required prompt safety:
 - Redaction/context builder tests.
 - Provider adapter mocked tests for Ollama and OpenRouter response normalization.
 - API route tests for disabled/missing-key/provider-error paths.
-- Frontend semantics smoke for provider selector, read-only badge, and no-secret rendering.
+- Frontend semantics smoke for provider selector, read-only badge, current-language forwarding, and no-secret rendering.
 - Keep `npm --prefix frontend run smoke:semantics`, frontend build, and backend pytest as the minimum validation gate.
 
 ## First implementation slice recommendation
