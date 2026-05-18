@@ -63,6 +63,9 @@ export const dict = {
     'cost.loading': 'loading',
     'cost.none': 'none',
     'cost.noAmountYet': 'No dollar amount yet — rule-based analysis only',
+    'cost.error.loadInsights': 'Failed to load cost insights',
+    'cost.error.askCopilot': 'Failed to ask copilot',
+    'cost.error.downloadReport': 'Failed to download cost report',
 
     // ── Cost summary labels ───────────────────────────────
     'cost.label.costStatus': 'Cost status',
@@ -494,6 +497,9 @@ export const dict = {
     'cost.loading': '로딩 중',
     'cost.none': '없음',
     'cost.noAmountYet': '아직 금액 없음 — 규칙 기반 분석만 제공',
+    'cost.error.loadInsights': '비용 인사이트를 불러오지 못했습니다',
+    'cost.error.askCopilot': 'Copilot 질문 처리에 실패했습니다',
+    'cost.error.downloadReport': '비용 리포트 다운로드에 실패했습니다',
 
     // ── Cost summary labels ───────────────────────────────
     'cost.label.costStatus': '비용 상태',

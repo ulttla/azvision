@@ -161,7 +161,7 @@ export function CostPage() {
         setSummary(null)
         setResources([])
         setRecommendations([])
-        setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to load cost insights')
+        setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : t('cost.error.loadInsights'))
       } finally {
         if (!cancelled) {
           setLoading(false)
@@ -216,7 +216,7 @@ export function CostPage() {
     try {
       setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), costQueryOptions, copilotProvider, 'cost-insights', locale))
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to ask copilot')
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : t('cost.error.askCopilot'))
     } finally {
       setCopilotLoading(false)
     }
@@ -237,7 +237,7 @@ export function CostPage() {
       link.remove()
       URL.revokeObjectURL(url)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to download cost report')
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : t('cost.error.downloadReport'))
     } finally {
       setReportLoading(false)
     }
