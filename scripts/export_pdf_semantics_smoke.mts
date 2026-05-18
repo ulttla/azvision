@@ -24,15 +24,15 @@ function assertPdfExportContract(pageName: string, code: string, handlerPattern:
   assert.match(code, /\.addImage\([^)]*'PNG'[^)]*\)/s, `${pageName} should embed the rasterized PNG into the PDF`)
   assert.match(code, /\.output\('datauristring'\)/, `${pageName} should export a data URI string for the backend`)
   assert.match(code, /createExport\([^)]*'pdf'[^)]*\)/s, `${pageName} should persist PDF output via createExport(..., 'pdf', ...)`)
-  assert.match(code, /Export PDF|PDF export|format === 'pdf'|handleExportPdf/, `${pageName} should expose an explicit PDF action or branch`)
+  assert.match(code, /Export PDF|PDF export|format === 'pdf'|handleExportPdf|arch\.controls\.exportPdf|topology\.canvas\.exportPdf/, `${pageName} should expose an explicit PDF action or branch`)
 }
 
 // ============================================================
 // Section 1: Architecture View PDF export path
 // ============================================================
 assertPdfExportContract('ArchitecturePage', architecturePage, /async function handleExport\(format:\s*'png' \| 'pdf'\)/)
-assert.match(architecturePage, /rasterizeSvg\(svgDiagram\.svg, svgDiagram\.width, svgDiagram\.height\)/, 'ArchitecturePage should rasterize SVG before PNG/PDF export')
-assert.match(architecturePage, /image\.onerror = \(\) => reject\(new Error\('Failed to prepare architecture image for PDF export'\)\)/, 'ArchitecturePage should surface image preparation failures')
+assert.match(architecturePage, /rasterizeSvg\(svgDiagram\.svg, svgDiagram\.width, svgDiagram\.height/, 'ArchitecturePage should rasterize SVG before PNG/PDF export')
+assert.match(architecturePage, /image\.onerror = \(\) => reject\(new Error\(t\('arch\.error\.preparePdfImage'\)\)\)/, 'ArchitecturePage should surface localized image preparation failures')
 
 // ============================================================
 // Section 2: Topology View PDF export path

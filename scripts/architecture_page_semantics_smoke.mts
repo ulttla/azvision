@@ -52,8 +52,8 @@ assert.match(archModelCode, /ARCHITECTURE_STAGE/, 'architecture/model should ref
 const expectedStates = [
   'workspaces',
   'selectedWorkspaceId',
-  'subscriptions',
-  'resourceGroups',
+  'availableSubscriptions',
+  'availableResourceGroups',
   'inventorySummary',
   'topology',
   'loading',
@@ -191,4 +191,9 @@ assert.match(archPageCode, /t\('arch\.zones\.noMappedCards'\)/, 'ArchitecturePag
 assert.match(archPageCode, /t\('arch\.hidden\.noHiddenCards'\)/, 'ArchitecturePage empty hidden panel should show localized message')
 assert.match(archPageCode, /t\('arch\.notes\.noNotes'\)/, 'ArchitecturePage empty annotations should show localized message')
 assert.match(archPageCode, /t\('arch\.detail\.noSelection'\)/, 'ArchitecturePage detail empty state should be localized')
+assert.match(archPageCode, /t\('arch\.error\.loadWorkspace'\)/, 'ArchitecturePage workspace fallback error should be localized')
+assert.match(archPageCode, /t\('arch\.error\.exportFailed'\)/, 'ArchitecturePage export fallback error should be localized')
+assert.match(archPageCode, /t\('arch\.workspace\.scopeSingleSubscription'\)/, 'ArchitecturePage scope text should be localized')
+assert.match(archPageCode, /t\('arch\.common\.currentlyViewing'\)/, 'ArchitecturePage card aria current-view text should be localized')
+assert.match(archPageCode, /t\('arch\.common\.shared'\)/, 'ArchitecturePage shared fallback chip should be localized')
 console.log('architecture_page_semantics_smoke.mts: i18n section passed')

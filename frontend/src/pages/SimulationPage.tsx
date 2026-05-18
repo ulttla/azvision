@@ -132,7 +132,7 @@ export function SimulationPage() {
       setSimulations((current) => [created, ...current.filter((item) => item.simulation_id !== created.simulation_id)])
       setSelectedSimulationId(created.simulation_id)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to create simulation')
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : t('sim.error.createFailed'))
     } finally {
       setLoading(false)
     }
@@ -217,7 +217,7 @@ export function SimulationPage() {
                 onClick={() => setSelectedSimulationId(item.simulation_id)}
               >
                 <strong>{item.workload_name}</strong>
-                <span>{item.environment} • {item.recommended_resources.length} resources</span>
+                <span>{item.environment} • {item.recommended_resources.length} {t('sim.common.resources')}</span>
               </button>
             ))}
             {!simulations.length ? <p className="hint">{t('sim.list.empty')}</p> : null}
@@ -326,7 +326,7 @@ export function SimulationPage() {
                 </div>
                 {template ? (
                   <>
-                    <p className="hint">Deployable: {template.deployable ? 'yes' : 'no'} • resources: {template.resources.length}</p>
+                    <p className="hint">{t('sim.iac.deployable')}: {template.deployable ? t('common.yes') : t('common.no')} • {t('sim.common.resources')}: {template.resources.length}</p>
                     <pre className="simulation-template-content">{template.content}</pre>
                     {template.warnings.map((warning) => (
                       <p className="hint" key={warning}>{warning}</p>

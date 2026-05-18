@@ -173,7 +173,7 @@ function filterTopologyByHiddenSourceKeys(
   }
 }
 
-async function rasterizeSvg(svg: string, width: number, height: number): Promise<string> {
+async function rasterizeSvg(svg: string, width: number, height: number, labels: { loadSvgImage: string; canvasUnavailable: string }): Promise<string> {
   const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
   const url = URL.createObjectURL(blob)
 
@@ -181,7 +181,7 @@ async function rasterizeSvg(svg: string, width: number, height: number): Promise
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image()
       img.onload = () => resolve(img)
-      img.onerror = () => reject(new Error('Failed to load architecture SVG image'))
+      img.onerror = () => reject(new Error(labels.loadSvgImage))
       img.src = url
     })
 
@@ -192,7 +192,7 @@ async function rasterizeSvg(svg: string, width: number, height: number): Promise
 
     const context = canvas.getContext('2d')
     if (!context) {
-      throw new Error('Canvas rendering is unavailable in this browser')
+      throw new Error(labels.canvasUnavailable)
     }
 
     context.fillStyle = '#0b1220'
@@ -263,7 +263,7 @@ export function ArchitecturePage() {
           return
         }
         setBackendHealthStatus('error')
-        setError(err instanceof Error ? err.message : 'Failed to load architecture workspace data')
+        setError(err instanceof Error ? err.message : t('arch.error.loadWorkspace'))
       } finally {
         if (active) {
           setLoading(false)
@@ -349,7 +349,7 @@ export function ArchitecturePage() {
         setAvailableSubscriptions([])
         setAvailableResourceGroups([])
         setInventorySummary(null)
-        setInventoryWarning(err instanceof Error ? err.message : 'Failed to load architecture inventory scope')
+        setInventoryWarning(err instanceof Error ? err.message : t('arch.error.loadInventoryScope'))
       } finally {
         if (active) {
           setInventoryLoading(false)
@@ -463,7 +463,7 @@ export function ArchitecturePage() {
         if (!active) {
           return
         }
-        setError(err instanceof Error ? err.message : 'Failed to load architecture topology')
+        setError(err instanceof Error ? err.message : t('arch.error.loadTopology'))
       } finally {
         if (active) {
           setTopologyLoading(false)
@@ -744,7 +744,7 @@ export function ArchitecturePage() {
 
   async function handleCopyPngToClipboard() {
     if (!visibleNodes.length) {
-      setExportMessage('Architecture diagram copy is unavailable without visible nodes.')
+      setExportMessage(t('arch.error.copyNoVisibleNodes'))
       return
     }
 
@@ -753,17 +753,20 @@ export function ArchitecturePage() {
       setExportMessage('')
 
       if (typeof navigator === 'undefined' || !navigator.clipboard) {
-        setExportMessage('Clipboard API is not available in this browser.')
+        setExportMessage(t('arch.error.clipboardUnavailable'))
         return
       }
 
-      const pngDataUrl = await rasterizeSvg(svgDiagram.svg, svgDiagram.width, svgDiagram.height)
+      const pngDataUrl = await rasterizeSvg(svgDiagram.svg, svgDiagram.width, svgDiagram.height, {
+        loadSvgImage: t('arch.error.loadSvgImage'),
+        canvasUnavailable: t('arch.error.canvasUnavailable'),
+      })
       const response = await fetch(pngDataUrl)
       const blob = await response.blob()
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-      setExportMessage('Copied architecture diagram to clipboard as PNG.')
+      setExportMessage(t('arch.message.copiedPng'))
     } catch (err) {
-      setExportMessage(err instanceof Error ? err.message : 'Clipboard copy failed')
+      setExportMessage(err instanceof Error ? err.message : t('arch.error.clipboardCopyFailed'))
     } finally {
       setExportLoading(false)
     }
@@ -771,18 +774,21 @@ export function ArchitecturePage() {
 
   async function handleExport(format: 'png' | 'pdf') {
     if (!selectedWorkspaceId || !visibleNodes.length) {
-      setExportMessage('Architecture diagram export is unavailable without visible nodes.')
+      setExportMessage(t('arch.error.exportNoVisibleNodes'))
       return
     }
 
     try {
       setExportLoading(true)
       setExportMessage('')
-      const pngDataUrl = await rasterizeSvg(svgDiagram.svg, svgDiagram.width, svgDiagram.height)
+      const pngDataUrl = await rasterizeSvg(svgDiagram.svg, svgDiagram.width, svgDiagram.height, {
+        loadSvgImage: t('arch.error.loadSvgImage'),
+        canvasUnavailable: t('arch.error.canvasUnavailable'),
+      })
 
       if (format === 'png') {
         const exportRecord = await createExport(selectedWorkspaceId, 'png', pngDataUrl)
-        setExportMessage(`Export saved: ${exportRecord.output_path}`)
+        setExportMessage(t('arch.message.exportSaved').replace('{path}', exportRecord.output_path))
         return
       }
 
@@ -791,16 +797,16 @@ export function ArchitecturePage() {
       image.src = pngDataUrl
       await new Promise<void>((resolve, reject) => {
         image.onload = () => resolve()
-        image.onerror = () => reject(new Error('Failed to prepare architecture image for PDF export'))
+        image.onerror = () => reject(new Error(t('arch.error.preparePdfImage')))
       })
 
       const orientation = image.width > image.height ? 'landscape' : 'portrait'
       const pdf = new jsPDF({ orientation, unit: 'px', format: [image.width, image.height] })
       pdf.addImage(pngDataUrl, 'PNG', 0, 0, image.width, image.height)
       const exportRecord = await createExport(selectedWorkspaceId, 'pdf', pdf.output('datauristring'))
-      setExportMessage(`Export saved: ${exportRecord.output_path}`)
+      setExportMessage(t('arch.message.exportSaved').replace('{path}', exportRecord.output_path))
     } catch (err) {
-      setExportMessage(err instanceof Error ? err.message : 'Architecture export failed')
+      setExportMessage(err instanceof Error ? err.message : t('arch.error.exportFailed'))
     } finally {
       setExportLoading(false)
     }
@@ -829,9 +835,9 @@ export function ArchitecturePage() {
         </div>
       </section>
 
-      {error ? <div className="error-banner">API error: {error}</div> : null}
+      {error ? <div className="error-banner">{t('arch.error.api')}: {error}</div> : null}
       {topology?.status === 'error' ? (
-        <div className="error-banner">Topology error: {topology.message ?? 'Unknown error'}</div>
+        <div className="error-banner">{t('arch.error.topology')}: {topology.message ?? t('arch.error.unknown')}</div>
       ) : null}
       {exportMessage ? <div className="info-banner">{exportMessage}</div> : null}
 
@@ -895,12 +901,12 @@ export function ArchitecturePage() {
               <p className="hint">
                 {t('arch.workspace.generatedAt')} {formatDateTime(topology?.generated_at)}
                 {topology?.mode ? ` • ${topology.mode}` : ''}
-                {inventoryMode ? ` • inventory ${inventoryMode}` : ''}
+                {inventoryMode ? ` • ${t('arch.workspace.inventory')} ${inventoryMode}` : ''}
               </p>
               <p className="hint">
-                {t('arch.workspace.scope')} {selectedSubscriptionId ? 'single subscription' : 'all subscriptions'}
+                {t('arch.workspace.scope')} {selectedSubscriptionId ? t('arch.workspace.scopeSingleSubscription') : t('arch.workspace.scopeAllSubscriptions')}
                 {' • '}
-                {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : 'all resource groups'}
+                {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : t('arch.workspace.scopeAllResourceGroups')}
               </p>
               {inventoryWarning ? <p className="hint">{t('arch.workspace.inventoryNote')} {inventoryWarning}</p> : null}
               {inventorySummary ? (
@@ -1253,20 +1259,20 @@ export function ArchitecturePage() {
                           type="button"
                           className="node-button architecture-node-button"
                           onClick={() => setSelectedNodeId(node.id)}
-                          aria-label={`${selectedNode?.id === node.id ? 'Currently viewing' : 'Select'} ${node.shortLabel} — ${node.familyLabel}, ${node.nodeCount} item${node.nodeCount === 1 ? '' : 's'}`}
+                          aria-label={`${selectedNode?.id === node.id ? t('arch.common.currentlyViewing') : t('arch.common.select')} ${node.shortLabel} — ${node.familyLabel}, ${node.nodeCount} ${node.nodeCount === 1 ? t('arch.common.item') : t('arch.common.items')}`}
                         >
                           <div>
                             <strong>{node.shortLabel}</strong>
-                            <p>{node.familyLabel} • {node.nodeCount} item{node.nodeCount === 1 ? '' : 's'}</p>
+                            <p>{node.familyLabel} • {node.nodeCount} {node.nodeCount === 1 ? t('arch.common.item') : t('arch.common.items')}</p>
                           </div>
-                          <span className="mini-chip">{node.resourceGroups[0] ?? 'shared'}</span>
+                          <span className="mini-chip">{node.resourceGroups[0] ?? t('arch.common.shared')}</span>
                         </button>
                         <div className="button-row architecture-node-actions">
                           <button
                             type="button"
                             className="toolbar-button search-inline-button"
                             onClick={() => setSelectedNodeId(node.id)}
-                            aria-label={`${selectedNode?.id === node.id ? 'Currently selected' : 'Select'} ${node.shortLabel} for detail panel`}
+                            aria-label={`${selectedNode?.id === node.id ? t('arch.common.currentlySelected') : t('arch.common.select')} ${node.shortLabel} ${t('arch.common.forDetailPanel')}`}
                             data-testid="arch-node-select-btn"
                           >
                             {selectedNode?.id === node.id ? t('arch.zones.selected') : t('arch.zones.select')}
