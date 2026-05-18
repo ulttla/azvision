@@ -106,7 +106,7 @@ function severityRank(value: string) {
 }
 
 export function CostPage() {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const [workspaceId, setWorkspaceId] = useState<string>(DEFAULT_WORKSPACE_ID)
   const [summary, setSummary] = useState<CostSummary | null>(null)
   const [resources, setResources] = useState<CostResourceRow[]>([])
@@ -214,7 +214,7 @@ export function CostPage() {
     setCopilotLoading(true)
     setError('')
     try {
-      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), costQueryOptions, copilotProvider, 'cost-insights'))
+      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), costQueryOptions, copilotProvider, 'cost-insights', locale))
     } catch (err) {
       setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to ask copilot')
     } finally {

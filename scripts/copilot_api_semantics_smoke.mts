@@ -35,6 +35,8 @@ assert.match(apiCode, /postCopilotMessage[\s\S]*?provider\?: CopilotProviderOpti
 assert.match(apiCode, /postCopilotMessage[\s\S]*?buildInventoryQuery/, 'postCopilotMessage should use inventory query options')
 assert.match(apiCode, /currentView = 'cost-insights'/, 'postCopilotMessage should default current view context label')
 assert.match(apiCode, /current_view: currentView/, 'postCopilotMessage should send dynamic current view context label')
+assert.match(apiCode, /currentLanguage\?: 'en' \| 'ko'/, 'postCopilotMessage should accept current UI language')
+assert.match(apiCode, /current_language: currentLanguage/, 'postCopilotMessage should send current UI language')
 
 // ============================================================
 // Section 3: CostPage copilot usage
@@ -43,6 +45,8 @@ assert.match(costPageCode, /postCopilotMessage/, 'CostPage should import postCop
 assert.match(costPageCode, /CopilotResponse/, 'CostPage should import CopilotResponse type')
 assert.match(costPageCode, /copilotResponse.*useState.*CopilotResponse|useState.*CopilotResponse.*copilotResponse/, 'CostPage should have copilotResponse state typed as CopilotResponse')
 assert.match(costPageCode, /postCopilotMessage\(workspaceId/, 'CostPage should call postCopilotMessage with workspaceId')
+assert.match(costPageCode, /const \{ locale, t \} = useI18n\(\)/, 'CostPage should read current locale for copilot')
+assert.match(costPageCode, /'cost-insights', locale/, 'CostPage should pass current locale to copilot')
 assert.match(costPageCode, /askCopilot/, 'CostPage should have askCopilot handler')
 assert.match(costPageCode, /copilotPrompt.*useState|useState.*copilotPrompt/, 'CostPage should have copilotPrompt state')
 assert.match(costPageCode, /copilotProvider.*useState|useState.*copilotProvider/, 'CostPage should have copilotProvider state')
@@ -83,6 +87,9 @@ const copilotServicesCode = readFileSync(path.join(repoRoot, 'backend/app/servic
 const copilotRoutesCode = readFileSync(path.join(repoRoot, 'backend/app/api/routes/copilot.py'), 'utf8')
 
 assert.match(copilotServicesCode, /probe_provider_health/, 'copilot services should export probe_provider_health')
+assert.match(copilotServicesCode, /current_language/, 'copilot service should preserve current language in context')
+assert.match(copilotServicesCode, /Respond in Korean/, 'copilot LLM prompt should instruct Korean responses when UI locale is Korean')
+assert.match(copilotRoutesCode, /current_language=str\(payload.get\("current_language"\)/, 'copilot route should forward current_language into context')
 assert.match(copilotServicesCode, /_probe_ollama_connectivity/, 'copilot services should have ollama connectivity probe')
 assert.match(copilotServicesCode, /_probe_openrouter_connectivity/, 'copilot services should have openrouter connectivity probe')
 assert.match(copilotRoutesCode, /health_smoke/, 'copilot route should accept health_smoke query param')

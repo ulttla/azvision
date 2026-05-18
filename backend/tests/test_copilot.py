@@ -186,6 +186,17 @@ def test_copilot_chat_route_returns_contextual_answer(client: TestClient) -> Non
     assert body["context"]["resource_count"] >= 1
 
 
+def test_copilot_chat_route_preserves_current_language(client: TestClient) -> None:
+    response = client.post(
+        f"/api/v1/workspaces/{WORKSPACE}/chat",
+        json={"message": "Summarize risks", "current_language": "ko"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["context"]["current_language"] == "ko"
+
+
 def test_provider_health_ollama_not_configured_without_settings() -> None:
     settings = Settings(ollama_base_url="", ollama_model="")
     result = probe_provider_health(settings)

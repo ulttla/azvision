@@ -98,6 +98,7 @@ def build_copilot_context(
     *,
     workspace_id: str | None = None,
     current_view: str | None = None,
+    current_language: str | None = None,
     selected_resource_id: str | None = None,
     max_resources: int = 8,
 ) -> dict[str, Any]:
@@ -110,6 +111,7 @@ def build_copilot_context(
         "workspace_id": workspace_id or "unknown",
         "inventory_mode": "read-only-summary",
         "current_view": current_view or "unknown",
+        "current_language": current_language or "en",
         "facts_label": "observed unless marked unknown",
         "resource_count": len(resources),
         "resource_groups": [f"{name}: {count}" for name, count in resource_groups.most_common(8)],
@@ -203,10 +205,13 @@ def build_rule_based_copilot_answer(
 
 
 def _build_llm_messages(message: str, context: dict[str, Any]) -> list[dict[str, str]]:
+    current_language = str(context.get("current_language") or "en").strip().lower()
+    language_instruction = "Respond in Korean unless the user explicitly asks for another language." if current_language == "ko" else "Respond in English unless the user explicitly asks for another language."
     system_prompt = (
         "You are AzVision's read-only infrastructure copilot. Summarize observed evidence, risks, unknowns, "
         "and suggested next read-only checks. Do not propose Azure write/remediation actions, deployments, "
-        "or secret exposure. Treat the provided context as summarized evidence, not a full environment dump."
+        "or secret exposure. Treat the provided context as summarized evidence, not a full environment dump. "
+        + language_instruction
     )
     user_prompt = "Context JSON:\n" + json.dumps(context, ensure_ascii=False, indent=2) + "\n\nUser question:\n" + message
     return [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]

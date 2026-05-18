@@ -151,6 +151,7 @@ export type CopilotContext = {
   workspace_id?: string
   inventory_mode?: string
   current_view?: string
+  current_language?: 'en' | 'ko' | string
   facts_label?: string
   resource_count: number
   recommendation_count?: number
@@ -709,11 +710,12 @@ export async function postCopilotMessage(
   options?: CostQueryOptions,
   provider?: CopilotProviderOption,
   currentView = 'cost-insights',
+  currentLanguage?: 'en' | 'ko',
 ): Promise<CopilotResponse> {
   return fetchJson<CopilotResponse>(`/workspaces/${workspaceId}/chat${buildInventoryQuery(options)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, provider, current_view: currentView }),
+    body: JSON.stringify({ message, provider, current_view: currentView, current_language: currentLanguage }),
   })
 }
 

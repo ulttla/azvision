@@ -49,6 +49,7 @@ def _answer_payload(
         resolution.collection.resources,
         workspace_id=workspace_id,
         current_view=str(payload.get("current_view") or payload.get("context_scope") or "unknown"),
+        current_language=str(payload.get("current_language") or "en"),
         selected_resource_id=payload.get("selected_resource_id"),
     )
     provider = get_configured_copilot_provider(settings, str(provider_override) if provider_override else None)
