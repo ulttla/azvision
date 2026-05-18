@@ -2665,7 +2665,7 @@ export function TopologyPage() {
           <h2>{t('topology.summary.heading')}</h2>
           <div className="summary-grid summary-grid-wide">
             <div className="metric-box">
-              <span className="metric-label">{t('topology.summary.visibleNodes')}</span>
+              <span className="metric-label">{t('topology.summary.metric.visibleNodes')}</span>
               <strong>{visibleSummary.totalNodes}</strong>
               <small>{t('topology.summary.loaded')} {loadedSummary.totalNodes}</small>
             </div>
@@ -2938,18 +2938,18 @@ export function TopologyPage() {
                   )}
                   {snapshotTopologyCompareResult.archive_status === 'available' ? (
                     <div className="snapshot-diff-drilldown">
-                      {renderDiffDrilldownSection('Added nodes', 'node-added', snapshotTopologyCompareResult.node_delta.added, formatDeltaItemLabel, formatNodeDetail)}
-                      {renderDiffDrilldownSection('Removed nodes', 'node-removed', snapshotTopologyCompareResult.node_delta.removed, formatDeltaItemLabel, formatNodeDetail)}
-                      {renderDiffDrilldownSection('Changed nodes', 'node-changed', snapshotTopologyCompareResult.node_delta.changed, (item) => {
+                      {renderDiffDrilldownSection(t('topology.diff.addedNodes'), 'node-added', snapshotTopologyCompareResult.node_delta.added, formatDeltaItemLabel, formatNodeDetail)}
+                      {renderDiffDrilldownSection(t('topology.diff.removedNodes'), 'node-removed', snapshotTopologyCompareResult.node_delta.removed, formatDeltaItemLabel, formatNodeDetail)}
+                      {renderDiffDrilldownSection(t('topology.diff.changedNodes'), 'node-changed', snapshotTopologyCompareResult.node_delta.changed, (item) => {
                         const c = item as Record<string, unknown>
                         return String(c.node_key ?? formatDeltaItemLabel(item))
                       }, (item) => {
                         const c = item as Record<string, unknown>
                         return `${formatNodeDetail(c.base)} → ${formatNodeDetail(c.target)}`
                       })}
-                      {renderDiffDrilldownSection('Added edges', 'edge-added', snapshotTopologyCompareResult.edge_delta.added, formatDeltaItemLabel, formatEdgeDetail)}
-                      {renderDiffDrilldownSection('Removed edges', 'edge-removed', snapshotTopologyCompareResult.edge_delta.removed, formatDeltaItemLabel, formatEdgeDetail)}
-                      {renderDiffDrilldownSection('Changed edges', 'edge-changed', snapshotTopologyCompareResult.edge_delta.changed, (item) => {
+                      {renderDiffDrilldownSection(t('topology.diff.addedEdges'), 'edge-added', snapshotTopologyCompareResult.edge_delta.added, formatDeltaItemLabel, formatEdgeDetail)}
+                      {renderDiffDrilldownSection(t('topology.diff.removedEdges'), 'edge-removed', snapshotTopologyCompareResult.edge_delta.removed, formatDeltaItemLabel, formatEdgeDetail)}
+                      {renderDiffDrilldownSection(t('topology.diff.changedEdges'), 'edge-changed', snapshotTopologyCompareResult.edge_delta.changed, (item) => {
                         const c = item as Record<string, unknown>
                         return String(c.edge_key ?? c.relation_key ?? formatDeltaItemLabel(item))
                       }, (item) => {
@@ -3096,7 +3096,7 @@ export function TopologyPage() {
                             onClick={() => handleCompareSavedSnapshot(snapshot)}
                             disabled={snapshotStorageMode !== 'server'}
                           >
-                            {snapshotCompareBaseId && snapshotCompareBaseId !== snapshot.id ? 'Compare' : 'Set compare base'}
+                            {snapshotCompareBaseId && snapshotCompareBaseId !== snapshot.id ? t('topology.snapshot.compare') : t('topology.snapshot.setCompareBase')}
                           </button>
                           <button
                             type="button"
@@ -3291,14 +3291,14 @@ export function TopologyPage() {
             </p>
           </div>
 
-          <h3 className="section-spacer">{t('topology.manual.createNode')}</h3>
+          <h3 className="section-spacer">{t('topology.manual.heading.createNode')}</h3>
           <div className="preset-save-row snapshot-save-row">
             <input
               type="text"
               className="search-input"
               value={manualNodeNameInput}
               onChange={(event) => setManualNodeNameInput(event.target.value)}
-              placeholder="Display name"
+              placeholder={t('topology.placeholder.displayName')}
             />
             <select value={manualNodeTypeInput} onChange={(event) => setManualNodeTypeInput(event.target.value)}>
               <option value="external-system">external-system</option>
@@ -3312,20 +3312,20 @@ export function TopologyPage() {
               className="search-input"
               value={manualNodeVendorInput}
               onChange={(event) => setManualNodeVendorInput(event.target.value)}
-              placeholder="Vendor (optional)"
+              placeholder={t('topology.placeholder.vendorOptional')}
             />
             <input
               type="text"
               className="search-input"
               value={manualNodeEnvironmentInput}
               onChange={(event) => setManualNodeEnvironmentInput(event.target.value)}
-              placeholder="Environment (optional)"
+              placeholder={t('topology.placeholder.environmentOptional')}
             />
             <textarea
               className="search-input snapshot-note-input"
               value={manualNodeNotesInput}
               onChange={(event) => setManualNodeNotesInput(event.target.value)}
-              placeholder="Notes (optional)"
+              placeholder={t('topology.placeholder.notesOptional')}
               rows={3}
             />
             <div className="button-row preset-toolbar-row">
@@ -3335,12 +3335,12 @@ export function TopologyPage() {
                 onClick={handleCreateManualNode}
                 disabled={!selectedWorkspaceId || !manualNodeNameInput.trim()}
               >
-                {t('topology.manual.createNodeBtn')}
+                {t('topology.manual.action.createNode')}
               </button>
             </div>
           </div>
 
-          <h3 className="section-spacer">{t('topology.manual.createEdge')}</h3>
+          <h3 className="section-spacer">{t('topology.manual.heading.createEdge')}</h3>
           <div className="preset-save-row snapshot-save-row">
             <select
               value={manualEdgeSourceNodeKey}
@@ -3380,7 +3380,7 @@ export function TopologyPage() {
               className="search-input snapshot-note-input"
               value={manualEdgeNotesInput}
               onChange={(event) => setManualEdgeNotesInput(event.target.value)}
-              placeholder="Edge notes (optional)"
+              placeholder={t('topology.placeholder.edgeNotesOptional')}
               rows={2}
             />
             <div className="button-row preset-toolbar-row">
@@ -3390,7 +3390,7 @@ export function TopologyPage() {
                 onClick={handleCreateManualEdge}
                 disabled={!selectedWorkspaceId || !manualEdgeSourceNodeKey || !manualEdgeTargetNodeKey}
               >
-                {t('topology.manual.createEdgeBtn')}
+                {t('topology.manual.action.createEdge')}
               </button>
             </div>
           </div>
@@ -3402,7 +3402,7 @@ export function TopologyPage() {
                 <li key={node.manual_ref}>
                   {editingManualNodeRef === node.manual_ref ? (
                     <div className="preset-save-row snapshot-save-row">
-                      <input type="text" className="search-input" value={editManualNodeName} onChange={(event) => setEditManualNodeName(event.target.value)} placeholder="Display name" />
+                      <input type="text" className="search-input" value={editManualNodeName} onChange={(event) => setEditManualNodeName(event.target.value)} placeholder={t('topology.placeholder.displayName')} />
                       <select value={editManualNodeType} onChange={(event) => setEditManualNodeType(event.target.value)}>
                         <option value="external-system">external-system</option>
                         <option value="onprem-service">onprem-service</option>
@@ -3410,9 +3410,9 @@ export function TopologyPage() {
                         <option value="vendor-appliance">vendor-appliance</option>
                         <option value="other">other</option>
                       </select>
-                      <input type="text" className="search-input" value={editManualNodeVendor} onChange={(event) => setEditManualNodeVendor(event.target.value)} placeholder="Vendor" />
-                      <input type="text" className="search-input" value={editManualNodeEnvironment} onChange={(event) => setEditManualNodeEnvironment(event.target.value)} placeholder="Environment" />
-                      <textarea className="search-input snapshot-note-input" value={editManualNodeNotes} onChange={(event) => setEditManualNodeNotes(event.target.value)} placeholder="Notes" rows={2} />
+                      <input type="text" className="search-input" value={editManualNodeVendor} onChange={(event) => setEditManualNodeVendor(event.target.value)} placeholder={t('topology.placeholder.vendor')} />
+                      <input type="text" className="search-input" value={editManualNodeEnvironment} onChange={(event) => setEditManualNodeEnvironment(event.target.value)} placeholder={t('topology.placeholder.environment')} />
+                      <textarea className="search-input snapshot-note-input" value={editManualNodeNotes} onChange={(event) => setEditManualNodeNotes(event.target.value)} placeholder={t('topology.placeholder.notes')} rows={2} />
                       <div className="button-row preset-toolbar-row">
                         <button type="button" className="toolbar-button primary" onClick={handleUpdateManualNode}>Save</button>
                         <button type="button" className="toolbar-button" onClick={cancelEditManualNode}>Cancel</button>
@@ -3463,7 +3463,7 @@ export function TopologyPage() {
                         <option value="routes">routes</option>
                         <option value="secures">secures</option>
                       </select>
-                      <textarea className="search-input snapshot-note-input" value={editManualEdgeNotes} onChange={(event) => setEditManualEdgeNotes(event.target.value)} placeholder="Edge notes" rows={2} />
+                      <textarea className="search-input snapshot-note-input" value={editManualEdgeNotes} onChange={(event) => setEditManualEdgeNotes(event.target.value)} placeholder={t('topology.placeholder.edgeNotes')} rows={2} />
                       <div className="button-row preset-toolbar-row">
                         <button type="button" className="toolbar-button primary" onClick={handleUpdateManualEdge}>Save</button>
                         <button type="button" className="toolbar-button" onClick={cancelEditManualEdge}>Cancel</button>
@@ -3869,7 +3869,7 @@ export function TopologyPage() {
                       type="text"
                       value={pathProtocolInput}
                       onChange={(event) => setPathProtocolInput(event.target.value)}
-                      placeholder="Protocol, e.g. Tcp"
+                      placeholder={t('topology.placeholder.protocol')}
                       aria-label="Path analysis protocol"
                     />
                     <input
@@ -3877,7 +3877,7 @@ export function TopologyPage() {
                       type="text"
                       value={pathSourceAddressInput}
                       onChange={(event) => setPathSourceAddressInput(event.target.value)}
-                      placeholder="Source prefix/IP, optional"
+                      placeholder={t('topology.placeholder.sourcePrefix')}
                       aria-label="Path analysis source address prefix"
                     />
                     <input
@@ -3885,7 +3885,7 @@ export function TopologyPage() {
                       type="text"
                       value={pathDestinationAddressInput}
                       onChange={(event) => setPathDestinationAddressInput(event.target.value)}
-                      placeholder="Destination prefix/IP, optional"
+                      placeholder={t('topology.placeholder.destinationPrefix')}
                       aria-label="Path analysis destination address prefix"
                     />
                     <input
@@ -3895,7 +3895,7 @@ export function TopologyPage() {
                       max="65535"
                       value={pathSourcePortInput}
                       onChange={(event) => setPathSourcePortInput(event.target.value)}
-                      placeholder="Source port, e.g. 50000"
+                      placeholder={t('topology.placeholder.sourcePort')}
                       aria-label="Path analysis source port"
                     />
                     <input
@@ -3905,7 +3905,7 @@ export function TopologyPage() {
                       max="65535"
                       value={pathDestinationPortInput}
                       onChange={(event) => setPathDestinationPortInput(event.target.value)}
-                      placeholder="Destination port, e.g. 443"
+                      placeholder={t('topology.placeholder.destinationPort')}
                       aria-label="Path analysis destination port"
                     />
                   </div>
@@ -4147,7 +4147,7 @@ export function TopologyPage() {
       <section className="panel-grid three-panels">
         <article className="panel-card">
           <div className="section-heading">
-            <h2>{t('topology.bottom.visibleNodes')}</h2>
+            <h2>{t('topology.bottom.heading.visibleNodes')}</h2>
             <span className="mini-status">
               {selectedNode ? `selected: ${selectedNode.display_name}` : t('topology.bottom.noSelection')}
             </span>
