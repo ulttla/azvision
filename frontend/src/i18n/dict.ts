@@ -53,6 +53,16 @@ export const dict = {
     'cost.preparingReport': 'Preparing report…',
     'cost.inventoryMode': 'Inventory mode',
     'cost.costIngestion': 'Cost ingestion',
+    'cost.workspace': 'Workspace',
+    'cost.subscriptionFilter': 'Subscription filter',
+    'cost.subscriptionPlaceholder': 'optional subscription id',
+    'cost.resourceGroupFilter': 'Resource group filter',
+    'cost.resourceGroupPlaceholder': 'optional resource group',
+    'cost.resourceGroupLimit': 'Resource group limit',
+    'cost.resourceLimit': 'Resource limit',
+    'cost.loading': 'loading',
+    'cost.none': 'none',
+    'cost.noAmountYet': 'No dollar amount yet — rule-based analysis only',
 
     // ── Cost summary labels ───────────────────────────────
     'cost.label.costStatus': 'Cost status',
@@ -78,6 +88,10 @@ export const dict = {
     'copilot.llmStatus': 'LLM',
     'copilot.model': 'Model',
     'copilot.suggestedChecks': 'Suggested next checks',
+    'copilot.defaultPrompt': 'How can I reduce cost or improve this architecture?',
+    'copilot.provider.ruleBased': 'Rule-based fallback',
+    'copilot.provider.ollama': 'Ollama / Ollama Cloud',
+    'copilot.provider.openrouter': 'OpenRouter',
 
     // ── Cost recommendations ──────────────────────────────
     'cost.topRecommendations': 'Top recommendations',
@@ -470,6 +484,16 @@ export const dict = {
     'cost.preparingReport': '리포트 준비 중…',
     'cost.inventoryMode': '인벤토리 모드',
     'cost.costIngestion': '비용 수집',
+    'cost.workspace': '워크스페이스',
+    'cost.subscriptionFilter': '구독 필터',
+    'cost.subscriptionPlaceholder': '선택 구독 ID',
+    'cost.resourceGroupFilter': '리소스 그룹 필터',
+    'cost.resourceGroupPlaceholder': '선택 리소스 그룹',
+    'cost.resourceGroupLimit': '리소스 그룹 제한',
+    'cost.resourceLimit': '리소스 제한',
+    'cost.loading': '로딩 중',
+    'cost.none': '없음',
+    'cost.noAmountYet': '아직 금액 없음 — 규칙 기반 분석만 제공',
 
     // ── Cost summary labels ───────────────────────────────
     'cost.label.costStatus': '비용 상태',
@@ -495,6 +519,10 @@ export const dict = {
     'copilot.llmStatus': 'LLM',
     'copilot.model': '모델',
     'copilot.suggestedChecks': '추천 후속 확인',
+    'copilot.defaultPrompt': '비용 절감이나 이 아키텍처 개선 방법은?',
+    'copilot.provider.ruleBased': '규칙 기반 폴백',
+    'copilot.provider.ollama': 'Ollama / Ollama Cloud',
+    'copilot.provider.openrouter': 'OpenRouter',
 
     // ── Cost recommendations ──────────────────────────────
     'cost.topRecommendations': '주요 추천 항목',

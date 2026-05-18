@@ -26,7 +26,7 @@ type CopilotSection = { heading: string; body: string[]; isSuggestions?: boolean
  * Detects common heading patterns: `## Heading`, `**Heading:**`, `Heading:`, `1.` numbered items.
  * Falls back to a single-section rendering when no markers found.
  */
-function parseCopilotAnswerSections(answer: string): CopilotSection[] {
+function parseCopilotAnswerSections(answer: string, fallbackHeading = 'Answer'): CopilotSection[] {
   const lines = answer.split('\n').map((l) => l.trimEnd())
   const sections: CopilotSection[] = []
   let current: CopilotSection | null = null
@@ -66,7 +66,7 @@ function parseCopilotAnswerSections(answer: string): CopilotSection[] {
     }
 
     if (!current) {
-      current = { heading: 'Answer', body: [] }
+      current = { heading: fallbackHeading, body: [] }
     }
     current.body.push(line)
   }
@@ -74,26 +74,26 @@ function parseCopilotAnswerSections(answer: string): CopilotSection[] {
 
   if (sections.length === 0) {
     // No sections parsed — return the whole answer as one section
-    return [{ heading: 'Answer', body: lines.filter((l) => l.length > 0) }]
+    return [{ heading: fallbackHeading, body: lines.filter((l) => l.length > 0) }]
   }
 
   return sections
 }
 
-function formatCountMap(value: Record<string, number>) {
+function formatCountMap(value: Record<string, number>, emptyLabel: string) {
   const entries = Object.entries(value)
   if (!entries.length) {
-    return 'none'
+    return emptyLabel
   }
   return entries.map(([key, count]) => `${key}: ${count}`).join(' • ')
 }
 
-function formatCostStatus(summary?: CostSummary | null) {
+function formatCostStatus(summary: CostSummary | null, loadingLabel: string, noAmountLabel: string) {
   if (!summary) {
-    return 'loading'
+    return loadingLabel
   }
   if (summary.estimated_monthly_cost == null) {
-    return 'No dollar amount yet — rule-based analysis only'
+    return noAmountLabel
   }
   return `${summary.currency ?? ''} ${summary.estimated_monthly_cost}`.trim()
 }
@@ -120,7 +120,7 @@ export function CostPage() {
   const [resourceGroupName, setResourceGroupName] = useState('')
   const [resourceGroupLimit, setResourceGroupLimit] = useState(200)
   const [resourceLimit, setResourceLimit] = useState(500)
-  const [copilotPrompt, setCopilotPrompt] = useState('How can I reduce cost or improve this architecture?')
+  const [copilotPrompt, setCopilotPrompt] = useState(() => t('copilot.defaultPrompt'))
   const [copilotProvider, setCopilotProvider] = useState<CopilotProviderOption>('rule-based')
   const [copilotProviders, setCopilotProviders] = useState<CopilotProviderStatus[]>([])
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
@@ -253,7 +253,7 @@ export function CostPage() {
         </p>
         <div className="control-row cost-control-row">
           <label className="field-label">
-            Workspace
+            {t('cost.workspace')}
             <input
               className="search-input"
               value={workspaceId}
@@ -262,25 +262,25 @@ export function CostPage() {
             />
           </label>
           <label className="field-label">
-            Subscription filter
+            {t('cost.subscriptionFilter')}
             <input
               className="search-input"
               value={subscriptionId}
-              placeholder="optional subscription id"
+              placeholder={t('cost.subscriptionPlaceholder')}
               onChange={(event) => setSubscriptionId(event.target.value)}
             />
           </label>
           <label className="field-label">
-            Resource group filter
+            {t('cost.resourceGroupFilter')}
             <input
               className="search-input"
               value={resourceGroupName}
-              placeholder="optional resource group"
+              placeholder={t('cost.resourceGroupPlaceholder')}
               onChange={(event) => setResourceGroupName(event.target.value)}
             />
           </label>
           <label className="field-label">
-            Resource group limit
+            {t('cost.resourceGroupLimit')}
             <input
               className="search-input"
               type="number"
@@ -291,7 +291,7 @@ export function CostPage() {
             />
           </label>
           <label className="field-label">
-            Resource limit
+            {t('cost.resourceLimit')}
             <input
               className="search-input"
               type="number"
@@ -317,7 +317,7 @@ export function CostPage() {
       <section className="summary-grid">
         <article className="metric-card">
           <span className="metric-label">{t('cost.label.costStatus')}</span>
-          <strong>{formatCostStatus(summary)}</strong>
+          <strong>{formatCostStatus(summary, t('cost.loading'), t('cost.noAmountYet'))}</strong>
         </article>
         <article className="metric-card">
           <span className="metric-label">{t('cost.label.resourcesAnalyzed')}</span>
@@ -329,11 +329,11 @@ export function CostPage() {
         </article>
         <article className="metric-card">
           <span className="metric-label">{t('cost.label.severityMix')}</span>
-          <strong>{summary ? formatCountMap(summary.severity_counts) : '-'}</strong>
+          <strong>{summary ? formatCountMap(summary.severity_counts, t('cost.none')) : '-'}</strong>
         </article>
         <article className="metric-card">
           <span className="metric-label">{t('cost.label.costDrivers')}</span>
-          <strong>{summary ? formatCountMap(summary.cost_driver_counts) : '-'}</strong>
+          <strong>{summary ? formatCountMap(summary.cost_driver_counts, t('cost.none')) : '-'}</strong>
         </article>
         <article className="metric-card">
           <span className="metric-label">{t('cost.label.tagGaps')}</span>
@@ -358,9 +358,9 @@ export function CostPage() {
               {(copilotProviders.length
                 ? copilotProviders
                 : [
-                    { id: 'rule-based' as const, label: 'Rule-based fallback', configured: true, status: 'available', model: null },
-                    { id: 'ollama' as const, label: 'Ollama / Ollama Cloud', configured: false, status: 'missing_config', model: null },
-                    { id: 'openrouter' as const, label: 'OpenRouter', configured: false, status: 'missing_config', model: null },
+                    { id: 'rule-based' as const, label: t('copilot.provider.ruleBased'), configured: true, status: 'available', model: null },
+                    { id: 'ollama' as const, label: t('copilot.provider.ollama'), configured: false, status: 'missing_config', model: null },
+                    { id: 'openrouter' as const, label: t('copilot.provider.openrouter'), configured: false, status: 'missing_config', model: null },
                   ]
               ).map((provider) => (
                 <option key={provider.id} value={provider.id}>
@@ -401,7 +401,7 @@ export function CostPage() {
               </span>
             </div>
             {(() => {
-              const sections = parseCopilotAnswerSections(copilotResponse.answer)
+              const sections = parseCopilotAnswerSections(copilotResponse.answer, t('copilot.answer'))
               const hasSuggestions = copilotResponse.suggestions.length > 0
               return (
                 <>
