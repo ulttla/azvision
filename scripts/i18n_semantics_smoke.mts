@@ -23,7 +23,7 @@ assert.deepEqual(
   Object.keys(dict.ko).sort(),
   'English and Korean dictionaries should have symmetric key coverage',
 )
-assert.ok(Object.keys(dict.en).length >= 60, 'i18n dictionary should cover the C1 shell/cost/copilot/error-boundary slice')
+assert.ok(Object.keys(dict.en).length >= 150, 'i18n dictionary should cover the C1 shell/cost/copilot/topology/error-boundary slice')
 assert.equal(dict.en['lang.toggle'], 'KO', 'English UI should offer the Korean toggle label')
 assert.equal(dict.ko['lang.toggle'], 'EN', 'Korean UI should offer the English toggle label')
 assert.equal(dict.ko['common.yes'], '예', 'Korean common yes token should be present')
@@ -49,5 +49,14 @@ assert.match(costCode, /t\('common\.yes'\)/, 'Cost/Copilot booleans should use l
 assert.match(costCode, /t\('common\.no'\)/, 'Cost/Copilot booleans should use localized no token')
 assert.match(costCode, /t\('cost\.evidence'\)/, 'Cost recommendation evidence label should be localized')
 assert.match(costCode, /t\('cost\.drivers'\)/, 'Cost driver label should be localized')
+
+// C1: topology coverage sanity
+const topoPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
+assert.match(topoPageCode, /useI18n/, 'TopologyPage should use i18n hook')
+assert.match(topoPageCode, /t\('topology\./, 'TopologyPage should reference topology.* i18n keys')
+assert.ok(
+  Object.keys(dict.en).filter(k => k.startsWith('topology.')).length >= 50,
+  'i18n dictionary should include C1 topology.* coverage',
+)
 
 console.log('✅ i18n_semantics_smoke.mts: all assertions passed')

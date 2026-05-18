@@ -73,9 +73,9 @@ assert.match(apiCode, /resource_group_changed/, 'scope_delta should have resourc
 const topoPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
 assert.match(topoPageCode, /compareTopologySnapshots\(/, 'TopologyPage should call compareTopologySnapshots')
 assert.match(topoPageCode, /compareTopologyArchives\(/, 'TopologyPage should call compareTopologyArchives')
-assert.match(topoPageCode, /Raw topology diff/, 'TopologyPage should render raw topology diff result panel')
+assert.match(topoPageCode, /topology\.controls\.rawDiff/, 'TopologyPage should render raw topology diff result panel via i18n')
 assert.match(topoPageCode, /renderDiffDrilldownSection/, 'TopologyPage should render bounded raw topology diff drilldown sections')
 assert.match(topoPageCode, /buildTopologyDiffMarkdown/, 'TopologyPage should support raw topology diff markdown export')
-assert.match(topoPageCode, /Download diff markdown/, 'TopologyPage should expose raw topology diff markdown download action')
+assert.match(topoPageCode, /topology\.controls\.downloadDiffMd/, 'TopologyPage should expose raw topology diff markdown download via i18n')
 
 console.log('✅ snapshot_compare_api_semantics_smoke.mts: all assertions passed')

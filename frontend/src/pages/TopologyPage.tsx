@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { Core } from 'cytoscape'
 
+import { useI18n } from '../i18n/context'
+
 import {
   compareTopologyArchives,
   compareTopologySnapshots,
@@ -432,6 +434,7 @@ function extractDetailScope(detail: TopologyNodeDetail | null) {
 }
 
 export function TopologyPage() {
+  const { t } = useI18n()
   const initialPreset = readTopologyPresetFromUrl()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('')
@@ -2518,12 +2521,12 @@ export function TopologyPage() {
     <main className="page-shell">
       <header className="hero-card">
         <div>
-          <p className="eyebrow">AzVision</p>
-          <h1>Azure topology explorer</h1>
+          <p className="eyebrow">{t('topology.hero.eyebrow')}</p>
+          <h1>{t('topology.hero.title')}</h1>
           <p className="subtext">{UI_TEXT.heroSubtext}</p>
         </div>
         <div className={`status-pill ${authReady ? 'ready' : 'pending'}`}>
-          Auth readiness: {authReady ? 'live inventory ready' : 'diagnostic only'}
+          Auth readiness: {authReady ? t('topology.hero.authLive') : t('topology.hero.authDiag')}
         </div>
       </header>
 
@@ -2535,7 +2538,7 @@ export function TopologyPage() {
 
       <section className="panel-grid">
         <article className="panel-card">
-          <h2>Workspace</h2>
+          <h2>{t('topology.workspace.heading')}</h2>
           {loading ? (
             <p>{UI_TEXT.loading}</p>
           ) : (
@@ -2564,7 +2567,7 @@ export function TopologyPage() {
                 }}
                 disabled={!selectedWorkspaceId || inventoryLoading}
               >
-                <option value="">All subscriptions</option>
+                <option value="">{t('topology.workspace.allSubs')}</option>
                 {availableSubscriptions.map((subscription) => (
                   <option
                     key={subscription.subscription_id ?? subscription.display_name ?? 'subscription'}
@@ -2582,7 +2585,7 @@ export function TopologyPage() {
                 }}
                 disabled={!selectedWorkspaceId || inventoryLoading}
               >
-                <option value="">All resource groups</option>
+                <option value="">{t('topology.workspace.allRGs')}</option>
                 {availableResourceGroups.map((resourceGroup) => (
                   <option key={resourceGroup.id ?? resourceGroup.name ?? 'resource-group'} value={resourceGroup.name ?? ''}>
                     {resourceGroup.name ?? 'Unnamed RG'}
@@ -2591,45 +2594,45 @@ export function TopologyPage() {
                 ))}
               </select>
               <p className="hint">
-                Generated at: {formatDateTime(topology?.generated_at)}
+                {t('topology.workspace.generatedAt')} {formatDateTime(topology?.generated_at)}
                 {topology?.mode ? ` • ${topology.mode}` : ''}
                 {inventoryMode ? ` • inventory ${inventoryMode}` : ''}
               </p>
               <p className="hint">
-                Scope: {selectedSubscriptionId ? 'single subscription' : 'all subscriptions'}
+                {t('topology.workspace.scope')} {selectedSubscriptionId ? 'single subscription' : 'all subscriptions'}
                 {' • '}
                 {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : 'all resource groups'}
                 {' • '}
                 {availableSubscriptions.length} subscriptions / {availableResourceGroups.length} RGs listed / {availableResources.length} resources previewed
               </p>
-              {inventoryWarning ? <p className="hint">Inventory note: {inventoryWarning}</p> : null}
+              {inventoryWarning ? <p className="hint">{t('topology.workspace.inventoryNote')} {inventoryWarning}</p> : null}
               {inventorySummary ? (
                 <>
                   <div className="summary-grid summary-grid-wide section-spacer">
                     <div className="metric-box">
-                      <span className="metric-label">Scoped Collector Subs</span>
+                      <span className="metric-label">{t('topology.workspace.scopedCollectorSubs')}</span>
                       <strong>{inventorySummary.summary.subscription_count}</strong>
-                      <small>current collector window</small>
+                      <small>{t('topology.workspace.resourcesInWindow')}</small>
                     </div>
                     <div className="metric-box">
-                      <span className="metric-label">Scoped Collector RGs</span>
+                      <span className="metric-label">{t('topology.workspace.scopedCollectorRGs')}</span>
                       <strong>{inventorySummary.summary.resource_group_count}</strong>
-                      <small>current collector window</small>
+                      <small>{t('topology.workspace.resourcesInWindow')}</small>
                     </div>
                     <div className="metric-box">
-                      <span className="metric-label">Scoped Collector Resources</span>
+                      <span className="metric-label">{t('topology.workspace.scopedCollectorResources')}</span>
                       <strong>{inventorySummary.summary.resource_count}</strong>
                       <small>separate from topology projection cap</small>
                     </div>
                   </div>
                   {inventoryTopResourceTypes.length ? (
                     <div>
-                      <h3 className="section-spacer">Top Resource Types In Scope</h3>
+                      <h3 className="section-spacer">{t('topology.workspace.topResourceTypes')}</h3>
                       <ul className="edge-list compact-list">
                         {inventoryTopResourceTypes.map((item) => (
                           <li key={item.resourceType}>
                             <strong>{item.resourceType}</strong>
-                            <p>{item.count} resources in current collector window</p>
+                            <p>{item.count} {t('topology.workspace.resourcesInWindow')}</p>
                           </li>
                         ))}
                       </ul>
@@ -2639,7 +2642,7 @@ export function TopologyPage() {
               ) : null}
               {availableResources.length ? (
                 <div>
-                  <h3 className="section-spacer">Scoped Inventory Preview</h3>
+                  <h3 className="section-spacer">{t('topology.workspace.inventoryPreview')}</h3>
                   <ul className="edge-list compact-list">
                     {availableResources.slice(0, 8).map((resource) => (
                       <li key={resource.id ?? `${resource.resource_group ?? 'rg'}:${resource.name ?? 'resource'}`}>
@@ -2659,37 +2662,37 @@ export function TopologyPage() {
         </article>
 
         <article className="panel-card">
-          <h2>Visible Summary</h2>
+          <h2>{t('topology.summary.heading')}</h2>
           <div className="summary-grid summary-grid-wide">
             <div className="metric-box">
-              <span className="metric-label">Visible Nodes</span>
+              <span className="metric-label">{t('topology.summary.visibleNodes')}</span>
               <strong>{visibleSummary.totalNodes}</strong>
-              <small>loaded {loadedSummary.totalNodes}</small>
+              <small>{t('topology.summary.loaded')} {loadedSummary.totalNodes}</small>
             </div>
             <div className="metric-box">
-              <span className="metric-label">Visible Edges</span>
+              <span className="metric-label">{t('topology.summary.visibleEdges')}</span>
               <strong>{visibleSummary.totalEdges}</strong>
-              <small>loaded {loadedSummary.totalEdges}</small>
+              <small>{t('topology.summary.loaded')} {loadedSummary.totalEdges}</small>
             </div>
             <div className="metric-box">
-              <span className="metric-label">Collapsed Children</span>
+              <span className="metric-label">{t('topology.summary.collapsedChildren')}</span>
               <strong>{loadedSummary.hiddenResources}</strong>
-              <small>MI children hidden by default</small>
+              <small>{t('topology.summary.miChildrenHidden')}</small>
             </div>
             <div className="metric-box">
-              <span className="metric-label">Subscriptions</span>
+              <span className="metric-label">{t('topology.summary.subscriptions')}</span>
               <strong>{visibleSummary.subscriptions}</strong>
             </div>
             <div className="metric-box">
-              <span className="metric-label">Resource Groups</span>
+              <span className="metric-label">{t('topology.summary.resourceGroups')}</span>
               <strong>{visibleSummary.resourceGroups}</strong>
             </div>
             <div className="metric-box">
-              <span className="metric-label">Resources</span>
+              <span className="metric-label">{t('topology.summary.resources')}</span>
               <strong>{visibleSummary.resources}</strong>
             </div>
             <div className="metric-box">
-              <span className="metric-label">Expanded MI Compare</span>
+              <span className="metric-label">{t('topology.summary.expandedMI')}</span>
               <strong>{expandedManagedInstances.length}</strong>
               <small>{clusterManagedInstanceChildren ? 'compound cluster on' : 'compound cluster off'}</small>
             </div>
@@ -2700,9 +2703,9 @@ export function TopologyPage() {
       <section className="panel-grid controls-layout">
         <article className="panel-card">
           <div className="section-heading">
-            <h2>Graph Controls</h2>
+            <h2>{t('topology.controls.heading')}</h2>
             <button type="button" className="toolbar-button" onClick={resetRelationFilters}>
-              Reset relation filters
+              {t('topology.controls.resetRelation')}
             </button>
           </div>
 
@@ -2721,11 +2724,11 @@ export function TopologyPage() {
                 checked={clusterManagedInstanceChildren}
                 onChange={(event) => setClusterManagedInstanceChildren(event.target.checked)}
               />
-              <span>Managed Instance child cluster view</span>
+              <span>{t('topology.controls.miChildCluster')}</span>
             </label>
           </div>
 
-          <h3 className="section-spacer">Managed Instance Compare</h3>
+          <h3 className="section-spacer">{t('topology.controls.miCompare')}</h3>
           <div className="section-heading compare-heading">
             <span className="mini-status">
               {expandedManagedInstances.length
@@ -2734,7 +2737,7 @@ export function TopologyPage() {
             </span>
             <div className="button-row">
               <button type="button" className="toolbar-button" onClick={handleCopyPresetLink}>
-                Copy preset link
+                {t('topology.controls.copyPresetLink')}
               </button>
               <button
                 type="button"
@@ -2742,7 +2745,7 @@ export function TopologyPage() {
                 onClick={clearManagedInstanceCompare}
                 disabled={!expandedManagedInstances.length || topologyLoading}
               >
-                Collapse all MI
+                {t('topology.controls.collapseAllMI')}
               </button>
             </div>
           </div>
@@ -2774,7 +2777,7 @@ export function TopologyPage() {
                     onClick={() => collapseManagedInstanceNode(node.node_ref)}
                     disabled={topologyLoading}
                   >
-                    Collapse
+                    {t('topology.controls.collapse')}
                   </button>
                 </div>
               ))}
@@ -2918,7 +2921,7 @@ export function TopologyPage() {
               {snapshotTopologyCompareResult ? (
                 <div className="snapshot-topology-diff-card">
                   <div className="preset-card-title-row">
-                    <strong>Raw topology diff</strong>
+                    <strong>{t('topology.controls.rawDiff')}</strong>
                     <span className="mini-chip">{snapshotTopologyCompareResult.archive_status}</span>
                   </div>
                   <p className="hint preset-card-meta">
@@ -2931,7 +2934,7 @@ export function TopologyPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="hint preset-card-meta">No raw topology differences reported.</p>
+                    <p className="hint preset-card-meta">{t('topology.controls.noDiff')}</p>
                   )}
                   {snapshotTopologyCompareResult.archive_status === 'available' ? (
                     <div className="snapshot-diff-drilldown">
@@ -2956,7 +2959,7 @@ export function TopologyPage() {
                     </div>
                   ) : null}
                   {snapshotTopologyCompareResult.archive_status === 'missing' ? (
-                    <p className="hint preset-card-meta">Raw archive is missing for one or both snapshots; metadata compare remains the safe fallback.</p>
+                    <p className="hint preset-card-meta">{t('topology.controls.rawArchiveMissing')}</p>
                   ) : null}
                   <div className="button-row snapshot-diff-actions">
                     {snapshotTopologyCompareResult.archive_status === 'available' ? (
@@ -2976,7 +2979,7 @@ export function TopologyPage() {
                       >
                         {(() => {
                           const all = ['node-added','node-removed','node-changed','edge-added','edge-removed','edge-changed']
-                          return all.some((s) => diffExpandedSections.has(s)) ? 'Collapse all' : 'Expand all'
+                          return all.some((s) => diffExpandedSections.has(s)) ? t('topology.controls.collapseAll') : t('topology.controls.expandAll')
                         })()}
                       </button>
                     ) : null}
@@ -2985,7 +2988,7 @@ export function TopologyPage() {
                       className="toolbar-button search-inline-button"
                       onClick={handleExportTopologyDiffMarkdown}
                     >
-                      Download diff markdown
+                      {t('topology.controls.downloadDiffMd')}
                     </button>
                   </div>
                 </div>
@@ -3017,7 +3020,7 @@ export function TopologyPage() {
                               {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
                             </span>
                             {snapshot.isPinned ? <span className="mini-chip">{UI_TEXT.pinnedSnapshotBadge}</span> : null}
-                            {snapshotCompareBaseId === snapshot.id ? <span className="mini-chip">Compare base</span> : null}
+                            {snapshotCompareBaseId === snapshot.id ? <span className="mini-chip">{t('topology.controls.compareBase')}</span> : null}
                             {isArchivedSnapshot ? <span className="mini-chip">{UI_TEXT.archivedSnapshotBadge}</span> : null}
                             {!snapshot.lastRestoredAt ? <span className="mini-chip">{UI_TEXT.neverRestoredSnapshotBadge}</span> : null}
                             {isActiveSnapshot ? <span className="mini-chip">{UI_TEXT.activeSnapshotBadge}</span> : null}
@@ -3219,7 +3222,7 @@ export function TopologyPage() {
             <p className="hint">{UI_TEXT.noSavedPresets}</p>
           )}
 
-          <h3 className="section-spacer">Relation Categories</h3>
+          <h3 className="section-spacer">{t('topology.relations.categories')}</h3>
           <div className="filter-chip-grid">
             {relationCategoryCounts.map((item) => {
               const key = item.key as RelationCategory
@@ -3237,7 +3240,7 @@ export function TopologyPage() {
             })}
           </div>
 
-          <h3 className="section-spacer">Relation Types</h3>
+          <h3 className="section-spacer">{t('topology.relations.types')}</h3>
           <div className="filter-chip-grid">
             {loadedRelationCounts.map((item) => (
               <button
@@ -3254,7 +3257,7 @@ export function TopologyPage() {
         </article>
 
         <article className="panel-card">
-          <h2>Resource Filters</h2>
+          <h2>{t('topology.resourceFilters.heading')}</h2>
           <div className="filter-chip-grid">
             {(['compute', 'data', 'network', 'web', 'other'] as ResourceCategory[]).map((category) => (
               <button
@@ -3275,20 +3278,20 @@ export function TopologyPage() {
 
         <article className="panel-card">
           <div className="section-heading">
-            <h2>Manual Modeling</h2>
+            <h2>{t('topology.manual.heading')}</h2>
             <span className="mini-status">
-              {manualLoading ? 'syncing...' : `${manualNodes.length} nodes • ${manualEdges.length} edges`}
+              {manualLoading ? t('topology.canvas.syncing') : `${manualNodes.length} nodes • ${manualEdges.length} edges`}
             </span>
           </div>
 
           <div className="storage-guide-card preset-guide-card">
-            <strong>Manual topology overlay</strong>
+            <strong>{t('topology.manual.overlay')}</strong>
             <p className="hint">
-              Add external systems or consultant annotations, then connect them to Azure nodes with manual edges.
+              {t('topology.manual.overlayDesc')}
             </p>
           </div>
 
-          <h3 className="section-spacer">Create Manual Node</h3>
+          <h3 className="section-spacer">{t('topology.manual.createNode')}</h3>
           <div className="preset-save-row snapshot-save-row">
             <input
               type="text"
@@ -3332,19 +3335,19 @@ export function TopologyPage() {
                 onClick={handleCreateManualNode}
                 disabled={!selectedWorkspaceId || !manualNodeNameInput.trim()}
               >
-                Create manual node
+                {t('topology.manual.createNodeBtn')}
               </button>
             </div>
           </div>
 
-          <h3 className="section-spacer">Create Manual Edge</h3>
+          <h3 className="section-spacer">{t('topology.manual.createEdge')}</h3>
           <div className="preset-save-row snapshot-save-row">
             <select
               value={manualEdgeSourceNodeKey}
               onChange={(event) => setManualEdgeSourceNodeKey(event.target.value)}
               disabled={!selectedWorkspaceId || !manualEdgeNodeOptions.length}
             >
-              <option value="">Source node</option>
+              <option value="">{t('topology.manual.srcNode')}</option>
               {manualEdgeNodeOptions.map((node) => (
                 <option key={`source-${node.node_key}`} value={node.node_key}>
                   {node.display_name} • {node.node_key}
@@ -3356,7 +3359,7 @@ export function TopologyPage() {
               onChange={(event) => setManualEdgeTargetNodeKey(event.target.value)}
               disabled={!selectedWorkspaceId || !manualEdgeNodeOptions.length}
             >
-              <option value="">Target node</option>
+              <option value="">{t('topology.manual.tgtNode')}</option>
               {manualEdgeNodeOptions.map((node) => (
                 <option key={`target-${node.node_key}`} value={node.node_key}>
                   {node.display_name} • {node.node_key}
@@ -3387,12 +3390,12 @@ export function TopologyPage() {
                 onClick={handleCreateManualEdge}
                 disabled={!selectedWorkspaceId || !manualEdgeSourceNodeKey || !manualEdgeTargetNodeKey}
               >
-                Create manual edge
+                {t('topology.manual.createEdgeBtn')}
               </button>
             </div>
           </div>
 
-          <h3 className="section-spacer">Manual Nodes</h3>
+          <h3 className="section-spacer">{t('topology.manual.listNodes')}</h3>
           {manualNodes.length ? (
             <ul className="edge-list compact-list">
               {manualNodes.map((node) => (
@@ -3431,10 +3434,10 @@ export function TopologyPage() {
               ))}
             </ul>
           ) : (
-            <p className="hint">No manual nodes yet</p>
+            <p className="hint">{t('topology.manual.noNodes')}</p>
           )}
 
-          <h3 className="section-spacer">Manual Edges</h3>
+          <h3 className="section-spacer">{t('topology.manual.listEdges')}</h3>
           {manualEdges.length ? (
             <ul className="edge-list compact-list">
               {manualEdges.map((edge) => (
@@ -3442,13 +3445,13 @@ export function TopologyPage() {
                   {editingManualEdgeRef === edge.manual_edge_ref ? (
                     <div className="preset-save-row snapshot-save-row">
                       <select value={editManualEdgeSource} onChange={(event) => setEditManualEdgeSource(event.target.value)} disabled={!manualEdgeNodeOptions.length}>
-                        <option value="">Source node</option>
+                        <option value="">{t('topology.manual.srcNode')}</option>
                         {manualEdgeNodeOptions.map((node) => (
                           <option key={`edit-source-${node.node_key}`} value={node.node_key}>{node.display_name} • {node.node_key}</option>
                         ))}
                       </select>
                       <select value={editManualEdgeTarget} onChange={(event) => setEditManualEdgeTarget(event.target.value)} disabled={!manualEdgeNodeOptions.length}>
-                        <option value="">Target node</option>
+                        <option value="">{t('topology.manual.tgtNode')}</option>
                         {manualEdgeNodeOptions.map((node) => (
                           <option key={`edit-target-${node.node_key}`} value={node.node_key}>{node.display_name} • {node.node_key}</option>
                         ))}
@@ -3482,7 +3485,7 @@ export function TopologyPage() {
               ))}
             </ul>
           ) : (
-            <p className="hint">No manual edges yet</p>
+            <p className="hint">{t('topology.manual.noEdges')}</p>
           )}
         </article>
       </section>
@@ -3490,10 +3493,10 @@ export function TopologyPage() {
       <section className="panel-grid canvas-layout">
         <article className="panel-card canvas-card">
           <div className="section-heading">
-            <h2>Cytoscape Canvas</h2>
+            <h2>{t('topology.canvas.heading')}</h2>
             <span className="mini-status">
               {topologyLoading
-                ? 'syncing...'
+                ? t('topology.canvas.syncing')
                 : `${filteredTopology.nodes.length} visible / ${topology?.nodes.length ?? 0} loaded`}
             </span>
           </div>
@@ -3505,13 +3508,13 @@ export function TopologyPage() {
           <div className="graph-toolbar">
             <div className="button-row">
               <button type="button" className="toolbar-button" onClick={fitGraph}>
-                Fit view
+                {t('topology.canvas.fitView')}
               </button>
               <button type="button" className="toolbar-button" onClick={focusSelection}>
-                Focus selection
+                {t('topology.canvas.focusSel')}
               </button>
               <button type="button" className="toolbar-button" onClick={rerunLayout}>
-                Relayout
+                {t('topology.canvas.relayout')}
               </button>
               <button
                 type="button"
@@ -3519,7 +3522,7 @@ export function TopologyPage() {
                 onClick={handleExportPng}
                 disabled={exportLoading || !canExportTopology}
               >
-                {exportLoading ? 'Exporting...' : 'Export PNG'}
+                {exportLoading ? t('topology.canvas.exporting') : t('topology.canvas.exportPng')}
               </button>
               <button
                 type="button"
@@ -3527,13 +3530,13 @@ export function TopologyPage() {
                 onClick={handleExportPdf}
                 disabled={exportLoading || !canExportTopology}
               >
-                {exportLoading ? 'Exporting...' : 'Export PDF'}
+                {exportLoading ? t('topology.canvas.exporting') : t('topology.canvas.exportPdf')}
               </button>
             </div>
 
             <div className="search-toolbar">
               <div className="section-heading search-heading">
-                <h3>Search / Quick Jump</h3>
+                <h3>{t('topology.canvas.searchJump')}</h3>
                 <span className="mini-status">
                   {searchQuery
                     ? `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} • ${
@@ -3597,7 +3600,7 @@ export function TopologyPage() {
                     onClick={() => jumpToSearchResult(searchResultIndex - 1)}
                     disabled={!searchResults.length}
                   >
-                    Prev
+                    {t('topology.canvas.prev')}
                   </button>
                   <button
                     type="button"
@@ -3605,14 +3608,14 @@ export function TopologyPage() {
                     onClick={() => jumpToSearchResult(searchResultIndex + 1)}
                     disabled={!searchResults.length}
                   >
-                    Next
+                    {t('topology.canvas.next')}
                   </button>
                   <button
                     type="submit"
                     className="toolbar-button primary"
                     disabled={!searchResults.length}
                   >
-                    Jump
+                    {t('topology.canvas.jump')}
                   </button>
                   <button
                     type="button"
@@ -3620,7 +3623,7 @@ export function TopologyPage() {
                     onClick={() => setSearchQuery('')}
                     disabled={!searchQuery}
                   >
-                    Clear
+                    {t('topology.canvas.clear')}
                   </button>
                 </div>
               </form>
@@ -3663,7 +3666,7 @@ export function TopologyPage() {
                                       <p>{getNodeMetaLine(result.node)}</p>
                                       {searchScope === 'child-only' && managedInstanceParent ? (
                                         <div className="search-result-breadcrumb">
-                                          <span className="mini-chip">Parent MI</span>
+                                          <span className="mini-chip">{t('topology.label.parentMI')}</span>
                                           <span className="breadcrumb-value">{managedInstanceParent.display_name}</span>
                                         </div>
                                       ) : null}
@@ -3731,12 +3734,12 @@ export function TopologyPage() {
             </div>
 
             <div className="graph-legend">
-              <span className="legend-item subscription">Subscription</span>
-              <span className="legend-item resourcegroup">Resource Group</span>
-              <span className="legend-item resource-data">Data</span>
-              <span className="legend-item resource-network">Network</span>
-              <span className="legend-item resource-web">Web</span>
-              <span className="legend-item resource-compute">Compute</span>
+              <span className="legend-item subscription">{t('topology.label.legendSubscription')}</span>
+              <span className="legend-item resourcegroup">{t('topology.label.legendResourceGroup')}</span>
+              <span className="legend-item resource-data">{t('topology.label.legendData')}</span>
+              <span className="legend-item resource-network">{t('topology.label.legendNetwork')}</span>
+              <span className="legend-item resource-web">{t('topology.label.legendWeb')}</span>
+              <span className="legend-item resource-compute">{t('topology.label.legendCompute')}</span>
             </div>
             <div className="graph-legend relation-legend">
               {loadedRelationCounts.map((item) => (
@@ -3778,7 +3781,7 @@ export function TopologyPage() {
                   ) : null}
                 </div>
                 {graphHoverCard.evidence?.length ? (
-                  <p className="graph-hover-evidence">Evidence: {graphHoverCard.evidence.slice(0, 2).join(' • ')}</p>
+                  <p className="graph-hover-evidence">{t('topology.label.evidence')}: {graphHoverCard.evidence.slice(0, 2).join(' • ')}</p>
                 ) : null}
               </div>
             ) : null}
@@ -3797,8 +3800,8 @@ export function TopologyPage() {
 
         <article className="panel-card detail-card">
           <div className="section-heading">
-            <h2>Node Detail</h2>
-            <span className="mini-status">{detailLoading ? 'loading...' : selectedNode?.node_type ?? '-'}</span>
+            <h2>{t('topology.detail.heading')}</h2>
+            <span className="mini-status">{detailLoading ? t('topology.detail.loading') : selectedNode?.node_type ?? '-'}</span>
           </div>
 
           {selectedNode ? (
@@ -3816,7 +3819,7 @@ export function TopologyPage() {
                 </div>
                 {selectedParentNode ? (
                   <div className="detail-breadcrumb-row">
-                    <span className="mini-chip">Parent MI</span>
+                    <span className="mini-chip">{t('topology.label.parentMI')}</span>
                     <strong className="detail-breadcrumb-value">{selectedParentNode.display_name}</strong>
                   </div>
                 ) : null}
@@ -3824,26 +3827,26 @@ export function TopologyPage() {
 
               <div className="detail-grid">
                 <div className="detail-item">
-                  <span>Source</span>
+                  <span>{t('topology.detail.source')}</span>
                   <strong>{formatSourceLabel(selectedNode.source)}</strong>
                 </div>
                 <div className="detail-item">
-                  <span>Confidence</span>
+                  <span>{t('topology.detail.confidence')}</span>
                   <strong>{formatConfidenceLabel(selectedNode.confidence)}</strong>
                 </div>
                 <div className="detail-item">
-                  <span>Category</span>
+                  <span>{t('topology.detail.category')}</span>
                   <strong>{getResourceCategory(selectedNode)}</strong>
                 </div>
                 <div className="detail-item">
-                  <span>Location</span>
+                  <span>{t('topology.detail.location')}</span>
                   <strong>{selectedNode.location ?? '-'}</strong>
                 </div>
               </div>
 
               {selectedNode.node_type === 'resource' ? (
                 <div className="detail-item">
-                  <span>Network Path Analysis</span>
+                  <span>{t('topology.detail.pathAnalysis')}</span>
                   <strong>
                     {pathAnalysisResult
                       ? `Verdict: ${pathAnalysisResult.overall_verdict} (NSG + route evidence)`
@@ -3915,7 +3918,7 @@ export function TopologyPage() {
                         setPathAnalysisResult(null)
                       }}
                     >
-                      Set as source
+                      {t('topology.detail.setAsSource')}
                     </button>
                     <button
                       type="button"
@@ -3925,7 +3928,7 @@ export function TopologyPage() {
                         setPathAnalysisResult(null)
                       }}
                     >
-                      Set as destination
+                      {t('topology.detail.setAsDest')}
                     </button>
                     <button
                       type="button"
@@ -3933,7 +3936,7 @@ export function TopologyPage() {
                       onClick={() => void runPathAnalysis()}
                       disabled={pathAnalysisLoading || !pathSourceNodeRef || !pathDestinationNodeRef}
                     >
-                      {pathAnalysisLoading ? 'Analyzing...' : 'Analyze path'}
+                      {pathAnalysisLoading ? t('topology.detail.analyzing') : t('topology.detail.analyzePath')}
                     </button>
                   </div>
                   {pathAnalysisResult ? (
@@ -3991,7 +3994,7 @@ export function TopologyPage() {
                         </div>
                       ) : null}
                       {pathAnalysisResult.warnings.length ? (
-                        <p className="hint">Warning: {pathAnalysisResult.warnings.join('; ')}</p>
+                        <p className="hint">{t('topology.label.warning')}: {pathAnalysisResult.warnings.join('; ')}</p>
                       ) : null}
                     </div>
                   ) : null}
@@ -4001,7 +4004,7 @@ export function TopologyPage() {
 
               {hasDetailScopeContext ? (
                 <div className="detail-item">
-                  <span>Scoped Inventory Window</span>
+                  <span>{t('topology.detail.scopedInvWin')}</span>
                   <strong>{detailScopeSummary}</strong>
                   <p className="hint detail-inline-hint">
                     {nodeDetail?.status === 'not-found'
@@ -4015,7 +4018,7 @@ export function TopologyPage() {
                         className="toolbar-button"
                         onClick={() => setFocusedResourceGroupName('')}
                       >
-                        Load all resource groups
+                        {t('topology.detail.loadAllRGs')}
                       </button>
                     ) : null}
                     {selectedSubscriptionId ? (
@@ -4027,7 +4030,7 @@ export function TopologyPage() {
                           setFocusedResourceGroupName('')
                         }}
                       >
-                        Load all subscriptions
+                        {t('topology.detail.loadAllSubs')}
                       </button>
                     ) : null}
                   </div>
@@ -4036,7 +4039,7 @@ export function TopologyPage() {
 
               {isResourceGroupNode(selectedNode) ? (
                 <div className="detail-item">
-                  <span>Resource Group Lazy Load</span>
+                  <span>{t('topology.detail.rgLazyLoad')}</span>
                   <strong>{resourceGroupFocused ? 'Focused' : 'All resource groups loaded'}</strong>
                   <p className="hint detail-inline-hint">
                     {resourceGroupFocused
@@ -4053,7 +4056,7 @@ export function TopologyPage() {
 
               {selectedParentNode ? (
                 <div className="detail-item">
-                  <span>Parent Managed Instance</span>
+                  <span>{t('topology.detail.parentMI')}</span>
                   <strong>{selectedParentNode.display_name}</strong>
                   <p className="hint detail-inline-hint">{UI_TEXT.parentManagedInstanceHint}</p>
                   <div className="button-row detail-button-row">
@@ -4070,7 +4073,7 @@ export function TopologyPage() {
 
               {isManagedInstanceNode(selectedNode) && selectedNode.child_summary?.total ? (
                 <div className="detail-item">
-                  <span>Managed Instance Children</span>
+                  <span>{t('topology.detail.miChildren')}</span>
                   <strong>
                     {managedInstanceExpanded
                       ? `Expanded on canvas (${visibleManagedInstanceChildCount} visible)`
@@ -4116,7 +4119,7 @@ export function TopologyPage() {
               {nodeDetail?.message ? <div className="hint">{nodeDetail.message}</div> : null}
 
               <div>
-                <h3>Projected Details</h3>
+                <h3>{t('topology.detail.projectedDetails')}</h3>
                 {detailEntries.length ? (
                   <dl className="detail-list">
                     {detailEntries.map(([key, value]) => (
@@ -4144,9 +4147,9 @@ export function TopologyPage() {
       <section className="panel-grid three-panels">
         <article className="panel-card">
           <div className="section-heading">
-            <h2>Visible Nodes</h2>
+            <h2>{t('topology.bottom.visibleNodes')}</h2>
             <span className="mini-status">
-              {selectedNode ? `selected: ${selectedNode.display_name}` : 'no selection'}
+              {selectedNode ? `selected: ${selectedNode.display_name}` : t('topology.bottom.noSelection')}
             </span>
           </div>
           <ul className="node-list interactive-list compact-list">
@@ -4180,7 +4183,7 @@ export function TopologyPage() {
         </article>
 
         <article className="panel-card">
-          <h2>Composition</h2>
+          <h2>{t('topology.bottom.composition')}</h2>
           <div className="composition-list">
             {nodeTypeCounts.map((item) => (
               <div key={item.key} className="composition-row">
@@ -4190,7 +4193,7 @@ export function TopologyPage() {
             ))}
           </div>
 
-          <h3 className="section-spacer">Relation Types</h3>
+          <h3 className="section-spacer">{t('topology.bottom.relationTypes')}</h3>
           <div className="composition-list">
             {relationCounts.map((item) => (
               <div key={item.key} className="composition-row relation-row">
@@ -4202,7 +4205,7 @@ export function TopologyPage() {
         </article>
 
         <article className="panel-card">
-          <h2>Edge Preview</h2>
+          <h2>{t('topology.bottom.edgePreview')}</h2>
           <ul className="edge-list compact-list">
             {edgePreview.map((edge) => (
               <li key={`${edge.source_node_key}-${edge.relation_type}-${edge.target_node_key}`}>
