@@ -75,7 +75,7 @@ assert.match(archPageCode, /createExport/, 'ArchitecturePage should use createEx
 assert.match(archPageCode, /export|Export/i, 'ArchitecturePage should have export functionality')
 assert.match(archPageCode, /handleCopyPngToClipboard/, 'ArchitecturePage should have PNG clipboard function')
 assert.match(archPageCode, /arch-copy-btn/, 'ArchitecturePage should render PNG clipboard button with test id')
-assert.match(archPageCode, /Copy PNG/, 'ArchitecturePage should label clipboard copy according to the PNG output format')
+assert.match(archPageCode, /arch.controls.copyPng/, 'ArchitecturePage should localize clipboard copy label')
 assert.match(archPageCode, /navigator\.clipboard/, 'ArchitecturePage PNG clipboard copy should use Clipboard API')
 
 // ============================================================
@@ -127,7 +127,7 @@ assert.match(archPageCode, /arch-health-badges/, 'ArchitecturePage should render
 // Section 13: Infra overlay presentation control
 // ============================================================
 assert.match(archPageCode, /showInfraOverlay/, 'ArchitecturePage should expose an infra overlay visibility state')
-assert.match(archPageCode, /Show infra overlay lane/, 'ArchitecturePage should render the infra overlay control copy')
+assert.match(archPageCode, /arch\.controls\.showInfraOverlay/, 'ArchitecturePage should render the infra overlay control as localized label')
 assert.match(archPageCode, /bucket\.stage === 'infra' && !showInfraOverlay/, 'ArchitecturePage should hide infra bucket nodes without mutating topology')
 
 // ============================================================
@@ -138,7 +138,7 @@ assert.match(archPageCode, /displayNameOverride/, 'ArchitecturePage should suppo
 assert.match(archPageCode, /stageKeyOverride/, 'ArchitecturePage should support presentation stage overrides')
 assert.match(archPageCode, /arch-detail-label-override/, 'ArchitecturePage should expose selected-card label override input')
 assert.match(archPageCode, /arch-detail-stage-override/, 'ArchitecturePage should expose selected-card stage override select')
-assert.match(archPageCode, /hide, label, and stage overrides/, 'ArchitecturePage should describe the expanded presentation override scope')
+assert.match(archPageCode, /arch\.controls\.overrideHint/, 'ArchitecturePage should describe the expanded presentation override scope as localized hint')
 assert.match(archStorageCode, /nodeOverrides/, 'architecture/storage should persist presentation overrides')
 assert.match(archModelCode, /ArchitectureNodeOverride/, 'architecture/model should define override options')
 assert.match(archModelCode, /nodeOverrides\[node\.node_key\]\?\.stageKeyOverride/, 'architecture/model should apply stage overrides before bucket render')
@@ -154,8 +154,8 @@ assert.match(archPageCode, /annotations/, 'ArchitecturePage should track present
 assert.match(archPageCode, /arch-annotation-draft/, 'ArchitecturePage should expose annotation draft input')
 assert.match(archPageCode, /arch-annotation-add-btn/, 'ArchitecturePage should expose annotation add action')
 assert.match(archPageCode, /arch-annotation-delete-btn/, 'ArchitecturePage should expose annotation delete action')
-assert.match(archPageCode, /Presentation Notes/, 'ArchitecturePage should render a presentation notes panel')
-assert.match(archPageCode, /presentation annotations/, 'ArchitecturePage should describe annotations as source-safe override delta')
+assert.match(archPageCode, /arch\.notes\.heading/, 'ArchitecturePage should render a presentation notes panel with localized heading')
+assert.match(archPageCode, /arch\.notes\.noNotes/, 'ArchitecturePage should describe annotations as source-safe override delta via localized message')
 assert.match(archPageCode, /renderArchitectureSvg\(visibleStageBuckets, visibleEdges, \{ annotations \}\)/, 'ArchitecturePage should include annotations in export-safe SVG rendering')
 assert.match(archModelCode, /annotationMarkup/, 'architecture/model should render annotations into the SVG diagram')
 
@@ -170,3 +170,25 @@ assert.match(archPageCode, /arch-node-move-earlier-btn/, 'ArchitecturePage shoul
 assert.match(archPageCode, /arch-node-move-later-btn/, 'ArchitecturePage should expose keyboard-accessible later ordering action')
 
 console.log('architecture_page_semantics_smoke.mts: all assertions passed')
+
+// ============================================================
+// Section 17: i18n integration — ArchitecturePage uses locale-aware labels
+// ============================================================
+assert.match(archPageCode, /useI18n/, 'ArchitecturePage should use i18n hook')
+assert.match(archPageCode, /t\('arch\./, 'ArchitecturePage should reference arch.* i18n keys')
+assert.match(archPageCode, /t\('arch\.hero\.eyebrow'\)/, 'ArchitecturePage hero eyebrow should be localized')
+assert.match(archPageCode, /t\('arch\.hero\.title'\)/, 'ArchitecturePage hero title should be localized')
+assert.match(archPageCode, /t\('arch\.hero\.subtext'\)/, 'ArchitecturePage hero subtext should be localized')
+assert.match(archPageCode, /t\('arch\.controls\.heading'\)/, 'ArchitecturePage controls heading should be localized')
+assert.match(archPageCode, /t\('arch\.summary\.heading'\)/, 'ArchitecturePage summary heading should be localized')
+assert.match(archPageCode, /t\('arch\.detail\.heading'\)/, 'ArchitecturePage detail heading should be localized')
+assert.match(archPageCode, /t\('arch\.diagram\.heading'\)/, 'ArchitecturePage diagram heading should be localized')
+assert.match(archPageCode, /t\('arch\.notes\.heading'\)/, 'ArchitecturePage notes heading should be localized')
+assert.match(archPageCode, /t\('arch\.zones\.heading'\)/, 'ArchitecturePage zones heading should be localized')
+assert.match(archPageCode, /t\('arch\.flow\.heading'\)/, 'ArchitecturePage flow heading should be localized')
+assert.match(archPageCode, /t\('arch\.hidden\.heading'\)/, 'ArchitecturePage hidden heading should be localized')
+assert.match(archPageCode, /t\('arch\.zones\.noMappedCards'\)/, 'ArchitecturePage empty zone board should show localized message')
+assert.match(archPageCode, /t\('arch\.hidden\.noHiddenCards'\)/, 'ArchitecturePage empty hidden panel should show localized message')
+assert.match(archPageCode, /t\('arch\.notes\.noNotes'\)/, 'ArchitecturePage empty annotations should show localized message')
+assert.match(archPageCode, /t\('arch\.detail\.noSelection'\)/, 'ArchitecturePage detail empty state should be localized')
+console.log('architecture_page_semantics_smoke.mts: i18n section passed')

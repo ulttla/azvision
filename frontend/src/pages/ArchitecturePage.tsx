@@ -31,6 +31,7 @@ import {
   loadArchitectureOverrideState,
   saveArchitectureOverrideState,
 } from './architecture/storage'
+import { useI18n } from '../i18n/context'
 
 function formatDateTime(value?: string) {
   if (!value) {
@@ -206,6 +207,7 @@ async function rasterizeSvg(svg: string, width: number, height: number): Promise
 }
 
 export function ArchitecturePage() {
+  const { t } = useI18n()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>(() => parseInitialWorkspaceId())
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(() => parseInitialSubscriptionId())
@@ -808,22 +810,21 @@ export function ArchitecturePage() {
     <main className="page-shell">
       <section className="hero-card">
         <div>
-          <p className="eyebrow">AzVision • Architecture View</p>
-          <h1>Compact architecture pipeline mode</h1>
+          <p className="eyebrow">{t('arch.hero.eyebrow')}</p>
+          <h1>{t('arch.hero.title')}</h1>
           <p className="subtext architecture-subtext">
-            Auto-map live topology resources into Source → Ingest → Process → Store → Serve zones,
-            keep infra separated, and persist lightweight hide, label, and stage overrides for presentation-ready views.
+            {t('arch.hero.subtext')}
           </p>
         </div>
         <div className="architecture-health-badges" data-testid="arch-health-badges">
           <span className={`status-pill ${backendHealthStatus === 'ok' ? 'ready' : 'pending'}`} data-testid="arch-health-backend">
-            Backend {backendHealthStatus === 'ok' ? 'healthy' : backendHealthStatus === 'checking' ? 'checking' : 'unavailable'}
+            {backendHealthStatus === 'ok' ? t('arch.health.backendHealthy') : backendHealthStatus === 'checking' ? t('arch.health.backendChecking') : t('arch.health.backendUnavailable')}
           </span>
           <span className={`status-pill ${authReady ? 'ready' : 'pending'}`} data-testid="arch-health-auth">
-            {authReady ? 'Live inventory ready' : 'Diagnostic mode'}
+            {authReady ? t('arch.health.liveInventory') : t('arch.health.diagnosticMode')}
           </span>
           <span className="status-pill pending" data-testid="arch-health-topology-age">
-            Topology {topology?.generated_at ? formatDateTime(topology.generated_at) : 'not loaded'}
+            {topology?.generated_at ? `${t('arch.health.topologyLabel')} ${formatDateTime(topology.generated_at)}` : t('arch.health.topologyNotLoaded')}
           </span>
         </div>
       </section>
@@ -837,13 +838,13 @@ export function ArchitecturePage() {
       <section className="panel-grid architecture-overview-grid">
         <article className="panel-card">
           <div className="section-heading">
-            <h2>Workspace</h2>
+            <h2>{t('arch.workspace.heading')}</h2>
             <span className="mini-status">
-              {topologyLoading ? 'Refreshing architecture view…' : 'Compact grouping default'}
+              {topologyLoading ? t('arch.workspace.refreshing') : t('arch.workspace.compactDefault')}
             </span>
           </div>
           {loading ? (
-            <p>Loading workspaces…</p>
+            <p>{t('arch.workspace.loading')}</p>
           ) : (
             <>
               <select
@@ -868,7 +869,7 @@ export function ArchitecturePage() {
                 }}
                 disabled={!selectedWorkspaceId || inventoryLoading}
               >
-                <option value="">All subscriptions</option>
+                <option value="">{t('arch.workspace.allSubs')}</option>
                 {availableSubscriptions.map((subscription) => (
                   <option
                     key={subscription.subscription_id ?? subscription.display_name ?? 'subscription'}
@@ -883,7 +884,7 @@ export function ArchitecturePage() {
                 onChange={(event) => setFocusedResourceGroupName(event.target.value)}
                 disabled={!selectedWorkspaceId || inventoryLoading}
               >
-                <option value="">All resource groups</option>
+                <option value="">{t('arch.workspace.allRGs')}</option>
                 {availableResourceGroups.map((resourceGroup) => (
                   <option key={resourceGroup.id ?? resourceGroup.name ?? 'resource-group'} value={resourceGroup.name ?? ''}>
                     {resourceGroup.name ?? 'Unnamed RG'}
@@ -892,32 +893,32 @@ export function ArchitecturePage() {
                 ))}
               </select>
               <p className="hint">
-                Generated at: {formatDateTime(topology?.generated_at)}
+                {t('arch.workspace.generatedAt')} {formatDateTime(topology?.generated_at)}
                 {topology?.mode ? ` • ${topology.mode}` : ''}
                 {inventoryMode ? ` • inventory ${inventoryMode}` : ''}
               </p>
               <p className="hint">
-                Scope: {selectedSubscriptionId ? 'single subscription' : 'all subscriptions'}
+                {t('arch.workspace.scope')} {selectedSubscriptionId ? 'single subscription' : 'all subscriptions'}
                 {' • '}
                 {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : 'all resource groups'}
               </p>
-              {inventoryWarning ? <p className="hint">Inventory note: {inventoryWarning}</p> : null}
+              {inventoryWarning ? <p className="hint">{t('arch.workspace.inventoryNote')} {inventoryWarning}</p> : null}
               {inventorySummary ? (
                 <div className="summary-grid summary-grid-wide section-spacer">
                   <div className="metric-box">
-                    <span className="metric-label">Collector Subs</span>
+                    <span className="metric-label">{t('arch.workspace.collectorSubs')}</span>
                     <strong>{inventorySummary.summary.subscription_count}</strong>
-                    <small>in scope</small>
+                    <small>{t('arch.workspace.inScope')}</small>
                   </div>
                   <div className="metric-box">
-                    <span className="metric-label">Collector RGs</span>
+                    <span className="metric-label">{t('arch.workspace.collectorRGs')}</span>
                     <strong>{inventorySummary.summary.resource_group_count}</strong>
-                    <small>in scope</small>
+                    <small>{t('arch.workspace.inScope')}</small>
                   </div>
                   <div className="metric-box">
-                    <span className="metric-label">Collector Resources</span>
+                    <span className="metric-label">{t('arch.workspace.collectorResources')}</span>
                     <strong>{inventorySummary.summary.resource_count}</strong>
-                    <small>raw inventory</small>
+                    <small>{t('arch.workspace.rawInventory')}</small>
                   </div>
                 </div>
               ) : null}
@@ -927,32 +928,32 @@ export function ArchitecturePage() {
 
         <article className="panel-card">
           <div className="section-heading">
-            <h2>Architecture Summary</h2>
-            <span className="mini-status">View-model only • original topology untouched</span>
+            <h2>{t('arch.summary.heading')}</h2>
+            <span className="mini-status">{t('arch.summary.viewModelOnly')}</span>
           </div>
           {isInitialTopologyLoad ? (
-            <p className="hint">Loading topology…</p>
+            <p className="hint">{t('arch.summary.loadingTopology')}</p>
           ) : (
             <div className="summary-grid architecture-summary-grid">
               <div className="metric-box">
-                <span className="metric-label">Visible cards</span>
+                <span className="metric-label">{t('arch.summary.visibleCards')}</span>
                 <strong>{visibleNodes.length}</strong>
-                <small>{groupedCards} grouped cards</small>
+                <small>{groupedCards} {t('arch.summary.groupedCards')}</small>
               </div>
               <div className="metric-box">
-                <span className="metric-label">Visible resources</span>
+                <span className="metric-label">{t('arch.summary.visibleResources')}</span>
                 <strong>{architectureModel.groupedResourceCount}</strong>
-                <small>{architectureModel.sourceNodeCount} visible source nodes</small>
+                <small>{architectureModel.sourceNodeCount} {t('arch.summary.visibleSourceNodes')}</small>
               </div>
               <div className="metric-box">
-                <span className="metric-label">Hidden resources</span>
+                <span className="metric-label">{t('arch.summary.hiddenResources')}</span>
                 <strong>{hiddenSourceNodeKeys.length}</strong>
-                <small>{hiddenNodes.length} hidden cards in delta</small>
+                <small>{hiddenNodes.length} {t('arch.summary.hiddenCardsDelta')}</small>
               </div>
               <div className="metric-box">
-                <span className="metric-label">Active zones</span>
+                <span className="metric-label">{t('arch.summary.activeZones')}</span>
                 <strong>{stageCoverage}</strong>
-                <small>{ARCHITECTURE_STAGE_ORDER.length} total zones</small>
+                <small>{ARCHITECTURE_STAGE_ORDER.length} {t('arch.summary.totalZones')}</small>
               </div>
             </div>
           )}
@@ -962,7 +963,7 @@ export function ArchitecturePage() {
       <section className="panel-grid controls-layout architecture-controls-grid">
         <article className="panel-card">
           <div className="section-heading">
-            <h2>View Controls</h2>
+            <h2>{t('arch.controls.heading')}</h2>
             <div className="button-row">
               <button
                 type="button"
@@ -970,16 +971,16 @@ export function ArchitecturePage() {
                 onClick={resetHiddenNodes}
                 disabled={!hiddenSourceNodeKeys.length && !Object.keys(nodeOverrides).length && !annotations.length}
               >
-                Reset all overrides{hiddenNodes.length > 0 || annotations.length > 0 ? ` (${hiddenNodes.length} hidden, ${annotations.length} notes)` : ''}
+                {t('arch.controls.resetAllOverrides')}{hiddenNodes.length > 0 || annotations.length > 0 ? ` (${t('arch.controls.resetCount').replace('{hidden}', String(hiddenNodes.length)).replace('{notes}', String(annotations.length))})` : ''}
               </button>
               <button type="button" className="toolbar-button" onClick={() => void handleExport('png')} disabled={exportLoading || !visibleNodes.length}>
-                {exportLoading ? 'Exporting…' : 'Export PNG'}
+                {exportLoading ? t('arch.controls.exporting') : t('arch.controls.exportPng')}
               </button>
               <button type="button" className="toolbar-button" onClick={() => void handleExport('pdf')} disabled={exportLoading || !visibleNodes.length}>
-                {exportLoading ? 'Exporting…' : 'Export PDF'}
+                {exportLoading ? t('arch.controls.exporting') : t('arch.controls.exportPdf')}
               </button>
               <button type="button" className="toolbar-button" onClick={() => void handleCopyPngToClipboard()} disabled={exportLoading || !visibleNodes.length} data-testid="arch-copy-btn">
-                {exportLoading ? 'Copying…' : 'Copy PNG'}
+                {exportLoading ? t('arch.controls.copying') : t('arch.controls.copyPng')}
               </button>
             </div>
           </div>
@@ -990,7 +991,7 @@ export function ArchitecturePage() {
                 checked={includeNetworkInference}
                 onChange={(event) => setIncludeNetworkInference(event.target.checked)}
               />
-              <span>Include network inference edges</span>
+              <span>{t('arch.controls.includeNetworkInference')}</span>
             </label>
             <label className="toggle-row">
               <input
@@ -998,10 +999,10 @@ export function ArchitecturePage() {
                 checked={showInfraOverlay}
                 onChange={(event) => setShowInfraOverlay(event.target.checked)}
               />
-              <span>Show infra overlay lane</span>
+              <span>{t('arch.controls.showInfraOverlay')}</span>
             </label>
             <label className="architecture-threshold-field">
-              <span>Group threshold</span>
+              <span>{t('arch.controls.groupThreshold')}</span>
               <select value={groupThreshold} onChange={(event) => setGroupThreshold(Number(event.target.value))}>
                 <option value={2}>2 resources</option>
                 <option value={3}>3 resources</option>
@@ -1010,17 +1011,14 @@ export function ArchitecturePage() {
             </label>
           </div>
           <p className="hint architecture-hint-copy">
-            Override delta is stored separately by workspace + subscription + RG scope and tracks hidden
-            source topology node keys plus label/stage/order overrides and presentation annotations, so the topology source remains intact even when grouping threshold changes.
-            The infra overlay can be hidden for presentation exports without removing network resources from the source topology.
-            Copy PNG rasterizes the current diagram and writes the PNG image to the system clipboard.
+            {t('arch.controls.overrideHint')}
           </p>
         </article>
 
         <article className="panel-card architecture-detail-card">
           <div className="section-heading">
-            <h2>Selected Card</h2>
-            <span className="mini-status">{selectedNode ? selectedNode.shortLabel : 'Manual review surface'}</span>
+            <h2>{t('arch.detail.heading')}</h2>
+            <span className="mini-status">{selectedNode ? selectedNode.shortLabel : t('arch.detail.manualReview')}</span>
           </div>
           {selectedNode ? (
             <div className="architecture-detail-copy" data-testid="arch-detail-panel">
@@ -1033,25 +1031,25 @@ export function ArchitecturePage() {
               <p className="hint architecture-detail-description">{selectedNode.description}</p>
               <div className="architecture-detail-grid">
                 <div>
-                  <span className="metric-label">Family</span>
+                  <span className="metric-label">{t('arch.detail.family')}</span>
                   <strong>{selectedNode.familyLabel}</strong>
                 </div>
                 <div>
-                  <span className="metric-label">Resource groups</span>
+                  <span className="metric-label">{t('arch.detail.resourceGroups')}</span>
                   <strong>{selectedNode.resourceGroups.length}</strong>
                 </div>
                 <div>
-                  <span className="metric-label">Locations</span>
+                  <span className="metric-label">{t('arch.detail.locations')}</span>
                   <strong>{selectedNode.locations.join(', ') || '—'}</strong>
                 </div>
                 <div>
-                  <span className="metric-label">Source resources</span>
+                  <span className="metric-label">{t('arch.detail.sourceResources')}</span>
                   <strong>{selectedNode.nodeCount}</strong>
                 </div>
               </div>
               <div className="architecture-detail-grid">
                 <label>
-                  <span className="metric-label">Presentation label</span>
+                  <span className="metric-label">{t('arch.detail.presentationLabel')}</span>
                   <input
                     type="text"
                     value={selectedNodeDisplayNameOverride(selectedNode)}
@@ -1062,7 +1060,7 @@ export function ArchitecturePage() {
                   />
                 </label>
                 <label>
-                  <span className="metric-label">Presentation stage</span>
+                  <span className="metric-label">{t('arch.detail.presentationStage')}</span>
                   <select
                     value={selectedNodeStageOverride(selectedNode)}
                     onChange={(event) => updateSelectedNodeOverride({ stageKeyOverride: event.target.value as ArchitectureStage })}
@@ -1085,7 +1083,7 @@ export function ArchitecturePage() {
                   aria-label={`Hide ${selectedNode.label} from architecture view`}
                   data-testid="arch-detail-hide-btn"
                 >
-                  Hide from architecture view
+                  {t('arch.detail.hideFromArch')}
                 </button>
                 <button
                   type="button"
@@ -1094,11 +1092,11 @@ export function ArchitecturePage() {
                   disabled={!selectedNode.sourceNodeKeys.some((nodeKey) => nodeOverrides[nodeKey])}
                   data-testid="arch-detail-clear-presentation-btn"
                 >
-                  Clear label/stage/order override
+                  {t('arch.detail.clearOverrides')}
                 </button>
               </div>
               <div className="architecture-source-list">
-                <span className="metric-label">Underlying topology resources</span>
+                <span className="metric-label">{t('arch.detail.underlyingResources')}</span>
                 <ul className="overview-list architecture-inline-list">
                   {selectedNode.sourceNodes.slice(0, 8).map((node) => (
                     <li key={node.node_key}>
@@ -1107,34 +1105,34 @@ export function ArchitecturePage() {
                   ))}
                 </ul>
                 {selectedNode.sourceNodes.length > 8 ? (
-                  <p className="hint">+ {selectedNode.sourceNodes.length - 8} more source resources</p>
+                  <p className="hint">{t('arch.detail.moreResources').replace('{count}', String(selectedNode.sourceNodes.length - 8))}</p>
                 ) : null}
               </div>
             </div>
           ) : (
-            <p className="hint">{isInitialTopologyLoad ? 'Loading…' : 'No visible architecture card is selected.'}</p>
+            <p className="hint">{isInitialTopologyLoad ? t('arch.detail.loading') : t('arch.detail.noSelection')}</p>
           )}
         </article>
       </section>
 
       <section className="panel-card architecture-diagram-panel">
         <div className="section-heading">
-          <h2>Compact Diagram</h2>
-          <span className="mini-status">SVG-based export-safe rendering</span>
+          <h2>{t('arch.diagram.heading')}</h2>
+          <span className="mini-status">{t('arch.diagram.svgExportSafe')}</span>
         </div>
         <div className="architecture-svg-shell" dangerouslySetInnerHTML={{ __html: svgDiagram.svg }} />
       </section>
 
       <section className="panel-card architecture-annotation-board">
         <div className="section-heading">
-          <h2>Presentation Notes</h2>
-          <span className="mini-status">Local annotation delta • {annotations.length} note{annotations.length === 1 ? '' : 's'}</span>
+          <h2>{t('arch.notes.heading')}</h2>
+          <span className="mini-status">{t('arch.notes.count').replace('{count}', String(annotations.length)).replace('{plural}', annotations.length === 1 ? '' : 's')}</span>
         </div>
         <div className="architecture-annotation-compose" data-testid="arch-annotation-compose">
           <textarea
             value={annotationDraft}
             onChange={(event) => setAnnotationDraft(event.target.value.slice(0, 280))}
-            placeholder="Add a short presentation note for this architecture view…"
+            placeholder={t('arch.notes.placeholder')}
             aria-label="Architecture annotation text"
             data-testid="arch-annotation-draft"
           />
@@ -1145,9 +1143,9 @@ export function ArchitecturePage() {
               aria-label="Architecture annotation tone"
               data-testid="arch-annotation-tone"
             >
-              <option value="note">Note</option>
-              <option value="info">Info</option>
-              <option value="warning">Warning</option>
+              <option value="note">{t('arch.notes.toneNote')}</option>
+              <option value="info">{t('arch.notes.toneInfo')}</option>
+              <option value="warning">{t('arch.notes.toneWarning')}</option>
             </select>
             <button
               type="button"
@@ -1156,7 +1154,7 @@ export function ArchitecturePage() {
               disabled={!annotationDraft.trim()}
               data-testid="arch-annotation-add-btn"
             >
-              Add note
+              {t('arch.notes.addNote')}
             </button>
           </div>
         </div>
@@ -1171,9 +1169,9 @@ export function ArchitecturePage() {
                     aria-label="Update annotation tone"
                     data-testid="arch-annotation-item-tone"
                   >
-                    <option value="note">Note</option>
-                    <option value="info">Info</option>
-                    <option value="warning">Warning</option>
+                    <option value="note">{t('arch.notes.toneNote')}</option>
+                    <option value="info">{t('arch.notes.toneInfo')}</option>
+                    <option value="warning">{t('arch.notes.toneWarning')}</option>
                   </select>
                   <button
                     type="button"
@@ -1181,7 +1179,7 @@ export function ArchitecturePage() {
                     onClick={() => deleteAnnotation(annotation.id)}
                     data-testid="arch-annotation-delete-btn"
                   >
-                    Delete
+                    {t('arch.notes.delete')}
                   </button>
                 </div>
                 <textarea
@@ -1194,15 +1192,15 @@ export function ArchitecturePage() {
             ))}
           </div>
         ) : (
-          <p className="hint">No presentation notes yet. Notes are saved with the same workspace/subscription/RG override scope.</p>
+          <p className="hint">{t('arch.notes.noNotes')}</p>
         )}
       </section>
 
       <section className="panel-card architecture-zone-board">
         <div className="section-heading architecture-zone-heading">
           <div>
-            <h2>Zone Board</h2>
-            <span className="mini-status">Scale to fit first • scroll when the board still needs more room</span>
+            <h2>{t('arch.zones.heading')}</h2>
+            <span className="mini-status">{t('arch.zones.scaleHint')}</span>
           </div>
           <div className="button-row architecture-scale-controls" aria-label="Architecture board zoom controls">
             {ARCHITECTURE_BOARD_SCALE_OPTIONS.map((scale) => (
@@ -1271,7 +1269,7 @@ export function ArchitecturePage() {
                             aria-label={`${selectedNode?.id === node.id ? 'Currently selected' : 'Select'} ${node.shortLabel} for detail panel`}
                             data-testid="arch-node-select-btn"
                           >
-                            {selectedNode?.id === node.id ? 'Selected' : 'Select'}
+                            {selectedNode?.id === node.id ? t('arch.zones.selected') : t('arch.zones.select')}
                           </button>
                           <button
                             type="button"
@@ -1281,7 +1279,7 @@ export function ArchitecturePage() {
                             aria-label={`Move ${node.shortLabel} earlier in ${meta.label}`}
                             data-testid="arch-node-move-earlier-btn"
                           >
-                            Earlier
+                            {t('arch.zones.earlier')}
                           </button>
                           <button
                             type="button"
@@ -1291,7 +1289,7 @@ export function ArchitecturePage() {
                             aria-label={`Move ${node.shortLabel} later in ${meta.label}`}
                             data-testid="arch-node-move-later-btn"
                           >
-                            Later
+                            {t('arch.zones.later')}
                           </button>
                           <button
                             type="button"
@@ -1300,13 +1298,13 @@ export function ArchitecturePage() {
                             aria-label={`Hide ${node.shortLabel} from architecture view`}
                             data-testid="arch-node-hide-btn"
                           >
-                            Hide
+                            {t('arch.zones.hide')}
                           </button>
                         </div>
                       </article>
                     ))
                   ) : (
-                    <div className="architecture-stage-empty">No mapped cards</div>
+                    <div className="architecture-stage-empty">{t('arch.zones.noMappedCards')}</div>
                   )}
                 </div>
               </section>
@@ -1320,8 +1318,8 @@ export function ArchitecturePage() {
       <section className="panel-grid architecture-bottom-grid">
         <article className="panel-card">
           <div className="section-heading">
-            <h2>Flow Summary</h2>
-            <span className="mini-status">Aggregated simplified edges</span>
+            <h2>{t('arch.flow.heading')}</h2>
+            <span className="mini-status">{t('arch.flow.aggregatedEdges')}</span>
           </div>
           <div className="interactive-list compact-list">
             {visibleEdges.length ? (
@@ -1353,15 +1351,15 @@ export function ArchitecturePage() {
                 })}
               </ul>
             ) : (
-              <p className="hint">{isInitialTopologyLoad ? 'Loading…' : 'No visible simplified edges after current presentation overrides.'}</p>
+              <p className="hint">{isInitialTopologyLoad ? t('arch.detail.loading') : t('arch.flow.noEdges')}</p>
             )}
           </div>
         </article>
 
         <article className="panel-card">
           <div className="section-heading">
-            <h2>Hidden Cards</h2>
-            <span className="mini-status">Persistent override delta</span>
+            <h2>{t('arch.hidden.heading')}</h2>
+            <span className="mini-status">{t('arch.hidden.persistentDelta')}</span>
           </div>
           {hiddenNodes.length ? (
             <div className="interactive-list compact-list">
@@ -1381,7 +1379,7 @@ export function ArchitecturePage() {
                         className="toolbar-button search-inline-button"
                         onClick={() => restoreArchitectureNode(node)}
                       >
-                        Restore
+                        {t('arch.hidden.restore')}
                       </button>
                     </div>
                   </li>
@@ -1389,7 +1387,7 @@ export function ArchitecturePage() {
               </ul>
             </div>
           ) : (
-            <p className="hint">No hidden cards yet.</p>
+            <p className="hint">{t('arch.hidden.noHiddenCards')}</p>
           )}
         </article>
       </section>

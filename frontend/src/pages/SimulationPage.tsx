@@ -12,6 +12,7 @@ import {
   type SimulationReportResponse,
   type SimulationTemplateResponse,
 } from '../lib/api'
+import { useI18n } from '../i18n/context'
 
 const DEFAULT_WORKSPACE_ID = import.meta.env.VITE_DEFAULT_WORKSPACE_ID ?? 'local-demo'
 
@@ -38,6 +39,7 @@ function downloadTextFile(filename: string, content: string, type = 'text/plain;
 }
 
 export function SimulationPage() {
+  const { t } = useI18n()
   const [workspaceId, setWorkspaceId] = useState<string>(DEFAULT_WORKSPACE_ID)
   const [workloadName, setWorkloadName] = useState('new-app')
   const [environment, setEnvironment] = useState('dev')
@@ -116,7 +118,7 @@ export function SimulationPage() {
 
   async function handleCreateSimulation() {
     if (!description.trim()) {
-      setError('Description is required')
+      setError(t('sim.form.descriptionRequired'))
       return
     }
     setLoading(true)
@@ -156,27 +158,26 @@ export function SimulationPage() {
   return (
     <main className="page-shell simulation-page-shell">
       <section className="panel-card hero-card">
-        <p className="eyebrow">AzVision • Simulation</p>
-        <h2>Rule-based resource planning first pass</h2>
+        <p className="eyebrow">{t('sim.hero.eyebrow')}</p>
+        <h2>{t('sim.hero.title')}</h2>
         <p className="subtext">
-          Describe a project and get a first-pass Azure resource plan. This is not a deployment template or price
-          estimate yet; it is a structured starting point for architecture review.
+          {t('sim.hero.subtext')}
         </p>
         <div className="simulation-form-grid">
           <label className="field-label">
-            Workspace
+            {t('sim.form.workspace')}
             <input className="search-input" value={workspaceId} onChange={(event) => setWorkspaceId(event.target.value)} />
           </label>
           <label className="field-label">
-            Workload
+            {t('sim.form.workload')}
             <input className="search-input" value={workloadName} onChange={(event) => setWorkloadName(event.target.value)} />
           </label>
           <label className="field-label">
-            Environment
+            {t('sim.form.environment')}
             <input className="search-input" value={environment} onChange={(event) => setEnvironment(event.target.value)} />
           </label>
           <label className="field-label">
-            Fit resource limit
+            {t('sim.form.fitLimit')}
             <input
               className="search-input"
               type="number"
@@ -188,7 +189,7 @@ export function SimulationPage() {
           </label>
         </div>
         <label className="field-label simulation-description-field">
-          Project description
+          {t('sim.form.description')}
           <textarea
             className="search-input simulation-description-input"
             value={description}
@@ -198,7 +199,7 @@ export function SimulationPage() {
         </label>
         <div className="control-row">
           <button type="button" className="toolbar-button primary" onClick={handleCreateSimulation} disabled={loading}>
-            {loading ? 'Generating…' : 'Generate resource plan'}
+            {loading ? t('sim.form.generating') : t('sim.form.generate')}
           </button>
           {error ? <span className="error-text">{error}</span> : null}
         </div>
@@ -206,7 +207,7 @@ export function SimulationPage() {
 
       <section className="panel-grid simulation-panel-grid">
         <article className="panel-card">
-          <h3>Generated plans</h3>
+          <h3>{t('sim.list.heading')}</h3>
           <div className="simulation-list">
             {simulations.map((item) => (
               <button
@@ -219,12 +220,12 @@ export function SimulationPage() {
                 <span>{item.environment} • {item.recommended_resources.length} resources</span>
               </button>
             ))}
-            {!simulations.length ? <p className="hint">No generated simulations in this process yet.</p> : null}
+            {!simulations.length ? <p className="hint">{t('sim.list.empty')}</p> : null}
           </div>
         </article>
 
         <article className="panel-card">
-          <h3>Recommended resources</h3>
+          <h3>{t('sim.detail.heading')}</h3>
           {selectedSimulation ? (
             <>
               <p className="hint">
@@ -244,9 +245,9 @@ export function SimulationPage() {
               </div>
               {fit ? (
                 <div className="cost-note-box simulation-fit-box">
-                  <h4>Current inventory fit</h4>
+                  <h4>{t('sim.fit.heading')}</h4>
                   <p className="hint">
-                    Inventory resources: {fit.inventory_resource_count} • covered: {fit.covered_count} • missing required: {fit.missing_required_count}
+                    {t('sim.fit.inventoryResources')} {fit.inventory_resource_count} • {t('sim.fit.covered')} {fit.covered_count} • {t('sim.fit.missingRequired')} {fit.missing_required_count}
                   </p>
                   <div className="simulation-fit-list">
                     {fit.items.map((item) => (
@@ -266,43 +267,43 @@ export function SimulationPage() {
               ) : null}
               <div className="simulation-insight-grid">
                 <div className="cost-note-box">
-                  <h4>Architecture notes</h4>
+                  <h4>{t('sim.notes.architecture')}</h4>
                   {selectedSimulation.architecture_notes.map((note) => (
                     <p key={note}>{note}</p>
                   ))}
                 </div>
                 <div className="cost-note-box">
-                  <h4>Cost considerations</h4>
+                  <h4>{t('sim.notes.cost')}</h4>
                   {selectedSimulation.cost_considerations.map((note) => (
                     <p key={note}>{note}</p>
                   ))}
                 </div>
                 <div className="cost-note-box">
-                  <h4>Security considerations</h4>
+                  <h4>{t('sim.notes.security')}</h4>
                   {selectedSimulation.security_considerations.map((note) => (
                     <p key={note}>{note}</p>
                   ))}
                 </div>
                 <div className="cost-note-box">
-                  <h4>Next actions</h4>
+                  <h4>{t('sim.notes.nextActions')}</h4>
                   {selectedSimulation.next_actions.map((action) => (
                     <p key={action}>{action}</p>
                   ))}
                 </div>
               </div>
               <div className="cost-note-box">
-                <h4>Assumptions</h4>
+                <h4>{t('sim.notes.assumptions')}</h4>
                 {selectedSimulation.assumptions.map((assumption) => (
                   <p key={assumption}>{assumption}</p>
                 ))}
               </div>
               <div className="cost-note-box simulation-template-box">
                 <div className="cost-recommendation-heading">
-                  <h4>Markdown report</h4>
+                  <h4>{t('sim.report.heading')}</h4>
                   <button type="button" className="toolbar-button search-inline-button" onClick={downloadSimulationReport} disabled={!report}>
-                    Download
+                    {t('sim.report.download')}
                   </button>
-                  <span className="mini-chip">{report?.report_type ?? 'not loaded'}</span>
+                  <span className="mini-chip">{report?.report_type ?? t('sim.report.notLoaded')}</span>
                 </div>
                 {report ? (
                   <>
@@ -312,16 +313,16 @@ export function SimulationPage() {
                     ))}
                   </>
                 ) : (
-                  <p className="hint">Report is not available for this simulation yet.</p>
+                  <p className="hint">{t('sim.report.unavailable')}</p>
                 )}
               </div>
               <div className="cost-note-box simulation-template-box">
                 <div className="cost-recommendation-heading">
-                  <h4>IaC outline</h4>
+                  <h4>{t('sim.iac.heading')}</h4>
                   <button type="button" className="toolbar-button search-inline-button" onClick={downloadSimulationTemplate} disabled={!template}>
-                    Download
+                    {t('sim.report.download')}
                   </button>
-                  <span className="mini-chip">{templateLoading ? 'loading' : template?.format ?? 'not loaded'}</span>
+                  <span className="mini-chip">{templateLoading ? t('sim.iac.loading') : template?.format ?? t('sim.report.notLoaded')}</span>
                 </div>
                 {template ? (
                   <>
@@ -332,12 +333,12 @@ export function SimulationPage() {
                     ))}
                   </>
                 ) : (
-                  <p className="hint">Template outline is not available for this simulation yet.</p>
+                  <p className="hint">{t('sim.iac.unavailable')}</p>
                 )}
               </div>
             </>
           ) : (
-            <p className="hint">Generate a plan to see recommendations.</p>
+            <p className="hint">{t('sim.detail.empty')}</p>
           )}
         </article>
       </section>

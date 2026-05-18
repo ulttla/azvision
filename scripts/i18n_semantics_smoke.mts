@@ -24,6 +24,8 @@ assert.deepEqual(
   'English and Korean dictionaries should have symmetric key coverage',
 )
 assert.ok(Object.keys(dict.en).length >= 150, 'i18n dictionary should cover the C1 shell/cost/copilot/topology/error-boundary slice')
+assert.ok(Object.keys(dict.en).filter(k => k.startsWith('arch.')).length >= 40, 'i18n dictionary should include C1 architecture.* coverage')
+assert.ok(Object.keys(dict.en).filter(k => k.startsWith('sim.')).length >= 20, 'i18n dictionary should include C1 simulation.* coverage')
 assert.equal(dict.en['lang.toggle'], 'KO', 'English UI should offer the Korean toggle label')
 assert.equal(dict.ko['lang.toggle'], 'EN', 'Korean UI should offer the English toggle label')
 assert.equal(dict.ko['common.yes'], '예', 'Korean common yes token should be present')
