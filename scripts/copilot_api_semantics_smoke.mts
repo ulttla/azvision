@@ -49,7 +49,7 @@ assert.match(costPageCode, /copilotProvider.*useState|useState.*copilotProvider/
 assert.match(costPageCode, /Ollama \/ Ollama Cloud/, 'CostPage should expose Ollama provider selector copy')
 assert.match(costPageCode, /OpenRouter/, 'CostPage should expose OpenRouter provider selector copy')
 assert.match(costPageCode, /Rule-based fallback/, 'CostPage should expose rule-based fallback selector copy')
-assert.match(costPageCode, /read-only/, 'CostPage should show read-only badge/copy')
+assert.match(costPageCode, /copilot\.readOnly/, 'CostPage should show read-only badge/copy via i18n key')
 
 // ============================================================
 // Section 4: API contract doc — chat endpoint
@@ -89,7 +89,7 @@ assert.match(copilotRoutesCode, /health_smoke/, 'copilot route should accept hea
 assert.match(copilotRoutesCode, /provider_health/, 'copilot route should attach provider_health when health_smoke=true')
 assert.match(costPageCode, /parseCopilotAnswerSections/, 'CostPage should have section parser for copilot answers')
 assert.match(costPageCode, /cost-copilot-section-heading/, 'CostPage should render section headings')
-assert.match(costPageCode, /Suggested next checks/, 'CostPage should label suggestions as Suggested next checks')
+assert.match(costPageCode, /copilot\.suggestedChecks/, 'CostPage should label suggestions via i18n key')
 assert.match(costPageCode, /cost-copilot-section/, 'CostPage should split answer into cost-copilot-section blocks')
 
 console.log('✅ copilot_api_semantics_smoke.mts: section-formatting + provider-health smoke passed')

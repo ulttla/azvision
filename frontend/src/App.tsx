@@ -1,6 +1,7 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { useI18n } from './i18n/context'
 import { getAuthConfigCheck, getBackendHealth, getTopologyFreshness, getWorkspaces } from './lib/api'
 
 const TopologyPage = lazy(async () => {
@@ -28,17 +29,46 @@ type BackendConnectivityStatus = 'checking' | 'online' | 'offline'
 type AuthConnectivityStatus = 'checking' | 'ready' | 'not-configured'
 type TopologyFreshnessStatus = 'checking' | 'fresh' | 'stale' | 'empty'
 
-function LoadingShell() {
+function LoadingShell({ loadingLabel }: { loadingLabel: string }) {
   return (
     <main className="page-shell">
       <section className="panel-card">
-        <p>Loading AzVision workspace...</p>
+        <p>{loadingLabel}</p>
       </section>
     </main>
   )
 }
 
 export default function App() {
+  const { t, locale, setLocale } = useI18n()
+  const toggleLocale = () => setLocale(locale === 'en' ? 'ko' : 'en')
+
+  const backendLabels = useMemo(
+    () => ({
+      online: t('status.online'),
+      checking: t('status.checking'),
+      offline: t('status.offline'),
+    }),
+    [t],
+  )
+  const authLabels = useMemo(
+    () => ({
+      ready: t('status.ready'),
+      checking: t('status.checking'),
+      'not-configured': t('status.notConfigured'),
+    }),
+    [t],
+  )
+  const freshnessLabels = useMemo(
+    () => ({
+      fresh: t('status.fresh'),
+      stale: t('status.stale'),
+      checking: t('status.checking'),
+      empty: t('status.noData'),
+    }),
+    [t],
+  )
+
   const [viewMode, setViewMode] = useState<ViewMode>('topology')
   const [backendConnectivity, setBackendConnectivity] = useState<BackendConnectivityStatus>('checking')
   const [authConnectivity, setAuthConnectivity] = useState<AuthConnectivityStatus>('checking')
@@ -56,7 +86,7 @@ export default function App() {
     setBackendConnectivity('checking')
     setAuthConnectivity('checking')
     setTopologyFreshness('checking')
-    setConnectivityRefreshMessage('Refreshing...')
+    setConnectivityRefreshMessage(t('status.refreshing'))
 
     try {
       const [backendResult, authResult, freshnessResult] = await Promise.allSettled([
@@ -95,7 +125,7 @@ export default function App() {
         setTopologyNodeCount(null)
       }
 
-      setConnectivityRefreshMessage('Status refreshed')
+      setConnectivityRefreshMessage(t('status.refreshed'))
       window.setTimeout(() => setConnectivityRefreshMessage(''), 2500)
     } finally {
       setConnectivityRefreshing(false)
@@ -177,10 +207,10 @@ export default function App() {
       <header className="workspace-header-shell">
         <div className="workspace-header-inner">
           <div>
-            <p className="eyebrow workspace-shell-eyebrow">AzVision Workspace</p>
-            <h1 className="workspace-shell-title">Azure topology and architecture workspace</h1>
+            <p className="eyebrow workspace-shell-eyebrow">{t('shell.eyebrow')}</p>
+            <h1 className="workspace-shell-title">{t('shell.title')}</h1>
             <p className="subtext workspace-shell-subtext">
-              Switch between topology exploration, presentation architecture, cost triage, and simulation planning.
+              {t('shell.subtext')}
             </p>
             <div className="workspace-connectivity-row" aria-live="polite" data-testid="app-connectivity-row">
               <span className="workspace-connectivity-group">
@@ -189,7 +219,7 @@ export default function App() {
                   aria-hidden="true"
                 />
                 <span className="workspace-connectivity-copy">
-                  Backend {backendConnectivity === 'online' ? 'online' : backendConnectivity === 'checking' ? 'checking' : 'offline'}
+                  {t('status.backend')} {backendLabels[backendConnectivity] ?? backendConnectivity}
                 </span>
               </span>
               <span className="workspace-connectivity-sep" aria-hidden="true">•</span>
@@ -199,7 +229,7 @@ export default function App() {
                   aria-hidden="true"
                 />
                 <span className="workspace-connectivity-copy">
-                  Auth {authConnectivity === 'ready' ? 'ready' : authConnectivity === 'checking' ? 'checking' : 'not configured'}
+                  {t('status.auth')} {authLabels[authConnectivity] ?? authConnectivity}
                 </span>
               </span>
               <span className="workspace-connectivity-sep" aria-hidden="true">•</span>
@@ -209,7 +239,7 @@ export default function App() {
                   aria-hidden="true"
                 />
                 <span className="workspace-connectivity-copy">
-                  Topology {topologyFreshness === 'fresh' ? 'fresh' : topologyFreshness === 'stale' ? 'stale' : topologyFreshness === 'checking' ? 'checking' : 'no data'}{topologyNodeCount !== null ? ` (${topologyNodeCount} nodes)` : ''}
+                  {t('status.topology')} {freshnessLabels[topologyFreshness] ?? topologyFreshness}{topologyNodeCount !== null ? ` (${topologyNodeCount} ${t('common.nodes')})` : ''}
                 </span>
               </span>
               <button
@@ -220,7 +250,7 @@ export default function App() {
                 aria-busy={connectivityRefreshing}
                 data-testid="app-connectivity-refresh"
               >
-                {connectivityRefreshing ? 'Refreshing...' : 'Refresh status'}
+                {connectivityRefreshing ? t('status.refreshing') : t('status.refresh')}
               </button>
               {connectivityRefreshMessage ? (
                 <span className="workspace-connectivity-refresh-message" role="status">
@@ -230,7 +260,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="view-toggle" role="tablist" aria-label="AzVision view mode">
+          <div className="view-toggle" role="tablist" aria-label={t('aria.viewMode')}>
             <button
               type="button"
               className={`view-toggle-button ${viewMode === 'topology' ? 'active' : ''}`}
@@ -238,7 +268,7 @@ export default function App() {
               role="tab"
               aria-selected={viewMode === 'topology'}
             >
-              Topology View
+              {t('view.topology')}
             </button>
             <button
               type="button"
@@ -247,7 +277,7 @@ export default function App() {
               role="tab"
               aria-selected={viewMode === 'architecture'}
             >
-              Architecture View
+              {t('view.architecture')}
             </button>
             <button
               type="button"
@@ -256,7 +286,7 @@ export default function App() {
               role="tab"
               aria-selected={viewMode === 'cost'}
             >
-              Cost Insights
+              {t('view.cost')}
             </button>
             <button
               type="button"
@@ -265,14 +295,30 @@ export default function App() {
               role="tab"
               aria-selected={viewMode === 'simulation'}
             >
-              Simulation
+              {t('view.simulation')}
             </button>
           </div>
+
+          <button
+            type="button"
+            className="lang-toggle"
+            onClick={toggleLocale}
+            aria-label={t('aria.toggleLanguage')}
+            data-testid="app-lang-toggle"
+          >
+            {t('lang.toggle')}
+          </button>
         </div>
       </header>
 
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingShell />}>
+      <ErrorBoundary labels={{
+        eyebrow: t('error.eyebrow'),
+        title: t('error.title'),
+        subtext: t('error.subtext'),
+        reload: t('error.reload'),
+        devDetails: t('error.devDetails'),
+      }}>
+        <Suspense fallback={<LoadingShell loadingLabel={t('shell.loading')} />}>
           {viewMode === 'topology' ? (
             <TopologyPage />
           ) : viewMode === 'architecture' ? (

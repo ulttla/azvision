@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { useI18n } from '../i18n/context'
 import {
   ApiError,
   getCostRecommendations,
@@ -105,6 +106,7 @@ function severityRank(value: string) {
 }
 
 export function CostPage() {
+  const { t } = useI18n()
   const [workspaceId, setWorkspaceId] = useState<string>(DEFAULT_WORKSPACE_ID)
   const [summary, setSummary] = useState<CostSummary | null>(null)
   const [resources, setResources] = useState<CostResourceRow[]>([])
@@ -244,11 +246,10 @@ export function CostPage() {
   return (
     <main className="page-shell cost-page-shell">
       <section className="panel-card hero-card">
-        <p className="eyebrow">AzVision • Cost Intelligence</p>
-        <h2>Rule-based cost analyst first pass</h2>
+        <p className="eyebrow">{t('cost.eyebrow')}</p>
+        <h2>{t('cost.title')}</h2>
         <p className="subtext">
-          This view turns the current Azure inventory into cost triage prompts. It does not claim actual spend yet;
-          dollar mapping comes after Azure Cost Management ingestion.
+          {t('cost.subtext')}
         </p>
         <div className="control-row cost-control-row">
           <label className="field-label">
@@ -301,54 +302,54 @@ export function CostPage() {
             />
           </label>
           <button type="button" className="toolbar-button primary" onClick={() => setRefreshKey((value) => value + 1)}>
-            {loading ? 'Refreshing…' : 'Refresh cost insights'}
+            {loading ? t('cost.refreshingInsights') : t('cost.refreshInsights')}
           </button>
           <button type="button" className="toolbar-button" onClick={downloadCostReport} disabled={reportLoading}>
-            {reportLoading ? 'Preparing report…' : 'Download markdown report'}
+            {reportLoading ? t('cost.preparingReport') : t('cost.downloadReport')}
           </button>
         </div>
-        {mode ? <p className="hint">Inventory mode: {mode}</p> : null}
-        {summary ? <p className="hint">Cost ingestion: {summary.cost_ingestion_provider} • configured: {summary.cost_ingestion_configured ? 'yes' : 'no'}</p> : null}
+        {mode ? <p className="hint">{t('cost.inventoryMode')}: {mode}</p> : null}
+        {summary ? <p className="hint">{t('cost.costIngestion')}: {summary.cost_ingestion_provider} • {t('cost.configured')}: {summary.cost_ingestion_configured ? t('common.yes') : t('common.no')}</p> : null}
         {warning ? <p className="warning-text">{warning}</p> : null}
         {error ? <p className="error-text">{error}</p> : null}
       </section>
 
       <section className="summary-grid">
         <article className="metric-card">
-          <span className="metric-label">Cost status</span>
+          <span className="metric-label">{t('cost.label.costStatus')}</span>
           <strong>{formatCostStatus(summary)}</strong>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Resources analyzed</span>
+          <span className="metric-label">{t('cost.label.resourcesAnalyzed')}</span>
           <strong>{summary?.analyzed_resource_count ?? '-'}</strong>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Recommendations</span>
+          <span className="metric-label">{t('cost.label.recommendations')}</span>
           <strong>{summary?.recommendation_count ?? '-'}</strong>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Severity mix</span>
+          <span className="metric-label">{t('cost.label.severityMix')}</span>
           <strong>{summary ? formatCountMap(summary.severity_counts) : '-'}</strong>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Cost drivers</span>
+          <span className="metric-label">{t('cost.label.costDrivers')}</span>
           <strong>{summary ? formatCountMap(summary.cost_driver_counts) : '-'}</strong>
         </article>
         <article className="metric-card">
-          <span className="metric-label">Tag gaps</span>
+          <span className="metric-label">{t('cost.label.tagGaps')}</span>
           <strong>{summary?.governance_gap_count ?? '-'}</strong>
         </article>
       </section>
 
       <section className="panel-card cost-copilot-card">
         <div className="cost-recommendation-heading">
-          <h3>Read-only LLM copilot</h3>
-          <span className="mini-chip">read-only</span>
+          <h3>{t('copilot.heading')}</h3>
+          <span className="mini-chip">{t('copilot.readOnly')}</span>
         </div>
-        <p className="hint">Choose Ollama, OpenRouter, or the local rule-based fallback. Provider keys stay backend-only; this panel sends summarized current-view context.</p>
+        <p className="hint">{t('copilot.description')}</p>
         <div className="control-row">
           <label className="field-label">
-            Provider
+            {t('copilot.provider')}
             <select
               className="search-input"
               value={copilotProvider}
@@ -363,14 +364,14 @@ export function CostPage() {
                   ]
               ).map((provider) => (
                 <option key={provider.id} value={provider.id}>
-                  {provider.label}{provider.configured ? '' : ' — not configured'}
+                  {provider.label}{provider.configured ? '' : ` — ${t('copilot.notConfigured')}`}
                 </option>
               ))}
             </select>
           </label>
-          <span className="mini-chip">Attach current view context</span>
+          <span className="mini-chip">{t('copilot.attachContext')}</span>
           {selectedProviderStatus && !selectedProviderStatus.configured ? (
-            <span className="mini-chip severity-medium">{selectedProviderStatus.label} not configured; rule-based fallback will answer</span>
+            <span className="mini-chip severity-medium">{selectedProviderStatus.label} {t('copilot.fallbackNote')}</span>
           ) : null}
         </div>
         <div className="cost-copilot-input-row">
@@ -387,16 +388,16 @@ export function CostPage() {
             rows={3}
           />
           <button type="button" className="toolbar-button primary" onClick={askCopilot} disabled={copilotLoading}>
-            {copilotLoading ? 'Thinking…' : 'Ask'}
+            {copilotLoading ? t('copilot.thinking') : t('copilot.ask')}
           </button>
         </div>
         {copilotResponse ? (
           <div className="cost-copilot-answer">
             <div className="cost-recommendation-heading">
-              <strong>{copilotResponse.copilot_mode} answer</strong>
+              <strong>{copilotResponse.copilot_mode} {t('copilot.answer')}</strong>
               <span className="mini-chip">
-                Provider: {copilotResponse.provider ?? copilotResponse.copilot_mode} • LLM: {copilotResponse.llm_status}
-                {copilotResponse.model ? ` • Model: ${copilotResponse.model}` : ''} • read-only: {copilotResponse.read_only === false ? 'no' : 'yes'}
+                {t('copilot.providerLabel')}: {copilotResponse.provider ?? copilotResponse.copilot_mode} • {t('copilot.llmStatus')}: {copilotResponse.llm_status}
+                {copilotResponse.model ? ` • ${t('copilot.model')}: ${copilotResponse.model}` : ''} • {t('copilot.readOnly')}: {copilotResponse.read_only === false ? t('common.no') : t('common.yes')}
               </span>
             </div>
             {(() => {
@@ -414,7 +415,7 @@ export function CostPage() {
                   ))}
                   {hasSuggestions ? (
                     <div className="cost-copilot-section">
-                      <strong className="cost-copilot-section-heading">Suggested next checks</strong>
+                      <strong className="cost-copilot-section-heading">{t('copilot.suggestedChecks')}</strong>
                       <ul>
                         {copilotResponse.suggestions.map((suggestion) => (
                           <li key={suggestion}>{suggestion}</li>
@@ -431,7 +432,7 @@ export function CostPage() {
 
       <section className="panel-grid cost-panel-grid">
         <article className="panel-card">
-          <h3>Top recommendations</h3>
+          <h3>{t('cost.topRecommendations')}</h3>
           <div className="cost-recommendation-list">
             {sortedRecommendations.slice(0, 12).map((item) => (
               <div key={`${item.rule_id}-${item.resource_id}`} className="cost-recommendation-card">
@@ -441,26 +442,26 @@ export function CostPage() {
                 </div>
                 <p>{item.recommendation}</p>
                 <p className="hint">
-                  {item.resource_name} • {item.resource_type} • confidence {Math.round(item.confidence * 100)}%
+                  {item.resource_name} • {item.resource_type} • {t('cost.confidence')} {Math.round(item.confidence * 100)}%
                 </p>
-                {item.evidence.length ? <p className="hint">Evidence: {item.evidence.join(' • ')}</p> : null}
+                {item.evidence.length ? <p className="hint">{t('cost.evidence')}: {item.evidence.join(' • ')}</p> : null}
               </div>
             ))}
-            {!sortedRecommendations.length && !loading ? <p className="hint">No recommendations for this scope.</p> : null}
+            {!sortedRecommendations.length && !loading ? <p className="hint">{t('cost.noRecommendations')}</p> : null}
           </div>
         </article>
 
         <article className="panel-card">
-          <h3>Resources with most prompts</h3>
+          <h3>{t('cost.resourcesMostPrompts')}</h3>
           <div className="cost-resource-list">
             {topResources.map((resource) => (
               <div key={resource.resource_id} className="cost-resource-row">
                 <div>
                   <strong>{resource.resource_name}</strong>
                   <p className="hint">{resource.resource_type}</p>
-                  {resource.cost_driver_labels.length ? <p className="hint">Drivers: {resource.cost_driver_labels.join(' • ')}</p> : null}
+                  {resource.cost_driver_labels.length ? <p className="hint">{t('cost.drivers')}: {resource.cost_driver_labels.join(' • ')}</p> : null}
                 </div>
-                <span className="mini-chip">{resource.recommendation_count} prompts</span>
+                <span className="mini-chip">{resource.recommendation_count} {t('cost.prompts')}</span>
               </div>
             ))}
           </div>

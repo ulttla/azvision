@@ -24,10 +24,10 @@ assert.match(boundary, /export class ErrorBoundary extends Component/, 'ErrorBou
 assert.match(boundary, /getDerivedStateFromError/, 'ErrorBoundary derives fallback state from render errors')
 assert.match(boundary, /componentDidCatch/, 'ErrorBoundary records caught render errors')
 assert.match(boundary, /data-testid="error-boundary-fallback"/, 'fallback has stable test id')
-assert.match(boundary, /Reload page/, 'fallback exposes a reload recovery action')
+assert.match(boundary, /labels\.reload/, 'fallback exposes a localized reload recovery action')
 
 assert.match(app, /import \{ ErrorBoundary \} from '\.\/components\/ErrorBoundary'/, 'App imports ErrorBoundary')
-assert.match(app, /<ErrorBoundary>\s*<Suspense/s, 'ErrorBoundary wraps Suspense and lazy pages')
+assert.match(app, /<ErrorBoundary labels=\{\{[\s\S]*?\}>\s*<Suspense/s, 'ErrorBoundary wraps Suspense and lazy pages with localized labels')
 assert.match(app, /<\/Suspense>\s*<\/ErrorBoundary>/s, 'ErrorBoundary closes after Suspense')
 
 const smokeCommand = packageJson.scripts?.['smoke:semantics'] ?? ''

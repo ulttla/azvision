@@ -1,7 +1,24 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
+export type ErrorBoundaryLabels = {
+  eyebrow: string
+  title: string
+  subtext: string
+  reload: string
+  devDetails: string
+}
+
 type ErrorBoundaryProps = {
   children: ReactNode
+  labels?: ErrorBoundaryLabels
+}
+
+const DEFAULT_LABELS: ErrorBoundaryLabels = {
+  eyebrow: 'AzVision safety fallback',
+  title: 'Something went wrong',
+  subtext: 'The current view hit a render error. Reload the page to recover the local review session.',
+  reload: 'Reload page',
+  devDetails: 'Developer details',
 }
 
 type ErrorBoundaryState = {
@@ -40,20 +57,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return this.props.children
     }
 
+    const labels = this.props.labels ?? DEFAULT_LABELS
+
     return (
       <main className="page-shell" data-testid="error-boundary-fallback">
         <section className="panel-card">
-          <p className="eyebrow">AzVision safety fallback</p>
-          <h1>Something went wrong</h1>
-          <p className="subtext">
-            The current view hit a render error. Reload the page to recover the local review session.
-          </p>
+          <p className="eyebrow">{labels.eyebrow}</p>
+          <h1>{labels.title}</h1>
+          <p className="subtext">{labels.subtext}</p>
           <button type="button" className="primary-button" onClick={this.handleReload}>
-            Reload page
+            {labels.reload}
           </button>
           {import.meta.env.DEV && this.state.errorMessage ? (
             <details className="dev-error-details">
-              <summary>Developer details</summary>
+              <summary>{labels.devDetails}</summary>
               <pre>{this.state.errorStack || this.state.errorMessage}</pre>
             </details>
           ) : null}
