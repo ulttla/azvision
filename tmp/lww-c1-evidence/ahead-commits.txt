@@ -1,0 +1,16 @@
+2028407 docs(copilot): record locale-aware i18n validation evidence
+2b6a6e6 feat(copilot): pass current locale to chat context
+06ee20a fix(i18n): localize architecture and simulation fallback strings
+274d8d3 feat(i18n): extend lightweight dictionary to ArchitecturePage and SimulationPage shell labels, buttons, and empty states
+12dbfa0 fix(i18n): cover topology drilldown and form labels
+5b78e1e feat(i18n): extend lightweight dictionary to TopologyPage headings, controls, and detail labels
+5e69613 feat(i18n): add Korean language toggle foundation
+13dee0e test(copilot): add live provider smoke script
+24759be docs(copilot): add provider setup smoke notes
+09983af test(copilot): align provider health smoke guard
+fe98730 feat(copilot): surface provider status and smoke readiness
+b304063 docs(copilot): document provider MVP settings
+9b36558 fix(copilot): fallback on llm provider errors
+d1eb911 test(copilot): guard provider-aware contract
+52c7ce2 feat(copilot): add read-only llm provider MVP
+1987cfb docs(copilot): plan read-only llm providers
