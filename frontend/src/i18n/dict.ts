@@ -203,6 +203,11 @@ export const dict = {
     'topology.manual.tgtNode': 'Target node',
     'topology.manual.createNodeBtn': 'Create manual node',
     'topology.manual.createEdgeBtn': 'Create manual edge',
+    'topology.manual.save': 'Save',
+    'topology.manual.cancel': 'Cancel',
+    'topology.manual.focus': 'Focus',
+    'topology.manual.edit': 'Edit',
+    'topology.manual.delete': 'Delete',
 
     // ── Topology Page canvas ─────────────────────────────
     'topology.canvas.heading': 'Cytoscape Canvas',
@@ -637,6 +642,11 @@ export const dict = {
     'topology.manual.tgtNode': '대상 노드',
     'topology.manual.createNodeBtn': '수동 노드 생성',
     'topology.manual.createEdgeBtn': '수동 엣지 생성',
+    'topology.manual.save': '저장',
+    'topology.manual.cancel': '취소',
+    'topology.manual.focus': '포커스',
+    'topology.manual.edit': '편집',
+    'topology.manual.delete': '삭제',
 
     // ── Topology Page canvas ─────────────────────────────
     'topology.canvas.heading': 'Cytoscape 캔버스',

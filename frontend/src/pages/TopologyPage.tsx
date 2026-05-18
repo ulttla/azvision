@@ -3414,8 +3414,8 @@ export function TopologyPage() {
                       <input type="text" className="search-input" value={editManualNodeEnvironment} onChange={(event) => setEditManualNodeEnvironment(event.target.value)} placeholder={t('topology.placeholder.environment')} />
                       <textarea className="search-input snapshot-note-input" value={editManualNodeNotes} onChange={(event) => setEditManualNodeNotes(event.target.value)} placeholder={t('topology.placeholder.notes')} rows={2} />
                       <div className="button-row preset-toolbar-row">
-                        <button type="button" className="toolbar-button primary" onClick={handleUpdateManualNode}>Save</button>
-                        <button type="button" className="toolbar-button" onClick={cancelEditManualNode}>Cancel</button>
+                        <button type="button" className="toolbar-button primary" onClick={handleUpdateManualNode}>{t('topology.manual.save')}</button>
+                        <button type="button" className="toolbar-button" onClick={cancelEditManualNode}>{t('topology.manual.cancel')}</button>
                       </div>
                     </div>
                   ) : (
@@ -3424,9 +3424,9 @@ export function TopologyPage() {
                       <p>{node.manual_type}{node.vendor ? ` • ${node.vendor}` : ''}{node.environment ? ` • ${node.environment}` : ''}</p>
                       {node.notes ? <p>{node.notes}</p> : null}
                       <div className="button-row detail-button-row">
-                        <button type="button" className="toolbar-button search-inline-button" onClick={() => selectNode(node.node_key || `manual:${node.manual_ref}`, { focus: true })}>Focus</button>
-                        <button type="button" className="toolbar-button search-inline-button" onClick={() => startEditManualNode(node)}>Edit</button>
-                        <button type="button" className="toolbar-button search-inline-button" onClick={() => handleDeleteManualNodeItem(node)}>Delete</button>
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => selectNode(node.node_key || `manual:${node.manual_ref}`, { focus: true })}>{t('topology.manual.focus')}</button>
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => startEditManualNode(node)}>{t('topology.manual.edit')}</button>
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => handleDeleteManualNodeItem(node)}>{t('topology.manual.delete')}</button>
                       </div>
                     </>
                   )}
@@ -3465,8 +3465,8 @@ export function TopologyPage() {
                       </select>
                       <textarea className="search-input snapshot-note-input" value={editManualEdgeNotes} onChange={(event) => setEditManualEdgeNotes(event.target.value)} placeholder={t('topology.placeholder.edgeNotes')} rows={2} />
                       <div className="button-row preset-toolbar-row">
-                        <button type="button" className="toolbar-button primary" onClick={handleUpdateManualEdge}>Save</button>
-                        <button type="button" className="toolbar-button" onClick={cancelEditManualEdge}>Cancel</button>
+                        <button type="button" className="toolbar-button primary" onClick={handleUpdateManualEdge}>{t('topology.manual.save')}</button>
+                        <button type="button" className="toolbar-button" onClick={cancelEditManualEdge}>{t('topology.manual.cancel')}</button>
                       </div>
                     </div>
                   ) : (
@@ -3476,8 +3476,8 @@ export function TopologyPage() {
                       <p>→ {edge.target_node_key}</p>
                       {edge.notes ? <p>{edge.notes}</p> : null}
                       <div className="button-row detail-button-row">
-                        <button type="button" className="toolbar-button search-inline-button" onClick={() => startEditManualEdge(edge)}>Edit</button>
-                        <button type="button" className="toolbar-button search-inline-button" onClick={() => handleDeleteManualEdgeItem(edge)}>Delete</button>
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => startEditManualEdge(edge)}>{t('topology.manual.edit')}</button>
+                        <button type="button" className="toolbar-button search-inline-button" onClick={() => handleDeleteManualEdgeItem(edge)}>{t('topology.manual.delete')}</button>
                       </div>
                     </>
                   )}
