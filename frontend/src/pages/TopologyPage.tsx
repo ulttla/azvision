@@ -1704,15 +1704,15 @@ export function TopologyPage() {
 
   async function handleCopyPresetLink() {
     if (typeof window === 'undefined' || !navigator.clipboard) {
-      setExportMessage('Preset link copy unsupported in this browser')
+      setExportMessage(t('topology.snapshot.presetCopyUnsupported'))
       return
     }
 
     try {
       await navigator.clipboard.writeText(window.location.href)
-      setExportMessage('Preset link copied')
+      setExportMessage(t('topology.snapshot.presetCopied'))
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : 'Preset link copy failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.snapshot.presetCopyFailed'))
     }
   }
 
@@ -1940,17 +1940,17 @@ export function TopologyPage() {
 
   async function handleCompareSavedSnapshot(snapshot: SavedTopologySnapshot) {
     if (snapshotStorageMode !== 'server') {
-      setExportMessage('Snapshot compare is available in server snapshot mode.')
+      setExportMessage(t('topology.snapshot.compareServerOnly'))
       return
     }
     if (!selectedWorkspaceId || !snapshotCompareBaseId) {
       setSnapshotCompareBaseId(snapshot.id)
       setSnapshotTopologyCompareResult(null)
-      setExportMessage(`Snapshot compare base set: ${snapshot.name}`)
+      setExportMessage(t('topology.snapshot.compareBaseSet').replace('{name}', snapshot.name))
       return
     }
     if (snapshotCompareBaseId === snapshot.id) {
-      setExportMessage('Choose a different target snapshot to compare.')
+      setExportMessage(t('topology.snapshot.compareDifferentTarget'))
       return
     }
 
@@ -1958,15 +1958,15 @@ export function TopologyPage() {
       const result = await compareTopologySnapshots(selectedWorkspaceId, snapshotCompareBaseId, snapshot.id)
       const topologyResult = await compareTopologyArchives(selectedWorkspaceId, snapshotCompareBaseId, snapshot.id)
       setSnapshotTopologyCompareResult(topologyResult)
-      const summary = result.summary.length ? result.summary.join(' • ') : 'no metadata-level differences'
+      const summary = result.summary.length ? result.summary.join(' • ') : t('topology.snapshot.noMetadataDiff')
       const archiveSummary =
         topologyResult.archive_status === 'available'
           ? `topology nodes ${formatDeltaCounts(topologyResult.node_delta)}, edges ${formatDeltaCounts(topologyResult.edge_delta)}`
-          : 'topology archive missing; metadata fallback shown'
+          : t('topology.snapshot.archiveMissingFallback')
       setExportMessage(`Snapshot compare: ${result.base_name} → ${result.target_name} — ${summary} — ${archiveSummary}`)
     } catch (error) {
       setSnapshotTopologyCompareResult(null)
-      setExportMessage(error instanceof Error ? error.message : 'Snapshot compare failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.snapshot.compareFailed'))
     }
   }
 
@@ -2060,7 +2060,7 @@ export function TopologyPage() {
     anchor.download = `azvision-raw-topology-diff-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.md`
     anchor.click()
     window.URL.revokeObjectURL(url)
-    setExportMessage('Raw topology diff markdown exported.')
+    setExportMessage(t('topology.snapshot.rawDiffExported'))
   }
 
   function toggleDiffSection(section: string) {
