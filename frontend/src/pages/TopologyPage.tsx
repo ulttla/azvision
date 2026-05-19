@@ -2575,7 +2575,7 @@ export function TopologyPage() {
 
       {error ? <div className="error-banner">{UI_TEXT.apiErrorPrefix} {error}</div> : null}
       {topology?.status === 'error' ? (
-        <div className="error-banner">{UI_TEXT.topologyErrorPrefix} {topology.message ?? 'Unknown error'}</div>
+        <div className="error-banner">{UI_TEXT.topologyErrorPrefix} {topology.message ?? t('topology.error.unknown')}</div>
       ) : null}
       {exportMessage ? <div className="info-banner">{exportMessage}</div> : null}
 
@@ -2973,7 +2973,7 @@ export function TopologyPage() {
                     <span className="mini-chip">{snapshotTopologyCompareResult.archive_status}</span>
                   </div>
                   <p className="hint preset-card-meta">
-                    Nodes {formatDeltaCounts(snapshotTopologyCompareResult.node_delta)} • Edges {formatDeltaCounts(snapshotTopologyCompareResult.edge_delta)}
+                    {t('topology.snapshot.nodes')} {formatDeltaCounts(snapshotTopologyCompareResult.node_delta)} • {t('topology.snapshot.edges')} {formatDeltaCounts(snapshotTopologyCompareResult.edge_delta)}
                   </p>
                   {snapshotTopologyCompareResult.summary.length ? (
                     <ul className="snapshot-diff-summary-list">
@@ -3841,7 +3841,7 @@ export function TopologyPage() {
           <p className="hint export-hint">{UI_TEXT.searchTip}</p>
           {lastExport ? (
             <p className="hint export-hint">
-              Last export: {formatDateTime(lastExport.created_at)} • {lastExport.output_path}
+              {t('topology.export.lastExport')}: {formatDateTime(lastExport.created_at)} • {lastExport.output_path}
             </p>
           ) : null}
         </article>

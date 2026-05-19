@@ -182,6 +182,7 @@ export const dict = {
     'topology.snapshot.rawDiffExported': 'Raw topology diff markdown exported.',
     'topology.snapshot.comparePrefix': 'Snapshot compare',
     'topology.snapshot.topologyNodes': 'topology nodes',
+    'topology.snapshot.nodes': 'Nodes',
     'topology.snapshot.edges': 'edges',
     'topology.snapshot.presetCopyUnsupported': 'Preset link copy unsupported in this browser',
     'topology.snapshot.presetCopied': 'Preset link copied',
@@ -233,6 +234,7 @@ export const dict = {
     'topology.controls.collapseAll': 'Collapse all',
     'topology.controls.downloadDiffMd': 'Download diff markdown',
     'topology.controls.compareBase': 'Compare base',
+    'topology.export.lastExport': 'Last export',
 
     // ── Topology Page relation panels ────────────────────
     'topology.relations.categories': 'Relation Categories',
@@ -760,6 +762,7 @@ export const dict = {
     'topology.snapshot.rawDiffExported': '원시 토폴로지 diff 마크다운을 내보냈습니다.',
     'topology.snapshot.comparePrefix': '스냅샷 비교',
     'topology.snapshot.topologyNodes': '토폴로지 노드',
+    'topology.snapshot.nodes': '노드',
     'topology.snapshot.edges': '엣지',
     'topology.snapshot.presetCopyUnsupported': '이 브라우저에서는 프리셋 링크 복사를 지원하지 않습니다',
     'topology.snapshot.presetCopied': '프리셋 링크를 복사했습니다',
@@ -811,6 +814,7 @@ export const dict = {
     'topology.controls.collapseAll': '모두 접기',
     'topology.controls.downloadDiffMd': '차이 마크다운 다운로드',
     'topology.controls.compareBase': '비교 기준',
+    'topology.export.lastExport': '마지막 내보내기',
 
     // ── Topology Page relation panels ────────────────────
     'topology.relations.categories': '관계 카테고리',
