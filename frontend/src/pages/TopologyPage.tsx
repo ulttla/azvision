@@ -2580,7 +2580,7 @@ export function TopologyPage() {
                     key={subscription.subscription_id ?? subscription.display_name ?? 'subscription'}
                     value={subscription.subscription_id ?? ''}
                   >
-                    {subscription.display_name ?? subscription.subscription_id ?? 'Unnamed subscription'}
+                    {subscription.display_name ?? subscription.subscription_id ?? t('topology.workspace.unnamedSubscription')}
                   </option>
                 ))}
               </select>
@@ -2595,7 +2595,7 @@ export function TopologyPage() {
                 <option value="">{t('topology.workspace.allRGs')}</option>
                 {availableResourceGroups.map((resourceGroup) => (
                   <option key={resourceGroup.id ?? resourceGroup.name ?? 'resource-group'} value={resourceGroup.name ?? ''}>
-                    {resourceGroup.name ?? 'Unnamed RG'}
+                    {resourceGroup.name ?? t('topology.workspace.unnamedRG')}
                     {resourceGroup.location ? ` • ${resourceGroup.location}` : ''}
                   </option>
                 ))}
@@ -2603,14 +2603,19 @@ export function TopologyPage() {
               <p className="hint">
                 {t('topology.workspace.generatedAt')} {formatDateTime(topology?.generated_at)}
                 {topology?.mode ? ` • ${topology.mode}` : ''}
-                {inventoryMode ? ` • inventory ${inventoryMode}` : ''}
+                {inventoryMode ? ` • ${t('topology.workspace.inventoryModeInline').replace('{mode}', inventoryMode)}` : ''}
               </p>
               <p className="hint">
-                {t('topology.workspace.scope')} {selectedSubscriptionId ? 'single subscription' : 'all subscriptions'}
+                {t('topology.workspace.scope')} {selectedSubscriptionId ? t('topology.workspace.singleSubscription') : t('topology.workspace.allSubscriptions')}
                 {' • '}
-                {focusedResourceGroupName ? `RG ${focusedResourceGroupName}` : 'all resource groups'}
+                {focusedResourceGroupName
+                  ? t('topology.workspace.resourceGroupScoped').replace('{name}', focusedResourceGroupName)
+                  : t('topology.workspace.allRGs')}
                 {' • '}
-                {availableSubscriptions.length} subscriptions / {availableResourceGroups.length} RGs listed / {availableResources.length} resources previewed
+                {t('topology.workspace.scopeCounts')
+                  .replace('{subs}', String(availableSubscriptions.length))
+                  .replace('{rgs}', String(availableResourceGroups.length))
+                  .replace('{resources}', String(availableResources.length))}
               </p>
               {inventoryWarning ? <p className="hint">{t('topology.workspace.inventoryNote')} {inventoryWarning}</p> : null}
               {inventorySummary ? (
@@ -2629,7 +2634,7 @@ export function TopologyPage() {
                     <div className="metric-box">
                       <span className="metric-label">{t('topology.workspace.scopedCollectorResources')}</span>
                       <strong>{inventorySummary.summary.resource_count}</strong>
-                      <small>separate from topology projection cap</small>
+                      <small>{t('topology.workspace.separateProjectionCap')}</small>
                     </div>
                   </div>
                   {inventoryTopResourceTypes.length ? (
@@ -2653,10 +2658,10 @@ export function TopologyPage() {
                   <ul className="edge-list compact-list">
                     {availableResources.slice(0, 8).map((resource) => (
                       <li key={resource.id ?? `${resource.resource_group ?? 'rg'}:${resource.name ?? 'resource'}`}>
-                        <strong>{resource.name ?? 'Unnamed resource'}</strong>
-                        <p>{resource.type ?? 'unknown type'}</p>
+                        <strong>{resource.name ?? t('topology.workspace.unnamedResource')}</strong>
+                        <p>{resource.type ?? t('topology.workspace.unknownType')}</p>
                         <p>
-                          {(resource.resource_group ?? 'no-rg')}
+                          {(resource.resource_group ?? t('topology.workspace.noResourceGroup'))}
                           {resource.location ? ` • ${resource.location}` : ''}
                         </p>
                       </li>
@@ -2701,7 +2706,7 @@ export function TopologyPage() {
             <div className="metric-box">
               <span className="metric-label">{t('topology.summary.expandedMI')}</span>
               <strong>{expandedManagedInstances.length}</strong>
-              <small>{clusterManagedInstanceChildren ? 'compound cluster on' : 'compound cluster off'}</small>
+              <small>{clusterManagedInstanceChildren ? t('topology.summary.compoundClusterOn') : t('topology.summary.compoundClusterOff')}</small>
             </div>
           </div>
         </article>

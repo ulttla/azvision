@@ -125,6 +125,17 @@ export const dict = {
     'topology.workspace.topResourceTypes': 'Top Resource Types In Scope',
     'topology.workspace.inventoryPreview': 'Scoped Inventory Preview',
     'topology.workspace.resourcesInWindow': 'resources in current collector window',
+    'topology.workspace.inventoryModeInline': 'inventory {mode}',
+    'topology.workspace.singleSubscription': 'single subscription',
+    'topology.workspace.allSubscriptions': 'all subscriptions',
+    'topology.workspace.resourceGroupScoped': 'RG {name}',
+    'topology.workspace.scopeCounts': '{subs} subscriptions / {rgs} RGs listed / {resources} resources previewed',
+    'topology.workspace.separateProjectionCap': 'separate from topology projection cap',
+    'topology.workspace.unnamedSubscription': 'Unnamed subscription',
+    'topology.workspace.unnamedRG': 'Unnamed RG',
+    'topology.workspace.unnamedResource': 'Unnamed resource',
+    'topology.workspace.unknownType': 'unknown type',
+    'topology.workspace.noResourceGroup': 'no-rg',
 
     // ── Topology Page summary ────────────────────────────
     'topology.summary.heading': 'Visible Summary',
@@ -184,6 +195,8 @@ export const dict = {
     'topology.summary.expandedMI': 'Expanded MI Compare',
     'topology.summary.loaded': 'loaded',
     'topology.summary.miChildrenHidden': 'MI children hidden by default',
+    'topology.summary.compoundClusterOn': 'compound cluster on',
+    'topology.summary.compoundClusterOff': 'compound cluster off',
 
     // ── Topology Page graph controls ─────────────────────
     'topology.controls.heading': 'Graph Controls',
@@ -643,6 +656,17 @@ export const dict = {
     'topology.workspace.topResourceTypes': '범위 내 주요 리소스 유형',
     'topology.workspace.inventoryPreview': '범위별 인벤토리 미리보기',
     'topology.workspace.resourcesInWindow': '현재 수집기 창 내 리소스',
+    'topology.workspace.inventoryModeInline': '인벤토리 {mode}',
+    'topology.workspace.singleSubscription': '단일 구독',
+    'topology.workspace.allSubscriptions': '모든 구독',
+    'topology.workspace.resourceGroupScoped': 'RG {name}',
+    'topology.workspace.scopeCounts': '구독 {subs}개 / RG {rgs}개 표시 / 리소스 {resources}개 미리보기',
+    'topology.workspace.separateProjectionCap': '토폴로지 표시 제한과 별도 집계',
+    'topology.workspace.unnamedSubscription': '이름 없는 구독',
+    'topology.workspace.unnamedRG': '이름 없는 RG',
+    'topology.workspace.unnamedResource': '이름 없는 리소스',
+    'topology.workspace.unknownType': '알 수 없는 유형',
+    'topology.workspace.noResourceGroup': 'RG 없음',
 
     // ── Topology Page summary ────────────────────────────
     'topology.summary.heading': '표시 요약',
@@ -702,6 +726,8 @@ export const dict = {
     'topology.summary.expandedMI': '확장 MI 비교',
     'topology.summary.loaded': '로드됨',
     'topology.summary.miChildrenHidden': 'MI 자식 기본 숨김',
+    'topology.summary.compoundClusterOn': '복합 클러스터 켜짐',
+    'topology.summary.compoundClusterOff': '복합 클러스터 꺼짐',
 
     // ── Topology Page graph controls ─────────────────────
     'topology.controls.heading': '그래프 제어',
