@@ -841,9 +841,43 @@ export function TopologyPage() {
     [filteredTopology.nodes, searchQuery, searchScope],
   )
 
+  const searchLabels = useMemo(
+    () => ({
+      groups: {
+        data: t('topology.search.group.data'),
+        network: t('topology.search.group.network'),
+        web: t('topology.search.group.web'),
+        compute: t('topology.search.group.compute'),
+        scope: t('topology.search.group.scope'),
+        other: t('topology.search.group.other'),
+      },
+      scopes: {
+        visible: {
+          label: t('topology.search.scope.visible.label'),
+          placeholder: t('topology.search.scope.visible.placeholder'),
+          hint: t('topology.search.scope.visible.hint'),
+          empty: t('topology.search.scope.visible.empty'),
+        },
+        'child-only': {
+          label: t('topology.search.scope.childOnly.label'),
+          placeholder: t('topology.search.scope.childOnly.placeholder'),
+          hint: t('topology.search.scope.childOnly.hint'),
+          empty: t('topology.search.scope.childOnly.empty'),
+        },
+        'collapsed-preview': {
+          label: t('topology.search.scope.collapsedPreview.label'),
+          placeholder: t('topology.search.scope.collapsedPreview.placeholder'),
+          hint: t('topology.search.scope.collapsedPreview.hint'),
+          empty: t('topology.search.scope.collapsedPreview.empty'),
+        },
+      },
+    }),
+    [t],
+  )
+
   const searchResultGroups = useMemo(
-    () => buildSearchResultGroups(searchResults.slice(0, 12)),
-    [searchResults],
+    () => buildSearchResultGroups(searchResults.slice(0, 12), searchLabels),
+    [searchLabels, searchResults],
   )
 
   const activeSearchResult = searchResults[searchResultIndex] ?? null
@@ -1450,7 +1484,7 @@ export function TopologyPage() {
       })
       .slice(0, 5)
   }, [inventorySummary])
-  const searchScopeMeta = useMemo(() => getSearchScopeMeta(searchScope), [searchScope])
+  const searchScopeMeta = useMemo(() => getSearchScopeMeta(searchScope, searchLabels), [searchLabels, searchScope])
   const currentPresetState = useMemo<TopologyPresetState>(
     () => ({
       presetVersion: TOPOLOGY_PRESET_VERSION,
@@ -3041,7 +3075,7 @@ export function TopologyPage() {
                           </div>
                           <p className="hint preset-card-meta">
                             {UI_TEXT.snapshotMeta(
-                              getSearchScopeMeta(snapshot.scope).label,
+                              getSearchScopeMeta(snapshot.scope, searchLabels).label,
                               snapshot.compareRefs.length,
                               workspacesById.get(snapshot.workspaceId)?.name ?? snapshot.workspaceId,
                             )}
@@ -3207,7 +3241,7 @@ export function TopologyPage() {
                     </div>
                     <p className="hint preset-card-meta">
                       {UI_TEXT.presetMeta(
-                        getSearchScopeMeta(preset.scope).label,
+                        getSearchScopeMeta(preset.scope, searchLabels).label,
                         preset.compareRefs.length,
                         workspacesById.get(preset.workspaceId)?.name ?? preset.workspaceId,
                       )}

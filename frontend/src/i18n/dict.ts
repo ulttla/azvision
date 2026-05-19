@@ -137,6 +137,26 @@ export const dict = {
     'topology.workspace.unknownType': 'unknown type',
     'topology.workspace.noResourceGroup': 'no-rg',
 
+    // ── Topology search ─────────────────────────────────
+    'topology.search.group.data': 'Data',
+    'topology.search.group.network': 'Network',
+    'topology.search.group.web': 'Web',
+    'topology.search.group.compute': 'Compute',
+    'topology.search.group.scope': 'Scope',
+    'topology.search.group.other': 'Other',
+    'topology.search.scope.visible.label': 'Visible nodes',
+    'topology.search.scope.visible.placeholder': 'name, resource group, type, location, node key...',
+    'topology.search.scope.visible.hint': 'Search the currently visible topology nodes.',
+    'topology.search.scope.visible.empty': 'No visible nodes matched this query.',
+    'topology.search.scope.childOnly.label': 'Expanded child nodes',
+    'topology.search.scope.childOnly.placeholder': 'child database name, type, location, node key...',
+    'topology.search.scope.childOnly.hint': 'Search expanded SQL Managed Instance child nodes.',
+    'topology.search.scope.childOnly.empty': 'No expanded child nodes matched this query.',
+    'topology.search.scope.collapsedPreview.label': 'Collapsed child previews',
+    'topology.search.scope.collapsedPreview.placeholder': 'collapsed child sample name...',
+    'topology.search.scope.collapsedPreview.hint': 'Search child-node previews that are still collapsed on the graph.',
+    'topology.search.scope.collapsedPreview.empty': 'No collapsed child previews matched this query.',
+
     // ── Topology Page summary ────────────────────────────
     'topology.summary.heading': 'Visible Summary',
     'topology.summary.metric.visibleNodes': 'Visible Nodes',
@@ -671,6 +691,26 @@ export const dict = {
     'topology.workspace.unnamedResource': '이름 없는 리소스',
     'topology.workspace.unknownType': '알 수 없는 유형',
     'topology.workspace.noResourceGroup': 'RG 없음',
+
+    // ── Topology search ─────────────────────────────────
+    'topology.search.group.data': '데이터',
+    'topology.search.group.network': '네트워크',
+    'topology.search.group.web': '웹',
+    'topology.search.group.compute': '컴퓨트',
+    'topology.search.group.scope': '범위',
+    'topology.search.group.other': '기타',
+    'topology.search.scope.visible.label': '표시된 노드',
+    'topology.search.scope.visible.placeholder': '이름, 리소스 그룹, 유형, 위치, 노드 키...',
+    'topology.search.scope.visible.hint': '현재 표시된 토폴로지 노드를 검색합니다.',
+    'topology.search.scope.visible.empty': '이 쿼리와 일치하는 표시 노드가 없습니다.',
+    'topology.search.scope.childOnly.label': '확장된 자식 노드',
+    'topology.search.scope.childOnly.placeholder': '자식 데이터베이스 이름, 유형, 위치, 노드 키...',
+    'topology.search.scope.childOnly.hint': '확장된 SQL Managed Instance 자식 노드를 검색합니다.',
+    'topology.search.scope.childOnly.empty': '이 쿼리와 일치하는 확장 자식 노드가 없습니다.',
+    'topology.search.scope.collapsedPreview.label': '접힌 자식 미리보기',
+    'topology.search.scope.collapsedPreview.placeholder': '접힌 자식 샘플 이름...',
+    'topology.search.scope.collapsedPreview.hint': '그래프에서 아직 접혀 있는 자식 노드 미리보기를 검색합니다.',
+    'topology.search.scope.collapsedPreview.empty': '이 쿼리와 일치하는 접힌 자식 미리보기가 없습니다.',
 
     // ── Topology Page summary ────────────────────────────
     'topology.summary.heading': '표시 요약',

@@ -1,6 +1,16 @@
 import type { TopologyNode } from '../../lib/api'
 
 import { SEARCH_GROUP_ORDER, UI_TEXT, type ResourceCategory, type SearchResult, type SearchResultGroup, type SearchScope } from './model'
+
+export type SearchLabels = {
+  groups: Record<ResourceCategory, string>
+  scopes: Record<SearchScope, {
+    label: string
+    placeholder: string
+    hint: string
+    empty: string
+  }>
+}
 import { getResourceCategory, isManagedInstanceNode } from './topology-helpers'
 
 function normalizeSearchValue(value?: string | null) {
@@ -191,7 +201,12 @@ export function searchTopologyNodes(nodes: TopologyNode[], query: string, scope:
   })
 }
 
-function getSearchGroupLabel(category: ResourceCategory) {
+function getSearchGroupLabel(category: ResourceCategory, labels?: SearchLabels) {
+  const localized = labels?.groups[category]
+  if (localized) {
+    return localized
+  }
+
   if (category === 'data') {
     return 'Data'
   }
@@ -210,7 +225,7 @@ function getSearchGroupLabel(category: ResourceCategory) {
   return 'Other'
 }
 
-export function buildSearchResultGroups(results: SearchResult[]): SearchResultGroup[] {
+export function buildSearchResultGroups(results: SearchResult[], labels?: SearchLabels): SearchResultGroup[] {
   const grouped = new Map<ResourceCategory, SearchResult[]>()
 
   for (const result of results) {
@@ -220,12 +235,17 @@ export function buildSearchResultGroups(results: SearchResult[]): SearchResultGr
 
   return SEARCH_GROUP_ORDER.map((category) => ({
     key: category,
-    label: getSearchGroupLabel(category),
+    label: getSearchGroupLabel(category, labels),
     results: grouped.get(category) ?? [],
   })).filter((group) => group.results.length > 0)
 }
 
-export function getSearchScopeMeta(scope: SearchScope) {
+export function getSearchScopeMeta(scope: SearchScope, labels?: SearchLabels) {
+  const localized = labels?.scopes[scope]
+  if (localized) {
+    return localized
+  }
+
   if (scope === 'child-only') {
     return {
       label: 'Expanded child nodes',
