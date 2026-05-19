@@ -11,6 +11,7 @@ import path from 'node:path'
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const apiContractDoc = readFileSync(path.join(repoRoot, 'docs/API_CONTRACT.md'), 'utf8')
 const costPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/CostPage.tsx'), 'utf8')
+const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 
 // ============================================================
@@ -50,9 +51,12 @@ assert.match(costPageCode, /'cost-insights', locale/, 'CostPage should pass curr
 assert.match(costPageCode, /askCopilot/, 'CostPage should have askCopilot handler')
 assert.match(costPageCode, /copilotPrompt.*useState|useState.*copilotPrompt/, 'CostPage should have copilotPrompt state')
 assert.match(costPageCode, /copilotProvider.*useState|useState.*copilotProvider/, 'CostPage should have copilotProvider state')
-assert.match(costPageCode, /Ollama \/ Ollama Cloud/, 'CostPage should expose Ollama provider selector copy')
-assert.match(costPageCode, /OpenRouter/, 'CostPage should expose OpenRouter provider selector copy')
-assert.match(costPageCode, /Rule-based fallback/, 'CostPage should expose rule-based fallback selector copy')
+assert.match(costPageCode, /copilot\.provider\.ollama/, 'CostPage should expose Ollama provider selector via i18n key')
+assert.match(costPageCode, /copilot\.provider\.openrouter/, 'CostPage should expose OpenRouter provider selector via i18n key')
+assert.match(costPageCode, /copilot\.provider\.ruleBased/, 'CostPage should expose rule-based fallback selector via i18n key')
+assert.match(dictCode, /'copilot\.provider\.ollama': 'Ollama \/ Ollama Cloud'/, 'i18n dict should include Ollama provider selector copy')
+assert.match(dictCode, /'copilot\.provider\.openrouter': 'OpenRouter'/, 'i18n dict should include OpenRouter provider selector copy')
+assert.match(dictCode, /'copilot\.provider\.ruleBased': 'Rule-based fallback'/, 'i18n dict should include rule-based fallback selector copy')
 assert.match(costPageCode, /copilot\.readOnly/, 'CostPage should show read-only badge/copy via i18n key')
 
 // ============================================================
