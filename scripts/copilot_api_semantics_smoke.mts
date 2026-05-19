@@ -99,8 +99,11 @@ assert.match(copilotServicesCode, /_probe_openrouter_connectivity/, 'copilot ser
 assert.match(copilotRoutesCode, /health_smoke/, 'copilot route should accept health_smoke query param')
 assert.match(copilotRoutesCode, /provider_health/, 'copilot route should attach provider_health when health_smoke=true')
 assert.match(costPageCode, /parseCopilotAnswerSections/, 'CostPage should have section parser for copilot answers')
+assert.match(costPageCode, /\[A-Za-z가-힣\]/, 'CostPage section parser should recognize Korean heading labels')
 assert.match(costPageCode, /cost-copilot-section-heading/, 'CostPage should render section headings')
 assert.match(costPageCode, /copilot\.suggestedChecks/, 'CostPage should label suggestions via i18n key')
 assert.match(costPageCode, /cost-copilot-section/, 'CostPage should split answer into cost-copilot-section blocks')
+assert.match(copilotServicesCode, /current_language = str\(context\.get\("current_language"\)/, 'provider fallback notice should inspect current language')
+assert.match(copilotServicesCode, /읽기 전용 규칙 기반 폴백/, 'provider fallback notice should include Korean copy for ko UI sessions')
 
 console.log('✅ copilot_api_semantics_smoke.mts: section-formatting + provider-health smoke passed')

@@ -232,7 +232,13 @@ def _normalized_llm_answer(provider: str, model: str, content: str, context: dic
 def _provider_error_fallback(provider: str, model: str, message: str, resources: list[dict[str, Any]], context: dict[str, Any]) -> dict[str, Any]:
     fallback = build_rule_based_copilot_answer(message, resources, context)
     fallback.update({"provider": "rule-based", "model": model or None, "llm_status": f"{provider}_provider_error"})
-    fallback["answer"] = f"{provider} provider was unavailable, so AzVision used the read-only rule-based fallback.\n" + fallback["answer"]
+    current_language = str(context.get("current_language") or "en").strip().lower()
+    fallback_notice = (
+        f"{provider} 제공자를 사용할 수 없어 AzVision이 읽기 전용 규칙 기반 폴백을 사용했습니다."
+        if current_language == "ko"
+        else f"{provider} provider was unavailable, so AzVision used the read-only rule-based fallback."
+    )
+    fallback["answer"] = fallback_notice + "\n" + fallback["answer"]
     return fallback
 
 

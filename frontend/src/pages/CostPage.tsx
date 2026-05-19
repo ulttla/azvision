@@ -34,7 +34,7 @@ function parseCopilotAnswerSections(answer: string, fallbackHeading = 'Answer'):
   const headingPatterns: Array<{ regex: RegExp; extract: (m: RegExpMatchArray) => string }> = [
     { regex: /^##\s+(.+?)(?:#+)?$/, extract: (m) => m[1].trim() },
     { regex: /^\*\*(.+?)\*\*\s*:?\s*$/, extract: (m) => m[1].trim() },
-    { regex: /^([A-Z][A-Za-z\s]{2,40}):\s*$/, extract: (m) => m[1].trim() },
+    { regex: /^([A-Za-z가-힣][A-Za-z가-힣\s/·-]{1,40}):\s*$/u, extract: (m) => m[1].trim() },
   ]
 
   function finalizeSection() {

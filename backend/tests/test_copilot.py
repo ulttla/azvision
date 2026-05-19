@@ -140,6 +140,20 @@ def test_openrouter_provider_error_uses_rule_based_fallback(monkeypatch) -> None
     assert "sk-test-secret" not in str(answer)
 
 
+def test_provider_error_fallback_notice_follows_current_language(monkeypatch) -> None:
+    def broken_post(*args, **kwargs):
+        raise ValueError("timeout")
+
+    monkeypatch.setattr("app.services.copilot.requests.post", broken_post)
+    settings = Settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
+
+    answer = OllamaCopilotProvider(settings).answer("비용 위험 요약", [], {"current_language": "ko"})
+
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "ollama_provider_error"
+    assert "읽기 전용 규칙 기반 폴백" in answer["answer"]
+
+
 def test_copilot_providers_route_returns_read_only_status(client: TestClient) -> None:
     response = client.get("/api/v1/copilot/providers")
 
