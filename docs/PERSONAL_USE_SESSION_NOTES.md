@@ -35,6 +35,15 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - rule-based simulation create/list/detail/template/report/fit smoke, run as a focused check with cleanup through the simulation delete endpoint
 - run script start and stop cleanup behavior
 
+## Recent UI i18n validation evidence
+
+2026-05-19 local validation refreshed the UI i18n/readiness evidence after the post-push C1 continuation work:
+
+- Topology search group/scope labels, topology export/raw-diff labels, Architecture stage labels, Architecture inline labels, and Architecture SVG export labels were moved onto the existing en/ko dictionary path.
+- After each slice, `npm --prefix frontend run smoke:semantics` and `npm --prefix frontend run build` passed.
+- Latest local-only commits in this evidence batch: `c17a60f`, `38579f0`, `c8c220a`, `3118743`, `6c01c71`, `e990e71`.
+- These commits are local until explicit push approval.
+
 ## When to run acceptance
 
 Run full acceptance:
