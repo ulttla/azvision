@@ -10,6 +10,7 @@ import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const costPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/CostPage.tsx'), 'utf8')
+const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const simPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/SimulationPage.tsx'), 'utf8')
 
 // ============================================================
@@ -65,7 +66,7 @@ function formatCountMap(value: Record<string, number>): string {
 assert.equal(formatCountMap({}), 'none', 'formatCountMap({}) should return "none"')
 assert.equal(formatCountMap({ high: 2 }), 'high: 2', 'formatCountMap single entry')
 assert.equal(formatCountMap({ high: 2, medium: 5, low: 1 }), 'high: 2 • medium: 5 • low: 1', 'formatCountMap should join with " • " separator')
-assert.match(costPageCode, /function formatCountMap\(value: Record<string, number>\)/, 'CostPage should define formatCountMap function')
+assert.match(costPageCode, /function formatCountMap\(value: Record<string, number>, emptyLabel: string\)/, 'CostPage should define localized formatCountMap function')
 
 // ============================================================
 // Section 4: SimulationPage priorityTone
@@ -114,6 +115,7 @@ assert.match(simPageCode, /fitLimit/, 'SimulationPage should track fitLimit')
 // ============================================================
 // Section 8: Copilot prompt default
 // ============================================================
-assert.match(costPageCode, /How can I reduce cost|reduce.*cost|cost.*optimization/i, 'CostPage copilot should have a cost-reduction prompt')
+assert.match(costPageCode, /copilot\.defaultPrompt/, 'CostPage copilot should use localized default prompt key')
+assert.match(dictCode, /'copilot\.defaultPrompt': 'How can I reduce cost or improve this architecture\?'/, 'i18n dict should keep cost-reduction default prompt copy')
 
 console.log('✅ cost_page_functions_smoke.mts: all assertions passed')

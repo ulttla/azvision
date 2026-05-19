@@ -10,6 +10,7 @@ import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const topoPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
+const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 const acceptanceCode = readFileSync(path.join(repoRoot, 'scripts/personal_use_acceptance.sh'), 'utf8')
 const packageCode = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
@@ -65,8 +66,10 @@ assert.match(topoPageCode, /Intra-VNet path; no VNet peering evidence is require
 assert.match(topoPageCode, /Forwarded\/transitive peering candidate/, 'Forwarded/transitive peering hint should be explicit')
 assert.match(topoPageCode, /allowForwardedTraffic=true/, 'Forwarded peering hint should require allowForwardedTraffic=true')
 assert.match(topoPageCode, /Direct peering candidate; allowForwardedTraffic is not required/, 'Direct peering hint should not require allowForwardedTraffic')
-assert.match(topoPageCode, /conservative unknown\/no-path/, 'Path-analysis copy should explain conservative unknown/no-path behavior')
-assert.match(topoPageCode, /Peering boundary/, 'Hop list should expose peering boundary chips')
+assert.match(topoPageCode, /topology\.detail\.pathMvpNote/, 'Path-analysis UI should render localized MVP note copy')
+assert.match(dictCode, /conservative unknown\/no-path/, 'Path-analysis copy should explain conservative unknown/no-path behavior')
+assert.match(topoPageCode, /topology\.detail\.pathPeeringBoundary/, 'Hop list should expose peering boundary chips via i18n key')
+assert.match(dictCode, /'topology\.detail\.pathPeeringBoundary': 'Peering boundary'/, 'i18n dict should include peering boundary chip copy')
 
 // ============================================================
 // Section 4: Smoke chain and acceptance wrapper awareness
