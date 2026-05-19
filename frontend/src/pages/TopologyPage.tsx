@@ -980,7 +980,7 @@ export function TopologyPage() {
           source: selectedNode.source,
           confidence: selectedNode.confidence,
           status: 'error',
-          message: err instanceof Error ? err.message : 'Unknown error',
+          message: err instanceof Error ? err.message : t('topology.error.unknown'),
           details: {},
         })
       } finally {
