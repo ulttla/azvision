@@ -544,8 +544,15 @@ export function TopologyPage() {
       return
     }
 
-    setExportMessage(storageWarning)
-  }, [])
+    const localizedStorageWarning =
+      storageWarning === UI_TEXT.snapshotStorageReadFailed
+        ? t('topology.error.snapshotStorageReadFailed')
+        : storageWarning === UI_TEXT.snapshotStorageWriteFailed
+          ? t('topology.error.snapshotStorageWriteFailed')
+          : storageWarning
+
+    setExportMessage(localizedStorageWarning)
+  }, [t])
 
   async function refreshSavedSnapshots(workspaceId = selectedWorkspaceId) {
     if (!workspaceId) {
@@ -1790,7 +1797,7 @@ export function TopologyPage() {
       await refreshSavedSnapshots(selectedWorkspaceId)
       setExportMessage(result.warning ? `${successMessage} — ${result.warning}` : successMessage)
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
       return
     }
 
@@ -1837,7 +1844,7 @@ export function TopologyPage() {
       await refreshSavedSnapshots(snapshot.workspaceId)
       setExportMessage(`${UI_TEXT.loadedSnapshotPrefix} ${snapshot.name} — ${UI_TEXT.snapshotRestoreNotice}`)
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     }
   }
 
@@ -1856,7 +1863,7 @@ export function TopologyPage() {
       await refreshSavedSnapshots(selectedWorkspaceId)
       setExportMessage(`${UI_TEXT.renamedSnapshotPrefix} ${nextName}`)
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     }
   }
 
@@ -1906,7 +1913,7 @@ export function TopologyPage() {
       await refreshSavedSnapshots(selectedWorkspaceId)
       setExportMessage(`${UI_TEXT.deletedSnapshotPrefix} ${snapshot.name}`)
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     }
   }
 
@@ -1920,7 +1927,7 @@ export function TopologyPage() {
         `${snapshot.isPinned ? UI_TEXT.unpinSnapshot : UI_TEXT.pinSnapshot}: ${snapshot.name}`,
       )
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     }
   }
 
@@ -1934,7 +1941,7 @@ export function TopologyPage() {
         `${snapshot.archivedAt ? UI_TEXT.unarchiveSnapshot : UI_TEXT.archiveSnapshot}: ${snapshot.name}`,
       )
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     }
   }
 
@@ -2000,7 +2007,7 @@ export function TopologyPage() {
       )
       setExportMessage(summary.warning ? `${summaryMessage} — ${summary.warning}` : summaryMessage)
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.snapshotStorageWriteFailed)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     } finally {
       setLocalSnapshotImporting(false)
     }
