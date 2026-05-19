@@ -1190,7 +1190,15 @@ function wrapNodeLabel(label: string): string[] {
 export function renderArchitectureSvg(
   stageBuckets: ArchitectureStageBucket[],
   edges: ArchitectureEdge[],
-  options?: { annotations?: ArchitectureAnnotation[] },
+  options?: {
+    annotations?: ArchitectureAnnotation[]
+    labels?: {
+      noMappedResources: string
+      sharedScope: string
+      item: string
+      items: string
+    }
+  },
 ): ArchitectureSvgResult {
   const visibleBuckets = stageBuckets.filter((bucket) => bucket.nodes.length > 0)
   const buckets = visibleBuckets.length
@@ -1228,12 +1236,12 @@ export function renderArchitectureSvg(
       const x = canvasPadding + index * (stageWidth + stageGap)
       const y = canvasPadding
       stageX.set(bucket.stage, x)
-      const meta = ARCHITECTURE_STAGE_META[bucket.stage]
+      const meta = { ...ARCHITECTURE_STAGE_META[bucket.stage], label: bucket.label, description: bucket.description }
       const stageHeight = innerHeight
 
       const empty = !bucket.nodes.length
       const nodesMarkup = empty
-        ? `<rect x="${x + stagePadding}" y="${y + stageHeaderHeight + stagePadding}" width="${stageWidth - stagePadding * 2}" height="${nodeHeight}" rx="14" fill="rgba(15, 23, 42, 0.35)" stroke="rgba(148, 163, 184, 0.18)" /><text x="${x + stagePadding + 14}" y="${y + stageHeaderHeight + stagePadding + 28}" fill="#94a3b8" font-size="13" font-family="Inter, Arial, sans-serif">No mapped resources</text>`
+        ? `<rect x="${x + stagePadding}" y="${y + stageHeaderHeight + stagePadding}" width="${stageWidth - stagePadding * 2}" height="${nodeHeight}" rx="14" fill="rgba(15, 23, 42, 0.35)" stroke="rgba(148, 163, 184, 0.18)" /><text x="${x + stagePadding + 14}" y="${y + stageHeaderHeight + stagePadding + 28}" fill="#94a3b8" font-size="13" font-family="Inter, Arial, sans-serif">${escapeXml(options?.labels?.noMappedResources ?? 'No mapped resources')}</text>`
         : bucket.nodes
             .map((node, nodeIndex) => {
               const nodeX = x + stagePadding
@@ -1241,8 +1249,9 @@ export function renderArchitectureSvg(
               const nodeWidth = stageWidth - stagePadding * 2
               nodePosition.set(node.id, { x: nodeX, y: nodeY, width: nodeWidth, height: nodeHeight })
               const labelLines = wrapNodeLabel(node.shortLabel)
-              const metaLine = `${node.familyLabel} • ${node.nodeCount} item${node.nodeCount > 1 ? 's' : ''}`
-              const detailLine = node.resourceGroups[0] ? clip(node.resourceGroups[0], 28) : 'shared scope'
+              const countLabel = node.nodeCount === 1 ? (options?.labels?.item ?? 'item') : (options?.labels?.items ?? 'items')
+              const metaLine = `${node.familyLabel} • ${node.nodeCount} ${countLabel}`
+              const detailLine = node.resourceGroups[0] ? clip(node.resourceGroups[0], 28) : (options?.labels?.sharedScope ?? 'shared scope')
               return `
                 <rect x="${nodeX}" y="${nodeY}" width="${nodeWidth}" height="${nodeHeight}" rx="14" fill="rgba(15, 23, 42, 0.92)" stroke="rgba(148, 163, 184, 0.18)" />
                 <rect x="${nodeX + 12}" y="${nodeY + 12}" width="8" height="${nodeHeight - 24}" rx="4" fill="${meta.accent}" />
