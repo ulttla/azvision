@@ -1208,7 +1208,7 @@ export function ArchitecturePage() {
             <h2>{t('arch.zones.heading')}</h2>
             <span className="mini-status">{t('arch.zones.scaleHint')}</span>
           </div>
-          <div className="button-row architecture-scale-controls" aria-label="Architecture board zoom controls">
+          <div className="button-row architecture-scale-controls" aria-label={t('arch.zones.zoomControls')}>
             {ARCHITECTURE_BOARD_SCALE_OPTIONS.map((scale) => (
               <button
                 key={scale}

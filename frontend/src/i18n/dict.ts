@@ -447,6 +447,7 @@ export const dict = {
     // ── Architecture Page zone board ──────────────────────
     'arch.zones.heading': 'Zone Board',
     'arch.zones.scaleHint': 'Scale to fit first • scroll when the board still needs more room',
+    'arch.zones.zoomControls': 'Architecture board zoom controls',
     'arch.zones.noMappedCards': 'No mapped cards',
     'arch.zones.select': 'Select',
     'arch.zones.selected': 'Selected',
@@ -943,6 +944,7 @@ export const dict = {
     // ── Architecture Page zone board ──────────────────────
     'arch.zones.heading': '영역 보드',
     'arch.zones.scaleHint': '맞춤 우선 • 보드에 더 많은 공간이 필요하면 스크롤',
+    'arch.zones.zoomControls': '아키텍처 보드 확대/축소 제어',
     'arch.zones.noMappedCards': '매핑된 카드 없음',
     'arch.zones.select': '선택',
     'arch.zones.selected': '선택됨',
