@@ -167,7 +167,7 @@ def test_archive_retention_cli_outputs_json_dry_run(tmp_path: Path) -> None:
             "--keep-recent",
             "2",
             "--min-age-days",
-            "90",
+            "100",
             "--dry-run",
         ],
         check=False,
