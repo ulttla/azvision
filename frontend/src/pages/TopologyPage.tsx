@@ -945,10 +945,12 @@ export function TopologyPage() {
     return isManagedInstanceNode(parentNode) ? parentNode : null
   }, [selectedNode, topologyNodesByRef])
   const selectedPathStatus = selectedParentNode
-    ? `path focus • ${selectedParentNode.display_name} → ${selectedNode?.display_name ?? '-'} (parent-child)`
+    ? t('topology.detail.pathFocusParentChild')
+        .replace('{parent}', selectedParentNode.display_name)
+        .replace('{child}', selectedNode?.display_name ?? '-')
     : selectedNode
-      ? `path focus • ${selectedNode.display_name} neighborhood`
-      : 'path focus • no selection'
+      ? t('topology.detail.pathFocusNeighborhood').replace('{node}', selectedNode.display_name)
+      : t('topology.detail.pathFocusNone')
 
   useEffect(() => {
     async function loadNodeDetail() {
@@ -3514,7 +3516,7 @@ export function TopologyPage() {
           </div>
 
           <p className="hint compare-layout-hint">Layout: {compareLayoutStatus}</p>
-          <p className="hint compare-layout-hint compare-path-hint">Selection: {selectedPathStatus}</p>
+          <p className="hint compare-layout-hint compare-path-hint">{t('topology.detail.pathSelection')}: {selectedPathStatus}</p>
           {graphRuntimeLoading ? <p className="hint compare-layout-hint">{t('topology.canvas.graphEngineLoading')}</p> : null}
 
           <div className="graph-toolbar">
