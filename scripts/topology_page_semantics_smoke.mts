@@ -16,6 +16,7 @@ const topoOrderCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topol
 const topoStorageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/storage.ts'), 'utf8')
 const topoCytoscapeCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/cytoscape.ts'), 'utf8')
 const topoStyleCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/cytoscape-style.ts'), 'utf8')
+const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 
 // ============================================================
@@ -146,6 +147,22 @@ assert.match(topoPageCode, /allowForwardedTraffic is not required/, 'TopologyPag
 // Section 12: Snapshot compare
 // ============================================================
 assert.match(topoPageCode, /compareTopologySnapshots\(/, 'TopologyPage should call compareTopologySnapshots')
+
+// ============================================================
+// Section 12.5: Localized fallback errors
+// ============================================================
+const fallbackErrorKeys = [
+  'topology.error.snapshotLoadFailed',
+  'topology.error.snapshotStorageWriteFailed',
+  'topology.error.snapshotStorageReadFailed',
+  'topology.error.manualModelingLoadFailed',
+  'topology.error.inventoryScopeLoadFailed',
+  'topology.error.unknown',
+]
+for (const key of fallbackErrorKeys) {
+  assert.ok(topoPageCode.includes(`t('${key}')`), `TopologyPage should use localized fallback key ${key}`)
+  assert.ok(dictCode.includes(`'${key}':`), `i18n dict should define fallback key ${key}`)
+}
 
 // ============================================================
 // Section 13: Export functionality
