@@ -3542,7 +3542,7 @@ export function TopologyPage() {
                     ? `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} • ${
                         searchScopeMeta.label
                       } • ${
-                        activeSearchResult ? `active ${searchResultIndex + 1}/${searchResults.length}` : 'visible nodes only'
+                        activeSearchResult ? `active ${searchResultIndex + 1}/${searchResults.length}` : t('topology.search.visibleOnly')
                       }`
                     : `search ${searchScopeMeta.label.toLowerCase()}`}
                 </span>
@@ -3551,9 +3551,9 @@ export function TopologyPage() {
               <div className="filter-chip-grid search-scope-grid">
                 {(
                   [
-                    ['visible', 'Visible'],
-                    ['child-only', 'Child only'],
-                    ['collapsed-preview', 'Collapsed preview'],
+                    ['visible', t('topology.search.visible')],
+                    ['child-only', t('topology.search.childOnly')],
+                    ['collapsed-preview', t('topology.search.collapsedPreview')],
                   ] as [SearchScope, string][]
                 ).map(([scope, label]) => (
                   <button
@@ -4040,7 +4040,7 @@ export function TopologyPage() {
               {isResourceGroupNode(selectedNode) ? (
                 <div className="detail-item">
                   <span>{t('topology.detail.rgLazyLoad')}</span>
-                  <strong>{resourceGroupFocused ? 'Focused' : 'All resource groups loaded'}</strong>
+                  <strong>{resourceGroupFocused ? t('topology.detail.focused') : t('topology.detail.allRGsLoaded')}</strong>
                   <p className="hint detail-inline-hint">
                     {resourceGroupFocused
                       ? UI_TEXT.resourceGroupFocusedHint(selectedNode.display_name)
@@ -4048,7 +4048,7 @@ export function TopologyPage() {
                   </p>
                   <div className="button-row detail-button-row">
                     <button type="button" className="toolbar-button" onClick={toggleResourceGroupFocus}>
-                      {resourceGroupFocused ? 'Load all resource groups' : 'Load only this resource group'}
+                      {resourceGroupFocused ? t('topology.detail.loadAllRGs') : t('topology.detail.loadOnlyRG')}
                     </button>
                   </div>
                 </div>
@@ -4065,7 +4065,7 @@ export function TopologyPage() {
                       className="toolbar-button"
                       onClick={() => selectNode(selectedParentNode.node_key, { focus: true })}
                     >
-                      Focus parent managed instance
+                      {t('topology.detail.focusParentMI')}
                     </button>
                   </div>
                 </div>
@@ -4076,8 +4076,8 @@ export function TopologyPage() {
                   <span>{t('topology.detail.miChildren')}</span>
                   <strong>
                     {managedInstanceExpanded
-                      ? `Expanded on canvas (${visibleManagedInstanceChildCount} visible)`
-                      : `${selectedNode.child_summary.total} available`}
+                      ? t('topology.detail.expandedOnCanvas').replace('{count}', String(visibleManagedInstanceChildCount))
+                      : t('topology.detail.availableChildren').replace('{count}', String(selectedNode.child_summary.total))}
                   </strong>
                   <p className="hint detail-inline-hint">{formatChildSummary(selectedNode.child_summary)}</p>
                   {managedInstanceChildSampleNames.length ? (
@@ -4097,15 +4097,15 @@ export function TopologyPage() {
                       disabled={topologyLoading}
                     >
                       {managedInstanceTransition === 'expand'
-                        ? 'Expanding child databases...'
+                        ? t('topology.detail.expandingChildren')
                         : managedInstanceTransition === 'collapse'
-                          ? 'Collapsing child databases...'
+                          ? t('topology.detail.collapsingChildren')
                           : managedInstanceExpanded
-                            ? 'Collapse child databases'
-                            : 'Expand child databases'}
+                            ? t('topology.detail.collapseChildren')
+                            : t('topology.detail.expandChildren')}
                     </button>
                     <button type="button" className="toolbar-button" onClick={focusSelection}>
-                      Focus managed instance
+                      {t('topology.detail.focusMI')}
                     </button>
                   </div>
                   <p className="hint detail-inline-hint">
