@@ -398,6 +398,22 @@ export const dict = {
     'arch.health.topologyNotLoaded': 'Topology not loaded',
     'arch.health.topologyLabel': 'Topology',
 
+    // ── Architecture stage labels ─────────────────────────
+    'arch.stage.source.label': 'Source',
+    'arch.stage.source.description': 'Client-facing entrypoints and external origins',
+    'arch.stage.ingest.label': 'Ingest',
+    'arch.stage.ingest.description': 'Landing, intake, and pipeline entry resources',
+    'arch.stage.process.label': 'Process',
+    'arch.stage.process.description': 'Compute, transformation, and analytics execution',
+    'arch.stage.store.label': 'Store',
+    'arch.stage.store.description': 'Databases, storage, and persisted state',
+    'arch.stage.serve.label': 'Serve',
+    'arch.stage.serve.description': 'Apps, APIs, and delivery surfaces',
+    'arch.stage.infra.label': 'Infra',
+    'arch.stage.infra.description': 'Shared network and platform support resources',
+    'arch.stage.unclassified.label': 'Unclassified',
+    'arch.stage.unclassified.description': 'Safe fallback for resources not yet mapped',
+
     // ── Architecture Page workspace ────────────────────────
     'arch.error.loadSvgImage': 'Failed to load architecture SVG image',
     'arch.error.canvasUnavailable': 'Canvas rendering is unavailable in this browser',
@@ -952,6 +968,22 @@ export const dict = {
     'arch.health.diagnosticMode': '진단 모드',
     'arch.health.topologyNotLoaded': '토폴로지 미로드',
     'arch.health.topologyLabel': '토폴로지',
+
+    // ── Architecture stage labels ─────────────────────────
+    'arch.stage.source.label': '소스',
+    'arch.stage.source.description': '사용자 진입점과 외부 시작점',
+    'arch.stage.ingest.label': '수집',
+    'arch.stage.ingest.description': '랜딩, 입력, 파이프라인 진입 리소스',
+    'arch.stage.process.label': '처리',
+    'arch.stage.process.description': '컴퓨트, 변환, 분석 실행 영역',
+    'arch.stage.store.label': '저장',
+    'arch.stage.store.description': '데이터베이스, 스토리지, 지속 상태',
+    'arch.stage.serve.label': '제공',
+    'arch.stage.serve.description': '앱, API, 전달 표면',
+    'arch.stage.infra.label': '인프라',
+    'arch.stage.infra.description': '공유 네트워크와 플랫폼 지원 리소스',
+    'arch.stage.unclassified.label': '미분류',
+    'arch.stage.unclassified.description': '아직 매핑되지 않은 리소스의 안전한 폴백',
 
     // ── Architecture Page workspace ────────────────────────
     'arch.error.loadSvgImage': '아키텍처 SVG 이미지를 불러오지 못했습니다',

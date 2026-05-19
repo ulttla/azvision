@@ -239,6 +239,47 @@ export function ArchitecturePage() {
   const [exportMessage, setExportMessage] = useState('')
   const [zoneBoardScale, setZoneBoardScale] = useState<(typeof ARCHITECTURE_BOARD_SCALE_OPTIONS)[number]>(0.8)
 
+  const architectureStageMeta = useMemo(
+    () => ({
+      source: {
+        ...ARCHITECTURE_STAGE_META.source,
+        label: t('arch.stage.source.label'),
+        description: t('arch.stage.source.description'),
+      },
+      ingest: {
+        ...ARCHITECTURE_STAGE_META.ingest,
+        label: t('arch.stage.ingest.label'),
+        description: t('arch.stage.ingest.description'),
+      },
+      process: {
+        ...ARCHITECTURE_STAGE_META.process,
+        label: t('arch.stage.process.label'),
+        description: t('arch.stage.process.description'),
+      },
+      store: {
+        ...ARCHITECTURE_STAGE_META.store,
+        label: t('arch.stage.store.label'),
+        description: t('arch.stage.store.description'),
+      },
+      serve: {
+        ...ARCHITECTURE_STAGE_META.serve,
+        label: t('arch.stage.serve.label'),
+        description: t('arch.stage.serve.description'),
+      },
+      infra: {
+        ...ARCHITECTURE_STAGE_META.infra,
+        label: t('arch.stage.infra.label'),
+        description: t('arch.stage.infra.description'),
+      },
+      unclassified: {
+        ...ARCHITECTURE_STAGE_META.unclassified,
+        label: t('arch.stage.unclassified.label'),
+        description: t('arch.stage.unclassified.description'),
+      },
+    }),
+    [t],
+  )
+
   useEffect(() => {
     let active = true
 
@@ -525,9 +566,10 @@ export function ArchitecturePage() {
     () =>
       architectureModel.stageBuckets.map((bucket) => {
         const nodes = bucket.stage === 'infra' && !showInfraOverlay ? [] : sortArchitectureNodes(bucket.nodes)
-        return { ...bucket, nodes }
+        const meta = architectureStageMeta[bucket.stage]
+        return { ...bucket, label: meta.label, description: meta.description, nodes }
       }),
-    [architectureModel.stageBuckets, nodeOverrides, showInfraOverlay],
+    [architectureModel.stageBuckets, architectureStageMeta, nodeOverrides, showInfraOverlay],
   )
   const visibleNodes = useMemo(
     () => visibleStageBuckets.flatMap((bucket) => bucket.nodes),
@@ -1031,7 +1073,7 @@ export function ArchitecturePage() {
               <div className="architecture-card-title-row">
                 <strong>{selectedNode.label}</strong>
                 <span className={`mini-chip architecture-stage-chip architecture-stage-chip-${selectedNode.stage}`}>
-                  {ARCHITECTURE_STAGE_META[selectedNode.stage].label}
+                  {architectureStageMeta[selectedNode.stage].label}
                 </span>
               </div>
               <p className="hint architecture-detail-description">{selectedNode.description}</p>
@@ -1075,7 +1117,7 @@ export function ArchitecturePage() {
                   >
                     {ARCHITECTURE_STAGE_ORDER.map((stage) => (
                       <option key={stage} value={stage}>
-                        {ARCHITECTURE_STAGE_META[stage].label}
+                        {architectureStageMeta[stage].label}
                       </option>
                     ))}
                   </select>
@@ -1231,7 +1273,7 @@ export function ArchitecturePage() {
           >
             <div className="architecture-stage-board">
               {visibleStageBuckets.map((bucket) => {
-            const meta = ARCHITECTURE_STAGE_META[bucket.stage]
+            const meta = architectureStageMeta[bucket.stage]
             return (
               <section key={bucket.stage} className="architecture-stage-column">
                 <div className="architecture-stage-header" style={{ borderColor: meta.accent }}>
@@ -1342,7 +1384,7 @@ export function ArchitecturePage() {
                         <div>
                           <strong>{source.shortLabel} → {target.shortLabel}</strong>
                           <p>
-                            {ARCHITECTURE_STAGE_META[edge.sourceStage].label} → {ARCHITECTURE_STAGE_META[edge.targetStage].label}
+                            {architectureStageMeta[edge.sourceStage].label} → {architectureStageMeta[edge.targetStage].label}
                             {' • '}
                             {edge.kinds.includes('synthetic') ? 'synthetic stage flow' : 'topology-backed'}
                           </p>
@@ -1376,7 +1418,7 @@ export function ArchitecturePage() {
                       <div>
                         <strong>{node.shortLabel}</strong>
                         <p className="hint">
-                          {node.label} • {ARCHITECTURE_STAGE_META[node.stage].label} • {node.familyLabel} • {node.nodeCount} item
+                          {node.label} • {architectureStageMeta[node.stage].label} • {node.familyLabel} • {node.nodeCount} item
                           {node.nodeCount === 1 ? '' : 's'}
                         </p>
                       </div>
