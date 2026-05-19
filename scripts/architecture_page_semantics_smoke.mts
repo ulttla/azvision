@@ -156,7 +156,7 @@ assert.match(archPageCode, /arch-annotation-add-btn/, 'ArchitecturePage should e
 assert.match(archPageCode, /arch-annotation-delete-btn/, 'ArchitecturePage should expose annotation delete action')
 assert.match(archPageCode, /arch\.notes\.heading/, 'ArchitecturePage should render a presentation notes panel with localized heading')
 assert.match(archPageCode, /arch\.notes\.noNotes/, 'ArchitecturePage should describe annotations as source-safe override delta via localized message')
-assert.match(archPageCode, /renderArchitectureSvg\(visibleStageBuckets, visibleEdges, \{ annotations \}\)/, 'ArchitecturePage should include annotations in export-safe SVG rendering')
+assert.match(archPageCode, /renderArchitectureSvg\(visibleStageBuckets, visibleEdges, \{[\s\S]*annotations[\s\S]*\}\)/, 'ArchitecturePage should include annotations in export-safe SVG rendering')
 assert.match(archModelCode, /annotationMarkup/, 'architecture/model should render annotations into the SVG diagram')
 
 // ============================================================

@@ -607,8 +607,16 @@ export function ArchitecturePage() {
   }, [selectedNode, selectedNodeId])
 
   const svgDiagram = useMemo(
-    () => renderArchitectureSvg(visibleStageBuckets, visibleEdges, { annotations }),
-    [annotations, visibleEdges, visibleStageBuckets],
+    () => renderArchitectureSvg(visibleStageBuckets, visibleEdges, {
+      annotations,
+      labels: {
+        noMappedResources: t('arch.zones.noMappedCards'),
+        sharedScope: t('arch.common.shared'),
+        item: t('arch.common.item'),
+        items: t('arch.common.items'),
+      },
+    }),
+    [annotations, t, visibleEdges, visibleStageBuckets],
   )
 
   const isInitialTopologyLoad = topologyLoading && topology === null
