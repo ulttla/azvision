@@ -3870,7 +3870,7 @@ export function TopologyPage() {
                       value={pathProtocolInput}
                       onChange={(event) => setPathProtocolInput(event.target.value)}
                       placeholder={t('topology.placeholder.protocol')}
-                      aria-label="Path analysis protocol"
+                      aria-label={t('topology.detail.pathProtocol')}
                     />
                     <input
                       className="search-input"
@@ -3878,7 +3878,7 @@ export function TopologyPage() {
                       value={pathSourceAddressInput}
                       onChange={(event) => setPathSourceAddressInput(event.target.value)}
                       placeholder={t('topology.placeholder.sourcePrefix')}
-                      aria-label="Path analysis source address prefix"
+                      aria-label={t('topology.placeholder.sourcePrefix')}
                     />
                     <input
                       className="search-input"
@@ -3886,7 +3886,7 @@ export function TopologyPage() {
                       value={pathDestinationAddressInput}
                       onChange={(event) => setPathDestinationAddressInput(event.target.value)}
                       placeholder={t('topology.placeholder.destinationPrefix')}
-                      aria-label="Path analysis destination address prefix"
+                      aria-label={t('topology.placeholder.destinationPrefix')}
                     />
                     <input
                       className="search-input"
@@ -3896,7 +3896,7 @@ export function TopologyPage() {
                       value={pathSourcePortInput}
                       onChange={(event) => setPathSourcePortInput(event.target.value)}
                       placeholder={t('topology.placeholder.sourcePort')}
-                      aria-label="Path analysis source port"
+                      aria-label={t('topology.detail.pathSourcePort')}
                     />
                     <input
                       className="search-input"
@@ -3906,7 +3906,7 @@ export function TopologyPage() {
                       value={pathDestinationPortInput}
                       onChange={(event) => setPathDestinationPortInput(event.target.value)}
                       placeholder={t('topology.placeholder.destinationPort')}
-                      aria-label="Path analysis destination port"
+                      aria-label={t('topology.detail.pathDestinationPort')}
                     />
                   </div>
                   <div className="button-row detail-button-row">

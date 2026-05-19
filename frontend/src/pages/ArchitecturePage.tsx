@@ -1061,7 +1061,7 @@ export function ArchitecturePage() {
                     value={selectedNodeDisplayNameOverride(selectedNode)}
                     onChange={(event) => updateSelectedNodeOverride({ displayNameOverride: event.target.value })}
                     placeholder={selectedNode.label}
-                    aria-label="Architecture presentation label override"
+                    aria-label={t('arch.detail.presentationLabel')}
                     data-testid="arch-detail-label-override"
                   />
                 </label>
@@ -1070,7 +1070,7 @@ export function ArchitecturePage() {
                   <select
                     value={selectedNodeStageOverride(selectedNode)}
                     onChange={(event) => updateSelectedNodeOverride({ stageKeyOverride: event.target.value as ArchitectureStage })}
-                    aria-label="Architecture presentation stage override"
+                    aria-label={t('arch.detail.presentationStage')}
                     data-testid="arch-detail-stage-override"
                   >
                     {ARCHITECTURE_STAGE_ORDER.map((stage) => (
@@ -1086,7 +1086,7 @@ export function ArchitecturePage() {
                   type="button"
                   className="toolbar-button"
                   onClick={() => hideArchitectureNode(selectedNode)}
-                  aria-label={`Hide ${selectedNode.label} from architecture view`}
+                  aria-label={`${t('arch.detail.hideFromArch')}: ${selectedNode.label}`}
                   data-testid="arch-detail-hide-btn"
                 >
                   {t('arch.detail.hideFromArch')}
@@ -1139,14 +1139,14 @@ export function ArchitecturePage() {
             value={annotationDraft}
             onChange={(event) => setAnnotationDraft(event.target.value.slice(0, 280))}
             placeholder={t('arch.notes.placeholder')}
-            aria-label="Architecture annotation text"
+            aria-label={t('arch.notes.placeholder')}
             data-testid="arch-annotation-draft"
           />
           <div className="button-row architecture-annotation-actions">
             <select
               value={annotationTone}
               onChange={(event) => setAnnotationTone(event.target.value as ArchitectureAnnotation['tone'])}
-              aria-label="Architecture annotation tone"
+              aria-label={t('arch.notes.toneNote')}
               data-testid="arch-annotation-tone"
             >
               <option value="note">{t('arch.notes.toneNote')}</option>
@@ -1172,7 +1172,7 @@ export function ArchitecturePage() {
                   <select
                     value={annotation.tone}
                     onChange={(event) => updateAnnotationTone(annotation.id, event.target.value as ArchitectureAnnotation['tone'])}
-                    aria-label="Update annotation tone"
+                    aria-label={t('arch.notes.toneNote')}
                     data-testid="arch-annotation-item-tone"
                   >
                     <option value="note">{t('arch.notes.toneNote')}</option>
@@ -1191,7 +1191,7 @@ export function ArchitecturePage() {
                 <textarea
                   value={annotation.text}
                   onChange={(event) => updateAnnotation(annotation.id, event.target.value)}
-                  aria-label="Edit architecture annotation"
+                  aria-label={t('arch.notes.placeholder')}
                   data-testid="arch-annotation-item-text"
                 />
               </article>

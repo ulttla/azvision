@@ -50,11 +50,11 @@ for (const stateName of requiredStateNames) {
 
 assert.match(topoPageCode, /function runPathAnalysis\(/, 'TopologyPage should define runPathAnalysis')
 assert.match(topoPageCode, /getPathAnalysis\(/, 'TopologyPage should call getPathAnalysis')
-assert.match(topoPageCode, /aria-label="Path analysis protocol"/, 'Protocol input should be accessible')
-assert.match(topoPageCode, /aria-label="Path analysis source address prefix"/, 'Source prefix input should be accessible')
-assert.match(topoPageCode, /aria-label="Path analysis destination address prefix"/, 'Destination prefix input should be accessible')
-assert.match(topoPageCode, /aria-label="Path analysis source port"/, 'Source port input should be accessible')
-assert.match(topoPageCode, /aria-label="Path analysis destination port"/, 'Destination port input should be accessible')
+assert.match(topoPageCode, /aria-label=\{t\('topology\.detail\.pathProtocol'\)\}/, 'Protocol input should use localized accessible label')
+assert.match(topoPageCode, /aria-label=\{t\('topology\.placeholder\.sourcePrefix'\)\}/, 'Source prefix input should use localized accessible label')
+assert.match(topoPageCode, /aria-label=\{t\('topology\.placeholder\.destinationPrefix'\)\}/, 'Destination prefix input should use localized accessible label')
+assert.match(topoPageCode, /aria-label=\{t\('topology\.detail\.pathSourcePort'\)\}/, 'Source port input should use localized accessible label')
+assert.match(topoPageCode, /aria-label=\{t\('topology\.detail\.pathDestinationPort'\)\}/, 'Destination port input should use localized accessible label')
 
 // ============================================================
 // Section 3: Peering evidence clarity and conservative semantics
