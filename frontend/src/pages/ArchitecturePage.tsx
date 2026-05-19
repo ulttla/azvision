@@ -923,7 +923,7 @@ export function ArchitecturePage() {
                     key={subscription.subscription_id ?? subscription.display_name ?? 'subscription'}
                     value={subscription.subscription_id ?? ''}
                   >
-                    {subscription.display_name ?? subscription.subscription_id ?? 'Unnamed subscription'}
+                    {subscription.display_name ?? subscription.subscription_id ?? t('arch.workspace.unnamedSubscription')}
                   </option>
                 ))}
               </select>
@@ -935,7 +935,7 @@ export function ArchitecturePage() {
                 <option value="">{t('arch.workspace.allRGs')}</option>
                 {availableResourceGroups.map((resourceGroup) => (
                   <option key={resourceGroup.id ?? resourceGroup.name ?? 'resource-group'} value={resourceGroup.name ?? ''}>
-                    {resourceGroup.name ?? 'Unnamed RG'}
+                    {resourceGroup.name ?? t('arch.workspace.unnamedRG')}
                     {resourceGroup.location ? ` • ${resourceGroup.location}` : ''}
                   </option>
                 ))}
@@ -1324,7 +1324,7 @@ export function ArchitecturePage() {
                             className="toolbar-button search-inline-button"
                             onClick={() => moveArchitectureNode(node, -1)}
                             disabled={index === 0}
-                            aria-label={`Move ${node.shortLabel} earlier in ${meta.label}`}
+                            aria-label={t('arch.zones.moveEarlier').replace('{name}', node.shortLabel).replace('{stage}', meta.label)}
                             data-testid="arch-node-move-earlier-btn"
                           >
                             {t('arch.zones.earlier')}
@@ -1334,7 +1334,7 @@ export function ArchitecturePage() {
                             className="toolbar-button search-inline-button"
                             onClick={() => moveArchitectureNode(node, 1)}
                             disabled={index === bucket.nodes.length - 1}
-                            aria-label={`Move ${node.shortLabel} later in ${meta.label}`}
+                            aria-label={t('arch.zones.moveLater').replace('{name}', node.shortLabel).replace('{stage}', meta.label)}
                             data-testid="arch-node-move-later-btn"
                           >
                             {t('arch.zones.later')}
@@ -1343,7 +1343,7 @@ export function ArchitecturePage() {
                             type="button"
                             className="toolbar-button search-inline-button"
                             onClick={() => hideArchitectureNode(node)}
-                            aria-label={`Hide ${node.shortLabel} from architecture view`}
+                            aria-label={t('arch.zones.hideFromView').replace('{name}', node.shortLabel)}
                             data-testid="arch-node-hide-btn"
                           >
                             {t('arch.zones.hide')}
@@ -1386,7 +1386,7 @@ export function ArchitecturePage() {
                           <p>
                             {architectureStageMeta[edge.sourceStage].label} → {architectureStageMeta[edge.targetStage].label}
                             {' • '}
-                            {edge.kinds.includes('synthetic') ? 'synthetic stage flow' : 'topology-backed'}
+                            {edge.kinds.includes('synthetic') ? t('arch.flow.syntheticStageFlow') : t('arch.flow.topologyBacked')}
                           </p>
                         </div>
                         <div className="button-row architecture-flow-meta">
@@ -1418,8 +1418,7 @@ export function ArchitecturePage() {
                       <div>
                         <strong>{node.shortLabel}</strong>
                         <p className="hint">
-                          {node.label} • {architectureStageMeta[node.stage].label} • {node.familyLabel} • {node.nodeCount} item
-                          {node.nodeCount === 1 ? '' : 's'}
+                          {node.label} • {architectureStageMeta[node.stage].label} • {node.familyLabel} • {node.nodeCount} {node.nodeCount === 1 ? t('arch.common.item') : t('arch.common.items')}
                         </p>
                       </div>
                       <button

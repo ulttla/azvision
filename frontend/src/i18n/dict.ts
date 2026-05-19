@@ -448,6 +448,8 @@ export const dict = {
     'arch.workspace.loading': 'Loading workspaces…',
     'arch.workspace.allSubs': 'All subscriptions',
     'arch.workspace.allRGs': 'All resource groups',
+    'arch.workspace.unnamedSubscription': 'Unnamed subscription',
+    'arch.workspace.unnamedRG': 'Unnamed RG',
     'arch.workspace.generatedAt': 'Generated at:',
     'arch.workspace.scope': 'Scope:',
     'arch.workspace.inventoryNote': 'Inventory note:',
@@ -528,11 +530,16 @@ export const dict = {
     'arch.zones.earlier': 'Earlier',
     'arch.zones.later': 'Later',
     'arch.zones.hide': 'Hide',
+    'arch.zones.moveEarlier': 'Move {name} earlier in {stage}',
+    'arch.zones.moveLater': 'Move {name} later in {stage}',
+    'arch.zones.hideFromView': 'Hide {name} from architecture view',
 
     // ── Architecture Page flow summary ────────────────────
     'arch.flow.heading': 'Flow Summary',
     'arch.flow.aggregatedEdges': 'Aggregated simplified edges',
     'arch.flow.noEdges': 'No visible simplified edges after current presentation overrides.',
+    'arch.flow.syntheticStageFlow': 'synthetic stage flow',
+    'arch.flow.topologyBacked': 'topology-backed',
 
     // ── Architecture Page hidden cards ────────────────────
     'arch.hidden.heading': 'Hidden Cards',
@@ -1019,6 +1026,8 @@ export const dict = {
     'arch.workspace.loading': '워크스페이스 로딩 중…',
     'arch.workspace.allSubs': '모든 구독',
     'arch.workspace.allRGs': '모든 리소스 그룹',
+    'arch.workspace.unnamedSubscription': '이름 없는 구독',
+    'arch.workspace.unnamedRG': '이름 없는 RG',
     'arch.workspace.generatedAt': '생성 시각:',
     'arch.workspace.scope': '범위:',
     'arch.workspace.inventoryNote': '인벤토리 참고:',
@@ -1099,11 +1108,16 @@ export const dict = {
     'arch.zones.earlier': '앞으로',
     'arch.zones.later': '뒤로',
     'arch.zones.hide': '숨기기',
+    'arch.zones.moveEarlier': '{name}을 {stage}에서 앞으로 이동',
+    'arch.zones.moveLater': '{name}을 {stage}에서 뒤로 이동',
+    'arch.zones.hideFromView': '{name}을 아키텍처 뷰에서 숨기기',
 
     // ── Architecture Page flow summary ────────────────────
     'arch.flow.heading': '흐름 요약',
     'arch.flow.aggregatedEdges': '집계된 간소화 엣지',
     'arch.flow.noEdges': '현재 프레젠테이션 오버라이드 후 표시되는 간소화 엣지가 없습니다.',
+    'arch.flow.syntheticStageFlow': '합성 스테이지 흐름',
+    'arch.flow.topologyBacked': '토폴로지 기반',
 
     // ── Architecture Page hidden cards ────────────────────
     'arch.hidden.heading': '숨겨진 카드',
