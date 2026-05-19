@@ -559,7 +559,7 @@ export function TopologyPage() {
       setSavedSnapshots(nextSnapshots)
     } catch (error) {
       setSavedSnapshots([])
-      setExportMessage(error instanceof Error ? error.message : 'Snapshot load failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotLoadFailed'))
     } finally {
       setSnapshotsLoading(false)
     }
@@ -592,7 +592,7 @@ export function TopologyPage() {
     } catch (error) {
       setManualNodes([])
       setManualEdges([])
-      setExportMessage(error instanceof Error ? error.message : 'Manual modeling load failed')
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.manualModelingLoadFailed'))
     } finally {
       setManualLoading(false)
     }
@@ -614,7 +614,7 @@ export function TopologyPage() {
             : workspaceItems[0]?.id ?? '',
         )
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
+        setError(err instanceof Error ? err.message : t('topology.error.unknown'))
       } finally {
         setLoading(false)
       }
@@ -730,7 +730,7 @@ export function TopologyPage() {
         setAvailableResourceGroups([])
         setAvailableResources([])
         setInventorySummary(null)
-        setInventoryWarning(err instanceof Error ? err.message : 'Inventory scope load failed')
+        setInventoryWarning(err instanceof Error ? err.message : t('topology.error.inventoryScopeLoadFailed'))
       } finally {
         if (active) {
           setInventoryLoading(false)
@@ -808,7 +808,7 @@ export function TopologyPage() {
         setTopology(null)
         setSelectedNodeKey('')
         setNodeDetail(null)
-        setError(err instanceof Error ? err.message : 'Unknown error')
+        setError(err instanceof Error ? err.message : t('topology.error.unknown'))
       } finally {
         setTopologyLoading(false)
       }
