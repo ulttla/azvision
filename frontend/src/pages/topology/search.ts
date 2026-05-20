@@ -248,8 +248,8 @@ export function getSearchScopeMeta(scope: SearchScope, labels?: SearchLabels) {
 
   if (scope === 'child-only') {
     return {
-      label: 'Expanded child nodes',
-      placeholder: 'child database name, type, location, node key...',
+      label: '확장된 자식 노드',
+      placeholder: '자식 데이터베이스 이름, 유형, 위치, 노드 키...',
       hint: UI_TEXT.searchScopes.childOnly.hint,
       empty: UI_TEXT.searchScopes.childOnly.empty,
     }
@@ -257,16 +257,16 @@ export function getSearchScopeMeta(scope: SearchScope, labels?: SearchLabels) {
 
   if (scope === 'collapsed-preview') {
     return {
-      label: 'Collapsed child previews',
-      placeholder: 'collapsed child sample name...',
+      label: '접힌 자식 미리보기',
+      placeholder: '접힌 자식 샘플 이름...',
       hint: UI_TEXT.searchScopes.collapsedPreview.hint,
       empty: UI_TEXT.searchScopes.collapsedPreview.empty,
     }
   }
 
   return {
-    label: 'Visible nodes',
-    placeholder: 'name, resource group, type, location, node key...',
+    label: '표시된 노드',
+    placeholder: '이름, 리소스 그룹, 유형, 위치, 노드 키...',
     hint: UI_TEXT.searchScopes.visible.hint,
     empty: UI_TEXT.searchScopes.visible.empty,
   }
