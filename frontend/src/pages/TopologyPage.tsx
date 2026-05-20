@@ -538,20 +538,88 @@ export function TopologyPage() {
   const presetImportInputRef = useRef<HTMLInputElement | null>(null)
   const snapshotImportInputRef = useRef<HTMLInputElement | null>(null)
 
+  function tr(key: Parameters<typeof t>[0], replacements: Record<string, string | number> = {}) {
+    return Object.entries(replacements).reduce(
+      (text, [placeholder, value]) => text.split(`{${placeholder}}`).join(String(value)),
+      t(key),
+    )
+  }
+
+  function formatSnapshotScopeText(subscriptionId: string, resourceGroupName: string) {
+    return [
+      subscriptionId
+        ? tr('topology.snapshots.scopeSubscription', { id: subscriptionId })
+        : t('topology.snapshots.scopeAllSubscriptions'),
+      resourceGroupName
+        ? tr('topology.snapshots.scopeResourceGroup', { name: resourceGroupName })
+        : t('topology.snapshots.scopeAllResourceGroups'),
+    ].join(' • ')
+  }
+
+  function formatTimestampText(key: Parameters<typeof t>[0], value: string, relativeTime?: string) {
+    return tr(key, { time: `${formatDateTime(value)}${relativeTime ? ` (${relativeTime})` : ''}` })
+  }
+
+  function formatSnapshotImportSummary(importedCount: number, skippedCount: number, failedCount: number) {
+    if (!importedCount && !skippedCount && !failedCount) {
+      return t('topology.snapshots.importNone')
+    }
+    return tr('topology.snapshots.importedSummary', {
+      imported: importedCount,
+      skipped: skippedCount,
+      failed: failedCount,
+    })
+  }
+
+  function formatLocalizedRelativeTime(value?: string) {
+    if (!value) {
+      return ''
+    }
+
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return ''
+    }
+
+    const diffMs = Date.now() - date.getTime()
+    const diffSec = Math.floor(diffMs / 1000)
+    if (diffSec < 60) return t('topology.common.justNow')
+    const diffMin = Math.floor(diffSec / 60)
+    if (diffMin < 60) return tr('topology.common.minutesAgo', { count: diffMin })
+    const diffHr = Math.floor(diffMin / 60)
+    if (diffHr < 24) return tr('topology.common.hoursAgo', { count: diffHr })
+    const diffDay = Math.floor(diffHr / 24)
+    if (diffDay < 30) return tr('topology.common.daysAgo', { count: diffDay })
+    const diffMo = Math.floor(diffDay / 30)
+    if (diffMo < 12) return tr('topology.common.monthsAgo', { count: diffMo })
+    return tr('topology.common.yearsAgo', { count: Math.floor(diffMo / 12) })
+  }
+
+  function formatLocalizedDeltaCounts(delta?: { added: unknown[]; removed: unknown[]; changed: unknown[] }) {
+    return tr('topology.common.deltaCounts', {
+      added: delta?.added.length ?? 0,
+      removed: delta?.removed.length ?? 0,
+      changed: delta?.changed.length ?? 0,
+    })
+  }
+
+  function localizeSnapshotStorageMessage(message: string) {
+    if (message === UI_TEXT.snapshotStorageReadFailed) return t('topology.error.snapshotStorageReadFailed')
+    if (message === UI_TEXT.snapshotStorageWriteFailed) return t('topology.error.snapshotStorageWriteFailed')
+    if (message === UI_TEXT.snapshotServerThumbnailRejectedWarning) return t('topology.snapshots.serverThumbnailRejectedWarning')
+    if (message === UI_TEXT.snapshotLocalThumbnailRejectedWarning) return t('topology.snapshots.localThumbnailRejectedWarning')
+    if (message === UI_TEXT.snapshotStorageNearLimit) return t('topology.snapshots.storageNearLimit')
+    if (message === UI_TEXT.snapshotStorageQuotaExceeded) return t('topology.snapshots.storageQuotaExceeded')
+    return message
+  }
+
   useEffect(() => {
     const storageWarning = consumeTopologySnapshotStorageWarning()
     if (!storageWarning) {
       return
     }
 
-    const localizedStorageWarning =
-      storageWarning === UI_TEXT.snapshotStorageReadFailed
-        ? t('topology.error.snapshotStorageReadFailed')
-        : storageWarning === UI_TEXT.snapshotStorageWriteFailed
-          ? t('topology.error.snapshotStorageWriteFailed')
-          : storageWarning
-
-    setExportMessage(localizedStorageWarning)
+    setExportMessage(localizeSnapshotStorageMessage(storageWarning))
   }, [t])
 
   async function refreshSavedSnapshots(workspaceId = selectedWorkspaceId) {
@@ -1470,7 +1538,7 @@ export function TopologyPage() {
     const counts = new Map<string, number>()
 
     for (const resource of inventorySummary?.items.resources ?? []) {
-      const resourceType = resource.type?.trim() || 'unknown type'
+      const resourceType = resource.type?.trim() || t('topology.workspace.unknownType')
       counts.set(resourceType, (counts.get(resourceType) ?? 0) + 1)
     }
 
@@ -1483,7 +1551,7 @@ export function TopologyPage() {
         return left.resourceType.localeCompare(right.resourceType)
       })
       .slice(0, 5)
-  }, [inventorySummary])
+  }, [inventorySummary, t])
   const searchScopeMeta = useMemo(() => getSearchScopeMeta(searchScope, searchLabels), [searchLabels, searchScope])
   const currentPresetState = useMemo<TopologyPresetState>(
     () => ({
@@ -1625,10 +1693,10 @@ export function TopologyPage() {
   )
   const compareLayoutStatus =
     expandedManagedInstanceRefs.length >= 2
-      ? `compare lane mode • ${expandedManagedInstanceRefs.length} MI horizontal spread`
+      ? tr('topology.controls.compareLayoutMode', { count: expandedManagedInstanceRefs.length })
       : clusterManagedInstanceChildren
-        ? 'cluster layout mode • MI child compound grouping on'
-        : 'default topology layout'
+        ? t('topology.controls.clusterLayoutMode')
+        : t('topology.controls.defaultLayoutMode')
   const canExportTopology = Boolean(selectedWorkspaceId && graphElements.length && !topologyLoading && !graphRuntimeLoading)
   const exportUnavailableMessage = topologyLoading
     ? t('topology.export.unavailableLoading')
@@ -1647,11 +1715,11 @@ export function TopologyPage() {
   )
   const detailScopeSummary = useMemo(
     () =>
-      UI_TEXT.snapshotScopeMeta(
+      formatSnapshotScopeText(
         detailScope?.subscriptionId ?? selectedSubscriptionId,
         detailScope?.resourceGroupName ?? focusedResourceGroupName,
       ),
-    [detailScope, focusedResourceGroupName, selectedSubscriptionId],
+    [detailScope, focusedResourceGroupName, selectedSubscriptionId, t],
   )
   const hasDetailScopeContext = Boolean(
     detailScope?.subscriptionId ||
@@ -1767,7 +1835,7 @@ export function TopologyPage() {
     const now = new Date().toISOString()
     const nextPreset: SavedTopologyPreset = {
       id: createPresetId(),
-      name: presetNameInput.trim() || `${UI_TEXT.defaultPresetName} ${savedPresets.length + 1}`,
+      name: presetNameInput.trim() || `${t('topology.presets.defaultName')} ${savedPresets.length + 1}`,
       createdAt: now,
       updatedAt: now,
       ...sanitizePresetState(currentPresetState),
@@ -1777,7 +1845,7 @@ export function TopologyPage() {
     setSavedPresets(nextPresets)
     persistSavedTopologyPresets(nextPresets)
     setPresetNameInput('')
-    setExportMessage(`${UI_TEXT.savedPresetPrefix} ${nextPreset.name}`)
+    setExportMessage(`${t('topology.presets.savedPrefix')} ${nextPreset.name}`)
   }
 
   async function handleSaveCurrentSnapshot() {
@@ -1789,7 +1857,7 @@ export function TopologyPage() {
     const thumbnailDataUrl = buildSnapshotThumbnailDataUrl(cyRef.current)
     let nextSnapshot: SavedTopologySnapshot = {
       id: createPresetId(),
-      name: snapshotNameInput.trim() || `${UI_TEXT.defaultSnapshotName} ${savedSnapshots.length + 1}`,
+      name: snapshotNameInput.trim() || `${t('topology.snapshots.defaultName')} ${savedSnapshots.length + 1}`,
       capturedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -1825,13 +1893,13 @@ export function TopologyPage() {
     }
 
     const successMessage = savedWithoutThumbnail
-      ? `${UI_TEXT.savedSnapshotPrefix} ${nextSnapshot.name} — ${UI_TEXT.snapshotSavedWithoutThumbnailSuffix}`
-      : `${UI_TEXT.savedSnapshotPrefix} ${nextSnapshot.name}`
+      ? `${t('topology.snapshots.savedPrefix')} ${nextSnapshot.name} — ${t('topology.snapshots.savedWithoutThumbnail')}`
+      : `${t('topology.snapshots.savedPrefix')} ${nextSnapshot.name}`
 
     try {
       const result = await snapshotStorageProvider.create(selectedWorkspaceId, nextSnapshot)
       await refreshSavedSnapshots(selectedWorkspaceId)
-      setExportMessage(result.warning ? `${successMessage} — ${result.warning}` : successMessage)
+      setExportMessage(result.warning ? `${successMessage} — ${localizeSnapshotStorageMessage(result.warning)}` : successMessage)
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
       return
@@ -1855,7 +1923,7 @@ export function TopologyPage() {
     setNodeDetail(null)
     setSearchResultIndex(0)
     setPendingFocusNodeKey('')
-    setExportMessage(`${UI_TEXT.loadedPresetPrefix} ${preset.name}`)
+    setExportMessage(`${t('topology.presets.loadedPrefix')} ${preset.name}`)
   }
 
   async function handleLoadSavedSnapshot(snapshot: SavedTopologySnapshot) {
@@ -1878,7 +1946,7 @@ export function TopologyPage() {
     try {
       await snapshotStorageProvider.recordRestore(snapshot.workspaceId, snapshot.id)
       await refreshSavedSnapshots(snapshot.workspaceId)
-      setExportMessage(`${UI_TEXT.loadedSnapshotPrefix} ${snapshot.name} — ${UI_TEXT.snapshotRestoreNotice}`)
+      setExportMessage(`${t('topology.snapshots.loadedPrefix')} ${snapshot.name} — ${t('topology.snapshots.restoreNotice')}`)
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     }
@@ -1889,7 +1957,7 @@ export function TopologyPage() {
       return
     }
 
-    const nextName = window.prompt(UI_TEXT.snapshotRenamePrompt, snapshot.name)?.trim()
+    const nextName = window.prompt(t('topology.snapshots.renamePrompt'), snapshot.name)?.trim()
     if (!nextName || nextName === snapshot.name) {
       return
     }
@@ -1897,7 +1965,7 @@ export function TopologyPage() {
     try {
       await snapshotStorageProvider.update(selectedWorkspaceId, snapshot.id, { name: nextName })
       await refreshSavedSnapshots(selectedWorkspaceId)
-      setExportMessage(`${UI_TEXT.renamedSnapshotPrefix} ${nextName}`)
+      setExportMessage(`${t('topology.snapshots.renamedPrefix')} ${nextName}`)
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     }
@@ -1908,7 +1976,7 @@ export function TopologyPage() {
       return
     }
 
-    const nextName = window.prompt(UI_TEXT.presetRenamePrompt, preset.name)?.trim()
+    const nextName = window.prompt(t('topology.presets.renamePrompt'), preset.name)?.trim()
     if (!nextName || nextName === preset.name) {
       return
     }
@@ -1925,29 +1993,29 @@ export function TopologyPage() {
 
     setSavedPresets(nextPresets)
     persistSavedTopologyPresets(nextPresets)
-    setExportMessage(`${UI_TEXT.renamedPresetPrefix} ${nextName}`)
+    setExportMessage(`${t('topology.presets.renamedPrefix')} ${nextName}`)
   }
 
   function handleDeleteSavedPreset(preset: SavedTopologyPreset) {
-    if (typeof window !== 'undefined' && !window.confirm(UI_TEXT.presetDeleteConfirm(preset.name))) {
+    if (typeof window !== 'undefined' && !window.confirm(tr('topology.presets.deleteConfirm', { name: preset.name }))) {
       return
     }
 
     const nextPresets = savedPresets.filter((item) => item.id !== preset.id)
     setSavedPresets(nextPresets)
     persistSavedTopologyPresets(nextPresets)
-    setExportMessage(`${UI_TEXT.deletedPresetPrefix} ${preset.name}`)
+    setExportMessage(`${t('topology.presets.deletedPrefix')} ${preset.name}`)
   }
 
   async function handleDeleteSavedSnapshot(snapshot: SavedTopologySnapshot) {
-    if (typeof window !== 'undefined' && !window.confirm(UI_TEXT.snapshotDeleteConfirm(snapshot.name))) {
+    if (typeof window !== 'undefined' && !window.confirm(tr('topology.snapshots.deleteConfirm', { name: snapshot.name }))) {
       return
     }
 
     try {
       await snapshotStorageProvider.remove(selectedWorkspaceId, snapshot.id)
       await refreshSavedSnapshots(selectedWorkspaceId)
-      setExportMessage(`${UI_TEXT.deletedSnapshotPrefix} ${snapshot.name}`)
+      setExportMessage(`${t('topology.snapshots.deletedPrefix')} ${snapshot.name}`)
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     }
@@ -1960,7 +2028,7 @@ export function TopologyPage() {
       })
       await refreshSavedSnapshots(selectedWorkspaceId)
       setExportMessage(
-        `${snapshot.isPinned ? UI_TEXT.unpinSnapshot : UI_TEXT.pinSnapshot}: ${snapshot.name}`,
+        `${snapshot.isPinned ? t('topology.snapshots.unpin') : t('topology.snapshots.pin')}: ${snapshot.name}`,
       )
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
@@ -1974,7 +2042,7 @@ export function TopologyPage() {
       })
       await refreshSavedSnapshots(selectedWorkspaceId)
       setExportMessage(
-        `${snapshot.archivedAt ? UI_TEXT.unarchiveSnapshot : UI_TEXT.archiveSnapshot}: ${snapshot.name}`,
+        `${snapshot.archivedAt ? t('topology.snapshots.unarchive') : t('topology.snapshots.archive')}: ${snapshot.name}`,
       )
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
@@ -2004,7 +2072,7 @@ export function TopologyPage() {
       const summary = result.summary.length ? result.summary.join(' • ') : t('topology.snapshot.noMetadataDiff')
       const archiveSummary =
         topologyResult.archive_status === 'available'
-          ? `${t('topology.snapshot.topologyNodes')} ${formatDeltaCounts(topologyResult.node_delta)}, ${t('topology.snapshot.edges')} ${formatDeltaCounts(topologyResult.edge_delta)}`
+          ? `${t('topology.snapshot.topologyNodes')} ${formatLocalizedDeltaCounts(topologyResult.node_delta)}, ${t('topology.snapshot.edges')} ${formatLocalizedDeltaCounts(topologyResult.edge_delta)}`
           : t('topology.snapshot.archiveMissingFallback')
       setExportMessage(`${t('topology.snapshot.comparePrefix')}: ${result.base_name} → ${result.target_name} — ${summary} — ${archiveSummary}`)
     } catch (error) {
@@ -2036,12 +2104,12 @@ export function TopologyPage() {
         setLocalSnapshotNoticeDismissed(true)
       }
 
-      const summaryMessage = UI_TEXT.snapshotImportSummary(
+      const summaryMessage = formatSnapshotImportSummary(
         summary.importedCount,
         summary.skippedCount,
         summary.failedCount,
       )
-      setExportMessage(summary.warning ? `${summaryMessage} — ${summary.warning}` : summaryMessage)
+      setExportMessage(summary.warning ? `${summaryMessage} — ${localizeSnapshotStorageMessage(summary.warning)}` : summaryMessage)
     } catch (error) {
       setExportMessage(error instanceof Error ? error.message : t('topology.error.snapshotStorageWriteFailed'))
     } finally {
@@ -2067,7 +2135,7 @@ export function TopologyPage() {
     anchor.download = `azvision-topology-presets-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`
     anchor.click()
     window.URL.revokeObjectURL(url)
-    setExportMessage(`${UI_TEXT.exportedPresetsPrefix} ${savedPresets.length}`)
+    setExportMessage(`${t('topology.presets.exportedPrefix')} ${savedPresets.length}`)
   }
 
   function handleExportSavedSnapshots() {
@@ -2088,7 +2156,7 @@ export function TopologyPage() {
     anchor.download = `azvision-topology-snapshots-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`
     anchor.click()
     window.URL.revokeObjectURL(url)
-    setExportMessage(`${UI_TEXT.exportedSnapshotsPrefix} ${savedSnapshots.length}`)
+    setExportMessage(`${t('topology.snapshots.exportedPrefix')} ${savedSnapshots.length}`)
   }
 
   function handleExportTopologyDiffMarkdown() {
@@ -2175,7 +2243,7 @@ export function TopologyPage() {
       const importedPresets = normalizeImportedPresetPayload(parsed)
 
       if (!importedPresets.length) {
-        setExportMessage(UI_TEXT.importNoValidPresets)
+        setExportMessage(t('topology.presets.noValidImport'))
         return
       }
 
@@ -2188,9 +2256,9 @@ export function TopologyPage() {
       const nextPresets = [...mergedPresets, ...savedPresets]
       setSavedPresets(nextPresets)
       persistSavedTopologyPresets(nextPresets)
-      setExportMessage(`${UI_TEXT.importedPresetsPrefix} ${mergedPresets.length}`)
+      setExportMessage(`${t('topology.presets.importedPrefix')} ${mergedPresets.length}`)
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.importInvalidJson)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.unknown'))
     }
   }
 
@@ -2208,7 +2276,7 @@ export function TopologyPage() {
       const importedSnapshots = normalizeImportedSnapshotPayload(parsed)
 
       if (!importedSnapshots.length) {
-        setExportMessage(UI_TEXT.importNoValidSnapshots)
+        setExportMessage(t('topology.snapshots.noValidImport'))
         return
       }
 
@@ -2227,16 +2295,16 @@ export function TopologyPage() {
       await refreshSavedSnapshots(selectedWorkspaceId)
       refreshLocalWorkspaceSnapshots(selectedWorkspaceId)
 
-      const summaryMessage = UI_TEXT.snapshotImportSummary(
+      const summaryMessage = formatSnapshotImportSummary(
         summary.importedCount,
         summary.skippedCount,
         summary.failedCount,
       )
       setExportMessage(
-        summary.warning ? `${summaryMessage} — ${summary.warning}` : summaryMessage,
+        summary.warning ? `${summaryMessage} — ${localizeSnapshotStorageMessage(summary.warning)}` : summaryMessage,
       )
     } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : UI_TEXT.importInvalidSnapshotJson)
+      setExportMessage(error instanceof Error ? error.message : t('topology.error.unknown'))
     }
   }
 
@@ -2275,7 +2343,7 @@ export function TopologyPage() {
 
       const exportRecord = await createExport(selectedWorkspaceId, 'png', imageDataUrl)
       setLastExport(exportRecord)
-      setExportMessage(`${UI_TEXT.exportSavedPrefix} ${exportRecord.output_path}`)
+      setExportMessage(`${t('topology.export.savedPrefix')} ${exportRecord.output_path}`)
     } catch (err) {
       setExportMessage(err instanceof Error ? err.message : t('topology.canvas.pngExportFailed'))
     } finally {
@@ -2315,7 +2383,7 @@ export function TopologyPage() {
 
       const exportRecord = await createExport(selectedWorkspaceId, 'pdf', pdfBase64)
       setLastExport(exportRecord)
-      setExportMessage(`${UI_TEXT.exportSavedPrefix} ${exportRecord.output_path}`)
+      setExportMessage(`${t('topology.export.savedPrefix')} ${exportRecord.output_path}`)
     } catch (err) {
       setExportMessage(err instanceof Error ? err.message : t('topology.canvas.pdfExportFailed'))
     } finally {
@@ -2845,8 +2913,8 @@ export function TopologyPage() {
           </div>
           {snapshotStorageMode === 'server' && localWorkspaceSnapshots.length > 0 && !localSnapshotNoticeDismissed ? (
             <div className="info-banner snapshot-import-banner">
-              <strong>{UI_TEXT.localSnapshotNoticeTitle(localWorkspaceSnapshots.length)}</strong>
-              <p className="hint snapshot-import-banner-copy">{UI_TEXT.localSnapshotNoticeBody}</p>
+              <strong>{tr('topology.snapshots.localNoticeTitle', { count: localWorkspaceSnapshots.length })}</strong>
+              <p className="hint snapshot-import-banner-copy">{t('topology.snapshots.localNoticeBody')}</p>
               <div className="button-row preset-toolbar-row snapshot-import-banner-actions">
                 <button
                   type="button"
@@ -2854,7 +2922,7 @@ export function TopologyPage() {
                   onClick={handleImportLocalSnapshots}
                   disabled={localSnapshotImporting || !selectedWorkspaceId}
                 >
-                  {localSnapshotImporting ? UI_TEXT.importingLocalSnapshots : UI_TEXT.importLocalSnapshots}
+                  {localSnapshotImporting ? t('topology.snapshots.importingLocal') : t('topology.snapshots.importLocal')}
                 </button>
                 <button
                   type="button"
@@ -2865,7 +2933,7 @@ export function TopologyPage() {
                   }}
                   disabled={localSnapshotImporting}
                 >
-                  {UI_TEXT.dismissLocalSnapshotNotice}
+                  {t('topology.snapshots.dismissLocalNotice')}
                 </button>
               </div>
             </div>
@@ -2977,7 +3045,7 @@ export function TopologyPage() {
                     <span className="mini-chip">{snapshotTopologyCompareResult.archive_status}</span>
                   </div>
                   <p className="hint preset-card-meta">
-                    {t('topology.snapshot.nodes')} {formatDeltaCounts(snapshotTopologyCompareResult.node_delta)} • {t('topology.snapshot.edges')} {formatDeltaCounts(snapshotTopologyCompareResult.edge_delta)}
+                    {t('topology.snapshot.nodes')} {formatLocalizedDeltaCounts(snapshotTopologyCompareResult.node_delta)} • {t('topology.snapshot.edges')} {formatLocalizedDeltaCounts(snapshotTopologyCompareResult.edge_delta)}
                   </p>
                   {snapshotTopologyCompareResult.summary.length ? (
                     <ul className="snapshot-diff-summary-list">
@@ -3069,49 +3137,58 @@ export function TopologyPage() {
                           <div className="preset-card-title-row">
                             <strong>{snapshot.name}</strong>
                             <span className={`mini-chip snapshot-source-chip snapshot-source-chip-${snapshot.storageKind}`}>
-                              {UI_TEXT.snapshotStorageBadgeLabel(snapshot.storageKind)}
+                              {snapshot.storageKind === 'server' ? t('topology.snapshots.storageServer') : t('topology.snapshots.storageLocal')}
                             </span>
-                            {snapshot.isPinned ? <span className="mini-chip">{UI_TEXT.pinnedSnapshotBadge}</span> : null}
+                            {snapshot.isPinned ? <span className="mini-chip">{t('topology.snapshots.pinnedBadge')}</span> : null}
                             {snapshotCompareBaseId === snapshot.id ? <span className="mini-chip">{t('topology.controls.compareBase')}</span> : null}
-                            {isArchivedSnapshot ? <span className="mini-chip">{UI_TEXT.archivedSnapshotBadge}</span> : null}
-                            {!snapshot.lastRestoredAt ? <span className="mini-chip">{UI_TEXT.neverRestoredSnapshotBadge}</span> : null}
-                            {isActiveSnapshot ? <span className="mini-chip">{UI_TEXT.activeSnapshotBadge}</span> : null}
+                            {isArchivedSnapshot ? <span className="mini-chip">{t('topology.snapshots.archivedBadge')}</span> : null}
+                            {!snapshot.lastRestoredAt ? <span className="mini-chip">{t('topology.snapshots.neverRestoredBadge')}</span> : null}
+                            {isActiveSnapshot ? <span className="mini-chip">{t('topology.snapshots.activeBadge')}</span> : null}
                           </div>
                           <p className="hint preset-card-meta">
-                            {UI_TEXT.snapshotMeta(
-                              getSearchScopeMeta(snapshot.scope, searchLabels).label,
-                              snapshot.compareRefs.length,
-                              workspacesById.get(snapshot.workspaceId)?.name ?? snapshot.workspaceId,
-                            )}
+                            {tr('topology.snapshots.meta', {
+                              workspace: workspacesById.get(snapshot.workspaceId)?.name ?? snapshot.workspaceId,
+                              scope: getSearchScopeMeta(snapshot.scope, searchLabels).label,
+                              count: snapshot.compareRefs.length,
+                            })}
                           </p>
                           <p className="hint preset-card-meta">
-                            {UI_TEXT.snapshotScopeMeta(snapshot.selectedSubscriptionId, snapshot.resourceGroupName)}
+                            {formatSnapshotScopeText(snapshot.selectedSubscriptionId, snapshot.resourceGroupName)}
                           </p>
                           <p className="hint preset-card-meta">
-                            {UI_TEXT.snapshotCounts(snapshot.visibleNodeCount, snapshot.loadedNodeCount, snapshot.edgeCount)}
+                            {tr('topology.snapshots.counts', {
+                              visible: snapshot.visibleNodeCount,
+                              loaded: snapshot.loadedNodeCount,
+                              edges: snapshot.edgeCount,
+                            })}
                           </p>
                           <p className="hint preset-card-meta">
-                            {UI_TEXT.snapshotStorageMeta(snapshot.storageKind)}
+                            {snapshot.storageKind === 'server' ? t('topology.snapshots.storageServerMeta') : t('topology.snapshots.storageLocalMeta')}
                           </p>
                           {snapshot.note ? <p className="hint snapshot-note">{snapshot.note}</p> : null}
                           <p className="hint preset-card-meta">
-                            Generated {formatDateTime(snapshot.topologyGeneratedAt)}
+                            {tr('topology.snapshots.generated', { time: formatDateTime(snapshot.topologyGeneratedAt) })}
                           </p>
                           <p className="hint preset-card-meta">
-                            {UI_TEXT.snapshotCapturedMeta(snapshot.capturedAt, formatRelativeTime(snapshot.capturedAt))}
+                            {formatTimestampText('topology.snapshots.captured', snapshot.capturedAt, formatLocalizedRelativeTime(snapshot.capturedAt))}
                           </p>
                           <p className="hint preset-card-meta">
-                            {UI_TEXT.snapshotUpdatedMeta(snapshot.updatedAt, formatRelativeTime(snapshot.updatedAt))}
+                            {formatTimestampText('topology.snapshots.updated', snapshot.updatedAt, formatLocalizedRelativeTime(snapshot.updatedAt))}
                           </p>
                           <p className="hint preset-card-meta">
-                            {UI_TEXT.snapshotRestoredMeta(snapshot.lastRestoredAt, snapshot.restoreCount, formatRelativeTime(snapshot.lastRestoredAt))}
+                            {snapshot.lastRestoredAt
+                              ? tr('topology.snapshots.restored', {
+                                time: `${formatDateTime(snapshot.lastRestoredAt)}${formatLocalizedRelativeTime(snapshot.lastRestoredAt) ? ` (${formatLocalizedRelativeTime(snapshot.lastRestoredAt)})` : ''}`,
+                                count: snapshot.restoreCount,
+                              })
+                              : t('topology.snapshots.neverRestored')}
                           </p>
                           {isArchivedSnapshot ? (
                             <p className="hint preset-card-meta">
-                              {UI_TEXT.snapshotArchivedMeta(snapshot.archivedAt, formatRelativeTime(snapshot.archivedAt))}
+                              {formatTimestampText('topology.snapshots.archivedAt', snapshot.archivedAt, formatLocalizedRelativeTime(snapshot.archivedAt))}
                             </p>
                           ) : null}
-                          <p className="hint storage-restore-meta">{UI_TEXT.snapshotRestoreMetaHint}</p>
+                          <p className="hint storage-restore-meta">{t('topology.snapshots.restoreMetaHint')}</p>
                         </div>
                         <div className="button-row preset-card-actions">
                           <button
@@ -3244,16 +3321,16 @@ export function TopologyPage() {
                       {isActivePreset ? <span className="mini-chip">{t('topology.presets.activeBadge')}</span> : null}
                     </div>
                     <p className="hint preset-card-meta">
-                      {UI_TEXT.presetMeta(
-                        getSearchScopeMeta(preset.scope, searchLabels).label,
-                        preset.compareRefs.length,
-                        workspacesById.get(preset.workspaceId)?.name ?? preset.workspaceId,
-                      )}
+                      {tr('topology.snapshots.meta', {
+                        workspace: workspacesById.get(preset.workspaceId)?.name ?? preset.workspaceId,
+                        scope: getSearchScopeMeta(preset.scope, searchLabels).label,
+                        count: preset.compareRefs.length,
+                      })}
                     </p>
                     <p className="hint preset-card-meta">
-                      {UI_TEXT.snapshotScopeMeta(preset.selectedSubscriptionId, preset.resourceGroupName)}
+                      {formatSnapshotScopeText(preset.selectedSubscriptionId, preset.resourceGroupName)}
                     </p>
-                    <p className="hint preset-card-meta">Updated {formatDateTime(preset.updatedAt || preset.createdAt)}</p>
+                    <p className="hint preset-card-meta">{tr('topology.presets.updated', { time: formatDateTime(preset.updatedAt || preset.createdAt) })}</p>
                   </div>
                   <div className="button-row preset-card-actions">
                     <button type="button" className="toolbar-button search-inline-button" onClick={() => handleLoadSavedPreset(preset)}>
@@ -3324,7 +3401,7 @@ export function TopologyPage() {
           </div>
           <p className="hint">{t('topology.controls.resourceFilterHint')}</p>
           <p className="hint">
-            RG lazy load: {focusedResourceGroupName ? focusedResourceGroupName : 'all resource groups'}
+            {tr('topology.controls.rgLazyLoad', { name: focusedResourceGroupName ? focusedResourceGroupName : t('topology.controls.allResourceGroups') })}
           </p>
         </article>
 
@@ -3332,7 +3409,7 @@ export function TopologyPage() {
           <div className="section-heading">
             <h2>{t('topology.manual.heading')}</h2>
             <span className="mini-status">
-              {manualLoading ? t('topology.canvas.syncing') : `${manualNodes.length} nodes • ${manualEdges.length} edges`}
+              {manualLoading ? t('topology.canvas.syncing') : tr('topology.manual.countSummary', { nodes: manualNodes.length, edges: manualEdges.length })}
             </span>
           </div>
 
@@ -3553,7 +3630,7 @@ export function TopologyPage() {
             </span>
           </div>
 
-          <p className="hint compare-layout-hint">Layout: {compareLayoutStatus}</p>
+          <p className="hint compare-layout-hint">{t('topology.controls.layoutLabel')} {compareLayoutStatus}</p>
           <p className="hint compare-layout-hint compare-path-hint">{t('topology.detail.pathSelection')}: {selectedPathStatus}</p>
           {graphRuntimeLoading ? <p className="hint compare-layout-hint">{t('topology.canvas.graphEngineLoading')}</p> : null}
 
