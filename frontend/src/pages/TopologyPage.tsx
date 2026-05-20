@@ -2876,13 +2876,13 @@ export function TopologyPage() {
               className="search-input"
               value={snapshotNameInput}
               onChange={(event) => setSnapshotNameInput(event.target.value)}
-              placeholder={UI_TEXT.snapshotNamePlaceholder}
+              placeholder={t('topology.snapshots.namePlaceholder')}
             />
             <textarea
               className="search-input snapshot-note-input"
               value={snapshotNoteInput}
               onChange={(event) => setSnapshotNoteInput(event.target.value)}
-              placeholder={UI_TEXT.snapshotNotePlaceholder}
+              placeholder={t('topology.snapshots.notePlaceholder')}
               rows={3}
             />
             <div className="button-row preset-toolbar-row">
@@ -3115,28 +3115,28 @@ export function TopologyPage() {
                             className="toolbar-button search-inline-button"
                             onClick={() => handleLoadSavedSnapshot(snapshot)}
                           >
-                            {UI_TEXT.loadSnapshot}
+                            {t('topology.snapshots.restore')}
                           </button>
                           <button
                             type="button"
                             className="toolbar-button search-inline-button"
                             onClick={() => handleRenameSavedSnapshot(snapshot)}
                           >
-                            {UI_TEXT.renameSnapshot}
+                            {t('topology.snapshots.rename')}
                           </button>
                           <button
                             type="button"
                             className="toolbar-button search-inline-button"
                             onClick={() => handleToggleSnapshotPin(snapshot)}
                           >
-                            {snapshot.isPinned ? UI_TEXT.unpinSnapshot : UI_TEXT.pinSnapshot}
+                            {snapshot.isPinned ? t('topology.snapshots.unpin') : t('topology.snapshots.pin')}
                           </button>
                           <button
                             type="button"
                             className="toolbar-button search-inline-button"
                             onClick={() => handleToggleSnapshotArchive(snapshot)}
                           >
-                            {isArchivedSnapshot ? UI_TEXT.unarchiveSnapshot : UI_TEXT.archiveSnapshot}
+                            {isArchivedSnapshot ? t('topology.snapshots.unarchive') : t('topology.snapshots.archive')}
                           </button>
                           <button
                             type="button"
@@ -3151,7 +3151,7 @@ export function TopologyPage() {
                             className="toolbar-button search-inline-button"
                             onClick={() => handleDeleteSavedSnapshot(snapshot)}
                           >
-                            {UI_TEXT.deleteSnapshot}
+                            {t('topology.snapshots.delete')}
                           </button>
                         </div>
                       </div>
@@ -3194,7 +3194,7 @@ export function TopologyPage() {
               className="search-input"
               value={presetNameInput}
               onChange={(event) => setPresetNameInput(event.target.value)}
-              placeholder={UI_TEXT.presetNamePlaceholder}
+              placeholder={t('topology.presets.namePlaceholder')}
             />
             <div className="button-row preset-toolbar-row">
               <button
@@ -3253,13 +3253,13 @@ export function TopologyPage() {
                   </div>
                   <div className="button-row preset-card-actions">
                     <button type="button" className="toolbar-button search-inline-button" onClick={() => handleLoadSavedPreset(preset)}>
-                      {UI_TEXT.loadPreset}
+                      {t('topology.presets.load')}
                     </button>
                     <button type="button" className="toolbar-button search-inline-button" onClick={() => handleRenameSavedPreset(preset)}>
-                      {UI_TEXT.renamePreset}
+                      {t('topology.presets.rename')}
                     </button>
                     <button type="button" className="toolbar-button search-inline-button" onClick={() => handleDeleteSavedPreset(preset)}>
-                      {UI_TEXT.deletePreset}
+                      {t('topology.presets.delete')}
                     </button>
                   </div>
                   </div>
