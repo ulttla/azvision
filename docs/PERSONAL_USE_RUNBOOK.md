@@ -62,7 +62,7 @@ OPENROUTER_MODEL=anthropic/claude-sonnet-4.5
 # OPENROUTER_API_KEY stays in backend env only; never expose it to frontend code.
 ```
 
-If provider config is missing or provider calls fail, AzVision falls back to the rule-based copilot and returns a provider status without secrets.
+If provider config is missing or provider calls fail, AzVision falls back to the rule-based copilot and returns a provider status without secrets. The Cost Insights UI remembers the last selected provider in browser localStorage and otherwise uses the backend `default_provider` from `/copilot/providers`.
 
 Provider status smoke after backend start:
 

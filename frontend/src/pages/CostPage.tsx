@@ -18,8 +18,15 @@ import {
 } from '../lib/api'
 
 const DEFAULT_WORKSPACE_ID = import.meta.env.VITE_DEFAULT_WORKSPACE_ID ?? 'local-demo'
+const COPILOT_PROVIDER_STORAGE_KEY = 'azvision:cost-copilot-provider:v1'
+const COPILOT_PROVIDER_OPTIONS = ['ollama', 'openrouter', 'rule-based'] as const satisfies readonly CopilotProviderOption[]
 
 type CopilotSection = { heading: string; body: string[]; isSuggestions?: boolean }
+
+type InitialCopilotProvider = {
+  provider: CopilotProviderOption
+  fromStorage: boolean
+}
 
 /**
  * Parse a copilot answer into structured sections.
@@ -105,6 +112,33 @@ function severityRank(value: string) {
   return 3
 }
 
+function normalizeCopilotProvider(value: unknown): CopilotProviderOption {
+  return COPILOT_PROVIDER_OPTIONS.includes(value as CopilotProviderOption)
+    ? (value as CopilotProviderOption)
+    : 'rule-based'
+}
+
+function readInitialCopilotProvider(): InitialCopilotProvider {
+  try {
+    const stored = localStorage.getItem(COPILOT_PROVIDER_STORAGE_KEY)
+    if (stored) {
+      return { provider: normalizeCopilotProvider(stored), fromStorage: true }
+    }
+  } catch {
+    // ignore storage failures and fall back to provider status response
+  }
+
+  return { provider: 'rule-based', fromStorage: false }
+}
+
+function persistCopilotProvider(provider: CopilotProviderOption) {
+  try {
+    localStorage.setItem(COPILOT_PROVIDER_STORAGE_KEY, provider)
+  } catch {
+    // ignore storage failures; provider still updates for this session
+  }
+}
+
 export function CostPage() {
   const { locale, t } = useI18n()
   const [workspaceId, setWorkspaceId] = useState<string>(DEFAULT_WORKSPACE_ID)
@@ -121,7 +155,8 @@ export function CostPage() {
   const [resourceGroupLimit, setResourceGroupLimit] = useState(200)
   const [resourceLimit, setResourceLimit] = useState(500)
   const [copilotPrompt, setCopilotPrompt] = useState(() => t('copilot.defaultPrompt'))
-  const [copilotProvider, setCopilotProvider] = useState<CopilotProviderOption>('rule-based')
+  const [initialCopilotProvider] = useState<InitialCopilotProvider>(() => readInitialCopilotProvider())
+  const [copilotProvider, setCopilotProviderState] = useState<CopilotProviderOption>(initialCopilotProvider.provider)
   const [copilotProviders, setCopilotProviders] = useState<CopilotProviderStatus[]>([])
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
   const [copilotLoading, setCopilotLoading] = useState(false)
@@ -185,6 +220,11 @@ export function CostPage() {
   )
   const selectedProviderStatus = copilotProviders.find((provider) => provider.id === copilotProvider)
 
+  function setCopilotProvider(provider: CopilotProviderOption) {
+    setCopilotProviderState(provider)
+    persistCopilotProvider(provider)
+  }
+
   useEffect(() => {
     let cancelled = false
 
@@ -193,6 +233,14 @@ export function CostPage() {
         const result = await getCopilotProviders()
         if (!cancelled) {
           setCopilotProviders(result.providers)
+          setCopilotProviderState((current) => {
+            const providerIds = new Set(result.providers.map((provider) => provider.id))
+            if (providerIds.has(current) && (initialCopilotProvider.fromStorage || current !== 'rule-based')) {
+              return current
+            }
+            const defaultProvider = normalizeCopilotProvider(result.default_provider)
+            return providerIds.has(defaultProvider) ? defaultProvider : 'rule-based'
+          })
         }
       } catch {
         if (!cancelled) {
@@ -205,7 +253,7 @@ export function CostPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [initialCopilotProvider.fromStorage])
 
   async function askCopilot() {
     if (!copilotPrompt.trim()) {
@@ -353,7 +401,7 @@ export function CostPage() {
             <select
               className="search-input"
               value={copilotProvider}
-              onChange={(event) => setCopilotProvider(event.target.value as CopilotProviderOption)}
+              onChange={(event) => setCopilotProvider(normalizeCopilotProvider(event.target.value))}
             >
               {(copilotProviders.length
                 ? copilotProviders
