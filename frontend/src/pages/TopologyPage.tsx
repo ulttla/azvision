@@ -1631,11 +1631,11 @@ export function TopologyPage() {
         : 'default topology layout'
   const canExportTopology = Boolean(selectedWorkspaceId && graphElements.length && !topologyLoading && !graphRuntimeLoading)
   const exportUnavailableMessage = topologyLoading
-    ? UI_TEXT.exportUnavailableLoading
+    ? t('topology.export.unavailableLoading')
     : topology?.status === 'error' || error
-      ? UI_TEXT.exportUnavailableError
+      ? t('topology.export.unavailableError')
       : !graphElements.length
-        ? UI_TEXT.exportUnavailableEmpty
+        ? t('topology.export.unavailableEmpty')
         : ''
   const managedInstanceExpanded = selectedNode
     ? expandedManagedInstanceRefs.includes(selectedNode.node_ref)
@@ -2259,7 +2259,7 @@ export function TopologyPage() {
   async function handleExportPng() {
     const cy = cyRef.current
     if (!selectedWorkspaceId || !graphElements.length || !cy) {
-      setExportMessage(UI_TEXT.exportUnavailableNoGraph)
+      setExportMessage(t('topology.export.unavailableNoGraph'))
       return
     }
 
@@ -2286,7 +2286,7 @@ export function TopologyPage() {
   async function handleExportPdf() {
     const cy = cyRef.current
     if (!selectedWorkspaceId || !graphElements.length || !cy) {
-      setExportMessage(UI_TEXT.exportUnavailableNoGraph)
+      setExportMessage(t('topology.export.unavailableNoGraph'))
       return
     }
 
@@ -2573,9 +2573,9 @@ export function TopologyPage() {
         </div>
       </header>
 
-      {error ? <div className="error-banner">{UI_TEXT.apiErrorPrefix} {error}</div> : null}
+      {error ? <div className="error-banner">{t('topology.error.apiPrefix')} {error}</div> : null}
       {topology?.status === 'error' ? (
-        <div className="error-banner">{UI_TEXT.topologyErrorPrefix} {topology.message ?? t('topology.error.unknown')}</div>
+        <div className="error-banner">{t('topology.error.topologyPrefix')} {topology.message ?? t('topology.error.unknown')}</div>
       ) : null}
       {exportMessage ? <div className="info-banner">{exportMessage}</div> : null}
 
@@ -2583,7 +2583,7 @@ export function TopologyPage() {
         <article className="panel-card">
           <h2>{t('topology.workspace.heading')}</h2>
           {loading ? (
-            <p>{UI_TEXT.loading}</p>
+            <p>{t('topology.loading')}</p>
           ) : (
             <>
               <select

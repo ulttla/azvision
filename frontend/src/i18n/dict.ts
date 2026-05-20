@@ -195,6 +195,9 @@ export const dict = {
     'topology.error.manualModelingLoadFailed': 'Manual modeling load failed',
     'topology.error.inventoryScopeLoadFailed': 'Inventory scope load failed',
     'topology.error.unknown': 'Unknown error',
+    'topology.error.apiPrefix': 'API connection error:',
+    'topology.error.topologyPrefix': 'Topology error:',
+    'topology.loading': 'Loading...',
     'topology.placeholder.displayName': 'Display name',
     'topology.placeholder.vendorOptional': 'Vendor (optional)',
     'topology.placeholder.environmentOptional': 'Environment (optional)',
@@ -242,6 +245,10 @@ export const dict = {
     'topology.controls.resourceFilterHint': 'Subscription, resource group, and manual nodes always stay visible.',
     'topology.search.tip': 'Tip: press Esc to clear selection, double-click a node to focus it, and expand child databases from the SQL Managed Instance detail panel.',
     'topology.export.lastExport': 'Last export',
+    'topology.export.unavailableNoGraph': 'No rendered topology is available to export yet.',
+    'topology.export.unavailableLoading': 'Topology is still loading. Wait until the graph finishes rendering before exporting.',
+    'topology.export.unavailableError': 'Resolve the topology error before exporting.',
+    'topology.export.unavailableEmpty': 'Load a topology view with visible graph data before exporting.',
 
     // ── Topology Page relation panels ────────────────────
     'topology.relations.categories': 'Relation Categories',
@@ -791,6 +798,9 @@ export const dict = {
     'topology.error.manualModelingLoadFailed': '수동 모델링을 불러오지 못했습니다',
     'topology.error.inventoryScopeLoadFailed': '인벤토리 범위를 불러오지 못했습니다',
     'topology.error.unknown': '알 수 없는 오류',
+    'topology.error.apiPrefix': 'API 연결 오류:',
+    'topology.error.topologyPrefix': '토폴로지 오류:',
+    'topology.loading': '로딩 중...',
     'topology.placeholder.displayName': '표시 이름',
     'topology.placeholder.vendorOptional': '벤더(선택)',
     'topology.placeholder.environmentOptional': '환경(선택)',
@@ -838,6 +848,10 @@ export const dict = {
     'topology.controls.resourceFilterHint': '구독, 리소스 그룹, 수동 노드는 항상 표시됩니다.',
     'topology.search.tip': '팁: Esc로 선택을 지우고, 노드를 더블클릭해 포커스하고, SQL Managed Instance 상세 패널에서 자식 데이터베이스를 펼칠 수 있습니다.',
     'topology.export.lastExport': '마지막 내보내기',
+    'topology.export.unavailableNoGraph': '아직 내보낼 렌더링된 토폴로지가 없습니다.',
+    'topology.export.unavailableLoading': '토폴로지를 로딩 중입니다. 그래프 렌더링이 끝난 뒤 내보내세요.',
+    'topology.export.unavailableError': '내보내기 전에 토폴로지 오류를 해결하세요.',
+    'topology.export.unavailableEmpty': '내보내기 전에 표시 가능한 그래프 데이터가 있는 토폴로지 뷰를 로드하세요.',
 
     // ── Topology Page relation panels ────────────────────
     'topology.relations.categories': '관계 카테고리',
