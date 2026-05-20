@@ -61,6 +61,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `scripts/sqlite_health_check.py` 로 local SQLite integrity, journal mode, snapshot/thumbnail size, simulation JSON size, topology archive count/bytes/age/orphan warning signal을 read-only로 점검 가능
   - `scripts/check_doc_mirror.sh` 는 기본 visibility-only이고, `AZVISION_DOC_MIRROR_STRICT=1` 설정 시 mirror drift를 실패로 처리 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
+  - `scripts/architecture_view_visual_smoke.mjs` 로 Playwright 기준 실제 UI에서 한국어 Architecture View 렌더링, detail density localStorage persistence, 하드코딩 영어 fallback 부재를 visual smoke 가능
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
   - CI/frontend acceptance now runs `npm --prefix frontend run smoke:semantics` for browserless snapshot sort, thumbnail guard copy/contract drift, Architecture View helper behavior, and Path Analysis peering evidence contract coverage
   - `docs/MIRROR_POLICY.md` 와 `scripts/check_doc_mirror.sh` 로 repo docs와 workspace docs mirror drift를 visibility-only 방식으로 점검 가능
