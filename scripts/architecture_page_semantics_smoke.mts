@@ -81,14 +81,16 @@ assert.match(archPageCode, /navigator\.clipboard/, 'ArchitecturePage PNG clipboa
 // ============================================================
 // Section 6: ArchitecturePage URL param handling
 // ============================================================
-assert.match(archPageCode, /readInitialSearchParam/, 'ArchitecturePage should have readInitialSearchParam utility')
+assert.match(archPageCode, /parseInitial/, 'ArchitecturePage should have parseInitial* utility imports')
 assert.match(archPageCode, /parseInitialWorkspaceId|parseInitialSubscriptionId|parseInitialResourceGroupName/, 'ArchitecturePage should parse initial URL params')
 
 // ============================================================
-// Section 7: ArchitecturePage formatDateTime utility
+// Section 7: ArchitecturePage formatDateTime utility (in utils.ts)
 // ============================================================
-assert.match(archPageCode, /function formatDateTime/, 'ArchitecturePage should define formatDateTime')
-assert.match(archPageCode, /Intl\.DateTimeFormat/, 'ArchitecturePage should use Intl.DateTimeFormat')
+assert.match(archPageCode, /formatDateTime/, 'ArchitecturePage should import formatDateTime from architecture/utils')
+
+const utilsCode = readFileSync(path.join(repoRoot, 'frontend', 'src', 'pages', 'architecture', 'utils.ts'), 'utf-8')
+assert.match(utilsCode, /Intl\.DateTimeFormat/, 'architecture/utils should use Intl.DateTimeFormat')
 
 // ============================================================
 // Section 8: ArchitecturePage storage (override state)

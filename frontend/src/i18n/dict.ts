@@ -426,6 +426,14 @@ export const dict = {
     'topology.search.visibleOnly': 'visible nodes only',
     'topology.detail.projectedDetails': 'Projected Details',
     'topology.detail.loading': 'loading...',
+    'topology.detail.sourceAzureLive': 'Azure live',
+    'topology.detail.sourceAzureExplicit': 'Azure explicit',
+    'topology.detail.sourceManual': 'Manual',
+    'topology.detail.sourceInferred': 'Inferred',
+    'topology.detail.archiveMissing': 'Archive missing for one or both snapshots; metadata compare remains the fallback.',
+    'topology.detail.peeringIntraVNet': 'Intra-VNet path; no VNet peering evidence is required.',
+    'topology.detail.peeringForwarded': 'Forwarded/transitive peering candidate; every traversed peering direction must have allowForwardedTraffic=true in inventory evidence.',
+    'topology.detail.peeringDirect': 'Direct peering candidate; allowForwardedTraffic is not required for single-peering traversal.',
 
     // ── Topology Page bottom panels ──────────────────────
     'topology.bottom.visibleNodes': 'Visible Nodes',
@@ -1081,6 +1089,14 @@ export const dict = {
     'topology.search.visibleOnly': '표시된 노드만',
     'topology.detail.projectedDetails': '투영된 상세 정보',
     'topology.detail.loading': '로딩 중...',
+    'topology.detail.sourceAzureLive': 'Azure 라이브',
+    'topology.detail.sourceAzureExplicit': 'Azure 명시적',
+    'topology.detail.sourceManual': '수동',
+    'topology.detail.sourceInferred': '추론됨',
+    'topology.detail.archiveMissing': '하나 또는 양쪽 스냅샷의 아카이브가 누락되어 메타데이터 비교로 대체합니다.',
+    'topology.detail.peeringIntraVNet': 'VNet 내부 경로입니다. VNet 피어링 증거는 필요하지 않습니다.',
+    'topology.detail.peeringForwarded': 'Forwarded/transitive 피어링 후보입니다. 통과한 모든 피어링 방향에 allowForwardedTraffic=true 인벤토리 증거가 필요합니다.',
+    'topology.detail.peeringDirect': '직접 피어링 후보입니다. 단일 피어링 통과에는 allowForwardedTraffic이 필요하지 않습니다.',
 
     // ── Topology Page bottom panels ──────────────────────
     'topology.bottom.visibleNodes': '표시된 노드',

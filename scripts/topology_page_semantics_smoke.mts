@@ -140,8 +140,9 @@ assert.match(topoPageCode, /deleteManualEdge\(/, 'TopologyPage should call delet
 assert.match(topoPageCode, /getPathAnalysis\(/, 'TopologyPage should call getPathAnalysis')
 assert.match(topoPageCode, /PathAnalysisResponse/, 'TopologyPage should use PathAnalysisResponse type')
 assert.match(topoPageCode, /function formatPeeringEvidenceHint/, 'TopologyPage should define peering evidence helper')
-assert.match(topoPageCode, /allowForwardedTraffic=true/, 'TopologyPage should explain forwarded peering evidence requirement')
-assert.match(topoPageCode, /allowForwardedTraffic is not required/, 'TopologyPage should explain direct peering evidence behavior')
+assert.match(topoPageCode, /topology\.detail\.peeringForwarded/, 'TopologyPage should reference forwarded peering i18n key')
+assert.match(topoPageCode, /topology\.detail\.peeringDirect/, 'TopologyPage should reference direct peering i18n key')
+assert.match(topoPageCode, /topology\.detail\.archiveMissing/, 'TopologyPage should reference archive missing i18n key')
 
 // ============================================================
 // Section 12: Snapshot compare

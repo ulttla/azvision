@@ -158,22 +158,22 @@ function prettifyKey(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-function formatSourceLabel(value?: string) {
+function formatSourceLabel(t: (key: import('../i18n/dict').DictKey) => string, value?: string) {
   const normalized = String(value ?? '').trim().toLowerCase()
   if (!normalized) {
     return '-'
   }
   if (normalized === 'azure') {
-    return 'Azure live'
+    return t('topology.detail.sourceAzureLive')
   }
   if (normalized === 'azure-explicit') {
-    return 'Azure explicit'
+    return t('topology.detail.sourceAzureExplicit')
   }
   if (normalized === 'manual') {
-    return 'Manual'
+    return t('topology.detail.sourceManual')
   }
   if (normalized === 'inferred') {
-    return 'Inferred'
+    return t('topology.detail.sourceInferred')
   }
   return prettifyKey(normalized)
 }
@@ -233,7 +233,7 @@ function formatEdgeDetail(edge: unknown): string {
   return `${src} → ${tgt}${rel ? ` (${rel})` : ''}`
 }
 
-function buildTopologyDiffMarkdown(result: TopologyArchiveCompareResponse) {
+function buildTopologyDiffMarkdown(t: (key: import('../i18n/dict').DictKey) => string, result: TopologyArchiveCompareResponse) {
   const lines = [
     '# AzVision Raw Topology Diff',
     '',
@@ -308,7 +308,7 @@ function buildTopologyDiffMarkdown(result: TopologyArchiveCompareResponse) {
   }
 
   if (result.archive_status === 'missing') {
-    lines.push('', 'Archive missing for one or both snapshots; metadata compare remains the fallback.')
+    lines.push('', t('topology.detail.archiveMissing'))
   }
 
   return `${lines.join('\n')}\n`
@@ -325,14 +325,14 @@ function formatPeeringTraversalLabel(peeringHopCount?: number, isForwardedTraffi
   return 'direct peering'
 }
 
-function formatPeeringEvidenceHint(peeringHopCount?: number, isForwardedTraffic?: boolean | null) {
+function formatPeeringEvidenceHint(t: (key: import('../i18n/dict').DictKey) => string, peeringHopCount?: number, isForwardedTraffic?: boolean | null) {
   if (!peeringHopCount) {
-    return 'Intra-VNet path; no VNet peering evidence is required.'
+    return t('topology.detail.peeringIntraVNet')
   }
   if (isForwardedTraffic === true || peeringHopCount > 1) {
-    return 'Forwarded/transitive peering candidate; every traversed peering direction must have allowForwardedTraffic=true in inventory evidence.'
+    return t('topology.detail.peeringForwarded')
   }
-  return 'Direct peering candidate; allowForwardedTraffic is not required for single-peering traversal.'
+  return t('topology.detail.peeringDirect')
 }
 
 function formatRouteNextHopLabel(nextHopType?: string, nextHopIp?: string) {
@@ -2096,7 +2096,7 @@ export function TopologyPage() {
       return
     }
 
-    const blob = new Blob([buildTopologyDiffMarkdown(snapshotTopologyCompareResult)], { type: 'text/markdown' })
+    const blob = new Blob([buildTopologyDiffMarkdown(t, snapshotTopologyCompareResult)], { type: 'text/markdown' })
     const url = window.URL.createObjectURL(blob)
     const anchor = window.document.createElement('a')
     anchor.href = url
@@ -3823,7 +3823,7 @@ export function TopologyPage() {
                 <p>{graphHoverCard.subtitle}</p>
                 <div className="graph-hover-card-meta">
                   <span className={`mini-chip detail-source-chip source-${getSourceTone(graphHoverCard.source)}`}>
-                    {formatSourceLabel(graphHoverCard.source)}
+                    {formatSourceLabel(t, graphHoverCard.source)}
                   </span>
                   <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(graphHoverCard.confidence)}`}>
                     {formatConfidenceLabel(graphHoverCard.confidence)}
@@ -3863,7 +3863,7 @@ export function TopologyPage() {
                 <p>{selectedNode.node_key}</p>
                 <div className="detail-meta-chip-row">
                   <span className={`mini-chip detail-source-chip source-${getSourceTone(selectedNode.source)}`}>
-                    Source • {formatSourceLabel(selectedNode.source)}
+                    Source • {formatSourceLabel(t, selectedNode.source)}
                   </span>
                   <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(selectedNode.confidence)}`}>
                     Confidence • {formatConfidenceLabel(selectedNode.confidence)}
@@ -3880,7 +3880,7 @@ export function TopologyPage() {
               <div className="detail-grid">
                 <div className="detail-item">
                   <span>{t('topology.detail.source')}</span>
-                  <strong>{formatSourceLabel(selectedNode.source)}</strong>
+                  <strong>{formatSourceLabel(t, selectedNode.source)}</strong>
                 </div>
                 <div className="detail-item">
                   <span>{t('topology.detail.confidence')}</span>
@@ -4004,6 +4004,7 @@ export function TopologyPage() {
                           )}
                           {' — '}
                           {formatPeeringEvidenceHint(
+                            t,
                             pathAnalysisResult.path_candidates[0].peering_hop_count,
                             pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
                           )}
