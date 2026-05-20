@@ -2892,7 +2892,7 @@ export function TopologyPage() {
                 onClick={handleSaveCurrentSnapshot}
                 disabled={!selectedWorkspaceId}
               >
-                {UI_TEXT.saveCurrentSnapshot}
+                {t('topology.snapshots.saveCurrent')}
               </button>
               <button
                 type="button"
@@ -2900,10 +2900,10 @@ export function TopologyPage() {
                 onClick={handleExportSavedSnapshots}
                 disabled={!savedSnapshots.length}
               >
-                {UI_TEXT.exportSnapshots}
+                {t('topology.snapshots.exportJson')}
               </button>
               <button type="button" className="toolbar-button" onClick={handleImportSnapshotClick}>
-                {UI_TEXT.importSnapshots}
+                {t('topology.snapshots.importJson')}
               </button>
               <input
                 ref={snapshotImportInputRef}
@@ -3161,24 +3161,24 @@ export function TopologyPage() {
               ) : (
                 <p className="hint">
                   {snapshotsLoading
-                    ? UI_TEXT.loading
+                    ? t('topology.loading')
                     : snapshotStorageMode === 'server'
                       ? localWorkspaceSnapshots.length > 0
-                        ? UI_TEXT.noServerSnapshotsWithLocalHint
-                        : UI_TEXT.noServerSnapshots
-                      : UI_TEXT.noSavedSnapshots}
+                        ? t('topology.snapshots.noServerWithLocalHint')
+                        : t('topology.snapshots.noServer')
+                      : t('topology.snapshots.noSaved')}
                 </p>
               )}
             </>
           ) : (
             <p className="hint">
               {snapshotsLoading
-                ? UI_TEXT.loading
+                ? t('topology.loading')
                 : snapshotStorageMode === 'server'
                   ? localWorkspaceSnapshots.length > 0
-                    ? UI_TEXT.noServerSnapshotsWithLocalHint
-                    : UI_TEXT.noServerSnapshots
-                  : UI_TEXT.noSavedSnapshots}
+                    ? t('topology.snapshots.noServerWithLocalHint')
+                    : t('topology.snapshots.noServer')
+                  : t('topology.snapshots.noSaved')}
             </p>
           )}
 
@@ -3203,7 +3203,7 @@ export function TopologyPage() {
                 onClick={handleSaveCurrentPreset}
                 disabled={!selectedWorkspaceId}
               >
-                {UI_TEXT.saveCurrentPreset}
+                {t('topology.presets.saveCurrent')}
               </button>
               <button
                 type="button"
@@ -3211,10 +3211,10 @@ export function TopologyPage() {
                 onClick={handleExportSavedPresets}
                 disabled={!savedPresets.length}
               >
-                {UI_TEXT.exportPresets}
+                {t('topology.presets.exportJson')}
               </button>
               <button type="button" className="toolbar-button" onClick={handleImportPresetClick}>
-                {UI_TEXT.importPresets}
+                {t('topology.presets.importJson')}
               </button>
               <input
                 ref={presetImportInputRef}
@@ -3237,7 +3237,7 @@ export function TopologyPage() {
                   <div className="preset-card-copy">
                     <div className="preset-card-title-row">
                       <strong>{preset.name}</strong>
-                      {isActivePreset ? <span className="mini-chip">{UI_TEXT.activePresetBadge}</span> : null}
+                      {isActivePreset ? <span className="mini-chip">{t('topology.presets.activeBadge')}</span> : null}
                     </div>
                     <p className="hint preset-card-meta">
                       {UI_TEXT.presetMeta(
@@ -3267,7 +3267,7 @@ export function TopologyPage() {
               })}
             </div>
           ) : (
-            <p className="hint">{UI_TEXT.noSavedPresets}</p>
+            <p className="hint">{t('topology.presets.noSaved')}</p>
           )}
 
           <h3 className="section-spacer">{t('topology.relations.categories')}</h3>
