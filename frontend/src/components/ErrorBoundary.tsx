@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return {
       hasError: true,
-      errorMessage: error.message || 'Unexpected render error',
+      errorMessage: error.message || '예상치 못한 렌더링 오류가 발생했습니다',
       errorStack: error.stack || '',
     }
   }
