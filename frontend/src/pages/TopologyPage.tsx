@@ -2919,10 +2919,10 @@ export function TopologyPage() {
               <div className="snapshot-filter-tabs" role="tablist">
                 {(
                   [
-                    { tab: 'all' as const, label: UI_TEXT.snapshotFilterAll, count: snapshotFilterCounts.all },
-                    { tab: 'pinned' as const, label: UI_TEXT.snapshotFilterPinned, count: snapshotFilterCounts.pinned },
-                    { tab: 'recent' as const, label: UI_TEXT.snapshotFilterRecent, count: snapshotFilterCounts.recent },
-                    { tab: 'archived' as const, label: UI_TEXT.snapshotFilterArchived, count: snapshotFilterCounts.archived },
+                    { tab: 'all' as const, label: t('topology.snapshots.filterAll'), count: snapshotFilterCounts.all },
+                    { tab: 'pinned' as const, label: t('topology.snapshots.filterPinned'), count: snapshotFilterCounts.pinned },
+                    { tab: 'recent' as const, label: t('topology.snapshots.filterRecent'), count: snapshotFilterCounts.recent },
+                    { tab: 'archived' as const, label: t('topology.snapshots.filterArchived'), count: snapshotFilterCounts.archived },
                   ] satisfies { tab: SnapshotFilterTab; label: string; count: number }[]
                 ).map(({ tab, label, count }) => (
                   <button
@@ -2940,31 +2940,35 @@ export function TopologyPage() {
               </div>
               {snapshotFilter !== 'recent' ? (
                 <div className="snapshot-sort-row">
-                  <span className="snapshot-sort-label">{UI_TEXT.snapshotSortLabel}</span>
+                  <span className="snapshot-sort-label">{t('topology.snapshots.sortLabel')}</span>
                   <select
                     className="snapshot-sort-select"
                     value={snapshotSortBy}
                     onChange={(e) => setSnapshotSortBy(e.target.value as SnapshotSortBy)}
                   >
-                    {(Object.entries(UI_TEXT.snapshotSortByOptions) as [SnapshotSortBy, string][]).map(
-                      ([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ),
-                    )}
+                    {(
+                      [
+                        ['last_restored_at', t('topology.snapshots.sortLastRestored')],
+                        ['captured_at', t('topology.snapshots.sortCaptured')],
+                        ['updated_at', t('topology.snapshots.sortUpdated')],
+                      ] satisfies [SnapshotSortBy, string][]
+                    ).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
                   </select>
                   <button
                     type="button"
                     className="toolbar-button snapshot-sort-order-button"
                     onClick={() => setSnapshotSortOrder((o) => (o === 'desc' ? 'asc' : 'desc'))}
                   >
-                    {snapshotSortOrder === 'desc' ? UI_TEXT.snapshotSortOrderDesc : UI_TEXT.snapshotSortOrderAsc}
+                    {snapshotSortOrder === 'desc' ? t('topology.snapshots.sortDesc') : t('topology.snapshots.sortAsc')}
                   </button>
                 </div>
               ) : null}
               {snapshotFilter !== 'archived' && snapshotFilterCounts.archived > 0 ? (
-                <p className="hint snapshot-archived-hint">{UI_TEXT.snapshotArchivedHint(snapshotFilterCounts.archived)}</p>
+                <p className="hint snapshot-archived-hint">{t('topology.snapshots.archivedHint').replace('{count}', String(snapshotFilterCounts.archived))}</p>
               ) : null}
               {snapshotTopologyCompareResult ? (
                 <div className="snapshot-topology-diff-card">
