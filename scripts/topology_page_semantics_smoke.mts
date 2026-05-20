@@ -137,12 +137,14 @@ assert.match(topoPageCode, /deleteManualEdge\(/, 'TopologyPage should call delet
 // ============================================================
 // Section 11: Path analysis
 // ============================================================
+assert.match(topoPageCode, /from '\.\/topology\/formatting'/, 'TopologyPage should import from topology/formatting')
 assert.match(topoPageCode, /getPathAnalysis\(/, 'TopologyPage should call getPathAnalysis')
 assert.match(topoPageCode, /PathAnalysisResponse/, 'TopologyPage should use PathAnalysisResponse type')
-assert.match(topoPageCode, /function formatPeeringEvidenceHint/, 'TopologyPage should define peering evidence helper')
-assert.match(topoPageCode, /topology\.detail\.peeringForwarded/, 'TopologyPage should reference forwarded peering i18n key')
-assert.match(topoPageCode, /topology\.detail\.peeringDirect/, 'TopologyPage should reference direct peering i18n key')
-assert.match(topoPageCode, /topology\.detail\.archiveMissing/, 'TopologyPage should reference archive missing i18n key')
+const topoFormatCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/formatting.ts'), 'utf8')
+assert.match(topoFormatCode, /function formatPeeringEvidenceHint/, 'topology/formatting should define peering evidence helper')
+assert.match(topoFormatCode, /topology\.detail\.peeringForwarded/, 'topology/formatting should reference forwarded peering i18n key')
+assert.match(topoFormatCode, /topology\.detail\.peeringDirect/, 'topology/formatting should reference direct peering i18n key')
+assert.match(topoFormatCode, /topology\.detail\.archiveMissing/, 'topology/formatting should reference archive missing i18n key')
 
 // ============================================================
 // Section 12: Snapshot compare
@@ -173,17 +175,17 @@ assert.match(topoPageCode, /createExport\(/, 'TopologyPage should call createExp
 // ============================================================
 // Section 13.5: Raw topology diff drilldown and markdown export
 // ============================================================
-assert.match(topoPageCode, /function buildTopologyDiffMarkdown/, 'TopologyPage should define raw topology diff markdown export builder')
+assert.match(topoFormatCode, /function buildTopologyDiffMarkdown/, 'topology/formatting should define raw topology diff markdown export builder')
 assert.match(topoPageCode, /function renderDiffDrilldownSection/, 'TopologyPage should render expandable topology diff drilldown sections')
 assert.match(topoPageCode, /diffExpandedSections/, 'TopologyPage should track expanded diff sections')
-assert.match(topoPageCode, /Before:\s*\$\{formatNodeDetail\(c\.base\)\}/, 'markdown export should include changed-node before details')
-assert.match(topoPageCode, /After:\s*\$\{formatNodeDetail\(c\.target\)\}/, 'markdown export should include changed-node after details')
+assert.match(topoFormatCode, /Before:\s*\$\{formatNodeDetail\(c\.base\)\}/, 'markdown export should include changed-node before details')
+assert.match(topoFormatCode, /After:\s*\$\{formatNodeDetail\(c\.target\)\}/, 'markdown export should include changed-node after details')
 assert.match(topoPageCode, /topology\.diff\.changedEdges/, 'TopologyPage should render changed raw topology edge drilldown via i18n key when present')
 assert.match(topoPageCode, /edge-changed/, 'TopologyPage should include changed edge sections in expand or collapse all')
-assert.match(topoPageCode, /## Changed Edges/, 'markdown export should include changed-edge details')
-assert.match(topoPageCode, /Before:\s*\$\{formatEdgeDetail\(c\.base\)\}/, 'markdown export should include changed-edge before details')
-assert.match(topoPageCode, /After:\s*\$\{formatEdgeDetail\(c\.target\)\}/, 'markdown export should include changed-edge after details')
-assert.match(topoPageCode, /DISPLAY_MAX|DISPLAY_LIMIT/, 'raw topology diff drilldown/export should keep a bounded display cap')
+assert.match(topoFormatCode, /## Changed Edges/, 'markdown export should include changed-edge details')
+assert.match(topoFormatCode, /Before:\s*\$\{formatEdgeDetail\(c\.base\)\}/, 'markdown export should include changed-edge before details')
+assert.match(topoFormatCode, /After:\s*\$\{formatEdgeDetail\(c\.target\)\}/, 'markdown export should include changed-edge after details')
+assert.match(topoFormatCode, /DISPLAY_MAX|DISPLAY_LIMIT/, 'raw topology diff drilldown/export should keep a bounded display cap')
 
 // ============================================================
 // Section 14: Resource type filter constants

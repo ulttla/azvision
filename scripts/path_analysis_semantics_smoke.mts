@@ -10,6 +10,7 @@ import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const topoPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
+const topoFormatCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/formatting.ts'), 'utf8')
 const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 const acceptanceCode = readFileSync(path.join(repoRoot, 'scripts/personal_use_acceptance.sh'), 'utf8')
@@ -59,12 +60,12 @@ assert.match(topoPageCode, /aria-label=\{t\('topology\.detail\.pathDestinationPo
 // ============================================================
 // Section 3: Peering evidence clarity and conservative semantics
 // ============================================================
-assert.match(topoPageCode, /function formatPeeringTraversalLabel/, 'TopologyPage should define peering traversal labels')
-assert.match(topoPageCode, /forwarded peering \(\$\{peeringHopCount\} hops\)/, 'Peering traversal label should distinguish forwarded peering')
-assert.match(topoPageCode, /direct peering/, 'Peering traversal label should distinguish direct peering')
-assert.match(topoPageCode, /topology\.detail\.peeringIntraVNet/, 'TopologyPage should reference Intra-VNet peering i18n key')
-assert.match(topoPageCode, /topology\.detail\.peeringForwarded/, 'TopologyPage should reference forwarded peering i18n key')
-assert.match(topoPageCode, /topology\.detail\.peeringDirect/, 'TopologyPage should reference direct peering i18n key')
+assert.match(topoFormatCode, /function formatPeeringTraversalLabel/, 'topology/formatting should define peering traversal labels')
+assert.match(topoFormatCode, /forwarded peering \(\$\{peeringHopCount\} hops\)/, 'Peering traversal label should distinguish forwarded peering')
+assert.match(topoFormatCode, /direct peering/, 'Peering traversal label should distinguish direct peering')
+assert.match(topoFormatCode, /topology\.detail\.peeringIntraVNet/, 'topology/formatting should reference Intra-VNet peering i18n key')
+assert.match(topoFormatCode, /topology\.detail\.peeringForwarded/, 'topology/formatting should reference forwarded peering i18n key')
+assert.match(topoFormatCode, /topology\.detail\.peeringDirect/, 'topology/formatting should reference direct peering i18n key')
 assert.match(topoPageCode, /topology\.detail\.pathMvpNote/, 'Path-analysis UI should render localized MVP note copy')
 assert.match(dictCode, /conservative unknown\/no-path/, 'Path-analysis copy should explain conservative unknown/no-path behavior')
 assert.match(topoPageCode, /topology\.detail\.pathPeeringBoundary/, 'Hop list should expose peering boundary chips via i18n key')
