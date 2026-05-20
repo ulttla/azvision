@@ -3318,7 +3318,7 @@ export function TopologyPage() {
               </button>
             ))}
           </div>
-          <p className="hint">{UI_TEXT.resourceFilterHint}</p>
+          <p className="hint">{t('topology.controls.resourceFilterHint')}</p>
           <p className="hint">
             RG lazy load: {focusedResourceGroupName ? focusedResourceGroupName : 'all resource groups'}
           </p>
@@ -3838,7 +3838,7 @@ export function TopologyPage() {
           {!canExportTopology && exportUnavailableMessage ? (
             <p className="hint export-hint">{exportUnavailableMessage}</p>
           ) : null}
-          <p className="hint export-hint">{UI_TEXT.searchTip}</p>
+          <p className="hint export-hint">{t('topology.search.tip')}</p>
           {lastExport ? (
             <p className="hint export-hint">
               {t('topology.export.lastExport')}: {formatDateTime(lastExport.created_at)} • {lastExport.output_path}

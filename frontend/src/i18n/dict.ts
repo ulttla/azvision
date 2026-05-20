@@ -236,6 +236,8 @@ export const dict = {
     'topology.controls.collapseAll': 'Collapse all',
     'topology.controls.downloadDiffMd': 'Download diff markdown',
     'topology.controls.compareBase': 'Compare base',
+    'topology.controls.resourceFilterHint': 'Subscription, resource group, and manual nodes always stay visible.',
+    'topology.search.tip': 'Tip: press Esc to clear selection, double-click a node to focus it, and expand child databases from the SQL Managed Instance detail panel.',
     'topology.export.lastExport': 'Last export',
 
     // ── Topology Page relation panels ────────────────────
@@ -827,6 +829,8 @@ export const dict = {
     'topology.controls.collapseAll': '모두 접기',
     'topology.controls.downloadDiffMd': '차이 마크다운 다운로드',
     'topology.controls.compareBase': '비교 기준',
+    'topology.controls.resourceFilterHint': '구독, 리소스 그룹, 수동 노드는 항상 표시됩니다.',
+    'topology.search.tip': '팁: Esc로 선택을 지우고, 노드를 더블클릭해 포커스하고, SQL Managed Instance 상세 패널에서 자식 데이터베이스를 펼칠 수 있습니다.',
     'topology.export.lastExport': '마지막 내보내기',
 
     // ── Topology Page relation panels ────────────────────
