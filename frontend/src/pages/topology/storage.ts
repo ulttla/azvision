@@ -722,7 +722,7 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
       (snapshot) => snapshot.id === snapshotId && snapshot.workspaceId === workspaceId,
     )
     if (!updatedSnapshot) {
-      throw new Error('Snapshot not found')
+      throw new Error(UI_TEXT.snapshotNotFound)
     }
 
     const persistResult = persistSavedTopologySnapshots(nextSnapshots)
@@ -748,7 +748,7 @@ const localSnapshotStorageProvider: SnapshotStorageProvider = {
       (snapshot) => snapshot.id === snapshotId && snapshot.workspaceId === workspaceId,
     )
     if (!updatedSnapshot) {
-      throw new Error('Snapshot not found')
+      throw new Error(UI_TEXT.snapshotNotFound)
     }
 
     const persistResult = persistSavedTopologySnapshots(nextSnapshots)

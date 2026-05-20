@@ -157,6 +157,7 @@ export const UI_TEXT = {
   exportedSnapshotsPrefix: 'Exported snapshots:',
   importedSnapshotsPrefix: 'Imported snapshots:',
   importInvalidSnapshotJson: 'Invalid snapshot JSON file',
+  snapshotNotFound: 'Snapshot not found',
   importNoValidSnapshots: 'No valid snapshots found in the imported file',
   snapshotRenamePrompt: 'Rename snapshot',
   snapshotDeleteConfirm: (name: string) => `Delete snapshot "${name}"?`,

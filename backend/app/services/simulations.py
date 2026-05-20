@@ -14,7 +14,7 @@ class SimulationNotFoundError(RuntimeError):
 def _symbolic_name(resource_type: str, index: int) -> str:
     tail = resource_type.split("/")[-1] if resource_type else "resource"
     cleaned = "".join(char for char in tail.title() if char.isalnum())
-    return f"resource{cleaned or 'Item'}{index + 1}"
+    return f"resource{cleaned or 'Resource'}{index + 1}"
 
 
 def _resource_name(resource: dict[str, Any]) -> str:
