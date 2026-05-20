@@ -109,6 +109,8 @@ export const dict = {
     // ── Topology Page hero ──────────────────────────────
     'topology.hero.eyebrow': 'AzVision',
     'topology.hero.title': 'Azure topology explorer',
+    'topology.hero.subtext': 'Dagre layout, network inference toggle, resource filters, managed instance child collapse, and on-demand expand are currently supported.',
+    'topology.hero.authReadiness': 'Auth readiness',
     'topology.hero.authLive': 'live inventory ready',
     'topology.hero.authDiag': 'diagnostic only',
 
@@ -689,6 +691,8 @@ export const dict = {
     // ── Topology Page hero ──────────────────────────────
     'topology.hero.eyebrow': 'AzVision',
     'topology.hero.title': 'Azure 토폴로지 탐색기',
+    'topology.hero.subtext': 'Dagre 레이아웃, 네트워크 추론 토글, 리소스 필터, Managed Instance 자식 접기, 필요 시 펼치기를 현재 지원합니다.',
+    'topology.hero.authReadiness': '인증 준비 상태',
     'topology.hero.authLive': '실시간 인벤토리 준비됨',
     'topology.hero.authDiag': '진단 전용',
 

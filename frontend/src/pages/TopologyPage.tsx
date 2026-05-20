@@ -2566,10 +2566,10 @@ export function TopologyPage() {
         <div>
           <p className="eyebrow">{t('topology.hero.eyebrow')}</p>
           <h1>{t('topology.hero.title')}</h1>
-          <p className="subtext">{UI_TEXT.heroSubtext}</p>
+          <p className="subtext">{t('topology.hero.subtext')}</p>
         </div>
         <div className={`status-pill ${authReady ? 'ready' : 'pending'}`}>
-          Auth readiness: {authReady ? t('topology.hero.authLive') : t('topology.hero.authDiag')}
+          {t('topology.hero.authReadiness')}: {authReady ? t('topology.hero.authLive') : t('topology.hero.authDiag')}
         </div>
       </header>
 
