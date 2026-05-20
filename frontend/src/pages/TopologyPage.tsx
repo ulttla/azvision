@@ -4056,8 +4056,8 @@ export function TopologyPage() {
                   <strong>{detailScopeSummary}</strong>
                   <p className="hint detail-inline-hint">
                     {nodeDetail?.status === 'not-found'
-                      ? UI_TEXT.scopedDetailNotFoundHint
-                      : UI_TEXT.scopedDetailHint}
+                      ? t('topology.detail.scopedDetailNotFoundHint')
+                      : t('topology.detail.scopedDetailHint')}
                   </p>
                   <div className="button-row detail-button-row">
                     {focusedResourceGroupName ? (
@@ -4091,8 +4091,8 @@ export function TopologyPage() {
                   <strong>{resourceGroupFocused ? t('topology.detail.focused') : t('topology.detail.allRGsLoaded')}</strong>
                   <p className="hint detail-inline-hint">
                     {resourceGroupFocused
-                      ? UI_TEXT.resourceGroupFocusedHint(selectedNode.display_name)
-                      : UI_TEXT.resourceGroupLoadHint}
+                      ? t('topology.detail.resourceGroupFocusedHint').replace('{name}', selectedNode.display_name)
+                      : t('topology.detail.resourceGroupLoadHint')}
                   </p>
                   <div className="button-row detail-button-row">
                     <button type="button" className="toolbar-button" onClick={toggleResourceGroupFocus}>
@@ -4106,7 +4106,7 @@ export function TopologyPage() {
                 <div className="detail-item">
                   <span>{t('topology.detail.parentMI')}</span>
                   <strong>{selectedParentNode.display_name}</strong>
-                  <p className="hint detail-inline-hint">{UI_TEXT.parentManagedInstanceHint}</p>
+                  <p className="hint detail-inline-hint">{t('topology.detail.parentManagedInstanceHint')}</p>
                   <div className="button-row detail-button-row">
                     <button
                       type="button"
@@ -4158,8 +4158,8 @@ export function TopologyPage() {
                   </div>
                   <p className="hint detail-inline-hint">
                     {managedInstanceExpanded
-                      ? UI_TEXT.managedInstanceExpandedHint
-                      : UI_TEXT.managedInstanceCollapsedHint}
+                      ? t('topology.detail.managedInstanceExpandedHint')
+                      : t('topology.detail.managedInstanceCollapsedHint')}
                   </p>
                 </div>
               ) : null}
@@ -4182,12 +4182,12 @@ export function TopologyPage() {
                     ))}
                   </dl>
                 ) : (
-                  <p className="hint">{UI_TEXT.noProjectedDetails}</p>
+                  <p className="hint">{t('topology.detail.noProjectedDetails')}</p>
                 )}
               </div>
             </div>
           ) : (
-            <p className="hint">{UI_TEXT.noSelectedNode}</p>
+            <p className="hint">{t('topology.detail.noSelectedNode')}</p>
           )}
         </article>
       </section>
