@@ -2764,7 +2764,7 @@ export function TopologyPage() {
                 checked={includeNetworkInference}
                 onChange={(event) => setIncludeNetworkInference(event.target.checked)}
               />
-              <span>{UI_TEXT.networkInferenceToggle}</span>
+              <span>{t('topology.controls.networkInferenceToggle')}</span>
             </label>
             <label className="toggle-row">
               <input
@@ -2781,7 +2781,7 @@ export function TopologyPage() {
             <span className="mini-status">
               {expandedManagedInstances.length
                 ? `${expandedManagedInstances.length} MI expanded for compare`
-                : UI_TEXT.noCompareTargets}
+                : t('topology.controls.noCompareTargets')}
             </span>
             <div className="button-row">
               <button type="button" className="toolbar-button" onClick={handleCopyPresetLink}>
@@ -2831,7 +2831,7 @@ export function TopologyPage() {
               ))}
             </div>
           ) : (
-            <p className="hint">{UI_TEXT.compareHint}</p>
+            <p className="hint">{t('topology.controls.compareHint')}</p>
           )}
 
           <h3 className="section-spacer">{UI_TEXT.savedSnapshotsTitle}</h3>
