@@ -249,6 +249,16 @@ export const dict = {
     'topology.export.unavailableLoading': 'Topology is still loading. Wait until the graph finishes rendering before exporting.',
     'topology.export.unavailableError': 'Resolve the topology error before exporting.',
     'topology.export.unavailableEmpty': 'Load a topology view with visible graph data before exporting.',
+    'topology.snapshots.savedTitle': 'Saved Snapshots',
+    'topology.snapshots.hint': 'Snapshots capture current view state plus metadata. They do not store a frozen copy of live Azure resource data.',
+    'topology.snapshots.guideTitle': 'Best for annotated point-in-time view setup',
+    'topology.snapshots.guideBody': 'Use snapshots when you want notes, thumbnail preview, and saved counts for a specific topology view.',
+    'topology.snapshots.serverGuardHint': 'Server mode may save the snapshot without a thumbnail if server validation or thumbnail guard checks remove the preview during save. The snapshot itself still saves.',
+    'topology.snapshots.localGuardHint': 'Browser-local mode may save the snapshot without a thumbnail if thumbnail guard checks or browser storage limits remove the preview before save. The snapshot itself still saves.',
+    'topology.presets.savedTitle': 'Saved Presets',
+    'topology.presets.hint': 'Presets save reusable compare, search, and RG focus settings without notes or thumbnails.',
+    'topology.presets.guideTitle': 'Best for repeatable workspace setup',
+    'topology.presets.guideBody': 'Use presets when you want the same compare lane, search scope, and RG focus again later.',
 
     // ── Topology Page relation panels ────────────────────
     'topology.relations.categories': 'Relation Categories',
@@ -852,6 +862,16 @@ export const dict = {
     'topology.export.unavailableLoading': '토폴로지를 로딩 중입니다. 그래프 렌더링이 끝난 뒤 내보내세요.',
     'topology.export.unavailableError': '내보내기 전에 토폴로지 오류를 해결하세요.',
     'topology.export.unavailableEmpty': '내보내기 전에 표시 가능한 그래프 데이터가 있는 토폴로지 뷰를 로드하세요.',
+    'topology.snapshots.savedTitle': '저장된 스냅샷',
+    'topology.snapshots.hint': '스냅샷은 현재 뷰 상태와 메타데이터를 저장합니다. 실시간 Azure 리소스 데이터의 고정 복사본은 저장하지 않습니다.',
+    'topology.snapshots.guideTitle': '주석 있는 특정 시점 뷰 설정에 적합',
+    'topology.snapshots.guideBody': '특정 토폴로지 뷰의 메모, 썸네일 미리보기, 저장된 개수가 필요할 때 스냅샷을 사용하세요.',
+    'topology.snapshots.serverGuardHint': '서버 모드에서는 서버 검증이나 썸네일 보호 검사로 미리보기가 제거되면 썸네일 없이 스냅샷이 저장될 수 있습니다. 스냅샷 자체는 계속 저장됩니다.',
+    'topology.snapshots.localGuardHint': '브라우저 로컬 모드에서는 썸네일 보호 검사나 브라우저 저장소 제한으로 미리보기가 제거되면 썸네일 없이 스냅샷이 저장될 수 있습니다. 스냅샷 자체는 계속 저장됩니다.',
+    'topology.presets.savedTitle': '저장된 프리셋',
+    'topology.presets.hint': '프리셋은 메모나 썸네일 없이 재사용 가능한 비교, 검색, 리소스 그룹 포커스 설정을 저장합니다.',
+    'topology.presets.guideTitle': '반복 가능한 워크스페이스 설정에 적합',
+    'topology.presets.guideBody': '같은 compare lane, 검색 범위, 리소스 그룹 포커스를 나중에 다시 쓰려면 프리셋을 사용하세요.',
 
     // ── Topology Page relation panels ────────────────────
     'topology.relations.categories': '관계 카테고리',

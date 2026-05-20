@@ -2834,13 +2834,13 @@ export function TopologyPage() {
             <p className="hint">{t('topology.controls.compareHint')}</p>
           )}
 
-          <h3 className="section-spacer">{UI_TEXT.savedSnapshotsTitle}</h3>
+          <h3 className="section-spacer">{t('topology.snapshots.savedTitle')}</h3>
           <div className="storage-guide-card snapshot-guide-card">
-            <strong>{UI_TEXT.snapshotGuideTitle}</strong>
-            <p className="hint">{UI_TEXT.snapshotHint}</p>
-            <p className="hint storage-guide-copy">{UI_TEXT.snapshotGuideBody}</p>
+            <strong>{t('topology.snapshots.guideTitle')}</strong>
+            <p className="hint">{t('topology.snapshots.hint')}</p>
+            <p className="hint storage-guide-copy">{t('topology.snapshots.guideBody')}</p>
             <p className="hint storage-guide-copy">
-              {snapshotStorageMode === 'server' ? UI_TEXT.snapshotServerGuardHint : UI_TEXT.snapshotLocalGuardHint}
+              {snapshotStorageMode === 'server' ? t('topology.snapshots.serverGuardHint') : t('topology.snapshots.localGuardHint')}
             </p>
           </div>
           {snapshotStorageMode === 'server' && localWorkspaceSnapshots.length > 0 && !localSnapshotNoticeDismissed ? (
@@ -3182,11 +3182,11 @@ export function TopologyPage() {
             </p>
           )}
 
-          <h3 className="section-spacer">{UI_TEXT.savedPresetsTitle}</h3>
+          <h3 className="section-spacer">{t('topology.presets.savedTitle')}</h3>
           <div className="storage-guide-card preset-guide-card">
-            <strong>{UI_TEXT.presetGuideTitle}</strong>
-            <p className="hint">{UI_TEXT.presetHint}</p>
-            <p className="hint storage-guide-copy">{UI_TEXT.presetGuideBody}</p>
+            <strong>{t('topology.presets.guideTitle')}</strong>
+            <p className="hint">{t('topology.presets.hint')}</p>
+            <p className="hint storage-guide-copy">{t('topology.presets.guideBody')}</p>
           </div>
           <div className="preset-save-row">
             <input
