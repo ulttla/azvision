@@ -14,11 +14,11 @@ type ErrorBoundaryProps = {
 }
 
 const DEFAULT_LABELS: ErrorBoundaryLabels = {
-  eyebrow: 'AzVision safety fallback',
-  title: 'Something went wrong',
-  subtext: 'The current view hit a render error. Reload the page to recover the local review session.',
-  reload: 'Reload page',
-  devDetails: 'Developer details',
+  eyebrow: 'AzVision 안전 폴백',
+  title: '문제가 발생했습니다',
+  subtext: '현재 뷰에서 렌더링 오류가 발생했습니다. 로컬 검토 세션을 복구하려면 페이지를 새로고침하세요.',
+  reload: '페이지 새로고침',
+  devDetails: '개발자 세부 정보',
 }
 
 type ErrorBoundaryState = {
