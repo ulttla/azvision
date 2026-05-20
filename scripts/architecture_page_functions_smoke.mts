@@ -66,6 +66,29 @@ assert.equal(formatScaleLabel(0.995), '100%', 'formatScaleLabel should round up 
 assert.match(archPageCode, /function formatScaleLabel/, 'ArchitecturePage should define formatScaleLabel')
 
 // ============================================================
+// Section 2.5: detail density — side-panel limits only
+// ============================================================
+type ArchitectureDetailDensity = 'compact' | 'balanced' | 'expanded'
+
+function getDetailDensityLimits(density: ArchitectureDetailDensity) {
+  if (density === 'expanded') {
+    return { sourceResourceLimit: 16, flowEdgeLimit: 32 }
+  }
+  if (density === 'balanced') {
+    return { sourceResourceLimit: 8, flowEdgeLimit: 16 }
+  }
+  return { sourceResourceLimit: 4, flowEdgeLimit: 8 }
+}
+
+assert.deepEqual(getDetailDensityLimits('compact'), { sourceResourceLimit: 4, flowEdgeLimit: 8 }, 'compact density should keep side panels terse')
+assert.deepEqual(getDetailDensityLimits('balanced'), { sourceResourceLimit: 8, flowEdgeLimit: 16 }, 'balanced density should match the former default limits')
+assert.deepEqual(getDetailDensityLimits('expanded'), { sourceResourceLimit: 16, flowEdgeLimit: 32 }, 'expanded density should expose more source and flow detail')
+assert.match(archPageCode, /ARCHITECTURE_DETAIL_DENSITY_OPTIONS/, 'ArchitecturePage should define detail-density options')
+assert.match(archPageCode, /function getDetailDensityLimits/, 'ArchitecturePage should define getDetailDensityLimits')
+assert.match(archPageCode, /data-testid="arch-detail-density-select"/, 'ArchitecturePage should expose the detail density selector for smoke/E2E targeting')
+assert.match(packageCode, /architecture_page_functions_smoke\.mts/, 'package smoke command should include this ArchitecturePage functions smoke')
+
+// ============================================================
 // Section 3: isArchitectureStage — stage guard validation
 // ============================================================
 // Replicate the ARCHITECTURE_STAGE_META keys from the production source

@@ -554,8 +554,12 @@ export const dict = {
     'arch.controls.includeNetworkInference': 'Include network inference edges',
     'arch.controls.showInfraOverlay': 'Show infra overlay lane',
     'arch.controls.groupThreshold': 'Group threshold',
+    'arch.controls.detailDensity': 'Detail density',
+    'arch.controls.detailDensity.compact': 'Compact',
+    'arch.controls.detailDensity.balanced': 'Balanced',
+    'arch.controls.detailDensity.expanded': 'Expanded',
     'arch.controls.overrideHint':
-      'Override delta is stored separately by workspace + subscription + RG scope and tracks hidden source topology node keys plus label/stage/order overrides and presentation annotations, so the topology source remains intact even when grouping threshold changes. The infra overlay can be hidden for presentation exports without removing network resources from the source topology. Copy PNG rasterizes the current diagram and writes the PNG image to the system clipboard.',
+      'Override delta is stored separately by workspace + subscription + RG scope and tracks hidden source topology node keys plus label/stage/order overrides and presentation annotations, so the topology source remains intact even when grouping threshold changes. Detail density changes how much source-resource and flow detail is shown in side panels without changing the generated architecture model. The infra overlay can be hidden for presentation exports without removing network resources from the source topology. Copy PNG rasterizes the current diagram and writes the PNG image to the system clipboard.',
 
     // ── Architecture Page detail ──────────────────────────
     'arch.detail.heading': 'Selected Card',
@@ -608,6 +612,7 @@ export const dict = {
     'arch.flow.heading': 'Flow Summary',
     'arch.flow.aggregatedEdges': 'Aggregated simplified edges',
     'arch.flow.noEdges': 'No visible simplified edges after current presentation overrides.',
+    'arch.flow.moreEdges': '+ {count} more edges hidden by detail density',
     'arch.flow.syntheticStageFlow': 'synthetic stage flow',
     'arch.flow.topologyBacked': 'topology-backed',
 
@@ -1202,8 +1207,12 @@ export const dict = {
     'arch.controls.includeNetworkInference': '네트워크 추론 엣지 포함',
     'arch.controls.showInfraOverlay': '인프라 오버레이 레인 표시',
     'arch.controls.groupThreshold': '그룹 임계값',
+    'arch.controls.detailDensity': '세부 밀도',
+    'arch.controls.detailDensity.compact': '간결',
+    'arch.controls.detailDensity.balanced': '균형',
+    'arch.controls.detailDensity.expanded': '확장',
     'arch.controls.overrideHint':
-      '오버라이드 델타는 워크스페이스 + 구독 + RG 범위별로 별도 저장되며, 숨겨진 소스 토폴로지 노드 키와 라벨/스테이지/순서 오버라이드 및 프레젠테이션 주석을 추적하여 그룹 임계값 변경 시에도 토폴로지 소스가 그대로 유지됩니다. 인프라 오버레이는 네트워크 리소스를 소스 토폴로지에서 제거하지 않고 프레젠테이션 내보내기를 위해 숨길 수 있습니다. PNG 복사는 현재 다이어그램을 래스터화하여 PNG 이미지를 시스템 클립보드에 기록합니다.',
+      '오버라이드 델타는 워크스페이스 + 구독 + RG 범위별로 별도 저장되며, 숨겨진 소스 토폴로지 노드 키와 라벨/스테이지/순서 오버라이드 및 프레젠테이션 주석을 추적하여 그룹 임계값 변경 시에도 토폴로지 소스가 그대로 유지됩니다. 세부 밀도는 생성된 아키텍처 모델을 바꾸지 않고 사이드 패널의 소스 리소스와 흐름 표시량만 조정합니다. 인프라 오버레이는 네트워크 리소스를 소스 토폴로지에서 제거하지 않고 프레젠테이션 내보내기를 위해 숨길 수 있습니다. PNG 복사는 현재 다이어그램을 래스터화하여 PNG 이미지를 시스템 클립보드에 기록합니다.',
 
     // ── Architecture Page detail ──────────────────────────
     'arch.detail.heading': '선택된 카드',
@@ -1256,6 +1265,7 @@ export const dict = {
     'arch.flow.heading': '흐름 요약',
     'arch.flow.aggregatedEdges': '집계된 간소화 엣지',
     'arch.flow.noEdges': '현재 프레젠테이션 오버라이드 후 표시되는 간소화 엣지가 없습니다.',
+    'arch.flow.moreEdges': '세부 밀도로 숨겨진 엣지 {count}개 추가',
     'arch.flow.syntheticStageFlow': '합성 스테이지 흐름',
     'arch.flow.topologyBacked': '토폴로지 기반',
 

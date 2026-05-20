@@ -69,9 +69,37 @@ function parseInitialResourceGroupName(): string {
 }
 
 const ARCHITECTURE_BOARD_SCALE_OPTIONS = [1, 0.9, 0.8, 0.67, 0.55] as const
+const ARCHITECTURE_DETAIL_DENSITY_OPTIONS = ['compact', 'balanced', 'expanded'] as const
+
+type ArchitectureDetailDensity = (typeof ARCHITECTURE_DETAIL_DENSITY_OPTIONS)[number]
+
+type ArchitectureDetailDensityLimits = {
+  sourceResourceLimit: number
+  flowEdgeLimit: number
+}
 
 function formatScaleLabel(scale: number): string {
   return `${Math.round(scale * 100)}%`
+}
+
+function getDetailDensityLimits(density: ArchitectureDetailDensity): ArchitectureDetailDensityLimits {
+  if (density === 'expanded') {
+    return { sourceResourceLimit: 16, flowEdgeLimit: 32 }
+  }
+  if (density === 'balanced') {
+    return { sourceResourceLimit: 8, flowEdgeLimit: 16 }
+  }
+  return { sourceResourceLimit: 4, flowEdgeLimit: 8 }
+}
+
+function getDetailDensityLabelKey(density: ArchitectureDetailDensity) {
+  if (density === 'expanded') {
+    return 'arch.controls.detailDensity.expanded' as const
+  }
+  if (density === 'balanced') {
+    return 'arch.controls.detailDensity.balanced' as const
+  }
+  return 'arch.controls.detailDensity.compact' as const
 }
 
 function filterTopologyByVisibleSourceKeys(
@@ -238,6 +266,7 @@ export function ArchitecturePage() {
   const [exportLoading, setExportLoading] = useState(false)
   const [exportMessage, setExportMessage] = useState('')
   const [zoneBoardScale, setZoneBoardScale] = useState<(typeof ARCHITECTURE_BOARD_SCALE_OPTIONS)[number]>(0.8)
+  const [detailDensity, setDetailDensity] = useState<ArchitectureDetailDensity>('compact')
 
   const architectureStageMeta = useMemo(
     () => ({
@@ -587,6 +616,7 @@ export function ArchitecturePage() {
   )
 
   const hiddenNodes = hiddenArchitectureModel.nodes
+  const detailDensityLimits = useMemo(() => getDetailDensityLimits(detailDensity), [detailDensity])
 
   const selectedNode = useMemo(
     () => visibleNodes.find((node) => node.id === selectedNodeId) ?? visibleNodes[0] ?? null,
@@ -1065,6 +1095,14 @@ export function ArchitecturePage() {
                 <option value={4}>4 resources</option>
               </select>
             </label>
+            <label className="architecture-threshold-field">
+              <span>{t('arch.controls.detailDensity')}</span>
+              <select value={detailDensity} onChange={(event) => setDetailDensity(event.target.value as ArchitectureDetailDensity)} data-testid="arch-detail-density-select">
+                {ARCHITECTURE_DETAIL_DENSITY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{t(getDetailDensityLabelKey(option))}</option>
+                ))}
+              </select>
+            </label>
           </div>
           <p className="hint architecture-hint-copy">
             {t('arch.controls.overrideHint')}
@@ -1154,14 +1192,14 @@ export function ArchitecturePage() {
               <div className="architecture-source-list">
                 <span className="metric-label">{t('arch.detail.underlyingResources')}</span>
                 <ul className="overview-list architecture-inline-list">
-                  {selectedNode.sourceNodes.slice(0, 8).map((node) => (
+                  {selectedNode.sourceNodes.slice(0, detailDensityLimits.sourceResourceLimit).map((node) => (
                     <li key={node.node_key}>
                       {node.display_name} • {node.resource_type ?? 'unknown type'}
                     </li>
                   ))}
                 </ul>
-                {selectedNode.sourceNodes.length > 8 ? (
-                  <p className="hint">{t('arch.detail.moreResources').replace('{count}', String(selectedNode.sourceNodes.length - 8))}</p>
+                {selectedNode.sourceNodes.length > detailDensityLimits.sourceResourceLimit ? (
+                  <p className="hint">{t('arch.detail.moreResources').replace('{count}', String(selectedNode.sourceNodes.length - detailDensityLimits.sourceResourceLimit))}</p>
                 ) : null}
               </div>
             </div>
@@ -1380,7 +1418,7 @@ export function ArchitecturePage() {
           <div className="interactive-list compact-list">
             {visibleEdges.length ? (
               <ul className="search-result-list">
-                {visibleEdges.slice(0, 16).map((edge: ArchitectureEdge) => {
+                {visibleEdges.slice(0, detailDensityLimits.flowEdgeLimit).map((edge: ArchitectureEdge) => {
                   const source = visibleNodes.find((node) => node.id === edge.sourceId)
                   const target = visibleNodes.find((node) => node.id === edge.targetId)
                   if (!source || !target) {
@@ -1409,6 +1447,9 @@ export function ArchitecturePage() {
             ) : (
               <p className="hint">{isInitialTopologyLoad ? t('arch.detail.loading') : t('arch.flow.noEdges')}</p>
             )}
+            {visibleEdges.length > detailDensityLimits.flowEdgeLimit ? (
+              <p className="hint">{t('arch.flow.moreEdges').replace('{count}', String(visibleEdges.length - detailDensityLimits.flowEdgeLimit))}</p>
+            ) : null}
           </div>
         </article>
 
