@@ -31,208 +31,27 @@ import {
   loadArchitectureOverrideState,
   saveArchitectureOverrideState,
 } from './architecture/storage'
+import {
+  ARCHITECTURE_BOARD_SCALE_OPTIONS,
+  ARCHITECTURE_DETAIL_DENSITY_OPTIONS,
+  filterTopologyByHiddenSourceKeys,
+  filterTopologyByVisibleSourceKeys,
+  formatDateTime,
+  formatScaleLabel,
+  getDetailDensityLabelKey,
+  getDetailDensityLimits,
+  isArchitectureStage,
+  normalizeAnnotations,
+  normalizeDetailDensity,
+  normalizeNodeOverrides,
+  parseInitialResourceGroupName,
+  parseInitialSubscriptionId,
+  parseInitialWorkspaceId,
+  rasterizeSvg,
+  type ArchitectureDetailDensity,
+  type ArchitectureDetailDensityLimits,
+} from './architecture/utils'
 import { useI18n } from '../i18n/context'
-
-function formatDateTime(value?: string) {
-  if (!value) {
-    return '—'
-  }
-
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date(value))
-  } catch {
-    return value
-  }
-}
-
-function readInitialSearchParam(key: string): string {
-  if (typeof window === 'undefined') {
-    return ''
-  }
-
-  return new URLSearchParams(window.location.search).get(key) ?? ''
-}
-
-function parseInitialWorkspaceId(): string {
-  return readInitialSearchParam('workspace')
-}
-
-function parseInitialSubscriptionId(): string {
-  return readInitialSearchParam('sub')
-}
-
-function parseInitialResourceGroupName(): string {
-  return readInitialSearchParam('rg')
-}
-
-const ARCHITECTURE_BOARD_SCALE_OPTIONS = [1, 0.9, 0.8, 0.67, 0.55] as const
-const ARCHITECTURE_DETAIL_DENSITY_OPTIONS = ['compact', 'balanced', 'expanded'] as const
-
-type ArchitectureDetailDensity = (typeof ARCHITECTURE_DETAIL_DENSITY_OPTIONS)[number]
-
-type ArchitectureDetailDensityLimits = {
-  sourceResourceLimit: number
-  flowEdgeLimit: number
-}
-
-function formatScaleLabel(scale: number): string {
-  return `${Math.round(scale * 100)}%`
-}
-
-function getDetailDensityLimits(density: ArchitectureDetailDensity): ArchitectureDetailDensityLimits {
-  if (density === 'expanded') {
-    return { sourceResourceLimit: 16, flowEdgeLimit: 32 }
-  }
-  if (density === 'balanced') {
-    return { sourceResourceLimit: 8, flowEdgeLimit: 16 }
-  }
-  return { sourceResourceLimit: 4, flowEdgeLimit: 8 }
-}
-
-function getDetailDensityLabelKey(density: ArchitectureDetailDensity) {
-  if (density === 'expanded') {
-    return 'arch.controls.detailDensity.expanded' as const
-  }
-  if (density === 'balanced') {
-    return 'arch.controls.detailDensity.balanced' as const
-  }
-  return 'arch.controls.detailDensity.compact' as const
-}
-
-function filterTopologyByVisibleSourceKeys(
-  topology: TopologyResponse | null,
-  hiddenSourceNodeKeySet: Set<string>,
-): TopologyResponse | null {
-  if (!topology) {
-    return null
-  }
-
-  const visibleNodes = topology.nodes.filter((node) => {
-    if (node.node_type !== 'resource') {
-      return true
-    }
-    return !hiddenSourceNodeKeySet.has(node.node_key)
-  })
-
-  const visibleNodeKeys = new Set(visibleNodes.map((node) => node.node_key))
-  const visibleEdges = topology.edges.filter(
-    (edge) => visibleNodeKeys.has(edge.source_node_key) && visibleNodeKeys.has(edge.target_node_key),
-  )
-
-  return {
-    ...topology,
-    nodes: visibleNodes,
-    edges: visibleEdges,
-  }
-}
-
-function isArchitectureStage(value: string): value is ArchitectureStage {
-  return Object.prototype.hasOwnProperty.call(ARCHITECTURE_STAGE_META, value)
-}
-
-function normalizeNodeOverrides(overrides?: Record<string, { displayNameOverride?: string; stageKeyOverride?: string; position?: { order?: number } }>) {
-  const result: Record<string, ArchitectureNodeOverride> = {}
-
-  for (const [nodeKey, override] of Object.entries(overrides ?? {})) {
-    const displayNameOverride = override.displayNameOverride?.trim()
-    const stageKeyOverride = override.stageKeyOverride?.trim()
-    const next: ArchitectureNodeOverride = {}
-    if (displayNameOverride) {
-      next.displayNameOverride = displayNameOverride
-    }
-    if (stageKeyOverride && isArchitectureStage(stageKeyOverride)) {
-      next.stageKeyOverride = stageKeyOverride
-    }
-    if (override.position && Number.isFinite(override.position.order)) {
-      next.position = { order: Number(override.position.order) }
-    }
-    if (next.displayNameOverride || next.stageKeyOverride || next.position) {
-      result[nodeKey] = next
-    }
-  }
-
-  return result
-}
-
-function normalizeAnnotations(annotations?: Array<{ id?: string; text?: string; tone?: string; updatedAt?: string }>): ArchitectureAnnotation[] {
-  const result: ArchitectureAnnotation[] = []
-
-  for (const annotation of annotations ?? []) {
-    const text = annotation.text?.trim().slice(0, 280) ?? ''
-    if (!annotation.id || !text) {
-      continue
-    }
-    const tone: ArchitectureAnnotation['tone'] =
-      annotation.tone === 'warning' || annotation.tone === 'info' ? annotation.tone : 'note'
-    const next: ArchitectureAnnotation = { id: annotation.id, text, tone }
-    if (annotation.updatedAt) {
-      next.updatedAt = annotation.updatedAt
-    }
-    result.push(next)
-  }
-
-  return result
-}
-
-function filterTopologyByHiddenSourceKeys(
-  topology: TopologyResponse | null,
-  hiddenSourceNodeKeySet: Set<string>,
-): TopologyResponse | null {
-  if (!topology || !hiddenSourceNodeKeySet.size) {
-    return null
-  }
-
-  const hiddenNodes = topology.nodes.filter(
-    (node) => node.node_type === 'resource' && hiddenSourceNodeKeySet.has(node.node_key),
-  )
-
-  const hiddenNodeKeys = new Set(hiddenNodes.map((node) => node.node_key))
-  const hiddenEdges = topology.edges.filter(
-    (edge) => hiddenNodeKeys.has(edge.source_node_key) && hiddenNodeKeys.has(edge.target_node_key),
-  )
-
-  return {
-    ...topology,
-    nodes: hiddenNodes,
-    edges: hiddenEdges,
-  }
-}
-
-async function rasterizeSvg(svg: string, width: number, height: number, labels: { loadSvgImage: string; canvasUnavailable: string }): Promise<string> {
-  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => resolve(img)
-      img.onerror = () => reject(new Error(labels.loadSvgImage))
-      img.src = url
-    })
-
-    const scale = 2
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(width * scale)
-    canvas.height = Math.round(height * scale)
-
-    const context = canvas.getContext('2d')
-    if (!context) {
-      throw new Error(labels.canvasUnavailable)
-    }
-
-    context.fillStyle = '#0b1220'
-    context.fillRect(0, 0, canvas.width, canvas.height)
-    context.scale(scale, scale)
-    context.drawImage(image, 0, 0, width, height)
-
-    return canvas.toDataURL('image/png')
-  } finally {
-    URL.revokeObjectURL(url)
-  }
-}
 
 export function ArchitecturePage() {
   const { t } = useI18n()
@@ -454,6 +273,7 @@ export function ArchitecturePage() {
       setNodeOverrides({})
       setAnnotations([])
       setAnnotationDraft('')
+      setDetailDensity('compact')
       setOverridesReady(false)
       return
     }
@@ -463,6 +283,7 @@ export function ArchitecturePage() {
     setHiddenSourceNodeKeys(state.hiddenSourceNodeKeys)
     setNodeOverrides(normalizeNodeOverrides(state.nodeOverrides))
     setAnnotations(normalizeAnnotations(state.annotations))
+    setDetailDensity(normalizeDetailDensity(state.presentation?.detailDensity))
     setOverridesReady(true)
   }, [overrideScopeKey, selectedWorkspaceId])
 
@@ -475,9 +296,10 @@ export function ArchitecturePage() {
       hiddenSourceNodeKeys,
       nodeOverrides,
       annotations,
+      presentation: { detailDensity },
       updatedAt: new Date().toISOString(),
     })
-  }, [annotations, hiddenSourceNodeKeys, nodeOverrides, overrideScopeKey, overridesReady, selectedWorkspaceId])
+  }, [annotations, detailDensity, hiddenSourceNodeKeys, nodeOverrides, overrideScopeKey, overridesReady, selectedWorkspaceId])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -780,6 +602,7 @@ export function ArchitecturePage() {
     setNodeOverrides({})
     setAnnotations([])
     setAnnotationDraft('')
+    setDetailDensity('compact')
     if (overrideScopeKey) {
       clearArchitectureOverrideState(overrideScopeKey)
     }
@@ -1090,9 +913,9 @@ export function ArchitecturePage() {
             <label className="architecture-threshold-field">
               <span>{t('arch.controls.groupThreshold')}</span>
               <select value={groupThreshold} onChange={(event) => setGroupThreshold(Number(event.target.value))}>
-                <option value={2}>2 resources</option>
-                <option value={3}>3 resources</option>
-                <option value={4}>4 resources</option>
+                <option value={2}>{t('arch.controls.resourceCount').replace('{count}', '2')}</option>
+                <option value={3}>{t('arch.controls.resourceCount').replace('{count}', '3')}</option>
+                <option value={4}>{t('arch.controls.resourceCount').replace('{count}', '4')}</option>
               </select>
             </label>
             <label className="architecture-threshold-field">
@@ -1194,7 +1017,7 @@ export function ArchitecturePage() {
                 <ul className="overview-list architecture-inline-list">
                   {selectedNode.sourceNodes.slice(0, detailDensityLimits.sourceResourceLimit).map((node) => (
                     <li key={node.node_key}>
-                      {node.display_name} • {node.resource_type ?? 'unknown type'}
+                      {node.display_name} • {node.resource_type ?? t('arch.detail.unknownType')}
                     </li>
                   ))}
                 </ul>

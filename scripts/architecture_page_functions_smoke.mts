@@ -14,6 +14,8 @@ import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const archPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/ArchitecturePage.tsx'), 'utf8')
+const archUtilsCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/architecture/utils.ts'), 'utf8')
+const storageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/architecture/storage.ts'), 'utf8')
 const packageCode = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
 
 // ============================================================
@@ -46,7 +48,7 @@ assert.ok(formatted.length > 1, 'formatDateTime output should be longer than 1 c
 // Invalid date string should fall through to return the original value
 const invalid = formatDateTime('not-a-date')
 assert.equal(invalid, 'not-a-date', 'formatDateTime should return raw value for unparseable date')
-assert.match(archPageCode, /function formatDateTime/, 'ArchitecturePage should define formatDateTime')
+assert.match(archUtilsCode, /function formatDateTime/, 'ArchitecturePage should define formatDateTime')
 
 // ============================================================
 // Section 2: formatScaleLabel — percentage label rendering
@@ -63,7 +65,7 @@ assert.equal(formatScaleLabel(0.5), '50%', 'formatScaleLabel(0.5) → "50%"')
 assert.equal(formatScaleLabel(0), '0%', 'formatScaleLabel(0) → "0%"')
 assert.equal(formatScaleLabel(0.333), '33%', 'formatScaleLabel should round fractional percentages')
 assert.equal(formatScaleLabel(0.995), '100%', 'formatScaleLabel should round up near-boundary values')
-assert.match(archPageCode, /function formatScaleLabel/, 'ArchitecturePage should define formatScaleLabel')
+assert.match(archUtilsCode, /function formatScaleLabel/, 'ArchitecturePage should define formatScaleLabel')
 
 // ============================================================
 // Section 2.5: detail density — side-panel limits only
@@ -80,12 +82,48 @@ function getDetailDensityLimits(density: ArchitectureDetailDensity) {
   return { sourceResourceLimit: 4, flowEdgeLimit: 8 }
 }
 
+function normalizeDetailDensity(value?: string): ArchitectureDetailDensity {
+  return value === 'balanced' || value === 'expanded' ? value : 'compact'
+}
+
+type ArchitecturePresentationState = {
+  detailDensity?: ArchitectureDetailDensity
+}
+
+function normalizePresentationState(presentation?: ArchitecturePresentationState): ArchitecturePresentationState | undefined {
+  const detailDensity = presentation?.detailDensity
+  if (detailDensity === 'compact' || detailDensity === 'balanced' || detailDensity === 'expanded') {
+    return { detailDensity }
+  }
+  return undefined
+}
+
 assert.deepEqual(getDetailDensityLimits('compact'), { sourceResourceLimit: 4, flowEdgeLimit: 8 }, 'compact density should keep side panels terse')
 assert.deepEqual(getDetailDensityLimits('balanced'), { sourceResourceLimit: 8, flowEdgeLimit: 16 }, 'balanced density should match the former default limits')
 assert.deepEqual(getDetailDensityLimits('expanded'), { sourceResourceLimit: 16, flowEdgeLimit: 32 }, 'expanded density should expose more source and flow detail')
-assert.match(archPageCode, /ARCHITECTURE_DETAIL_DENSITY_OPTIONS/, 'ArchitecturePage should define detail-density options')
-assert.match(archPageCode, /function getDetailDensityLimits/, 'ArchitecturePage should define getDetailDensityLimits')
+assert.equal(normalizeDetailDensity(), 'compact', 'normalizeDetailDensity(undefined) should fall back to compact')
+assert.equal(normalizeDetailDensity(''), 'compact', 'normalizeDetailDensity("") should fall back to compact')
+assert.equal(normalizeDetailDensity('bogus'), 'compact', 'normalizeDetailDensity(invalid) should fall back to compact')
+assert.equal(normalizeDetailDensity('compact'), 'compact', 'normalizeDetailDensity(compact) should pass through')
+assert.equal(normalizeDetailDensity('balanced'), 'balanced', 'normalizeDetailDensity(balanced) should pass through')
+assert.equal(normalizeDetailDensity('expanded'), 'expanded', 'normalizeDetailDensity(expanded) should pass through')
+assert.equal(normalizePresentationState(), undefined, 'normalizePresentationState(undefined) should return undefined')
+assert.equal(normalizePresentationState({}), undefined, 'normalizePresentationState({}) should return undefined')
+assert.deepEqual(normalizePresentationState({ detailDensity: 'balanced' }), { detailDensity: 'balanced' }, 'normalizePresentationState should keep valid density')
+assert.equal(
+  normalizePresentationState({ detailDensity: 'bogus' as ArchitectureDetailDensity }),
+  undefined,
+  'normalizePresentationState should reject invalid density',
+)
+assert.match(archUtilsCode, /ARCHITECTURE_DETAIL_DENSITY_OPTIONS/, 'ArchitecturePage should define detail-density options')
+assert.match(archUtilsCode, /function getDetailDensityLimits/, 'ArchitecturePage should define getDetailDensityLimits')
+assert.match(archUtilsCode, /function normalizeDetailDensity/, 'ArchitecturePage should sanitize persisted detail density values')
 assert.match(archPageCode, /data-testid="arch-detail-density-select"/, 'ArchitecturePage should expose the detail density selector for smoke/E2E targeting')
+assert.match(archPageCode, /presentation: \{ detailDensity \}/, 'ArchitecturePage should persist detail density with presentation overrides')
+assert.match(archPageCode, /setDetailDensity\(normalizeDetailDensity\(state\.presentation\?\.detailDensity\)\)/, 'ArchitecturePage should restore persisted detail density per override scope')
+assert.match(storageCode, /type ArchitecturePresentationState/, 'Architecture storage should have a presentation state contract')
+assert.match(storageCode, /normalizePresentationState/, 'Architecture storage should sanitize persisted presentation settings')
+assert.doesNotMatch(archPageCode, />2 resources<|>3 resources<|>4 resources</, 'ArchitecturePage group threshold labels should be i18n-backed')
 assert.match(packageCode, /architecture_page_functions_smoke\.mts/, 'package smoke command should include this ArchitecturePage functions smoke')
 
 // ============================================================
@@ -120,8 +158,8 @@ assert.equal(isArchitectureStage('SOURCE'), false, 'isArchitectureStage is case-
 assert.equal(isArchitectureStage('toString'), false, 'isArchitectureStage should reject prototype-inherited keys')
 assert.equal(isArchitectureStage('hasOwnProperty'), false, 'isArchitectureStage should reject hasOwnProperty')
 
-assert.match(archPageCode, /function isArchitectureStage/, 'ArchitecturePage should define isArchitectureStage')
-assert.match(archPageCode, /Object\.prototype\.hasOwnProperty\.call|hasOwnProperty/, 'ArchitecturePage should guard stage keys with own-property check')
+assert.match(archUtilsCode, /function isArchitectureStage/, 'ArchitecturePage should define isArchitectureStage')
+assert.match(archUtilsCode, /Object\.prototype\.hasOwnProperty\.call|hasOwnProperty/, 'ArchitecturePage utils should guard stage keys with own-property check')
 
 // ============================================================
 // Section 4: normalizeNodeOverrides — override sanitization
@@ -254,7 +292,7 @@ assert.deepEqual(
   'normalizeNodeOverrides should keep display name when stage is invalid',
 )
 
-assert.match(archPageCode, /function normalizeNodeOverrides/, 'ArchitecturePage should define normalizeNodeOverrides')
+assert.match(archUtilsCode, /function normalizeNodeOverrides/, 'ArchitecturePage should define normalizeNodeOverrides')
 
 // ============================================================
 // Section 5: normalizeAnnotations — annotation sanitization
@@ -372,7 +410,7 @@ assert.deepEqual(
   'normalizeAnnotations should handle multiple entries',
 )
 
-assert.match(archPageCode, /function normalizeAnnotations/, 'ArchitecturePage should define normalizeAnnotations')
+assert.match(archUtilsCode, /function normalizeAnnotations/, 'ArchitecturePage should define normalizeAnnotations')
 
 // ============================================================
 // Section 6: filterTopologyByVisibleSourceKeys — topology visibility filter
@@ -489,7 +527,7 @@ const filteredMeta = filterTopologyByVisibleSourceKeys(topoWithMeta, new Set([])
 assert.equal(filteredMeta?.status, 'ok', 'filterTopologyByVisibleSourceKeys should pass through status')
 assert.equal(filteredMeta?.generated_at, '2025-01-01T00:00:00Z', 'filterTopologyByVisibleSourceKeys should pass through generated_at')
 
-assert.match(archPageCode, /function filterTopologyByVisibleSourceKeys/, 'ArchitecturePage should define filterTopologyByVisibleSourceKeys')
+assert.match(archUtilsCode, /function filterTopologyByVisibleSourceKeys/, 'ArchitecturePage should define filterTopologyByVisibleSourceKeys')
 
 // ============================================================
 // Section 7: filterTopologyByHiddenSourceKeys — complement visibility filter
@@ -572,7 +610,7 @@ const inferredInHidden = filterTopologyByHiddenSourceKeys(simpleTopo, new Set(['
 assert.equal(inferredInHidden?.nodes.length, 1, 'complement: non-resource keys in hidden set do not bring non-resource nodes into hidden view')
 assert.equal(inferredInHidden?.nodes[0].node_key, 'res1', 'complement: only the resource node appears')
 
-assert.match(archPageCode, /function filterTopologyByHiddenSourceKeys/, 'ArchitecturePage should define filterTopologyByHiddenSourceKeys')
+assert.match(archUtilsCode, /function filterTopologyByHiddenSourceKeys/, 'ArchitecturePage should define filterTopologyByHiddenSourceKeys')
 
 // ============================================================
 // Section 8: Verify helper source presence and smoke-chain wiring
@@ -590,7 +628,8 @@ const requiredFunctions = [
 ]
 
 for (const fn of requiredFunctions) {
-  assert.match(archPageCode, new RegExp(`\\b${fn}\\b`), `ArchitecturePage should reference ${fn}`)
+  const combinedCode = archPageCode + archUtilsCode
+  assert.match(combinedCode, new RegExp(`\\b${fn}\\b`), `ArchitecturePage or utils should reference ${fn}`)
 }
 
 console.log('✅ architecture_page_functions_smoke.mts: all assertions passed')

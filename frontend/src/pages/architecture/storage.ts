@@ -11,10 +11,17 @@ export type ArchitectureAnnotationState = {
   updatedAt?: string
 }
 
+export type ArchitectureDetailDensityState = 'compact' | 'balanced' | 'expanded'
+
+export type ArchitecturePresentationState = {
+  detailDensity?: ArchitectureDetailDensityState
+}
+
 export type ArchitectureOverrideState = {
   hiddenSourceNodeKeys: string[]
   nodeOverrides?: Record<string, ArchitectureNodeOverrideState>
   annotations?: ArchitectureAnnotationState[]
+  presentation?: ArchitecturePresentationState
   updatedAt?: string
 }
 
@@ -52,6 +59,14 @@ function writeAllStates(states: Record<string, ArchitectureOverrideState>) {
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(states))
+}
+
+function normalizePresentationState(presentation?: ArchitecturePresentationState): ArchitecturePresentationState | undefined {
+  const detailDensity = presentation?.detailDensity
+  if (detailDensity === 'compact' || detailDensity === 'balanced' || detailDensity === 'expanded') {
+    return { detailDensity }
+  }
+  return undefined
 }
 
 export function loadArchitectureOverrideState(scopeKey: string): ArchitectureOverrideState {
@@ -96,6 +111,7 @@ export function loadArchitectureOverrideState(scopeKey: string): ArchitectureOve
             updatedAt: annotation.updatedAt,
           }))
       : [],
+    presentation: normalizePresentationState(state.presentation),
     updatedAt: state.updatedAt,
   }
 }
@@ -141,6 +157,7 @@ export function saveArchitectureOverrideState(
         tone: annotation.tone === 'warning' || annotation.tone === 'info' ? annotation.tone : 'note',
         updatedAt: annotation.updatedAt ?? new Date().toISOString(),
       })),
+    presentation: normalizePresentationState(state.presentation),
     updatedAt: state.updatedAt ?? new Date().toISOString(),
   }
   writeAllStates(states)
