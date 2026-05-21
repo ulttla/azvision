@@ -32,6 +32,9 @@ for (const imp of requiredImports) {
   assert.match(archPageCode, new RegExp(`\\b${imp}\\b`), `ArchitecturePage should import ${imp}`)
 }
 
+assert.match(archPageCode, /CopilotPanel/, 'ArchitecturePage should import and render CopilotPanel')
+assert.match(archPageCode, /currentView="architecture-view"/, 'ArchitecturePage should pass architecture-view current view to CopilotPanel')
+
 // ============================================================
 // Section 2: ArchitecturePage model imports
 // ============================================================

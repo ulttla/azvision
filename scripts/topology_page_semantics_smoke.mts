@@ -48,6 +48,8 @@ const requiredImports = [
 for (const imp of requiredImports) {
   assert.match(topoPageCode, new RegExp(`\\b${imp}\\b`), `TopologyPage should import ${imp}`)
 }
+assert.match(topoPageCode, /CopilotPanel/, 'TopologyPage should import and render CopilotPanel')
+assert.match(topoPageCode, /currentView="topology"/, 'TopologyPage should pass topology current view to CopilotPanel')
 
 // ============================================================
 // Section 2: TopologyPage model imports
