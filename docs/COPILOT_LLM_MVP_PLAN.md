@@ -117,6 +117,9 @@ Completed for the local-only personal MVP path:
   - Architecture: `architecture-view`
   - Simulation: `simulation`
 - Backend context now includes `view_metadata` with view kind, focus, preferred evidence, and read-only answer guidance.
+- Frontend can pass redacted-by-backend `view_context` summaries for view-specific UI state:
+  - Architecture: visible stage buckets, selected card, annotations, detail density, hidden/grouped counts.
+  - Simulation: selected plan summary, priority counts, missing required fit types, report/template warning counts.
 - LLM system prompts include the active view focus while keeping the no Azure write/remediation guard.
 - Copilot tests isolate `Settings` from local `.env` so local personal config does not mask missing-config/provider-error paths.
 
@@ -129,6 +132,7 @@ Current validation evidence:
 - `node scripts/architecture_view_visual_smoke.mjs` passes.
 - `node scripts/simulation_view_visual_smoke.mjs` passes.
 - Live read-only metadata smoke confirms `view_metadata.view_kind=architecture` and `view_metadata.view_kind=simulation` after local AzVision backend reload.
+- Live `view_context` smoke confirms backend redaction of secret-like UI context fields before returning/sending context.
 
 Remaining follow-up candidates:
 
