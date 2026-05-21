@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
+import { CopilotPanel } from '../components/CopilotPanel'
 import {
   createExport,
   getAuthConfigCheck,
@@ -170,6 +171,15 @@ export function ArchitecturePage() {
   const overrideScopeKey = useMemo(
     () => [selectedWorkspaceId, selectedSubscriptionId || '*', focusedResourceGroupName || '*'].join('|'),
     [focusedResourceGroupName, selectedSubscriptionId, selectedWorkspaceId],
+  )
+  const architectureCopilotOptions = useMemo(
+    () => ({
+      subscriptionId: selectedSubscriptionId || undefined,
+      resourceGroupName: focusedResourceGroupName || undefined,
+      resourceGroupLimit: 200,
+      resourceLimit: 500,
+    }),
+    [focusedResourceGroupName, selectedSubscriptionId],
   )
 
   useEffect(() => {
@@ -743,6 +753,14 @@ export function ArchitecturePage() {
         <div className="error-banner">{t('arch.error.topology')}: {topology.message ?? t('arch.error.unknown')}</div>
       ) : null}
       {exportMessage ? <div className="info-banner">{exportMessage}</div> : null}
+
+      <CopilotPanel
+        workspaceId={selectedWorkspaceId}
+        queryOptions={architectureCopilotOptions}
+        currentView="architecture-view"
+        className="architecture-copilot-card"
+        onError={setError}
+      />
 
       <section className="panel-grid architecture-overview-grid">
         <article className="panel-card">
