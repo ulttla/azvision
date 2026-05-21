@@ -132,6 +132,7 @@ Current validation evidence:
 - `npm --prefix frontend run smoke:semantics` passes.
 - `node scripts/architecture_view_visual_smoke.mjs` passes.
 - `node scripts/simulation_view_visual_smoke.mjs` passes.
+- `node scripts/topology_view_visual_smoke.mjs` passes and captures the outgoing topology Copilot request with graph/count/selected-node/path-analysis context fields.
 - Live read-only metadata smoke confirms `view_metadata.view_kind=architecture` and `view_metadata.view_kind=simulation` after local AzVision backend reload.
 - Live `view_context` smoke confirms backend redaction of secret-like UI context fields before returning/sending context.
 - View-specific quick prompts are available in the shared Copilot panel so Cost, Topology, Architecture, and Simulation can start with context-appropriate read-only questions.
@@ -139,8 +140,8 @@ Current validation evidence:
 
 Remaining follow-up candidates:
 
-- Add a focused Topology visual smoke for Copilot context presence once the page's graph render timing is stable enough for local CI-like runs.
-- Add an optional visual smoke that asks a short copilot question in the UI once LLM latency is stable enough for CI-like runs.
+- Decide whether `topology_view_visual_smoke.mjs` should remain an explicit local gate or be included in the default visual smoke bundle.
+- Add an optional live LLM visual smoke that asks a short copilot question in the UI once LLM latency is stable enough for CI-like runs.
 - Decide whether to make the new visual smoke scripts part of the default smoke command or keep them as explicit local visual gates.
 - Consider per-view default prompt text if quick prompts become the primary workflow.
 
