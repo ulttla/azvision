@@ -95,6 +95,8 @@ const expectedApiCalls = [
 for (const apiCall of expectedApiCalls) {
   assert.match(simPageCode, new RegExp(`${apiCall}`), `SimulationPage should call ${apiCall}`)
 }
+assert.match(simPageCode, /CopilotPanel/, 'SimulationPage should import and render CopilotPanel')
+assert.match(simPageCode, /currentView="simulation"/, 'SimulationPage should pass simulation current view to CopilotPanel')
 
 // ============================================================
 // Section 6: SimulationPage download functions exist

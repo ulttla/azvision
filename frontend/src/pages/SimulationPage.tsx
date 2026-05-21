@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
+import { CopilotPanel } from '../components/CopilotPanel'
 import {
   ApiError,
   createSimulation,
@@ -53,6 +54,10 @@ export function SimulationPage() {
   const [templateLoading, setTemplateLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const simulationCopilotOptions = useMemo(
+    () => ({ resourceGroupLimit: 200, resourceLimit: fitLimit }),
+    [fitLimit],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -204,6 +209,14 @@ export function SimulationPage() {
           {error ? <span className="error-text">{error}</span> : null}
         </div>
       </section>
+
+      <CopilotPanel
+        workspaceId={workspaceId}
+        queryOptions={simulationCopilotOptions}
+        currentView="simulation"
+        className="simulation-copilot-card"
+        onError={setError}
+      />
 
       <section className="panel-grid simulation-panel-grid">
         <article className="panel-card">
