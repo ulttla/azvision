@@ -17,6 +17,16 @@ const LEGACY_COST_COPILOT_PROVIDER_STORAGE_KEY = 'azvision:cost-copilot-provider
 const COPILOT_PROVIDER_OPTIONS = ['ollama', 'openrouter', 'rule-based'] as const satisfies readonly CopilotProviderOption[]
 
 type CopilotSection = { heading: string; body: string[]; isSuggestions?: boolean }
+type CopilotQuickPromptKey =
+  | 'copilot.quick.nextReadOnlyChecks'
+  | 'copilot.quick.architectureRisks'
+  | 'copilot.quick.architectureUnknowns'
+  | 'copilot.quick.simulationFit'
+  | 'copilot.quick.simulationRisks'
+  | 'copilot.quick.topologyRisks'
+  | 'copilot.quick.networkChecks'
+  | 'copilot.quick.costRisks'
+  | 'copilot.quick.governanceGaps'
 
 type InitialCopilotProvider = {
   provider: CopilotProviderOption
@@ -116,6 +126,20 @@ function persistCopilotProvider(provider: CopilotProviderOption) {
   }
 }
 
+function getQuickPromptKeys(currentView: string): CopilotQuickPromptKey[] {
+  const normalized = currentView.trim().toLowerCase()
+  if (normalized === 'architecture-view' || normalized === 'architecture') {
+    return ['copilot.quick.architectureRisks', 'copilot.quick.architectureUnknowns', 'copilot.quick.nextReadOnlyChecks']
+  }
+  if (normalized === 'simulation') {
+    return ['copilot.quick.simulationFit', 'copilot.quick.simulationRisks', 'copilot.quick.nextReadOnlyChecks']
+  }
+  if (normalized === 'topology') {
+    return ['copilot.quick.topologyRisks', 'copilot.quick.networkChecks', 'copilot.quick.nextReadOnlyChecks']
+  }
+  return ['copilot.quick.costRisks', 'copilot.quick.governanceGaps', 'copilot.quick.nextReadOnlyChecks']
+}
+
 export function CopilotPanel({ workspaceId, queryOptions, currentView, viewContext, className = '', onError }: CopilotPanelProps) {
   const { locale, t } = useI18n()
   const [copilotPrompt, setCopilotPrompt] = useState(() => t('copilot.defaultPrompt'))
@@ -126,6 +150,7 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, viewConte
   const [copilotLoading, setCopilotLoading] = useState(false)
 
   const selectedProviderStatus = copilotProviders.find((provider) => provider.id === copilotProvider)
+  const quickPromptKeys = getQuickPromptKeys(currentView)
 
   function setCopilotProvider(provider: CopilotProviderOption) {
     setCopilotProviderState(provider)
@@ -211,6 +236,19 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, viewConte
         {selectedProviderStatus && !selectedProviderStatus.configured ? (
           <span className="mini-chip severity-medium">{selectedProviderStatus.label} {t('copilot.fallbackNote')}</span>
         ) : null}
+      </div>
+      <div className="control-row" aria-label={t('copilot.quickPrompts')}>
+        <span className="mini-chip">{t('copilot.quickPrompts')}</span>
+        {quickPromptKeys.map((promptKey) => (
+          <button
+            key={promptKey}
+            type="button"
+            className="toolbar-button search-inline-button"
+            onClick={() => setCopilotPrompt(t(promptKey))}
+          >
+            {t(promptKey)}
+          </button>
+        ))}
       </div>
       <div className="cost-copilot-input-row">
         <textarea
