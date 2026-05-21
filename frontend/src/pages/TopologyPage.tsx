@@ -1266,6 +1266,70 @@ export function TopologyPage() {
       .slice(0, 5)
   }, [inventorySummary, t])
   const searchScopeMeta = useMemo(() => getSearchScopeMeta(searchScope, searchLabels), [searchLabels, searchScope])
+  const topologyCopilotViewContext = useMemo(
+    () => ({
+      graph: {
+        loaded: loadedSummary,
+        visible: visibleSummary,
+        includeNetworkInference,
+        clusterManagedInstanceChildren,
+        expandedManagedInstanceCount: expandedManagedInstanceRefs.length,
+        focusedResourceGroupName: focusedResourceGroupName || null,
+        searchQuery: searchQuery || null,
+        searchScope,
+        searchResultCount: searchResults.length,
+      },
+      nodeTypeCounts: nodeTypeCounts.slice(0, 8),
+      relationCounts: relationCounts.slice(0, 8),
+      relationCategoryCounts,
+      selectedNode: selectedNode
+        ? {
+            key: selectedNode.node_key,
+            ref: selectedNode.node_ref,
+            name: selectedNode.display_name,
+            type: selectedNode.node_type,
+            resourceType: selectedNode.resource_type,
+            category: getResourceCategory(selectedNode),
+            source: selectedNode.source,
+            confidence: selectedNode.confidence,
+            location: selectedNode.location,
+            childSummary: selectedNode.child_summary ?? null,
+          }
+        : null,
+      pathAnalysis: pathAnalysisResult
+        ? {
+            overallVerdict: pathAnalysisResult.overall_verdict,
+            candidateCount: pathAnalysisResult.path_candidates.length,
+            warnings: pathAnalysisResult.warnings.slice(0, 5),
+            firstCandidate: pathAnalysisResult.path_candidates[0]
+              ? {
+                  verdict: pathAnalysisResult.path_candidates[0].verdict,
+                  reason: pathAnalysisResult.path_candidates[0].reason,
+                  hopCount: pathAnalysisResult.path_candidates[0].hops.length,
+                  peeringHopCount: pathAnalysisResult.path_candidates[0].peering_hop_count,
+                  forwardedTraffic: pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
+                }
+              : null,
+          }
+        : null,
+    }),
+    [
+      clusterManagedInstanceChildren,
+      expandedManagedInstanceRefs.length,
+      focusedResourceGroupName,
+      includeNetworkInference,
+      loadedSummary,
+      nodeTypeCounts,
+      pathAnalysisResult,
+      relationCategoryCounts,
+      relationCounts,
+      searchQuery,
+      searchResults.length,
+      searchScope,
+      selectedNode,
+      visibleSummary,
+    ],
+  )
   const currentPresetState = useMemo<TopologyPresetState>(
     () => ({
       presetVersion: TOPOLOGY_PRESET_VERSION,
@@ -2364,6 +2428,7 @@ export function TopologyPage() {
         workspaceId={selectedWorkspaceId}
         queryOptions={topologyCopilotOptions}
         currentView="topology"
+        viewContext={topologyCopilotViewContext}
         className="topology-copilot-card"
         onError={setError}
       />

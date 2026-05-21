@@ -50,6 +50,9 @@ for (const imp of requiredImports) {
 }
 assert.match(topoPageCode, /CopilotPanel/, 'TopologyPage should import and render CopilotPanel')
 assert.match(topoPageCode, /currentView="topology"/, 'TopologyPage should pass topology current view to CopilotPanel')
+assert.match(topoPageCode, /topologyCopilotViewContext/, 'TopologyPage should build view-specific copilot context')
+assert.match(topoPageCode, /viewContext={topologyCopilotViewContext}/, 'TopologyPage should pass view-specific context to CopilotPanel')
+assert.match(topoPageCode, /pathAnalysisResult[\s\S]*overallVerdict/, 'TopologyPage copilot context should summarize path analysis when present')
 
 // ============================================================
 // Section 2: TopologyPage model imports
