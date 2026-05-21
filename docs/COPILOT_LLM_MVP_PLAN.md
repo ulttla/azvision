@@ -132,16 +132,17 @@ Current validation evidence:
 - `npm --prefix frontend run smoke:semantics` passes.
 - `node scripts/architecture_view_visual_smoke.mjs` passes.
 - `node scripts/simulation_view_visual_smoke.mjs` passes.
-- `node scripts/topology_view_visual_smoke.mjs` passes and captures the outgoing topology Copilot request with graph/count/selected-node/path-analysis context fields.
+- `node scripts/topology_view_visual_smoke.mjs` passes and captures the outgoing topology Copilot request with graph/count/selected-node/path-analysis context fields, plus parsed inline Copilot answer section headings.
 - Live read-only metadata smoke confirms `view_metadata.view_kind=architecture` and `view_metadata.view_kind=simulation` after local AzVision backend reload.
 - Live `view_context` smoke confirms backend redaction of secret-like UI context fields before returning/sending context.
 - View-specific quick prompts are available in the shared Copilot panel so Cost, Topology, Architecture, and Simulation can start with context-appropriate read-only questions.
 - Topology view now sends richer graph and path-analysis context so read-only answers can reference current filters, selected node, and path verdicts without re-querying Azure.
+- Copilot answer rendering splits common inline section labels such as `**Summary:** text` / `Heading: text` into separate UI sections, and the Topology visual smoke asserts the parsed section headings.
 
 Remaining follow-up candidates:
 
 - Decide whether `topology_view_visual_smoke.mjs` should remain an explicit local gate or be included in the default visual smoke bundle.
-- Add an optional live LLM visual smoke that asks a short copilot question in the UI once LLM latency is stable enough for CI-like runs.
+- Optional live LLM UI smoke is available as `scripts/copilot_live_ui_smoke.mjs`; it is opt-in only via `AZVISION_LIVE_COPILOT_SMOKE=1` so normal smoke runs do not depend on LLM latency or provider availability.
 - Decide whether to make the new visual smoke scripts part of the default smoke command or keep them as explicit local visual gates.
 - Consider per-view default prompt text if quick prompts become the primary workflow.
 

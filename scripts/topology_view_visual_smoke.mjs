@@ -58,7 +58,7 @@ async function main() {
           provider: capturedCopilotRequest.provider ?? 'ollama',
           model: 'visual-smoke',
           llm_status: 'ok',
-          answer: 'Topology visual smoke response.',
+          answer: '**요약:** Topology visual smoke response.\n\n**관찰된 근거:** Graph context received.\n\n**위험 / 모르는 점:** No live provider call in this mocked smoke.\n\n**다음 읽기 전용 확인:** Review path evidence.',
           suggestions: ['Review path evidence.'],
           context: {
             resource_count: capturedCopilotRequest.view_context?.graph?.visible?.resources ?? 0,
@@ -91,6 +91,12 @@ async function main() {
 
     await page.locator('.topology-copilot-card').getByRole('button', { name: '질문' }).click()
     await page.waitForFunction(() => document.body.innerText.includes('Topology visual smoke response.'), null, { timeout: 10_000 })
+    const sectionHeadings = await page.locator('.topology-copilot-card .cost-copilot-section-heading').allInnerTexts()
+    for (const expectedHeading of ['요약', '관찰된 근거', '위험 / 모르는 점', '다음 읽기 전용 확인']) {
+      if (!sectionHeadings.includes(expectedHeading)) {
+        throw new Error(`Expected parsed copilot section heading not found: ${expectedHeading}; got ${sectionHeadings.join(', ')}`)
+      }
+    }
 
     if (!capturedCopilotRequest) {
       throw new Error('Topology copilot chat request was not captured')
@@ -143,6 +149,7 @@ async function main() {
         'Copilot provider selection restores from shared localStorage key',
         'Topology quick prompt populates the copilot input',
         'Topology copilot request includes graph, count, selected-node, and path-analysis context fields',
+        'Copilot answer parser renders inline bold section labels as separate sections',
       ],
       outputDir: OUT_DIR,
     }, null, 2))

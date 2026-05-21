@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useI18n } from '../i18n/context'
+import { parseCopilotAnswerSections } from './copilotAnswerParser'
 import {
   ApiError,
   getCopilotProviders,
@@ -16,7 +17,6 @@ const COPILOT_PROVIDER_STORAGE_KEY = 'azvision:copilot-provider:v1'
 const LEGACY_COST_COPILOT_PROVIDER_STORAGE_KEY = 'azvision:cost-copilot-provider:v1'
 const COPILOT_PROVIDER_OPTIONS = ['ollama', 'openrouter', 'rule-based'] as const satisfies readonly CopilotProviderOption[]
 
-type CopilotSection = { heading: string; body: string[]; isSuggestions?: boolean }
 type CopilotQuickPromptKey =
   | 'copilot.quick.nextReadOnlyChecks'
   | 'copilot.quick.architectureRisks'
@@ -40,63 +40,6 @@ type CopilotPanelProps = {
   viewContext?: CopilotViewContext
   className?: string
   onError?: (message: string) => void
-}
-
-/**
- * Parse a copilot answer into structured sections.
- * Detects common heading patterns: `## Heading`, `**Heading:**`, `Heading:`, and Korean/English labels.
- * Falls back to a single-section rendering when no markers are found.
- */
-function parseCopilotAnswerSections(answer: string, fallbackHeading = 'Answer'): CopilotSection[] {
-  const lines = answer.split('\n').map((line) => line.trimEnd())
-  const sections: CopilotSection[] = []
-  let current: CopilotSection | null = null
-
-  const headingPatterns: Array<{ regex: RegExp; extract: (match: RegExpMatchArray) => string }> = [
-    { regex: /^##\s+(.+?)(?:#+)?$/, extract: (match) => match[1].trim() },
-    { regex: /^\*\*(.+?)\*\*\s*:?\s*$/, extract: (match) => match[1].trim() },
-    { regex: /^([A-Za-z가-힣][A-Za-z가-힣\s/·-]{1,40}):\s*$/u, extract: (match) => match[1].trim() },
-  ]
-
-  function finalizeSection() {
-    if (current && current.body.length > 0) {
-      sections.push(current)
-    }
-    current = null
-  }
-
-  for (const line of lines) {
-    let matched = false
-    for (const { regex, extract } of headingPatterns) {
-      const match = line.match(regex)
-      if (match) {
-        finalizeSection()
-        current = { heading: extract(match), body: [] }
-        matched = true
-        break
-      }
-    }
-    if (matched) continue
-
-    if (line.length === 0) {
-      if (current && current.body.length > 0) {
-        current.body.push('')
-      }
-      continue
-    }
-
-    if (!current) {
-      current = { heading: fallbackHeading, body: [] }
-    }
-    current.body.push(line)
-  }
-  finalizeSection()
-
-  if (sections.length === 0) {
-    return [{ heading: fallbackHeading, body: lines.filter((line) => line.length > 0) }]
-  }
-
-  return sections
 }
 
 function normalizeCopilotProvider(value: unknown): CopilotProviderOption {
