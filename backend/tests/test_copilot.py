@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 from app.services.copilot import (
     OllamaCopilotProvider,
     OpenRouterCopilotProvider,
@@ -40,8 +40,18 @@ def test_rule_based_copilot_cost_question_mentions_not_configured_llm() -> None:
     assert answer["suggestions"]
 
 
-def test_default_copilot_provider_uses_rule_based_contract() -> None:
-    answer = get_default_copilot_provider().answer("", [])
+def test_default_copilot_provider_uses_rule_based_contract(monkeypatch) -> None:
+    monkeypatch.setenv("COPILOT_ENABLED", "false")
+    monkeypatch.setenv("COPILOT_DEFAULT_PROVIDER", "rule-based")
+    monkeypatch.setenv("OLLAMA_MODEL", "")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "")
+    monkeypatch.setenv("OPENROUTER_MODEL", "")
+    get_settings.cache_clear()
+
+    try:
+        answer = get_default_copilot_provider().answer("", [])
+    finally:
+        get_settings.cache_clear()
 
     assert answer["provider"] == "rule-based"
     assert answer["llm_status"] == "not_configured"

@@ -120,6 +120,11 @@ def client(
         database_url=db_url,
         topology_mode="mock",
         export_root=str(db_path.parent / "exports"),
+        copilot_enabled=False,
+        copilot_default_provider="rule-based",
+        ollama_model="",
+        openrouter_api_key="",
+        openrouter_model="",
     )
     monkeypatch.setattr(mm_repo_mod, "settings", test_settings)
 
@@ -129,6 +134,11 @@ def client(
     monkeypatch.setenv("AZVISION_DATABASE_URL", db_url)
     monkeypatch.setenv("TOPOLOGY_MODE", "mock")
     monkeypatch.setenv("AZVISION_EXPORT_ROOT", str(db_path.parent / "exports"))
+    monkeypatch.setenv("COPILOT_ENABLED", "false")
+    monkeypatch.setenv("COPILOT_DEFAULT_PROVIDER", "rule-based")
+    monkeypatch.setenv("OLLAMA_MODEL", "")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "")
+    monkeypatch.setenv("OPENROUTER_MODEL", "")
 
     from app.main import app
 
