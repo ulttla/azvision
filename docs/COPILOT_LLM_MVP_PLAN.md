@@ -104,6 +104,39 @@ Required prompt safety:
   - `Suggested next read-only checks`
 - Pass the active UI locale with each copilot request so Korean UI sessions receive Korean-first LLM guidance while English UI sessions stay English-first.
 
+## Implementation status — 2026-05-20 C1
+
+Completed for the local-only personal MVP path:
+
+- Local `.env` enables the read-only Ollama copilot profile with `COPILOT_DEFAULT_PROVIDER=ollama` and `OLLAMA_MODEL=deepseek-v4-pro:cloud`.
+- A shared `CopilotPanel` is used by Cost, Topology, Architecture, and Simulation views.
+- The provider selector persists through the shared `azvision:copilot-provider:v1` localStorage key.
+- Each view sends an explicit `current_view` value:
+  - Cost: `cost-insights`
+  - Topology: `topology`
+  - Architecture: `architecture-view`
+  - Simulation: `simulation`
+- Backend context now includes `view_metadata` with view kind, focus, preferred evidence, and read-only answer guidance.
+- LLM system prompts include the active view focus while keeping the no Azure write/remediation guard.
+- Copilot tests isolate `Settings` from local `.env` so local personal config does not mask missing-config/provider-error paths.
+
+Current validation evidence:
+
+- `scripts/copilot_provider_smoke.sh` reports `chat_provider=ollama` and `llm_status=ok` after local backend reload.
+- `backend/.venv/bin/pytest backend/tests/test_copilot.py -q` passes with 23 tests.
+- `npm --prefix frontend run build` passes.
+- `npm --prefix frontend run smoke:semantics` passes.
+- `node scripts/architecture_view_visual_smoke.mjs` passes.
+- `node scripts/simulation_view_visual_smoke.mjs` passes.
+- Live read-only metadata smoke confirms `view_metadata.view_kind=architecture` and `view_metadata.view_kind=simulation` after local AzVision backend reload.
+
+Remaining follow-up candidates:
+
+- Add richer Architecture context summaries from stage buckets, flow edges, and annotations.
+- Add richer Simulation context summaries from selected simulation, fit results, report warnings, and IaC outline warnings.
+- Add an optional visual smoke that asks a short copilot question in the UI once LLM latency is stable enough for CI-like runs.
+- Decide whether to make the new visual smoke scripts part of the default smoke command or keep them as explicit local visual gates.
+
 ## Test and validation plan
 
 - Provider config parsing tests.
@@ -111,6 +144,7 @@ Required prompt safety:
 - Provider adapter mocked tests for Ollama and OpenRouter response normalization.
 - API route tests for disabled/missing-key/provider-error paths.
 - Frontend semantics smoke for provider selector, read-only badge, current-language forwarding, and no-secret rendering.
+- View-level visual smoke for Architecture and Simulation copilot rendering and Korean UI regression checks.
 - Keep `npm --prefix frontend run smoke:semantics`, frontend build, and backend pytest as the minimum validation gate.
 
 ## First implementation slice recommendation
