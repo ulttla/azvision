@@ -133,13 +133,14 @@ Current validation evidence:
 - `node scripts/simulation_view_visual_smoke.mjs` passes.
 - Live read-only metadata smoke confirms `view_metadata.view_kind=architecture` and `view_metadata.view_kind=simulation` after local AzVision backend reload.
 - Live `view_context` smoke confirms backend redaction of secret-like UI context fields before returning/sending context.
+- View-specific quick prompts are available in the shared Copilot panel so Cost, Topology, Architecture, and Simulation can start with context-appropriate read-only questions.
 
 Remaining follow-up candidates:
 
-- Add richer Architecture context summaries from stage buckets, flow edges, and annotations.
-- Add richer Simulation context summaries from selected simulation, fit results, report warnings, and IaC outline warnings.
+- Add richer Topology and Path Analysis context summaries when a selected node/path result exists.
 - Add an optional visual smoke that asks a short copilot question in the UI once LLM latency is stable enough for CI-like runs.
 - Decide whether to make the new visual smoke scripts part of the default smoke command or keep them as explicit local visual gates.
+- Consider per-view default prompt text if quick prompts become the primary workflow.
 
 ## Test and validation plan
 
