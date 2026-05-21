@@ -95,12 +95,19 @@ def test_copilot_context_summarizes_selected_resource_without_secret_dump() -> N
 
 
 def test_copilot_context_adds_view_specific_guidance() -> None:
-    architecture_context = build_copilot_context([], workspace_id=WORKSPACE, current_view="architecture-view")
+    architecture_context = build_copilot_context(
+        [],
+        workspace_id=WORKSPACE,
+        current_view="architecture-view",
+        view_context={"selectedNode": {"label": "app", "apiKey": "hidden"}},
+    )
     simulation_context = build_copilot_context([], workspace_id=WORKSPACE, current_view="simulation")
 
     assert architecture_context["view_metadata"]["view_kind"] == "architecture"
     assert "topology flows" in architecture_context["view_metadata"]["focus"]
     assert architecture_context["limits"]["view_specific_guidance"]
+    assert architecture_context["view_context"]["selectedNode"]["label"] == "app"
+    assert architecture_context["view_context"]["selectedNode"]["apiKey"] == "[redacted]"
     assert simulation_context["view_metadata"]["view_kind"] == "simulation"
     assert "workload planning" in simulation_context["view_metadata"]["focus"]
     assert "IaC warnings" in simulation_context["view_metadata"]["preferred_evidence"]

@@ -144,6 +144,7 @@ def build_copilot_context(
     current_view: str | None = None,
     current_language: str | None = None,
     selected_resource_id: str | None = None,
+    view_context: dict[str, Any] | None = None,
     max_resources: int = 8,
 ) -> dict[str, Any]:
     resource_groups = Counter(_resource_group(resource) for resource in resources)
@@ -165,6 +166,7 @@ def build_copilot_context(
         "top_resource_types": _top_resource_types(resources),
         "sample_resources": [_summarize_resource(resource) for resource in resources[:max_resources]],
         "selected_resource": _summarize_resource(selected_resource) if selected_resource else None,
+        "view_context": redact_copilot_value(view_context or {}),
         "limits": {
             "read_only": True,
             "no_azure_write_or_remediation": True,

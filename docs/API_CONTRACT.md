@@ -159,7 +159,8 @@
   - 응답: `ok`, `enabled`, `default_provider`, `read_only`, `providers[]`
   - `providers[]` 는 provider id, label, configured/status, model만 반환하며 API key/token은 반환하지 않는다.
 - `POST /copilot/chat`
-  - request: `workspace_id`, `message`, optional `provider`, `current_view`, `selected_resource_id`
+  - request: `workspace_id`, `message`, optional `provider`, `current_view`, `current_language`, `selected_resource_id`, `view_context`
+  - `view_context`는 현재 UI가 이미 계산한 요약만 담으며 backend에서 secret-like field를 다시 redact한다.
   - query: `subscription_id`, `resource_group_name`, `resource_group_limit`, `resource_limit`
   - 응답: `ok`, `workspace_id`, `mode`(inventory mode), `read_only`, `copilot_mode`, `provider`, `model`, `llm_status`, `answer`, `suggestions[]`, `context`
 - `POST /workspaces/{workspace_id}/chat`

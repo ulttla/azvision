@@ -287,6 +287,8 @@ export type CostQueryOptions = {
   resourceLimit?: number
 }
 
+export type CopilotViewContext = Record<string, unknown>
+
 export type TopologyChildSummary = {
   total: number
   type_counts: Record<string, number>
@@ -711,11 +713,12 @@ export async function postCopilotMessage(
   provider?: CopilotProviderOption,
   currentView = 'cost-insights',
   currentLanguage?: 'en' | 'ko',
+  viewContext?: CopilotViewContext,
 ): Promise<CopilotResponse> {
   return fetchJson<CopilotResponse>(`/workspaces/${workspaceId}/chat${buildInventoryQuery(options)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, provider, current_view: currentView, current_language: currentLanguage }),
+    body: JSON.stringify({ message, provider, current_view: currentView, current_language: currentLanguage, view_context: viewContext }),
   })
 }
 

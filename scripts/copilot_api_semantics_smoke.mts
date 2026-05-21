@@ -41,6 +41,8 @@ assert.match(apiCode, /currentView = 'cost-insights'/, 'postCopilotMessage shoul
 assert.match(apiCode, /current_view: currentView/, 'postCopilotMessage should send dynamic current view context label')
 assert.match(apiCode, /currentLanguage\?: 'en' \| 'ko'/, 'postCopilotMessage should accept current UI language')
 assert.match(apiCode, /current_language: currentLanguage/, 'postCopilotMessage should send current UI language')
+assert.match(apiCode, /viewContext\?: CopilotViewContext/, 'postCopilotMessage should accept view-specific copilot context')
+assert.match(apiCode, /view_context: viewContext/, 'postCopilotMessage should send view-specific copilot context')
 
 // ============================================================
 // Section 3: shared CopilotPanel usage
@@ -52,7 +54,7 @@ assert.match(copilotUiCode, /CopilotResponse/, 'Shared copilot UI should import 
 assert.match(copilotUiCode, /copilotResponse.*useState.*CopilotResponse|useState.*CopilotResponse.*copilotResponse/, 'Shared copilot UI should have copilotResponse state typed as CopilotResponse')
 assert.match(copilotUiCode, /postCopilotMessage\(workspaceId/, 'Shared copilot UI should call postCopilotMessage with workspaceId')
 assert.match(copilotUiCode, /const \{ locale, t \} = useI18n\(\)/, 'Shared copilot UI should read current locale for copilot')
-assert.match(copilotUiCode, /currentView, locale/, 'Shared copilot UI should pass current locale to copilot')
+assert.match(copilotUiCode, /currentView, locale, viewContext/, 'Shared copilot UI should pass current locale and view context to copilot')
 assert.match(copilotUiCode, /askCopilot/, 'Shared copilot UI should have askCopilot handler')
 assert.match(copilotUiCode, /copilotPrompt.*useState|useState.*copilotPrompt/, 'Shared copilot UI should have copilotPrompt state')
 assert.match(copilotUiCode, /copilotProvider.*useState|useState.*copilotProvider/, 'Shared copilot UI should have copilotProvider state')
@@ -101,8 +103,11 @@ const copilotRoutesCode = readFileSync(path.join(repoRoot, 'backend/app/api/rout
 
 assert.match(copilotServicesCode, /probe_provider_health/, 'copilot services should export probe_provider_health')
 assert.match(copilotServicesCode, /current_language/, 'copilot service should preserve current language in context')
+assert.match(copilotServicesCode, /view_metadata/, 'copilot service should include view-specific metadata in context')
+assert.match(copilotServicesCode, /view_context/, 'copilot service should include redacted view-specific UI context')
 assert.match(copilotServicesCode, /Respond in Korean/, 'copilot LLM prompt should instruct Korean responses when UI locale is Korean')
 assert.match(copilotRoutesCode, /current_language=str\(payload.get\("current_language"\)/, 'copilot route should forward current_language into context')
+assert.match(copilotRoutesCode, /view_context=view_context/, 'copilot route should forward view_context into context')
 assert.match(copilotServicesCode, /_probe_ollama_connectivity/, 'copilot services should have ollama connectivity probe')
 assert.match(copilotServicesCode, /_probe_openrouter_connectivity/, 'copilot services should have openrouter connectivity probe')
 assert.match(copilotRoutesCode, /health_smoke/, 'copilot route should accept health_smoke query param')

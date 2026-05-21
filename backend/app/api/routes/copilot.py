@@ -45,12 +45,14 @@ def _answer_payload(
         resource_group_limit=resource_group_limit,
         resource_limit=resource_limit,
     )
+    view_context = payload.get("view_context")
     context = build_copilot_context(
         resolution.collection.resources,
         workspace_id=workspace_id,
         current_view=str(payload.get("current_view") or payload.get("context_scope") or "unknown"),
         current_language=str(payload.get("current_language") or "en"),
         selected_resource_id=payload.get("selected_resource_id"),
+        view_context=view_context if isinstance(view_context, dict) else None,
     )
     provider = get_configured_copilot_provider(settings, str(provider_override) if provider_override else None)
     answer = provider.answer(message, resolution.collection.resources, context)

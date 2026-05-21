@@ -492,6 +492,43 @@ export function ArchitecturePage() {
     () => visibleNodes.filter((node) => node.nodeCount > 1).length,
     [visibleNodes],
   )
+  const architectureCopilotViewContext = useMemo(
+    () => ({
+      presentation: {
+        detailDensity,
+        visibleNodeCount: visibleNodes.length,
+        visibleEdgeCount: visibleEdges.length,
+        hiddenNodeCount: hiddenNodes.length,
+        stageCoverage,
+        groupedCards,
+      },
+      stageBuckets: visibleStageBuckets.map((bucket) => ({
+        stage: bucket.stage,
+        label: bucket.label,
+        nodeCount: bucket.nodes.length,
+        sampleNodes: bucket.nodes.slice(0, 5).map((node) => ({
+          label: node.label,
+          family: node.family,
+          nodeCount: node.nodeCount,
+          resourceGroups: node.resourceGroups.slice(0, 3),
+          resourceTypes: node.resourceTypes.slice(0, 3),
+        })),
+      })),
+      selectedNode: selectedNode
+        ? {
+            label: selectedNode.label,
+            stage: selectedNode.stage,
+            family: selectedNode.family,
+            nodeCount: selectedNode.nodeCount,
+            childResourceCount: selectedNode.childResourceCount,
+            resourceGroups: selectedNode.resourceGroups.slice(0, 5),
+            resourceTypes: selectedNode.resourceTypes.slice(0, 5),
+          }
+        : null,
+      annotations: annotations.map((annotation) => ({ tone: annotation.tone, text: annotation.text })),
+    }),
+    [annotations, detailDensity, groupedCards, hiddenNodes.length, selectedNode, stageCoverage, visibleEdges.length, visibleNodes.length, visibleStageBuckets],
+  )
 
   function hideArchitectureNode(node: ArchitectureNode) {
     setHiddenSourceNodeKeys((current) =>
@@ -758,6 +795,7 @@ export function ArchitecturePage() {
         workspaceId={selectedWorkspaceId}
         queryOptions={architectureCopilotOptions}
         currentView="architecture-view"
+        viewContext={architectureCopilotViewContext}
         className="architecture-copilot-card"
         onError={setError}
       />

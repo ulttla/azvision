@@ -81,6 +81,45 @@ export function SimulationPage() {
   }, [selectedSimulationId, workspaceId])
 
   const selectedSimulation = simulations.find((item) => item.simulation_id === selectedSimulationId) ?? simulations[0]
+  const simulationCopilotViewContext = useMemo(() => {
+    const priorityCounts = selectedSimulation?.recommended_resources.reduce<Record<string, number>>((counts, resource) => {
+      counts[resource.priority] = (counts[resource.priority] ?? 0) + 1
+      return counts
+    }, {}) ?? {}
+
+    return {
+      selectedSimulation: selectedSimulation
+        ? {
+            id: selectedSimulation.simulation_id,
+            workloadName: selectedSimulation.workload_name,
+            environment: selectedSimulation.environment,
+            mode: selectedSimulation.mode,
+            matchedRules: selectedSimulation.matched_rules,
+            recommendedResourceCount: selectedSimulation.recommended_resources.length,
+            priorityCounts,
+            requiredResources: selectedSimulation.recommended_resources
+              .filter((resource) => resource.priority === 'required')
+              .slice(0, 8)
+              .map((resource) => ({ type: resource.resource_type, reason: resource.reason })),
+            assumptionCount: selectedSimulation.assumptions.length,
+            nextActionCount: selectedSimulation.next_actions.length,
+          }
+        : null,
+      fit: fit
+        ? {
+            inventoryResourceCount: fit.inventory_resource_count,
+            coveredCount: fit.covered_count,
+            missingRequiredCount: fit.missing_required_count,
+            missingRequiredTypes: fit.items
+              .filter((item) => item.status !== 'covered' && item.priority === 'required')
+              .slice(0, 8)
+              .map((item) => item.resource_type),
+          }
+        : null,
+      report: report ? { type: report.report_type, warningCount: report.warnings.length } : null,
+      template: template ? { format: template.format, deployable: template.deployable, warningCount: template.warnings.length } : null,
+    }
+  }, [fit, report, selectedSimulation, template])
 
   useEffect(() => {
     if (!selectedSimulation) {
@@ -214,6 +253,7 @@ export function SimulationPage() {
         workspaceId={workspaceId}
         queryOptions={simulationCopilotOptions}
         currentView="simulation"
+        viewContext={simulationCopilotViewContext}
         className="simulation-copilot-card"
         onError={setError}
       />

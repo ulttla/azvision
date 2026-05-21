@@ -8,6 +8,7 @@ import {
   type CopilotProviderOption,
   type CopilotProviderStatus,
   type CopilotResponse,
+  type CopilotViewContext,
   type CostQueryOptions,
 } from '../lib/api'
 
@@ -26,6 +27,7 @@ type CopilotPanelProps = {
   workspaceId: string
   queryOptions?: CostQueryOptions
   currentView: string
+  viewContext?: CopilotViewContext
   className?: string
   onError?: (message: string) => void
 }
@@ -114,7 +116,7 @@ function persistCopilotProvider(provider: CopilotProviderOption) {
   }
 }
 
-export function CopilotPanel({ workspaceId, queryOptions, currentView, className = '', onError }: CopilotPanelProps) {
+export function CopilotPanel({ workspaceId, queryOptions, currentView, viewContext, className = '', onError }: CopilotPanelProps) {
   const { locale, t } = useI18n()
   const [copilotPrompt, setCopilotPrompt] = useState(() => t('copilot.defaultPrompt'))
   const [initialCopilotProvider] = useState<InitialCopilotProvider>(() => readInitialCopilotProvider())
@@ -167,7 +169,7 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, className
     setCopilotLoading(true)
     onError?.('')
     try {
-      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), queryOptions, copilotProvider, currentView, locale))
+      setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), queryOptions, copilotProvider, currentView, locale, viewContext))
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : err instanceof Error ? err.message : t('cost.error.askCopilot'))
     } finally {
