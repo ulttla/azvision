@@ -61,11 +61,18 @@ assert.match(
 // --- Section 4: CostPage.tsx structural smoke ---
 const costPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/CostPage.tsx'), 'utf8')
 
-// CostPage must import cost API functions
-const costApiImports = ['getCostSummary', 'getCostResources', 'getCostReport', 'getCostRecommendations', 'postCopilotMessage']
+// CostPage must import cost API functions and use the shared copilot panel.
+const costApiImports = ['getCostSummary', 'getCostResources', 'getCostReport', 'getCostRecommendations']
 for (const fn of costApiImports) {
   assert.match(costPageCode, new RegExp(`\\b${fn}\\b`), `CostPage should import ${fn}`)
 }
+assert.match(costPageCode, /CopilotPanel/, 'CostPage should render the shared CopilotPanel')
+
+const copilotPanelCode = readFileSync(path.join(repoRoot, 'frontend/src/components/CopilotPanel.tsx'), 'utf8')
+for (const fn of ['getCopilotProviders', 'postCopilotMessage']) {
+  assert.match(copilotPanelCode, new RegExp(`\\b${fn}\\b`), `CopilotPanel should import ${fn}`)
+}
+
 
 // CostPage must have key UI controls
 const costUIControls = [

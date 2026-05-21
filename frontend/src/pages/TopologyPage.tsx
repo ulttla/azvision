@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { Core } from 'cytoscape'
 
+import { CopilotPanel } from '../components/CopilotPanel'
 import { useI18n } from '../i18n/context'
 
 import {
@@ -234,6 +235,15 @@ export function TopologyPage() {
   const localSnapshotNoticeFingerprint = useMemo(
     () => createSnapshotNoticeFingerprint(localWorkspaceSnapshots),
     [localWorkspaceSnapshots],
+  )
+  const topologyCopilotOptions = useMemo(
+    () => ({
+      subscriptionId: selectedSubscriptionId || undefined,
+      resourceGroupName: focusedResourceGroupName || undefined,
+      resourceGroupLimit: 20,
+      resourceLimit: 80,
+    }),
+    [focusedResourceGroupName, selectedSubscriptionId],
   )
 
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
@@ -2349,6 +2359,14 @@ export function TopologyPage() {
         <div className="error-banner">{t('topology.error.topologyPrefix')} {topology.message ?? t('topology.error.unknown')}</div>
       ) : null}
       {exportMessage ? <div className="info-banner">{exportMessage}</div> : null}
+
+      <CopilotPanel
+        workspaceId={selectedWorkspaceId}
+        queryOptions={topologyCopilotOptions}
+        currentView="topology"
+        className="topology-copilot-card"
+        onError={setError}
+      />
 
       <section className="panel-grid">
         <article className="panel-card">

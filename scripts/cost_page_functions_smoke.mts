@@ -10,6 +10,7 @@ import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const costPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/CostPage.tsx'), 'utf8')
+const copilotPanelCode = readFileSync(path.join(repoRoot, 'frontend/src/components/CopilotPanel.tsx'), 'utf8')
 const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const simPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/SimulationPage.tsx'), 'utf8')
 
@@ -115,7 +116,7 @@ assert.match(simPageCode, /fitLimit/, 'SimulationPage should track fitLimit')
 // ============================================================
 // Section 8: Copilot prompt default
 // ============================================================
-assert.match(costPageCode, /copilot\.defaultPrompt/, 'CostPage copilot should use localized default prompt key')
+assert.match(copilotPanelCode, /copilot\.defaultPrompt/, 'Shared CopilotPanel should use localized default prompt key')
 assert.match(dictCode, /'copilot\.defaultPrompt': 'How can I reduce cost or improve this architecture\?'/, 'i18n dict should keep cost-reduction default prompt copy')
 
 console.log('✅ cost_page_functions_smoke.mts: all assertions passed')
