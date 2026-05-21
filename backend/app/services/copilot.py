@@ -93,6 +93,50 @@ def _summarize_resource(resource: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def _view_context_metadata(current_view: str | None) -> dict[str, Any]:
+    normalized = (current_view or "unknown").strip().lower()
+    if normalized in {"architecture", "architecture-view"}:
+        return {
+            "view_kind": "architecture",
+            "focus": "stage layout, service boundaries, topology flows, and architecture risks",
+            "preferred_evidence": ["resource groups", "resource types", "locations", "explicit topology edges", "unknown or inferred relationships"],
+            "answer_guidance": [
+                "Call out unknowns separately from observed facts.",
+                "Prefer diagram-reading and evidence-review checks over remediation steps.",
+            ],
+        }
+    if normalized == "simulation":
+        return {
+            "view_kind": "simulation",
+            "focus": "workload planning, recommended resources, fit checks, IaC draft review, and readiness gaps",
+            "preferred_evidence": ["simulation recommendations", "existing inventory fit", "missing required resources", "assumptions", "IaC warnings"],
+            "answer_guidance": [
+                "Keep recommendations read-only and frame them as planning checks.",
+                "Do not imply the draft template has been deployed or validated in Azure.",
+            ],
+        }
+    if normalized == "topology":
+        return {
+            "view_kind": "topology",
+            "focus": "graph relationships, connectivity evidence, path-analysis candidates, and network risk triage",
+            "preferred_evidence": ["nodes", "edges", "source confidence", "NSG evidence", "route evidence"],
+            "answer_guidance": ["Separate explicit Azure evidence from inferred relationships."],
+        }
+    if normalized in {"cost", "cost-insights"}:
+        return {
+            "view_kind": "cost-insights",
+            "focus": "cost triage, governance gaps, and read-only optimization candidates",
+            "preferred_evidence": ["cost recommendation rules", "resource type counts", "governance labels", "inventory scope"],
+            "answer_guidance": ["Treat cost output as triage until Cost Management ingestion is configured."],
+        }
+    return {
+        "view_kind": normalized or "unknown",
+        "focus": "general inventory summary and read-only infrastructure Q&A",
+        "preferred_evidence": ["resource inventory", "resource groups", "resource types"],
+        "answer_guidance": ["Use only the summarized context and mark unknowns clearly."],
+    }
+
+
 def build_copilot_context(
     resources: list[dict[str, Any]],
     *,
@@ -107,11 +151,14 @@ def build_copilot_context(
     if selected_resource_id:
         selected_resource = next((resource for resource in resources if str(resource.get("id") or "") == selected_resource_id), None)
 
+    view_metadata = _view_context_metadata(current_view)
+
     return {
         "workspace_id": workspace_id or "unknown",
         "inventory_mode": "read-only-summary",
         "current_view": current_view or "unknown",
         "current_language": current_language or "en",
+        "view_metadata": view_metadata,
         "facts_label": "observed unless marked unknown",
         "resource_count": len(resources),
         "resource_groups": [f"{name}: {count}" for name, count in resource_groups.most_common(8)],
@@ -122,6 +169,7 @@ def build_copilot_context(
             "read_only": True,
             "no_azure_write_or_remediation": True,
             "context_is_summarized": True,
+            "view_specific_guidance": view_metadata["answer_guidance"],
         },
     }
 
@@ -207,10 +255,12 @@ def build_rule_based_copilot_answer(
 def _build_llm_messages(message: str, context: dict[str, Any]) -> list[dict[str, str]]:
     current_language = str(context.get("current_language") or "en").strip().lower()
     language_instruction = "Respond in Korean unless the user explicitly asks for another language." if current_language == "ko" else "Respond in English unless the user explicitly asks for another language."
+    view_focus = str((context.get("view_metadata") or {}).get("focus") or "general inventory summary")
     system_prompt = (
         "You are AzVision's read-only infrastructure copilot. Summarize observed evidence, risks, unknowns, "
         "and suggested next read-only checks. Do not propose Azure write/remediation actions, deployments, "
         "or secret exposure. Treat the provided context as summarized evidence, not a full environment dump. "
+        f"Current view focus: {view_focus}. "
         + language_instruction
     )
     user_prompt = "Context JSON:\n" + json.dumps(context, ensure_ascii=False, indent=2) + "\n\nUser question:\n" + message

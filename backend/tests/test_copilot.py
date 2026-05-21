@@ -17,6 +17,10 @@ from app.services.copilot import (
 WORKSPACE = "ws-copilot-test"
 
 
+def isolated_settings(**overrides) -> Settings:
+    return Settings(_env_file=None, **overrides)
+
+
 def test_rule_based_copilot_cost_question_mentions_not_configured_llm() -> None:
     resources = [
         {
@@ -90,8 +94,20 @@ def test_copilot_context_summarizes_selected_resource_without_secret_dump() -> N
     assert context["selected_resource"]["tags"]["secretToken"] == "[redacted]"
 
 
+def test_copilot_context_adds_view_specific_guidance() -> None:
+    architecture_context = build_copilot_context([], workspace_id=WORKSPACE, current_view="architecture-view")
+    simulation_context = build_copilot_context([], workspace_id=WORKSPACE, current_view="simulation")
+
+    assert architecture_context["view_metadata"]["view_kind"] == "architecture"
+    assert "topology flows" in architecture_context["view_metadata"]["focus"]
+    assert architecture_context["limits"]["view_specific_guidance"]
+    assert simulation_context["view_metadata"]["view_kind"] == "simulation"
+    assert "workload planning" in simulation_context["view_metadata"]["focus"]
+    assert "IaC warnings" in simulation_context["view_metadata"]["preferred_evidence"]
+
+
 def test_copilot_provider_status_never_exposes_openrouter_key() -> None:
-    settings = Settings(
+    settings = isolated_settings(
         copilot_enabled=True,
         copilot_default_provider="openrouter",
         openrouter_api_key="sk-test-secret",
@@ -113,7 +129,7 @@ def test_ollama_provider_error_uses_rule_based_fallback(monkeypatch) -> None:
         raise ValueError("bad json")
 
     monkeypatch.setattr("app.services.copilot.requests.post", broken_post)
-    settings = Settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
+    settings = isolated_settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
 
     answer = OllamaCopilotProvider(settings).answer("network risk", [])
 
@@ -127,7 +143,7 @@ def test_openrouter_provider_error_uses_rule_based_fallback(monkeypatch) -> None
         raise ValueError("bad json")
 
     monkeypatch.setattr("app.services.copilot.requests.post", broken_post)
-    settings = Settings(
+    settings = isolated_settings(
         copilot_enabled=True,
         openrouter_api_key="sk-test-secret",
         openrouter_model="anthropic/example",
@@ -145,7 +161,7 @@ def test_provider_error_fallback_notice_follows_current_language(monkeypatch) ->
         raise ValueError("timeout")
 
     monkeypatch.setattr("app.services.copilot.requests.post", broken_post)
-    settings = Settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
+    settings = isolated_settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
 
     answer = OllamaCopilotProvider(settings).answer("비용 위험 요약", [], {"current_language": "ko"})
 
@@ -212,7 +228,7 @@ def test_copilot_chat_route_preserves_current_language(client: TestClient) -> No
 
 
 def test_provider_health_ollama_not_configured_without_settings() -> None:
-    settings = Settings(ollama_base_url="", ollama_model="")
+    settings = isolated_settings(ollama_base_url="", ollama_model="")
     result = probe_provider_health(settings)
     assert result["ollama"]["configured"] is False
     assert result["ollama"]["reachable"] is False
@@ -220,7 +236,7 @@ def test_provider_health_ollama_not_configured_without_settings() -> None:
 
 
 def test_provider_health_openrouter_not_configured_without_key() -> None:
-    settings = Settings(openrouter_api_key="", openrouter_model="")
+    settings = isolated_settings(openrouter_api_key="", openrouter_model="")
     result = probe_provider_health(settings)
     assert result["openrouter"]["configured"] is False
     assert result["openrouter"]["reachable"] is False
@@ -232,7 +248,7 @@ def test_provider_health_ollama_unreachable_when_down(monkeypatch) -> None:
         raise ValueError("timeout")
 
     monkeypatch.setattr("app.services.copilot.requests.get", broken_get)
-    settings = Settings(ollama_base_url="http://127.0.0.1:11434", ollama_model="test-model")
+    settings = isolated_settings(ollama_base_url="http://127.0.0.1:11434", ollama_model="test-model")
     result = probe_provider_health(settings)
     assert result["ollama"]["configured"] is True
     assert result["ollama"]["reachable"] is False
@@ -244,7 +260,7 @@ def test_provider_health_openrouter_unreachable_when_down(monkeypatch) -> None:
         raise ValueError("timeout")
 
     monkeypatch.setattr("app.services.copilot.requests.get", broken_get)
-    settings = Settings(
+    settings = isolated_settings(
         openrouter_api_key="sk-test-secret",
         openrouter_model="anthropic/example",
     )
@@ -264,7 +280,7 @@ def test_provider_health_ollama_reachable_when_up(monkeypatch) -> None:
         return ReachableResponse()
 
     monkeypatch.setattr("app.services.copilot.requests.get", reachable_get)
-    settings = Settings(ollama_base_url="http://127.0.0.1:11434", ollama_model="test-model")
+    settings = isolated_settings(ollama_base_url="http://127.0.0.1:11434", ollama_model="test-model")
     result = probe_provider_health(settings)
     assert result["ollama"]["configured"] is True
     assert result["ollama"]["reachable"] is True
@@ -280,7 +296,7 @@ def test_provider_health_openrouter_reachable_when_up(monkeypatch) -> None:
         return ReachableResponse()
 
     monkeypatch.setattr("app.services.copilot.requests.get", reachable_get)
-    settings = Settings(
+    settings = isolated_settings(
         openrouter_api_key="sk-test-secret",
         openrouter_model="anthropic/example",
     )
