@@ -122,12 +122,12 @@ Completed for the local-only personal MVP path:
   - Simulation: selected plan summary, priority counts, missing required fit types, report/template warning counts.
   - Topology: loaded/visible graph counts, filter/search state, node/relation counts, selected node details, and path analysis summary.
 - LLM system prompts include the active view focus while keeping the no Azure write/remediation guard.
-- Copilot tests isolate `Settings` from local `.env` so local personal config does not mask missing-config/provider-error paths.
+- Copilot tests isolate `Settings` and route fixtures from local `.env`/env provider settings so local personal Ollama config does not mask missing-config/provider-error paths or slow test runs.
 
 Current validation evidence:
 
 - `scripts/copilot_provider_smoke.sh` reports `chat_provider=ollama` and `llm_status=ok` after local backend reload.
-- `backend/.venv/bin/pytest backend/tests/test_copilot.py -q` passes with 23 tests.
+- `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` passes with 23 tests.
 - `npm --prefix frontend run build` passes.
 - `npm --prefix frontend run smoke:semantics` passes.
 - `node scripts/architecture_view_visual_smoke.mjs` passes.
