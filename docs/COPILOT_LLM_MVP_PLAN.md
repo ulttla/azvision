@@ -120,6 +120,7 @@ Completed for the local-only personal MVP path:
 - Frontend can pass redacted-by-backend `view_context` summaries for view-specific UI state:
   - Architecture: visible stage buckets, selected card, annotations, detail density, hidden/grouped counts.
   - Simulation: selected plan summary, priority counts, missing required fit types, report/template warning counts.
+  - Topology: loaded/visible graph counts, filter/search state, node/relation counts, selected node details, and path analysis summary.
 - LLM system prompts include the active view focus while keeping the no Azure write/remediation guard.
 - Copilot tests isolate `Settings` from local `.env` so local personal config does not mask missing-config/provider-error paths.
 
@@ -134,10 +135,11 @@ Current validation evidence:
 - Live read-only metadata smoke confirms `view_metadata.view_kind=architecture` and `view_metadata.view_kind=simulation` after local AzVision backend reload.
 - Live `view_context` smoke confirms backend redaction of secret-like UI context fields before returning/sending context.
 - View-specific quick prompts are available in the shared Copilot panel so Cost, Topology, Architecture, and Simulation can start with context-appropriate read-only questions.
+- Topology view now sends richer graph and path-analysis context so read-only answers can reference current filters, selected node, and path verdicts without re-querying Azure.
 
 Remaining follow-up candidates:
 
-- Add richer Topology and Path Analysis context summaries when a selected node/path result exists.
+- Add a focused Topology visual smoke for Copilot context presence once the page's graph render timing is stable enough for local CI-like runs.
 - Add an optional visual smoke that asks a short copilot question in the UI once LLM latency is stable enough for CI-like runs.
 - Decide whether to make the new visual smoke scripts part of the default smoke command or keep them as explicit local visual gates.
 - Consider per-view default prompt text if quick prompts become the primary workflow.

@@ -161,6 +161,7 @@
 - `POST /copilot/chat`
   - request: `workspace_id`, `message`, optional `provider`, `current_view`, `current_language`, `selected_resource_id`, `view_context`
   - `view_context`는 현재 UI가 이미 계산한 요약만 담으며 backend에서 secret-like field를 다시 redact한다.
+  - 현재 view context 예시: Architecture stage/card summary, Simulation fit/report warning summary, Topology loaded/visible graph summary, selected node summary, path analysis verdict/warnings.
   - query: `subscription_id`, `resource_group_name`, `resource_group_limit`, `resource_limit`
   - 응답: `ok`, `workspace_id`, `mode`(inventory mode), `read_only`, `copilot_mode`, `provider`, `model`, `llm_status`, `answer`, `suggestions[]`, `context`
 - `POST /workspaces/{workspace_id}/chat`
