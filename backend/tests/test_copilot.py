@@ -322,6 +322,24 @@ def test_openrouter_non_text_content_parts_use_safe_fallback(monkeypatch) -> Non
     assert "image.png" not in str(answer)
 
 
+def test_ollama_non_text_content_parts_use_safe_fallback(monkeypatch) -> None:
+    class NonTextContentPartsResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"message": {"content": [{"type": "image", "source": "local-test-image"}]}}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: NonTextContentPartsResponse())
+    settings = isolated_settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
+
+    answer = OllamaCopilotProvider(settings).answer("network risk", [])
+
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "ollama_provider_error"
+    assert "local-test-image" not in str(answer)
+
+
 def test_copilot_providers_route_returns_read_only_status(client: TestClient) -> None:
     response = client.get("/api/v1/copilot/providers")
 

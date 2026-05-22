@@ -58,3 +58,13 @@
   - `node --experimental-strip-types scripts/copilot_answer_parser_smoke.mts` PASS
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 29 tests.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T12:43Z Ollama non-text content-parts fallback slice
+
+- Scope: same Copilot provider parsing hardening, local-only.
+- Change: Added Ollama test coverage for non-text-only content parts so unusable image/non-text payloads safely fall back and do not leak source markers.
+- Files:
+  - `backend/tests/test_copilot.py`
+- Validation:
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 30 tests.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
