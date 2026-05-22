@@ -114,3 +114,13 @@
   - Validation bundle remains green: backend Copilot pytest 30 tests, parser smoke, API semantics smoke, frontend build, frontend smoke:semantics.
 - Optional low-risk follow-up: add a small unit test for raw string items inside provider content arrays.
 - Review file: `tmp/lww-c2/midpoint-review.md`.
+
+## 2026-05-22T14:13Z raw string content-parts coverage slice
+
+- Scope: same Copilot provider parsing hardening, local-only.
+- Change: Added OpenRouter test coverage for raw string items inside provider content arrays, closing the midpoint review's optional low-risk follow-up.
+- Files:
+  - `backend/tests/test_copilot.py`
+- Validation:
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
