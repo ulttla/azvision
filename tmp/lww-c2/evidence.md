@@ -139,3 +139,13 @@
 - Scope: C2 final validation/report prep, local-only.
 - Change: Created `tmp/lww-c2/c2-checkpoint-draft.md` with C2 commits, validation evidence, midpoint review status, approval-needed table, and next steps.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T15:00Z validation/report prep bundle
+
+- Scope: C2 report and C3 transition gate prep, local-only.
+- Validation:
+  - `npm --prefix frontend run smoke:semantics` PASS.
+  - `npm --prefix frontend run build` PASS.
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
+- Repo context at run: `main...origin/main [ahead 21]`, working tree clean before evidence append.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
