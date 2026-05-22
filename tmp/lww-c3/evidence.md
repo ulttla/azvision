@@ -41,3 +41,9 @@
 - Scope: final report readiness only; no new feature/code expansion.
 - Change: Refreshed `tmp/lww-c3/final-report-draft.md` to current repo state (`main...origin/main [ahead 29]`, HEAD `02ed36d`, 29 campaign commits) and marked remaining work as final report/read-back/archive/campaign close only.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T17:45Z final closeout gate prep
+
+- Scope: final closeout gate only; no new feature/code expansion.
+- Change: Created `tmp/lww-c3/final-closeout-gate.md` with repo state, final validation bundle, C1/C2 completion status, pending C3 final report/archive steps, and approval-needed item.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
