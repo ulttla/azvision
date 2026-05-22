@@ -149,3 +149,10 @@
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
 - Repo context at run: `main...origin/main [ahead 21]`, working tree clean before evidence append.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T15:13Z report draft prep slice
+
+- Scope: C2 report and C3 transition gate prep, local-only.
+- Change: Created `tmp/lww-c2/c2-report-draft.md` with result summary, C2 commits, latest validation bundle, evidence/docs list, approval-needed table, and C3 transition gate draft.
+- Repo context at draft: `main...origin/main [ahead 22]`, working tree clean before evidence append.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
