@@ -144,10 +144,9 @@ Current validation evidence:
 
 Remaining follow-up candidates:
 
-- Decide whether `topology_view_visual_smoke.mjs` should remain an explicit local gate or be included in the default visual smoke bundle.
+- Keep `topology_view_visual_smoke.mjs`, `architecture_view_visual_smoke.mjs`, `simulation_view_visual_smoke.mjs`, and `copilot_empty_answer_ui_smoke.mjs` as explicit local UI gates rather than adding them to the default browserless smoke bundle because they depend on a running Vite dev server and UI readiness.
 - Optional live LLM UI smoke is available as `scripts/copilot_live_ui_smoke.mjs`; it is opt-in only via `AZVISION_LIVE_COPILOT_SMOKE=1` so normal smoke runs do not depend on LLM latency or provider availability.
-- Decide whether to make the new visual smoke scripts part of the default smoke command or keep them as explicit local visual gates.
-- Consider deeper `CopilotPanel` UI-level coverage if a frontend test runner is introduced later; current default gate remains browserless smoke plus build, with `copilot_empty_answer_ui_smoke.mjs` available as an explicit local UI gate.
+- Consider deeper `CopilotPanel` UI-level coverage if a frontend test runner is introduced later; current default gate remains browserless smoke plus build, with explicit local UI gates available for visual/Copilot paths.
 
 ## Test and validation plan
 

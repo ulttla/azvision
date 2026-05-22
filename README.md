@@ -57,10 +57,12 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `scripts/cost_report_smoke.sh` 로 rule-based cost markdown report endpoint를 live API 기준으로 smoke 가능
   - `scripts/cost_insights_smoke.sh` 로 scoped cost summary/resources/recommendations/report 계약을 live API 기준으로 smoke 가능
   - `scripts/copilot_provider_smoke.sh` 로 read-only Copilot provider status, health smoke, fallback chat, no-secret response contract를 live API 기준으로 smoke 가능
+  - `scripts/copilot_empty_answer_ui_smoke.mjs` 로 Vite dev server 실행 상태에서 Cost Copilot empty-answer fallback, locale/view contract, raw filter omission을 mocked UI 기준으로 visual smoke 가능
   - `scripts/simulation_smoke.sh` 로 simulation create/list/detail/template/report/fit API 계약을 smoke 가능
   - `scripts/sqlite_health_check.py` 로 local SQLite integrity, journal mode, snapshot/thumbnail size, simulation JSON size, topology archive count/bytes/age/orphan warning signal을 read-only로 점검 가능
   - `scripts/check_doc_mirror.sh` 는 기본 visibility-only이고, `AZVISION_DOC_MIRROR_STRICT=1` 설정 시 mirror drift를 실패로 처리 가능
   - `scripts/snapshot_sort_visual_smoke.mjs` 로 local Chrome CDP 기준 실제 UI에서 `Saved` custom sort와 `Recent` fixed semantics visual smoke 가능
+  - `scripts/architecture_view_visual_smoke.mjs`, `scripts/simulation_view_visual_smoke.mjs`, `scripts/topology_view_visual_smoke.mjs` 로 Playwright 기준 view-specific Copilot/visual smoke를 명시 실행 가능. 이들은 dev server와 UI readiness에 의존하므로 기본 browserless smoke bundle에는 포함하지 않음
   - `scripts/architecture_view_visual_smoke.mjs` 로 Playwright 기준 실제 UI에서 한국어 Architecture View 렌더링, detail density localStorage persistence, 하드코딩 영어 fallback 부재를 visual smoke 가능
   - `scripts/snapshot_thumbnail_guard_copy_smoke.mts` 로 storage-mode guide/save-after warning copy, shared thumbnail max-length, API contract sanitize wording이 current thumbnail guard contract와 계속 정렬되는지 빠르게 smoke 가능
   - CI/frontend acceptance now runs `npm --prefix frontend run smoke:semantics` for browserless snapshot sort, thumbnail guard copy/contract drift, Architecture View helper behavior, and Path Analysis peering evidence contract coverage
