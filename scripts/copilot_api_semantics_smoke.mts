@@ -49,6 +49,10 @@ assert.match(apiCode, /view_context: viewContext/, 'postCopilotMessage should se
 // Section 3: shared CopilotPanel usage
 // ============================================================
 assert.match(costPageCode, /CopilotPanel/, 'CostPage should render the shared CopilotPanel')
+assert.match(costPageCode, /const costCopilotViewContext = useMemo<CopilotViewContext>/, 'CostPage should build cost-specific copilot view context')
+assert.match(costPageCode, /topRecommendations: sortedRecommendations\.slice\(0, 8\)/, 'CostPage copilot context should summarize top recommendations')
+assert.match(costPageCode, /topResources: topResources\.map/, 'CostPage copilot context should summarize top resources')
+assert.match(costPageCode, /viewContext=\{costCopilotViewContext\}/, 'CostPage should pass cost-specific view context to CopilotPanel')
 assert.match(costPageCode, /currentView="cost-insights"/, 'CostPage should pass cost-insights current view to CopilotPanel')
 assert.match(copilotUiCode, /postCopilotMessage/, 'Shared copilot UI should import postCopilotMessage')
 assert.match(copilotUiCode, /CopilotResponse/, 'Shared copilot UI should import CopilotResponse type')
@@ -62,6 +66,9 @@ assert.match(copilotUiCode, /copilotProvider.*useState|useState.*copilotProvider
 assert.match(copilotUiCode, /COPILOT_PROVIDER_STORAGE_KEY/, 'Shared copilot UI should persist the selected copilot provider for productized personal use')
 assert.match(copilotUiCode, /localStorage\.setItem\(COPILOT_PROVIDER_STORAGE_KEY/, 'Shared copilot UI should write selected copilot provider to localStorage')
 assert.match(copilotUiCode, /getQuickPromptKeys/, 'Shared copilot UI should expose view-specific quick prompts')
+assert.match(copilotUiCode, /function getDefaultPromptKey\(currentView: string\): CopilotQuickPromptKey/, 'Shared copilot UI should derive a per-view default prompt')
+assert.match(copilotUiCode, /const defaultPrompt = t\(getDefaultPromptKey\(currentView\)\)/, 'Shared copilot UI should initialize from the per-view default prompt')
+assert.match(copilotUiCode, /lastDefaultPromptRef/, 'Shared copilot UI should preserve user-edited prompts while refreshing default prompts')
 assert.match(copilotUiCode, /copilot\.quick\.architectureRisks/, 'Shared copilot UI should include architecture quick prompt')
 assert.match(copilotUiCode, /copilot\.quick\.simulationFit/, 'Shared copilot UI should include simulation quick prompt')
 assert.match(copilotUiCode, /copilot\.quick\.topologyRisks/, 'Shared copilot UI should include topology quick prompt')

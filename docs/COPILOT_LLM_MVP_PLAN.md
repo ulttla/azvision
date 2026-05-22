@@ -118,6 +118,7 @@ Completed for the local-only personal MVP path:
   - Simulation: `simulation`
 - Backend context now includes `view_metadata` with view kind, focus, preferred evidence, and read-only answer guidance.
 - Frontend can pass redacted-by-backend `view_context` summaries for view-specific UI state:
+  - Cost: active filters, loading/error status, summary counts, top resources, and top recommendations.
   - Architecture: visible stage buckets, selected card, annotations, detail density, hidden/grouped counts.
   - Simulation: selected plan summary, priority counts, missing required fit types, report/template warning counts.
   - Topology: loaded/visible graph counts, filter/search state, node/relation counts, selected node details, and path analysis summary.
@@ -135,16 +136,17 @@ Current validation evidence:
 - `node scripts/topology_view_visual_smoke.mjs` passes and captures the outgoing topology Copilot request with graph/count/selected-node/path-analysis context fields, plus parsed inline Copilot answer section headings.
 - Live read-only metadata smoke confirms `view_metadata.view_kind=architecture` and `view_metadata.view_kind=simulation` after local AzVision backend reload.
 - Live `view_context` smoke confirms backend redaction of secret-like UI context fields before returning/sending context.
-- View-specific quick prompts are available in the shared Copilot panel so Cost, Topology, Architecture, and Simulation can start with context-appropriate read-only questions.
+- View-specific quick prompts and default prompts are available in the shared Copilot panel so Cost, Topology, Architecture, and Simulation can start with context-appropriate read-only questions.
+- Cost view now sends cost filter, summary, top resource, and top recommendation context so read-only answers can reference current cost triage state without re-querying Azure.
 - Topology view now sends richer graph and path-analysis context so read-only answers can reference current filters, selected node, and path verdicts without re-querying Azure.
-- Copilot answer rendering splits common inline section labels such as `**Summary:** text` / `Heading: text` into separate UI sections, and the Topology visual smoke asserts the parsed section headings.
+- Copilot answer rendering splits common inline section labels such as `**Summary:** text` / `Heading: text`, markdown h3, numbered heading, and bullet heading patterns into separate UI sections, and parser/visual smokes assert the parsed section headings.
 
 Remaining follow-up candidates:
 
 - Decide whether `topology_view_visual_smoke.mjs` should remain an explicit local gate or be included in the default visual smoke bundle.
 - Optional live LLM UI smoke is available as `scripts/copilot_live_ui_smoke.mjs`; it is opt-in only via `AZVISION_LIVE_COPILOT_SMOKE=1` so normal smoke runs do not depend on LLM latency or provider availability.
 - Decide whether to make the new visual smoke scripts part of the default smoke command or keep them as explicit local visual gates.
-- Consider per-view default prompt text if quick prompts become the primary workflow.
+- Consider deeper `CopilotPanel` UI-level coverage if a frontend test runner is introduced later; current default gate remains browserless smoke plus build.
 
 ## Test and validation plan
 

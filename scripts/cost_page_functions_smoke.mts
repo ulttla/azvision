@@ -116,7 +116,8 @@ assert.match(simPageCode, /fitLimit/, 'SimulationPage should track fitLimit')
 // ============================================================
 // Section 8: Copilot prompt default
 // ============================================================
-assert.match(copilotPanelCode, /copilot\.defaultPrompt/, 'Shared CopilotPanel should use localized default prompt key')
-assert.match(dictCode, /'copilot\.defaultPrompt': 'How can I reduce cost or improve this architecture\?'/, 'i18n dict should keep cost-reduction default prompt copy')
+assert.match(copilotPanelCode, /getDefaultPromptKey/, 'Shared CopilotPanel should use a view-specific localized default prompt key')
+assert.match(copilotPanelCode, /const defaultPrompt = t\(getDefaultPromptKey\(currentView\)\)/, 'Shared CopilotPanel should initialize from the active view default prompt')
+assert.match(dictCode, /'copilot\.defaultPrompt': 'How can I reduce cost or improve this architecture\?'/, 'i18n dict should keep legacy default prompt copy')
 
 console.log('✅ cost_page_functions_smoke.mts: all assertions passed')

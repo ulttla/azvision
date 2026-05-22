@@ -8,6 +8,7 @@ import {
   getCostReport,
   getCostResources,
   getCostSummary,
+  type CopilotViewContext,
   type CostRecommendation,
   type CostResourceRow,
   type CostSummary,
@@ -112,6 +113,61 @@ export function CostPage() {
   const topResources = useMemo(
     () => [...resources].sort((left, right) => right.recommendation_count - left.recommendation_count).slice(0, 8),
     [resources],
+  )
+  const costCopilotViewContext = useMemo<CopilotViewContext>(
+    () => ({
+      filters: {
+        subscriptionId: costQueryOptions.subscriptionId ?? null,
+        resourceGroupName: costQueryOptions.resourceGroupName ?? null,
+        resourceGroupLimit: costQueryOptions.resourceGroupLimit,
+        resourceLimit: costQueryOptions.resourceLimit,
+      },
+      status: {
+        loading,
+        mode: mode || null,
+        warning: warning || null,
+        hasError: Boolean(error),
+      },
+      summary: summary
+        ? {
+            currency: summary.currency,
+            estimatedMonthlyCost: summary.estimated_monthly_cost,
+            costStatus: summary.cost_status,
+            costIngestionProvider: summary.cost_ingestion_provider,
+            costIngestionConfigured: summary.cost_ingestion_configured,
+            matchedCostResourceCount: summary.matched_cost_resource_count,
+            analyzedResourceCount: summary.analyzed_resource_count,
+            recommendationCount: summary.recommendation_count,
+            severityCounts: summary.severity_counts,
+            categoryCounts: summary.category_counts,
+            topResourceTypes: summary.top_resource_types,
+            costDriverCounts: summary.cost_driver_counts,
+            governanceGapCount: summary.governance_gap_count,
+            notes: summary.notes.slice(0, 5),
+          }
+        : null,
+      topResources: topResources.map((resource) => ({
+        name: resource.resource_name,
+        type: resource.resource_type,
+        resourceGroup: resource.resource_group ?? null,
+        location: resource.location ?? null,
+        estimatedMonthlyCost: resource.estimated_monthly_cost,
+        costStatus: resource.cost_status,
+        costDrivers: resource.cost_driver_labels.slice(0, 5),
+        recommendationCount: resource.recommendation_count,
+      })),
+      topRecommendations: sortedRecommendations.slice(0, 8).map((item) => ({
+        ruleId: item.rule_id,
+        category: item.category,
+        severity: item.severity,
+        title: item.title,
+        resourceName: item.resource_name,
+        resourceType: item.resource_type,
+        confidence: item.confidence,
+        evidenceCount: item.evidence.length,
+      })),
+    }),
+    [costQueryOptions, error, loading, mode, sortedRecommendations, summary, topResources, warning],
   )
   async function downloadCostReport() {
     setReportLoading(true)
@@ -236,6 +292,7 @@ export function CostPage() {
         workspaceId={workspaceId}
         queryOptions={costQueryOptions}
         currentView="cost-insights"
+        viewContext={costCopilotViewContext}
         onError={setError}
       />
 

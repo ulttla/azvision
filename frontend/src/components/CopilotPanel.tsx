@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useI18n } from '../i18n/context'
 import { parseCopilotAnswerSections } from './copilotAnswerParser'
@@ -83,9 +83,15 @@ function getQuickPromptKeys(currentView: string): CopilotQuickPromptKey[] {
   return ['copilot.quick.costRisks', 'copilot.quick.governanceGaps', 'copilot.quick.nextReadOnlyChecks']
 }
 
+function getDefaultPromptKey(currentView: string): CopilotQuickPromptKey {
+  return getQuickPromptKeys(currentView)[0]
+}
+
 export function CopilotPanel({ workspaceId, queryOptions, currentView, viewContext, className = '', onError }: CopilotPanelProps) {
   const { locale, t } = useI18n()
-  const [copilotPrompt, setCopilotPrompt] = useState(() => t('copilot.defaultPrompt'))
+  const defaultPrompt = t(getDefaultPromptKey(currentView))
+  const lastDefaultPromptRef = useRef(defaultPrompt)
+  const [copilotPrompt, setCopilotPrompt] = useState(() => defaultPrompt)
   const [initialCopilotProvider] = useState<InitialCopilotProvider>(() => readInitialCopilotProvider())
   const [copilotProvider, setCopilotProviderState] = useState<CopilotProviderOption>(initialCopilotProvider.provider)
   const [copilotProviders, setCopilotProviders] = useState<CopilotProviderStatus[]>([])
@@ -94,6 +100,16 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, viewConte
 
   const selectedProviderStatus = copilotProviders.find((provider) => provider.id === copilotProvider)
   const quickPromptKeys = getQuickPromptKeys(currentView)
+
+  useEffect(() => {
+    setCopilotPrompt((current) => {
+      if (current === lastDefaultPromptRef.current) {
+        return defaultPrompt
+      }
+      return current
+    })
+    lastDefaultPromptRef.current = defaultPrompt
+  }, [defaultPrompt, locale])
 
   function setCopilotProvider(provider: CopilotProviderOption) {
     setCopilotProviderState(provider)
