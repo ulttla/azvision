@@ -19,3 +19,13 @@
 - Change: Created `tmp/lww-c3/final-report-draft.md` summarizing campaign result, C1/C2/C3 chunk status, validation, evidence, and approval-needed table.
 - Repo context at draft: `main...origin/main [ahead 26]`, HEAD `a0c81c0`, working tree clean before evidence append.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T16:45Z final validation bundle
+
+- Scope: final campaign validation bundle, local-only.
+- Validation:
+  - `npm --prefix frontend run smoke:semantics` PASS.
+  - `npm --prefix frontend run build` PASS.
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
+- Repo context at run: `main...origin/main [ahead 27]`, working tree clean before evidence append.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
