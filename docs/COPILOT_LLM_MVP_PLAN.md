@@ -131,6 +131,7 @@ Current validation evidence:
 - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` passes with 23 tests.
 - `npm --prefix frontend run build` passes.
 - `npm --prefix frontend run smoke:semantics` passes.
+- `node scripts/copilot_empty_answer_ui_smoke.mjs` passes as an explicit local UI gate when the Vite dev server is running; it mocks an empty Copilot answer and verifies localized fallback rendering plus omission of raw Cost filter values.
 - `node scripts/architecture_view_visual_smoke.mjs` passes.
 - `node scripts/simulation_view_visual_smoke.mjs` passes.
 - `node scripts/topology_view_visual_smoke.mjs` passes and captures the outgoing topology Copilot request with graph/count/selected-node/path-analysis context fields, plus parsed inline Copilot answer section headings.
@@ -146,7 +147,7 @@ Remaining follow-up candidates:
 - Decide whether `topology_view_visual_smoke.mjs` should remain an explicit local gate or be included in the default visual smoke bundle.
 - Optional live LLM UI smoke is available as `scripts/copilot_live_ui_smoke.mjs`; it is opt-in only via `AZVISION_LIVE_COPILOT_SMOKE=1` so normal smoke runs do not depend on LLM latency or provider availability.
 - Decide whether to make the new visual smoke scripts part of the default smoke command or keep them as explicit local visual gates.
-- Consider deeper `CopilotPanel` UI-level coverage if a frontend test runner is introduced later; current default gate remains browserless smoke plus build.
+- Consider deeper `CopilotPanel` UI-level coverage if a frontend test runner is introduced later; current default gate remains browserless smoke plus build, with `copilot_empty_answer_ui_smoke.mjs` available as an explicit local UI gate.
 
 ## Test and validation plan
 
