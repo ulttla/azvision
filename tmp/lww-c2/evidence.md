@@ -85,3 +85,12 @@
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 30 tests.
 - Repo context at run: `main...origin/main [ahead 14]`, working tree clean before evidence append.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T13:28Z provider parsing semantics smoke slice
+
+- Scope: same Copilot provider parsing validation, local-only.
+- Change: Strengthened `scripts/copilot_api_semantics_smoke.mts` to assert the shared provider content-parts normalization helper and safe OpenRouter no-content fallback contract remain present.
+- Validation:
+  - `node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts` PASS.
+  - `npm --prefix frontend run smoke:semantics` PASS.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
