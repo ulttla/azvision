@@ -49,3 +49,12 @@
 - Validation:
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 29 tests.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T12:28Z docs consistency slice
+
+- Scope: same Copilot MVP docs/evidence consistency, local-only.
+- Change: Updated `docs/COPILOT_LLM_MVP_PLAN.md` C2 status from 28 to 29 backend tests and added the non-text-only provider content parts safe fallback note.
+- Validation:
+  - `node --experimental-strip-types scripts/copilot_answer_parser_smoke.mts` PASS
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 29 tests.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.

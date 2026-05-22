@@ -155,10 +155,11 @@ C2 continues the same local-only read-only Copilot MVP line from the C1 checkpoi
 - Copilot answer rendering now recognizes markdown h4 headings (`#### Heading`) in addition to h2/h3, bold labels, numbered labels, bullet labels, and standalone heading labels.
 - Provider response normalization now accepts string content and list-based text parts for both Ollama and OpenRouter style payloads.
 - OpenRouter and Ollama mocked provider tests cover text-part response shapes without exposing provider tokens.
+- Non-text-only provider content parts use the existing safe fallback path instead of rendering unusable content.
 - Current C2 validation evidence:
   - `node --experimental-strip-types scripts/copilot_answer_parser_smoke.mts` passes.
   - `npm --prefix frontend run smoke:semantics` passes.
-  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` passes with 28 tests.
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` passes with 29 tests.
 
 ## Test and validation plan
 
