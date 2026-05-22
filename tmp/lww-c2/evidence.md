@@ -133,3 +133,9 @@
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
   - `node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts` PASS.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T14:43Z checkpoint prep slice
+
+- Scope: C2 final validation/report prep, local-only.
+- Change: Created `tmp/lww-c2/c2-checkpoint-draft.md` with C2 commits, validation evidence, midpoint review status, approval-needed table, and next steps.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
