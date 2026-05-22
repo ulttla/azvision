@@ -32,3 +32,10 @@
 - Validation:
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 28 tests.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T11:58Z docs evidence slice
+
+- Scope: same Copilot MVP documentation and checkpoint quality.
+- Change: Added `2026-05-22 C2` implementation status to `docs/COPILOT_LLM_MVP_PLAN.md`, covering h4 section parsing, provider content-parts normalization, and validation evidence.
+- Commit: `4254126 docs(copilot): record c2 provider parsing evidence`.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
