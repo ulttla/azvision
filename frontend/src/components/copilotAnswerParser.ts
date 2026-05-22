@@ -3,7 +3,7 @@ type CopilotHeadingMatch = { heading: string; inlineBody?: string }
 
 /**
  * Parse a copilot answer into structured sections.
- * Detects common heading patterns: `## Heading`, `### Heading`, `**Heading:**`, `**Heading:** inline text`,
+ * Detects common heading patterns: `## Heading`, `### Heading`, `#### Heading`, `**Heading:**`, `**Heading:** inline text`,
  * `**Heading**: inline text`, `1. Heading: inline text`, `- Heading: inline text`,
  * and standalone Korean/English `Heading:` labels.
  * Falls back to a single-section rendering when no markers are found.
@@ -18,8 +18,8 @@ export function parseCopilotAnswerSections(answer: string, fallbackHeading = 'An
   let current: CopilotSection | null = null
 
   const headingPatterns: Array<{ regex: RegExp; extract: (match: RegExpMatchArray) => CopilotHeadingMatch }> = [
-    // Markdown h2/h3 headings: ## Heading, ### Heading
-    { regex: /^#{2,3}\s+(.+?)(?:#+)?$/, extract: (match) => ({ heading: match[1].trim() }) },
+    // Markdown h2-h4 headings: ## Heading, ### Heading, #### Heading
+    { regex: /^#{2,4}\s+(.+?)(?:#+)?$/, extract: (match) => ({ heading: match[1].trim() }) },
     // Bold colon with inline body: **Heading:** inline text
     {
       regex: /^\*\*(.+?):\*\*\s*(.*)$/,

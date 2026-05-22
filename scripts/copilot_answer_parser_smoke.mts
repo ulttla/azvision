@@ -46,13 +46,15 @@ assert.equal(h3.length, 1)
 assert.equal(h3[0].heading, 'Summary')
 assert.deepEqual(h3[0].body, ['Bullet one.', 'Bullet two.'])
 
-// --- edge: mix of h2 and h3 ---
-const mixedH = parseCopilotAnswerSections('## Risk Analysis\nHigh impact items.\n### Mitigation\nApply NSG rules.', 'Answer')
-assert.equal(mixedH.length, 2)
+// --- edge: mix of h2, h3, and h4 ---
+const mixedH = parseCopilotAnswerSections('## Risk Analysis\nHigh impact items.\n### Mitigation\nApply NSG rules.\n#### Follow-up\nConfirm routing tables.', 'Answer')
+assert.equal(mixedH.length, 3)
 assert.equal(mixedH[0].heading, 'Risk Analysis')
 assert.deepEqual(mixedH[0].body, ['High impact items.'])
 assert.equal(mixedH[1].heading, 'Mitigation')
 assert.deepEqual(mixedH[1].body, ['Apply NSG rules.'])
+assert.equal(mixedH[2].heading, 'Follow-up')
+assert.deepEqual(mixedH[2].body, ['Confirm routing tables.'])
 
 // --- edge: numbered list heading with inline body ---
 const numberedHeading = parseCopilotAnswerSections('1. Summary: Found 3 NSG gaps\n2. Risk: No DDoS protection', 'Answer')
