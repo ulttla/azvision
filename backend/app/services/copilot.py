@@ -284,14 +284,31 @@ def _normalized_llm_answer(provider: str, model: str, content: str, context: dic
     }
 
 
+def _stringify_llm_content(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict) and isinstance(item.get("text"), str):
+                parts.append(item["text"])
+        return "".join(parts)
+    return ""
+
+
 def _extract_ollama_content(payload: dict[str, Any]) -> str:
     if payload.get("error"):
         raise ValueError("ollama returned an error payload")
     message = payload.get("message")
-    if isinstance(message, dict) and message.get("content"):
-        return str(message["content"])
-    if payload.get("response"):
-        return str(payload["response"])
+    if isinstance(message, dict):
+        content = _stringify_llm_content(message.get("content"))
+        if content:
+            return content
+    content = _stringify_llm_content(payload.get("response"))
+    if content:
+        return content
     raise ValueError("ollama response did not include content")
 
 
@@ -303,10 +320,13 @@ def _extract_openrouter_content(payload: dict[str, Any]) -> str:
         raise ValueError("openrouter response did not include choices")
     first_choice = choices[0] or {}
     message = first_choice.get("message") or {}
-    if isinstance(message, dict) and message.get("content"):
-        return str(message["content"])
-    if first_choice.get("text"):
-        return str(first_choice["text"])
+    if isinstance(message, dict):
+        content = _stringify_llm_content(message.get("content"))
+        if content:
+            return content
+    content = _stringify_llm_content(first_choice.get("text"))
+    if content:
+        return content
     raise ValueError("openrouter choice did not include content")
 
 

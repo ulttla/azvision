@@ -236,6 +236,29 @@ def test_openrouter_text_choice_is_normalized(monkeypatch) -> None:
     assert "sk-test-secret" not in str(answer)
 
 
+def test_openrouter_content_parts_are_normalized(monkeypatch) -> None:
+    class ContentPartsResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"choices": [{"message": {"content": [{"type": "text", "text": "Part one. "}, {"text": "Part two."}]}}]}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: ContentPartsResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert answer["provider"] == "openrouter"
+    assert answer["llm_status"] == "ok"
+    assert answer["answer"] == "Part one. Part two."
+    assert "sk-test-secret" not in str(answer)
+
+
 def test_openrouter_error_payload_uses_rule_based_fallback(monkeypatch) -> None:
     class ErrorPayloadResponse:
         def raise_for_status(self) -> None:
