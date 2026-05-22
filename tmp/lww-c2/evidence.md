@@ -156,3 +156,9 @@
 - Change: Created `tmp/lww-c2/c2-report-draft.md` with result summary, C2 commits, latest validation bundle, evidence/docs list, approval-needed table, and C3 transition gate draft.
 - Repo context at draft: `main...origin/main [ahead 22]`, working tree clean before evidence append.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T15:27Z report draft final prep
+
+- Scope: C2 report prep only; no new feature/code expansion.
+- Change: Updated `tmp/lww-c2/c2-report-draft.md` with T+270 repo state, C2 commit count, and report-draft commit entry.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
