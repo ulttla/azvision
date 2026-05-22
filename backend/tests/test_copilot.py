@@ -111,6 +111,12 @@ def test_copilot_context_adds_view_specific_guidance() -> None:
         current_view="architecture-view",
         view_context={"selectedNode": {"label": "app", "apiKey": "hidden"}},
     )
+    cost_context = build_copilot_context(
+        [],
+        workspace_id=WORKSPACE,
+        current_view="cost-insights",
+        view_context={"filters": {"hasSubscriptionFilter": True, "subscriptionKey": "hidden"}},
+    )
     simulation_context = build_copilot_context([], workspace_id=WORKSPACE, current_view="simulation")
 
     assert architecture_context["view_metadata"]["view_kind"] == "architecture"
@@ -118,6 +124,9 @@ def test_copilot_context_adds_view_specific_guidance() -> None:
     assert architecture_context["limits"]["view_specific_guidance"]
     assert architecture_context["view_context"]["selectedNode"]["label"] == "app"
     assert architecture_context["view_context"]["selectedNode"]["apiKey"] == "[redacted]"
+    assert cost_context["view_metadata"]["view_kind"] == "cost-insights"
+    assert cost_context["view_context"]["filters"]["hasSubscriptionFilter"] is True
+    assert cost_context["view_context"]["filters"]["subscriptionKey"] == "[redacted]"
     assert simulation_context["view_metadata"]["view_kind"] == "simulation"
     assert "workload planning" in simulation_context["view_metadata"]["focus"]
     assert "IaC warnings" in simulation_context["view_metadata"]["preferred_evidence"]

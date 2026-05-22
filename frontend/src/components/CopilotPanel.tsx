@@ -240,6 +240,12 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, viewConte
             const hasSuggestions = copilotResponse.suggestions.length > 0
             return (
               <>
+                {sections.length === 0 && !hasSuggestions ? (
+                  <div className="cost-copilot-section">
+                    <strong className="cost-copilot-section-heading">{t('copilot.answer')}</strong>
+                    <p>{t('copilot.emptyAnswer')}</p>
+                  </div>
+                ) : null}
                 {sections.map((section, index) => (
                   <div key={`${index}-${section.heading}`} className="cost-copilot-section">
                     <strong className="cost-copilot-section-heading">{section.heading}</strong>

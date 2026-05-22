@@ -117,8 +117,8 @@ export function CostPage() {
   const costCopilotViewContext = useMemo<CopilotViewContext>(
     () => ({
       filters: {
-        subscriptionId: costQueryOptions.subscriptionId ?? null,
-        resourceGroupName: costQueryOptions.resourceGroupName ?? null,
+        hasSubscriptionFilter: Boolean(costQueryOptions.subscriptionId),
+        hasResourceGroupFilter: Boolean(costQueryOptions.resourceGroupName),
         resourceGroupLimit: costQueryOptions.resourceGroupLimit,
         resourceLimit: costQueryOptions.resourceLimit,
       },
