@@ -94,3 +94,11 @@
   - `node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts` PASS.
   - `npm --prefix frontend run smoke:semantics` PASS.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T13:43Z production build validation slice
+
+- Scope: same Copilot MVP validation/checkpoint quality, local-only.
+- Validation:
+  - `npm --prefix frontend run build` PASS.
+- Repo context at run: `main...origin/main [ahead 16]`, working tree clean before evidence append.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
