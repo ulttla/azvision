@@ -2,7 +2,7 @@
 
 - Timestamp: 2026-05-22T14:43Z
 - Scope: Copilot MVP local-only hardening and validation, continuing from C1 HEAD `43b5cc8`.
-- Repo state: `main...origin/main [ahead 20]`, working tree clean before this checkpoint draft.
+- Repo state at latest pre-report refresh: `main...origin/main [ahead 24]`, working tree clean.
 - Guardrails observed: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
 
 ## C2 local commits
@@ -49,3 +49,9 @@
 - Keep scope narrow.
 - Prefer final validation bundle and report prep over new feature expansion.
 - Carry push approval as a separate explicit approval item.
+
+## Report prep additions after checkpoint draft
+
+- `108cb5a docs(lww): prepare c2 report draft`
+- `b44ee20 docs(lww): finalize c2 report draft prep`
+
