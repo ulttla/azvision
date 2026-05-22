@@ -76,3 +76,12 @@
 - Validation:
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 30 tests.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T13:13Z mid-window validation bundle
+
+- Scope: same Copilot MVP validation/checkpoint quality, local-only.
+- Validation:
+  - `npm --prefix frontend run smoke:semantics` PASS.
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 30 tests.
+- Repo context at run: `main...origin/main [ahead 14]`, working tree clean before evidence append.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
