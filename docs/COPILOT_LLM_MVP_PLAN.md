@@ -161,6 +161,34 @@ C2 continues the same local-only read-only Copilot MVP line from the C1 checkpoi
   - `npm --prefix frontend run smoke:semantics` passes.
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` passes with 31 tests.
 
+## Implementation status — 2026-05-22 final hardening baseline
+
+The 12h local-only Copilot MVP hardening campaign closed and was pushed to `main` at `b46695f`, with GitHub Actions CI passing afterward.
+
+Current baseline:
+
+- Copilot answer rendering recognizes markdown h3/h4 headings, bold label headings, numbered/bullet label headings, Korean heading labels, and empty/whitespace answer fallback behavior.
+- Cost Copilot view context stays redacted: raw subscription/resource-group filter values and secret-like UI context fields are not rendered or forwarded as raw values.
+- Ollama and OpenRouter response parsing accepts string content, list-based text parts, raw string content items, and safely falls back for non-text-only content parts.
+- Provider status and chat fallback continue to avoid exposing backend API keys/tokens.
+- The shared Copilot panel remains read-only and keeps rule-based fallback available when LLM providers are disabled, missing, or unreachable.
+
+Current validation evidence:
+
+- `scripts/personal_use_acceptance.sh` passes end-to-end.
+- Backend pytest passes with 362 tests.
+- `npm --prefix frontend run build` passes.
+- `npm --prefix frontend run smoke:semantics` passes, including Copilot parser/API semantics smoke.
+- Live personal-use smoke passes against local Azure read/topology: 54 nodes / 62 edges, Network Path Analysis smoke, manual node/edge path, snapshot path, and cleanup.
+- Snapshot compare, cost report, and cost insights smokes pass under the acceptance wrapper.
+
+Remaining follow-up candidates after this baseline:
+
+- Keep explicit UI visual smokes as opt-in/local gates when view-specific Copilot rendering changes, because they require a running Vite dev server and UI readiness.
+- Use `scripts/copilot_live_ui_smoke.mjs` only with `AZVISION_LIVE_COPILOT_SMOKE=1`; normal acceptance should not depend on live LLM latency or provider availability.
+- Consider deeper `CopilotPanel` component-level coverage only if a frontend test runner is added later.
+- Treat streaming responses, persistent chat history, hosted deployment polish, and any Azure write/remediation behavior as product-track follow-ups, not personal-use v0.9 blockers.
+
 ## Test and validation plan
 
 - Provider config parsing tests.
@@ -171,7 +199,9 @@ C2 continues the same local-only read-only Copilot MVP line from the C1 checkpoi
 - View-level visual smoke for Architecture and Simulation copilot rendering and Korean UI regression checks.
 - Keep `npm --prefix frontend run smoke:semantics`, frontend build, and backend pytest as the minimum validation gate.
 
-## First implementation slice recommendation
+## Historical first implementation slice recommendation
+
+This section is retained as the original implementation slice outline. The provider/config/context/selector skeleton and local-only read-only hardening baseline are now implemented; use the current status sections above for readiness decisions.
 
 Use a 5h Long Work Window for:
 

@@ -69,7 +69,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `docs/PERSONAL_USE_RUNBOOK.md`, `docs/PERSONAL_USE_READINESS_PLAN.md`, `docs/PERSONAL_USE_SESSION_NOTES.md`, `scripts/check_personal_use_ready.sh`, `scripts/run_dev.sh`, `scripts/personal_use_acceptance.sh`, `scripts/personal_use_smoke.sh`, `scripts/backup_sqlite.sh`, `scripts/verify_sqlite_backup.sh` 로 Gun 단독 실사용 v0.9 사전점검·실행·검증·백업 경로를 점검 가능
 - 참고
   - 세부 API 응답 구조는 `docs/API_CONTRACT.md`, snapshot/history 상태는 `docs/PHASE1B_SERVER_SNAPSHOT_PLAN.md` 와 `docs/SNAPSHOT_HISTORY_FOUNDATION_PLAN.md`, raw topology diff/retention 상태는 `docs/RAW_TOPOLOGY_DIFF_PLAN.md` 와 `docs/RETENTION_POLICY.md` 를 기준으로 본다.
-  - 다음 개발 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 의 `Next development priorities after v0.9` 섹션을 기준으로 한다. read-only LLM Copilot MVP는 provider/config/context/selector skeleton이 들어왔고, 다음 slice는 실제 local Ollama smoke 또는 OpenRouter mocked/live opt-in smoke, chat UX section formatting, runbook cleanup이다. Architecture View polish는 stable path에 들어왔고, export smoke/test 유지, Azure Arc/hybrid 확장, productization 재진입은 후속 순서로 관리한다.
+  - 다음 개발 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 의 `Next development priorities after v0.9` 섹션을 기준으로 한다. read-only LLM Copilot MVP는 provider/config/context/selector skeleton과 local-only hardening baseline이 들어왔고, 개인용 v0.9 판단은 `scripts/personal_use_acceptance.sh` 통과 여부를 우선 기준으로 본다. 다음 Copilot slice는 opt-in live UI smoke 유지, 필요한 경우 더 깊은 `CopilotPanel` UI coverage, hosted/OpenRouter polish이다. Architecture View polish는 stable path에 들어왔고, export smoke/test 유지, Azure Arc/hybrid 확장, productization 재진입은 후속 순서로 관리한다.
 
 ## Provider extension notes
 - Cost ingestion / Copilot provider hook의 현재 계약과 향후 교체 지점은 `docs/PROVIDER_EXTENSION_NOTES.md` 참고.
@@ -187,4 +187,4 @@ npm run dev
 - `POST /api/v1/workspaces/{workspace_id}/scans` 는 live inventory summary를 반환
 - snapshot CRUD / import UX / local-server storage 구분 / metadata-level snapshot compare first-pass 구현 완료; Architecture View 관련 구현은 repo에 남아 있는 확장 라인으로 취급
 - Cost Intelligence first-pass는 rule-based recommendation까지 구현됐고, 실제 Azure Cost Management ingestion / dollar amount mapping은 다음 Phase 2 세부 작업으로 남는다
-- 다음 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 기준으로 관리한다. 일반 회귀는 explicit network relationship, cost recommendation, visual smoke, guard copy/threshold/API contract, payload sanitize 계열 smoke를 유지한다. Azure Cost Management ingestion, deployable simulation template, LLM-backed copilot은 product-track 재진입 때 별도로 판단한다.
+- 다음 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 기준으로 관리한다. 일반 회귀는 explicit network relationship, cost recommendation, visual smoke, guard copy/threshold/API contract, payload sanitize 계열 smoke를 유지한다. Azure Cost Management ingestion, deployable simulation template, product-grade Copilot 기능은 product-track 재진입 때 별도로 판단한다.

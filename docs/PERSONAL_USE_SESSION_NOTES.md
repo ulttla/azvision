@@ -81,7 +81,7 @@ python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspac
 - `scripts/run_dev.sh` uses `backend/azvision.db` with the current relative SQLite URL. A root-level `azvision.db` exists as known legacy state; current health checks show it has no snapshots/manual records/simulations and only historical orphan topology archive rows. It is backed up for safety, but should not be moved or reconciled without explicit approval.
 - Azure live smoke depends on local credentials, certificate path, and network access.
 - Simulation smoke now deletes its own timestamped record through the simulation cleanup endpoint; still avoid running it as a tight loop because it exercises the live backend workflow.
-- Productization items remain deferred: login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, and LLM-backed copilot.
+- Productization items remain deferred: login, multi-user permissions, object storage thumbnails, real Azure Cost Management ingestion, deployable simulation templates, product-grade Copilot features such as streaming/persistent chat history, hosted deployment polish, and any Azure write/remediation behavior.
 
 ## If something fails
 
