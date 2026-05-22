@@ -236,6 +236,24 @@ def test_openrouter_text_choice_is_normalized(monkeypatch) -> None:
     assert "sk-test-secret" not in str(answer)
 
 
+def test_ollama_content_parts_are_normalized(monkeypatch) -> None:
+    class ContentPartsResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"message": {"content": [{"type": "text", "text": "Ollama part one. "}, {"text": "Ollama part two."}]}}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: ContentPartsResponse())
+    settings = isolated_settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
+
+    answer = OllamaCopilotProvider(settings).answer("network risk", [])
+
+    assert answer["provider"] == "ollama"
+    assert answer["llm_status"] == "ok"
+    assert answer["answer"] == "Ollama part one. Ollama part two."
+
+
 def test_openrouter_content_parts_are_normalized(monkeypatch) -> None:
     class ContentPartsResponse:
         def raise_for_status(self) -> None:

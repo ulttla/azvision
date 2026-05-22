@@ -22,3 +22,13 @@
 - Validation:
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 27 tests.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T11:43Z Ollama content-parts coverage slice
+
+- Scope: same Copilot provider parsing hardening, local-only.
+- Change: Added Ollama-specific test coverage for list-based text content parts, sharing the same normalization path as OpenRouter.
+- Files:
+  - `backend/tests/test_copilot.py`
+- Validation:
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 28 tests.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
