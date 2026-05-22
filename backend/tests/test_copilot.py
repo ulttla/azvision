@@ -299,6 +299,29 @@ def test_openrouter_error_payload_uses_rule_based_fallback(monkeypatch) -> None:
     assert "sk-test-secret" not in str(answer)
 
 
+def test_openrouter_non_text_content_parts_use_safe_fallback(monkeypatch) -> None:
+    class NonTextContentPartsResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"choices": [{"message": {"content": [{"type": "image_url", "image_url": {"url": "https://example.invalid/image.png"}}]}}]}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: NonTextContentPartsResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "openrouter_provider_error"
+    assert "sk-test-secret" not in str(answer)
+    assert "image.png" not in str(answer)
+
+
 def test_copilot_providers_route_returns_read_only_status(client: TestClient) -> None:
     response = client.get("/api/v1/copilot/providers")
 
