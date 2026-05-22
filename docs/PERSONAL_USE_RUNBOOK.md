@@ -86,9 +86,9 @@ cd /Users/gun/dev/azvision
 scripts/personal_use_acceptance.sh
 ```
 
-The acceptance wrapper syntax-checks `scripts/simulation_smoke.sh` but does not run it as a routine step. The focused simulation smoke now deletes its timestamped simulation record through the simulation cleanup endpoint after its create/list/detail/template/report/fit checks.
+The acceptance wrapper runs the read-only Copilot provider/chat smoke as part of the routine personal-use gate. It syntax-checks `scripts/simulation_smoke.sh` but does not run it as a routine step. The focused simulation smoke now deletes its timestamped simulation record through the simulation cleanup endpoint after its create/list/detail/template/report/fit checks.
 
-Run the lighter workflow smoke after starting the backend. It checks backend health, live Azure read/topology, Network Path Analysis on live topology resources when possible, manual node/edge CRUD, snapshot create/list/detail/restore, and cleanup of smoke-created records.
+Run the lighter workflow smoke after starting the backend. It checks backend health, live Azure read/topology, Network Path Analysis on live topology resources when possible, manual node/edge CRUD, snapshot create/list/detail/restore, cleanup of smoke-created records, and the read-only Copilot provider/chat contract.
 
 ```bash
 cd /Users/gun/dev/azvision
@@ -109,6 +109,7 @@ cd /Users/gun/dev/azvision
 scripts/snapshot_compare_smoke.sh
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
+scripts/copilot_provider_smoke.sh
 scripts/simulation_smoke.sh  # focused check; creates then deletes a timestamped simulation smoke record
 scripts/sqlite_health_check.py
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run

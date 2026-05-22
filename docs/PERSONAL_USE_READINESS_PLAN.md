@@ -78,6 +78,7 @@ bash -n scripts/personal_use_smoke.sh
 bash -n scripts/snapshot_compare_smoke.sh
 bash -n scripts/cost_report_smoke.sh
 bash -n scripts/cost_insights_smoke.sh
+bash -n scripts/copilot_provider_smoke.sh
 bash -n scripts/simulation_smoke.sh
 node --experimental-strip-types scripts/path_analysis_semantics_smoke.mts
 python3 -m py_compile scripts/sqlite_health_check.py
@@ -95,6 +96,7 @@ scripts/personal_use_smoke.sh
 scripts/snapshot_compare_smoke.sh
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
+scripts/copilot_provider_smoke.sh
 ```
 
 With backend running, the workflow-specific checks are:
@@ -121,13 +123,14 @@ scripts/path_analysis_visual_smoke.mjs
 ```
 
 Expected result:
-- `personal_use_smoke.sh` prints `PASS: AzVision personal-use smoke completed` and verifies smoke workspace cleanup
+- `personal_use_smoke.sh` prints `PASS: AzVision personal-use smoke completed`, verifies smoke workspace cleanup, and runs the read-only Copilot provider/chat smoke
 - backend tests pass
 - frontend build passes
 - backup manifest exists under `backups/sqlite/<timestamp>/manifest.txt`, records `integrity_check=ok`, and passes `scripts/verify_sqlite_backup.sh`
 - readiness preflight reports required local prerequisites, optional local DB presence, and config booleans without printing secret values
 - docs mirror check shows only expected deferred drift
 - archive retention dry-run reports `dry_run=true` and summarizes candidates without deleting or reconciling archives
+- Copilot provider smoke verifies provider list, provider health signal, read-only chat fallback, and no secret-like value exposure
 
 ## Go / no-go rule
 
@@ -153,9 +156,10 @@ Expected result:
 
 ## Next development priorities after v0.9
 
-1. Read-only LLM Copilot MVP can be the next personal-use slice: support Ollama/local Ollama Cloud and OpenRouter providers behind a backend-only provider interface, keep rule-based fallback, and avoid Azure write/remediation. See `docs/COPILOT_LLM_MVP_PLAN.md`.
-2. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
-3. Maintain the existing PDF export smoke/tests as part of the immediate personal workflow when export behavior changes.
-4. Shared app-shell readiness is now useful outside Architecture View: keep the Backend/Auth/Topology freshness signals and manual `Refresh status` action covered by browserless smoke when shell behavior changes. Keep duplicate-click/busy-state behavior intact so the local operator cannot stack repeated health checks.
-5. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
-6. Re-enter productization planning separately when external-user goals return.
+1. Keep the read-only LLM Copilot MVP in the personal-use lane: maintain backend-only Ollama/Ollama Cloud and OpenRouter provider settings, rule-based fallback, no-secret responses, answer section parsing, and redacted view context. See `docs/COPILOT_LLM_MVP_PLAN.md`.
+2. Treat deeper Copilot UI coverage, optional live UI smoke, streaming responses, persistent chat history, hosted deployment polish, and any Azure write/remediation behavior as follow-up work, not personal-use v0.9 blockers.
+3. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
+4. Maintain the existing PDF export smoke/tests as part of the immediate personal workflow when export behavior changes.
+5. Shared app-shell readiness is now useful outside Architecture View: keep the Backend/Auth/Topology freshness signals and manual `Refresh status` action covered by browserless smoke when shell behavior changes. Keep duplicate-click/busy-state behavior intact so the local operator cannot stack repeated health checks.
+6. Revisit Azure Arc / hybrid relation expansion only after the current topology/snapshot loop is comfortable.
+7. Re-enter productization planning separately when external-user goals return.

@@ -32,6 +32,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - SQLite health signal for snapshots, thumbnails, manual records, simulations, and topology archive warnings
 - dry-run-only archive retention candidate summary
 - rule-based cost report and scoped cost insights smoke
+- read-only Copilot provider list, provider health signal, chat fallback, and no-secret contract smoke
 - rule-based simulation create/list/detail/template/report/fit smoke, run as a focused check with cleanup through the simulation delete endpoint
 - run script start and stop cleanup behavior
 
@@ -66,6 +67,7 @@ cd /Users/gun/dev/azvision
 scripts/snapshot_compare_smoke.sh
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
+scripts/copilot_provider_smoke.sh
 scripts/simulation_smoke.sh  # focused check; creates then deletes a timestamped smoke simulation record
 scripts/sqlite_health_check.py
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run

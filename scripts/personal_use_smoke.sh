@@ -211,4 +211,7 @@ assert_empty_items "$POST_EDGES_JSON"
 assert_empty_items "$POST_SNAPSHOTS_JSON"
 
 echo "[ok] smoke workspace cleanup verified"
+
+"$(dirname "${BASH_SOURCE[0]}")/copilot_provider_smoke.sh"
+
 echo "PASS: AzVision personal-use smoke completed"

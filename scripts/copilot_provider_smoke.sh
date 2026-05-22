@@ -4,6 +4,7 @@ set -euo pipefail
 BASE_URL="${AZVISION_API_BASE_URL:-http://127.0.0.1:8000/api/v1}"
 WORKSPACE_ID="${AZVISION_WORKSPACE_ID:-local-demo}"
 OUT_DIR="${AZVISION_PROBE_OUT_DIR:-/tmp}"
+CURL_MAX_TIME="${AZVISION_CURL_MAX_TIME:-30}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 TMP_DIR="$OUT_DIR/azvision_copilot_provider_smoke_$TIMESTAMP"
 
@@ -25,15 +26,15 @@ echo "WORKSPACE_ID=$WORKSPACE_ID"
 authless_get() {
   local path="$1"
   local output="$2"
-  curl -sS -o "$output" -w '%{http_code}' "$BASE_URL$path"
+  curl --max-time "$CURL_MAX_TIME" -sS -o "$output" -w '%{http_code}' "$BASE_URL$path"
 }
 
 providers_code="$(authless_get "/copilot/providers" "$TMP_DIR/providers.json")"
 health_code="$(authless_get "/copilot/providers?health_smoke=true" "$TMP_DIR/providers_health.json")"
-chat_code="$(curl -sS -o "$TMP_DIR/chat.json" -w '%{http_code}' \
+chat_code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$TMP_DIR/chat.json" -w '%{http_code}' \
   -X POST "$BASE_URL/workspaces/$WORKSPACE_ID/chat?resource_group_limit=5&resource_limit=10" \
   -H 'Content-Type: application/json' \
-  --data '{"message":"Summarize read-only copilot status","provider":"ollama","current_view":"cost-insights"}')"
+  --data '{"message":"Summarize read-only copilot status","provider":"rule-based","current_view":"cost-insights"}')"
 
 python3 - "$TMP_DIR" "$providers_code" "$health_code" "$chat_code" "$WORKSPACE_ID" <<'PY'
 import json, pathlib, re, sys
@@ -66,7 +67,7 @@ for provider in ('ollama', 'openrouter'):
 assert chat.get('ok') is True
 assert chat.get('workspace_id') == workspace_id
 assert chat.get('read_only') is True
-assert chat.get('provider') in {'rule-based', 'ollama'}
+assert chat.get('provider') == 'rule-based'
 assert chat.get('llm_status') in {'not_configured', 'missing_config', 'ok', 'ollama_provider_error'}
 assert chat.get('answer')
 assert isinstance(chat.get('suggestions'), list)
