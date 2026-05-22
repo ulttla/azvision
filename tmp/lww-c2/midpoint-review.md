@@ -1,0 +1,24 @@
+# AzVision C2 midpoint review
+
+- Reviewed range: `43b5cc8..HEAD` at C2 midpoint.
+- Verdict: GO.
+- Scope: same Copilot MVP local hardening line; no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+- Main changes reviewed:
+  - `frontend/src/components/copilotAnswerParser.ts`: h4 (`####`) answer heading support.
+  - `backend/app/services/copilot.py`: shared `_stringify_llm_content()` helper for string/list text content normalization across Ollama and OpenRouter.
+  - `backend/tests/test_copilot.py`: provider text-parts and non-text fallback coverage for Ollama/OpenRouter.
+  - `scripts/copilot_answer_parser_smoke.mts` and `scripts/copilot_api_semantics_smoke.mts`: parser/provider semantics guard coverage.
+  - `docs/COPILOT_LLM_MVP_PLAN.md` and `tmp/lww-c2/evidence.md`: C2 evidence/status sync.
+- Validation reviewed:
+  - backend Copilot pytest: 30 tests passed.
+  - parser smoke: PASS.
+  - API semantics smoke: PASS.
+  - frontend build: PASS.
+  - frontend smoke:semantics: PASS.
+  - working tree: clean.
+- Risk notes:
+  - No provider token exposure found in tests or fallback paths.
+  - Non-text-only content safely falls back to rule-based provider path.
+  - No goal-line drift detected.
+- Optional follow-up:
+  - Add one small unit test for `_stringify_llm_content()` list items that are raw strings. Risk is low; current dict text-part path is already covered.
