@@ -124,3 +124,12 @@
 - Validation:
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T14:28Z docs sync to 31-test state
+
+- Scope: same Copilot MVP docs/evidence consistency, local-only.
+- Change: Updated `docs/COPILOT_LLM_MVP_PLAN.md` C2 status to include raw string items in content arrays and the current 31-test backend gate.
+- Validation:
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
+  - `node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts` PASS.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
