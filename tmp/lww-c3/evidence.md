@@ -29,3 +29,9 @@
   - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
 - Repo context at run: `main...origin/main [ahead 27]`, working tree clean before evidence append.
 - Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
+
+## 2026-05-22T17:00Z final report refresh
+
+- Scope: final campaign report draft refresh, local-only.
+- Change: Updated `tmp/lww-c3/final-report-draft.md` with T+60 repo state and latest final validation bundle.
+- Guardrails: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.

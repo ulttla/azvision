@@ -4,9 +4,9 @@
 - Campaign: `azvision-20260522T055320Z-12h`
 - Repo: `/Users/gun/dev/azvision`
 - Baseline: `bd6f3b4`
-- Current HEAD: `a0c81c0`
-- Repo state at draft: `main...origin/main [ahead 26]`, working tree clean before this draft.
-- Local campaign commits from baseline: 26.
+- Current HEAD at T+60: `d4c0729`
+- Repo state at T+60: `main...origin/main [ahead 28]`, working tree clean before final report refresh.
+- Local campaign commits from baseline at T+60: 28.
 - Guardrails observed: no git push, no Azure write/remediation, no gateway/config/update, no destructive cleanup, no secret handling.
 
 ## Campaign result
@@ -68,6 +68,12 @@ Main outcomes:
 | P1 | `git push origin main` | Campaign local commits are ahead of `origin/main` | Push and monitor CI |
 
 No gateway/config/update/Azure/destructive/secret action is needed.
+
+## Latest final validation bundle — 2026-05-22T16:45Z
+
+- `npm --prefix frontend run smoke:semantics` PASS.
+- `npm --prefix frontend run build` PASS.
+- `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` PASS, 31 tests.
 
 ## Final closeout requirements
 
