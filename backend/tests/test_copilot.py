@@ -187,6 +187,68 @@ def test_provider_error_fallback_notice_follows_current_language(monkeypatch) ->
     assert "읽기 전용 규칙 기반 폴백" in answer["answer"]
 
 
+def test_ollama_error_payload_uses_rule_based_fallback(monkeypatch) -> None:
+    class ErrorPayloadResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"error": "model unavailable"}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: ErrorPayloadResponse())
+    settings = isolated_settings(copilot_enabled=True, ollama_model="deepseek-v4-pro:cloud")
+
+    answer = OllamaCopilotProvider(settings).answer("network risk", [])
+
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "ollama_provider_error"
+
+
+def test_openrouter_text_choice_is_normalized(monkeypatch) -> None:
+    class TextChoiceResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"choices": [{"text": "Plain text completion."}]}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: TextChoiceResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert answer["provider"] == "openrouter"
+    assert answer["llm_status"] == "ok"
+    assert answer["answer"] == "Plain text completion."
+    assert "sk-test-secret" not in str(answer)
+
+
+def test_openrouter_error_payload_uses_rule_based_fallback(monkeypatch) -> None:
+    class ErrorPayloadResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"error": {"message": "quota exceeded"}}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: ErrorPayloadResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "openrouter_provider_error"
+    assert "sk-test-secret" not in str(answer)
+
+
 def test_copilot_providers_route_returns_read_only_status(client: TestClient) -> None:
     response = client.get("/api/v1/copilot/providers")
 

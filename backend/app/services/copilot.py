@@ -270,15 +270,44 @@ def _build_llm_messages(message: str, context: dict[str, Any]) -> list[dict[str,
 
 
 def _normalized_llm_answer(provider: str, model: str, content: str, context: dict[str, Any]) -> dict[str, Any]:
+    answer = content.strip()
+    if not answer:
+        raise ValueError(f"{provider} returned an empty copilot answer")
     return {
         "copilot_mode": "llm",
         "provider": provider,
         "model": model,
         "llm_status": "ok",
-        "answer": content.strip(),
+        "answer": answer,
         "suggestions": [],
         "context": context,
     }
+
+
+def _extract_ollama_content(payload: dict[str, Any]) -> str:
+    if payload.get("error"):
+        raise ValueError("ollama returned an error payload")
+    message = payload.get("message")
+    if isinstance(message, dict) and message.get("content"):
+        return str(message["content"])
+    if payload.get("response"):
+        return str(payload["response"])
+    raise ValueError("ollama response did not include content")
+
+
+def _extract_openrouter_content(payload: dict[str, Any]) -> str:
+    if payload.get("error"):
+        raise ValueError("openrouter returned an error payload")
+    choices = payload.get("choices") or []
+    if not choices:
+        raise ValueError("openrouter response did not include choices")
+    first_choice = choices[0] or {}
+    message = first_choice.get("message") or {}
+    if isinstance(message, dict) and message.get("content"):
+        return str(message["content"])
+    if first_choice.get("text"):
+        return str(first_choice["text"])
+    raise ValueError("openrouter choice did not include content")
 
 
 def _provider_error_fallback(provider: str, model: str, message: str, resources: list[dict[str, Any]], context: dict[str, Any]) -> dict[str, Any]:
@@ -324,7 +353,7 @@ class OllamaCopilotProvider:
             )
             response.raise_for_status()
             payload = response.json()
-            content = str((payload.get("message") or {}).get("content") or payload.get("response") or "")
+            content = _extract_ollama_content(payload)
         except (requests.RequestException, ValueError):
             return _provider_error_fallback("ollama", self.model, message, resources, context)
         return _normalized_llm_answer("ollama", self.model, content, context)
@@ -355,10 +384,7 @@ class OpenRouterCopilotProvider:
             )
             response.raise_for_status()
             payload = response.json()
-            choices = payload.get("choices") or []
-            content = ""
-            if choices:
-                content = str(((choices[0] or {}).get("message") or {}).get("content") or "")
+            content = _extract_openrouter_content(payload)
         except (requests.RequestException, ValueError):
             return _provider_error_fallback("openrouter", self.model, message, resources, context)
         return _normalized_llm_answer("openrouter", self.model, content, context)
