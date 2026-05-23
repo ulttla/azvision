@@ -34,7 +34,7 @@ health_code="$(authless_get "/copilot/providers?health_smoke=true" "$TMP_DIR/pro
 chat_code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$TMP_DIR/chat.json" -w '%{http_code}' \
   -X POST "$BASE_URL/workspaces/$WORKSPACE_ID/chat?resource_group_limit=5&resource_limit=10" \
   -H 'Content-Type: application/json' \
-  --data '{"message":"Summarize read-only copilot status","provider":"rule-based","current_view":"cost-insights"}')"
+  --data '{"message":"Summarize read-only copilot status","provider":"rule-based","current_view":"cost-insights","current_language":"ko","view_context":{"filters":{"hasSubscriptionFilter":true,"subscriptionToken":"should-redact"}}}')"
 
 python3 - "$TMP_DIR" "$providers_code" "$health_code" "$chat_code" "$WORKSPACE_ID" <<'PY'
 import json, pathlib, re, sys
@@ -71,6 +71,11 @@ assert chat.get('provider') == 'rule-based'
 assert chat.get('llm_status') in {'not_configured', 'missing_config', 'ok', 'ollama_provider_error'}
 assert chat.get('answer')
 assert isinstance(chat.get('suggestions'), list)
+context = chat.get('context') or {}
+assert context.get('current_view') == 'cost-insights', context
+assert context.get('current_language') == 'ko', context
+assert (context.get('view_metadata') or {}).get('view_kind') == 'cost-insights', context
+assert ((context.get('view_context') or {}).get('filters') or {}).get('subscriptionToken') == '[redacted]', context
 
 serialized = json.dumps({'providers': providers, 'health': health, 'chat': chat}, ensure_ascii=False)
 secret_patterns = [r'sk-[A-Za-z0-9_-]{8,}', r'Bearer\s+[A-Za-z0-9._-]+', r'OPENROUTER_API_KEY\s*=']

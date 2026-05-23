@@ -38,9 +38,18 @@ async function main() {
     }, COPILOT_PROVIDER_STORAGE_KEY)
 
     const page = await context.newPage()
-    let capturedCopilotRequest = null
+    const capturedCopilotRequests = []
     await page.route('**/workspaces/*/chat**', async (route) => {
-      capturedCopilotRequest = route.request().postDataJSON()
+      const requestBody = route.request().postDataJSON()
+      capturedCopilotRequests.push(requestBody)
+      if (capturedCopilotRequests.length === 1) {
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'smoke forced Copilot failure' }),
+        })
+        return
+      }
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -49,7 +58,7 @@ async function main() {
           workspace_id: 'empty-answer-smoke',
           read_only: true,
           copilot_mode: 'llm',
-          provider: capturedCopilotRequest?.provider ?? 'ollama',
+          provider: requestBody?.provider ?? 'ollama',
           model: 'empty-answer-smoke',
           llm_status: 'ok',
           answer: '   ',
@@ -72,10 +81,13 @@ async function main() {
 
     await copilotCard.locator('textarea.cost-copilot-input').fill('빈 응답 처리 확인')
     await copilotCard.getByRole('button', { name: '질문' }).click()
+    await page.waitForFunction(() => document.body.innerText.includes('smoke forced Copilot failure'), null, { timeout: 15_000 })
+    await copilotCard.getByRole('button', { name: '재시도' }).click()
     await page.waitForFunction(() => document.body.innerText.includes('응답 본문이 반환되지 않았습니다'), null, { timeout: 15_000 })
 
-    if (!capturedCopilotRequest) {
-      throw new Error('Copilot request was not captured')
+    const capturedCopilotRequest = capturedCopilotRequests.at(-1)
+    if (capturedCopilotRequests.length !== 2 || !capturedCopilotRequest) {
+      throw new Error(`Expected two Copilot requests after retry, got ${capturedCopilotRequests.length}`)
     }
     if (capturedCopilotRequest.current_view !== 'cost-insights') {
       throw new Error(`Expected current_view cost-insights, got ${capturedCopilotRequest.current_view}`)
@@ -98,6 +110,7 @@ async function main() {
       provider: capturedCopilotRequest.provider,
       assertions: [
         'Cost Copilot request keeps current_view/current_language contract',
+        'Inline Copilot error recovery exposes retry and succeeds on retry',
         'Empty LLM answer renders localized fallback copy',
         'Cost Copilot view_context omits raw subscription/resource-group filter values',
       ],

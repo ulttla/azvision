@@ -104,6 +104,8 @@ assert.match(apiContractDoc, /API key\/token.*return|key\/token.*return|API key\
 // Section 5: CostPage copilot loading state
 // ============================================================
 assert.match(copilotUiCode, /copilotLoading/, 'CostPage should have copilotLoading state')
+assert.match(copilotUiCode, /if \(copilotLoading \|\| !copilotPrompt\.trim\(\) \|\| !workspaceId\.trim\(\)\)/, 'Shared copilot UI should prevent duplicate asks while a request is in flight')
+assert.match(copilotUiCode, /if \(!copilotLoading\) \{[\s\S]*?void askCopilot\(\)/, 'Shared copilot UI should prevent duplicate keyboard submits while a request is in flight')
 assert.match(copilotUiCode, /setCopilotResponse/, 'CostPage should set copilotResponse')
 
 // ============================================================
@@ -145,5 +147,27 @@ assert.match(copilotUiCode, /copilot\.suggestedChecks/, 'CostPage should label s
 assert.match(copilotUiCode, /cost-copilot-section/, 'CostPage should split answer into cost-copilot-section blocks')
 assert.match(copilotServicesCode, /current_language = str\(context\.get\("current_language"\)/, 'provider fallback notice should inspect current language')
 assert.match(copilotServicesCode, /읽기 전용 규칙 기반 폴백/, 'provider fallback notice should include Korean copy for ko UI sessions')
+
+// ============================================================
+// Section 9: CopilotPanel inline error recovery
+// ============================================================
+const copilotPanelReread = readFileSync(path.join(repoRoot, 'frontend/src/components/CopilotPanel.tsx'), 'utf8')
+assert.match(copilotPanelReread, /copilotError/, 'CopilotPanel should have copilotError state')
+assert.match(copilotPanelReread, /setCopilotError\(null\)/, 'CopilotPanel should clear copilotError before a new request')
+assert.match(copilotPanelReread, /setCopilotError\(message\)/, 'CopilotPanel should set copilotError on request failure')
+assert.match(copilotPanelReread, /copilot\.error/, 'CopilotPanel should use copilot.error i18n key for error fallback label')
+assert.match(copilotPanelReread, /copilot\.retry/, 'CopilotPanel should use copilot.retry i18n key for retry button')
+assert.match(copilotPanelReread, /copilotError \?/, 'CopilotPanel should render inline error state when copilotError is set')
+assert.match(copilotPanelReread, /role="alert" aria-live="polite"/, 'CopilotPanel inline error should be announced accessibly')
+assert.match(copilotPanelReread, /onClick=\{askCopilot\} disabled=\{copilotLoading \|\| !workspaceId\.trim\(\)\}/, 'CopilotPanel retry button should reuse askCopilot and stay disabled while unavailable')
+assert.ok(copilotPanelReread.includes('toolbar-button'), 'CopilotPanel retry button should trigger askCopilot')
+assert.match(dictCode, /'copilot\.error'/, 'i18n dict should include copilot error key (en)')
+assert.match(dictCode, /'copilot\.retry'/, 'i18n dict should include copilot retry key (en)')
+// Korean i18n should also include the new keys
+const koSection = dictCode.slice(dictCode.indexOf("'copilot.heading': '읽기"), dictCode.indexOf("'copilot.provider.ruleBased': '규칙"))
+assert.match(koSection, /'copilot\.error'/, 'i18n dict should include copilot error key (ko)')
+assert.match(koSection, /'copilot\.retry'/, 'i18n dict should include copilot retry key (ko)')
+
+console.log('✅ copilot_api_semantics_smoke.mts: error-recovery smoke passed')
 
 console.log('✅ copilot_api_semantics_smoke.mts: section-formatting + provider-health smoke passed')

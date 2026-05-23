@@ -42,8 +42,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 
 - Topology search group/scope labels, topology export/raw-diff labels, Architecture stage labels, Architecture inline labels, and Architecture SVG export labels were moved onto the existing en/ko dictionary path.
 - After each slice, `npm --prefix frontend run smoke:semantics` and `npm --prefix frontend run build` passed.
-- Latest local-only commits in this evidence batch: `c17a60f`, `38579f0`, `c8c220a`, `3118743`, `6c01c71`, `e990e71`.
-- These commits are local until explicit push approval.
+- Evidence batch commits `c17a60f`, `38579f0`, `c8c220a`, `3118743`, `6c01c71`, and `e990e71` are now included in `origin/main`.
 
 ## When to run acceptance
 
@@ -68,6 +67,10 @@ scripts/snapshot_compare_smoke.sh
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
 scripts/copilot_provider_smoke.sh
+node --experimental-strip-types scripts/copilot_answer_parser_smoke.mts
+node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts
+node scripts/copilot_empty_answer_ui_smoke.mjs  # opt-in local UI gate; requires the Vite dev server
+AZVISION_LIVE_COPILOT_SMOKE=1 node scripts/copilot_live_ui_smoke.mjs  # opt-in live LLM UI gate
 scripts/simulation_smoke.sh  # focused check; creates then deletes a timestamped smoke simulation record
 scripts/sqlite_health_check.py
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run

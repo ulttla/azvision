@@ -97,6 +97,7 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, viewConte
   const [copilotProviders, setCopilotProviders] = useState<CopilotProviderStatus[]>([])
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null)
   const [copilotLoading, setCopilotLoading] = useState(false)
+  const [copilotError, setCopilotError] = useState<string | null>(null)
 
   const selectedProviderStatus = copilotProviders.find((provider) => provider.id === copilotProvider)
   const quickPromptKeys = getQuickPromptKeys(currentView)
@@ -147,15 +148,18 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, viewConte
   }, [initialCopilotProvider.fromStorage])
 
   async function askCopilot() {
-    if (!copilotPrompt.trim() || !workspaceId.trim()) {
+    if (copilotLoading || !copilotPrompt.trim() || !workspaceId.trim()) {
       return
     }
     setCopilotLoading(true)
+    setCopilotError(null)
     onError?.('')
     try {
       setCopilotResponse(await postCopilotMessage(workspaceId, copilotPrompt.trim(), queryOptions, copilotProvider, currentView, locale, viewContext))
     } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : err instanceof Error ? err.message : t('cost.error.askCopilot'))
+      const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : t('copilot.error')
+      setCopilotError(message)
+      onError?.(message)
     } finally {
       setCopilotLoading(false)
     }
@@ -217,7 +221,9 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, viewConte
           onKeyDown={(event) => {
             if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
               event.preventDefault()
-              void askCopilot()
+              if (!copilotLoading) {
+                void askCopilot()
+              }
             }
           }}
           rows={3}
@@ -226,6 +232,16 @@ export function CopilotPanel({ workspaceId, queryOptions, currentView, viewConte
           {copilotLoading ? t('copilot.thinking') : t('copilot.ask')}
         </button>
       </div>
+      {copilotError ? (
+        <div className="cost-copilot-answer" role="alert" aria-live="polite">
+          <div className="severity-medium" style={{ marginBottom: '0.5rem' }}>
+            {copilotError}
+          </div>
+          <button type="button" className="toolbar-button" onClick={askCopilot} disabled={copilotLoading || !workspaceId.trim()}>
+            {t('copilot.retry')}
+          </button>
+        </div>
+      ) : null}
       {copilotResponse ? (
         <div className="cost-copilot-answer">
           <div className="cost-recommendation-heading">

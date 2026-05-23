@@ -172,6 +172,7 @@ Current baseline:
 - Ollama and OpenRouter response parsing accepts string content, list-based text parts, raw string content items, and safely falls back for non-text-only content parts.
 - Provider status and chat fallback continue to avoid exposing backend API keys/tokens.
 - The shared Copilot panel remains read-only and keeps rule-based fallback available when LLM providers are disabled, missing, or unreachable.
+- Copilot ask/retry UX now guards duplicate submits while a request is in flight, surfaces inline localized errors, and allows an accessible retry path without exposing provider details.
 
 Current validation evidence:
 
@@ -181,6 +182,9 @@ Current validation evidence:
 - `npm --prefix frontend run smoke:semantics` passes, including Copilot parser/API semantics smoke.
 - Live personal-use smoke passes against local Azure read/topology: 54 nodes / 62 edges, Network Path Analysis smoke, manual node/edge path, snapshot path, and cleanup.
 - Snapshot compare, cost report, and cost insights smokes pass under the acceptance wrapper.
+- `scripts/copilot_empty_answer_ui_smoke.mjs` covers localized empty-answer fallback and the inline error retry path as an opt-in local UI gate.
+- `scripts/copilot_provider_smoke.sh` now also checks provider-aware chat context wiring for `current_view`, `current_language`, view metadata, and backend redaction of secret-like view context fields.
+- Backend `test_copilot.py` covers the provider-aware `/copilot/chat` route preserving view context/language and redacting secret-like view-context values.
 
 Remaining follow-up candidates after this baseline:
 

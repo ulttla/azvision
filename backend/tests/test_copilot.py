@@ -420,6 +420,31 @@ def test_copilot_chat_route_preserves_current_language(client: TestClient) -> No
     assert body["context"]["current_language"] == "ko"
 
 
+def test_provider_aware_copilot_chat_route_preserves_view_context_and_redaction(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/copilot/chat",
+        json={
+            "workspace_id": WORKSPACE,
+            "message": "Summarize cost risks",
+            "provider": "rule-based",
+            "current_view": "cost-insights",
+            "current_language": "ko",
+            "view_context": {"filters": {"hasSubscriptionFilter": True, "subscriptionToken": "secret-value"}},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    context = body["context"]
+    assert body["workspace_id"] == WORKSPACE
+    assert context["current_view"] == "cost-insights"
+    assert context["current_language"] == "ko"
+    assert context["view_metadata"]["view_kind"] == "cost-insights"
+    assert context["view_context"]["filters"]["hasSubscriptionFilter"] is True
+    assert context["view_context"]["filters"]["subscriptionToken"] == "[redacted]"
+    assert "secret-value" not in str(body)
+
+
 def test_provider_health_ollama_not_configured_without_settings() -> None:
     settings = isolated_settings(ollama_base_url="", ollama_model="")
     result = probe_provider_health(settings)
