@@ -33,6 +33,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - dry-run-only archive retention candidate summary
 - rule-based cost report and scoped cost insights smoke
 - read-only Copilot provider list, provider health signal, chat fallback, and no-secret contract smoke
+- shared Copilot panel wiring for Cost, Topology, Architecture, and Simulation views through browserless semantics smoke
 - rule-based simulation create/list/detail/template/report/fit smoke, run as a focused check with cleanup through the simulation delete endpoint
 - run script start and stop cleanup behavior
 

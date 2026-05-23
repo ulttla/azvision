@@ -11,6 +11,9 @@ import path from 'node:path'
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const apiContractDoc = readFileSync(path.join(repoRoot, 'docs/API_CONTRACT.md'), 'utf8')
 const costPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/CostPage.tsx'), 'utf8')
+const topologyPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/TopologyPage.tsx'), 'utf8')
+const architecturePageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/ArchitecturePage.tsx'), 'utf8')
+const simulationPageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/SimulationPage.tsx'), 'utf8')
 const copilotPanelCode = readFileSync(path.join(repoRoot, 'frontend/src/components/CopilotPanel.tsx'), 'utf8')
 const copilotParserCode = readFileSync(path.join(repoRoot, 'frontend/src/components/copilotAnswerParser.ts'), 'utf8')
 const copilotUiCode = `${costPageCode}
@@ -87,6 +90,34 @@ assert.match(dictCode, /'copilot\.provider\.ollama': 'Ollama \/ Ollama Cloud'/, 
 assert.match(dictCode, /'copilot\.provider\.openrouter': 'OpenRouter'/, 'i18n dict should include OpenRouter provider selector copy')
 assert.match(dictCode, /'copilot\.provider\.ruleBased': 'Rule-based fallback'/, 'i18n dict should include rule-based fallback selector copy')
 assert.match(copilotUiCode, /copilot\.readOnly/, 'Shared copilot UI should show read-only badge/copy via i18n key')
+
+
+// ============================================================
+// Section 3.5: shared CopilotPanel coverage outside Cost
+// ============================================================
+assert.match(topologyPageCode, /const topologyCopilotViewContext = useMemo/, 'TopologyPage should build view-specific copilot context')
+assert.match(topologyPageCode, /currentView="topology"/, 'TopologyPage should send topology current_view to CopilotPanel')
+assert.match(topologyPageCode, /viewContext={topologyCopilotViewContext}/, 'TopologyPage should pass topology view_context to CopilotPanel')
+assert.match(topologyPageCode, /className="topology-copilot-card"/, 'TopologyPage should expose a stable CopilotPanel class for visual smoke')
+assert.match(topologyPageCode, /nodeTypeCounts/, 'TopologyPage copilot context should include node type summary')
+assert.match(topologyPageCode, /relationCounts/, 'TopologyPage copilot context should include relation summary')
+assert.match(topologyPageCode, /pathAnalysis/, 'TopologyPage copilot context should include path analysis summary')
+
+assert.match(architecturePageCode, /const architectureCopilotViewContext = useMemo/, 'ArchitecturePage should build view-specific copilot context')
+assert.match(architecturePageCode, /currentView="architecture-view"/, 'ArchitecturePage should send architecture-view current_view to CopilotPanel')
+assert.match(architecturePageCode, /viewContext={architectureCopilotViewContext}/, 'ArchitecturePage should pass architecture view_context to CopilotPanel')
+assert.match(architecturePageCode, /className="architecture-copilot-card"/, 'ArchitecturePage should expose a stable CopilotPanel class for visual smoke')
+assert.match(architecturePageCode, /stageBuckets/, 'ArchitecturePage copilot context should include stage bucket summary')
+assert.match(architecturePageCode, /annotations: annotations\.map/, 'ArchitecturePage copilot context should include annotation summaries')
+assert.doesNotMatch(architecturePageCode, /viewContext={topologyCopilotViewContext}/, 'ArchitecturePage should not accidentally reuse topology copilot context')
+
+assert.match(simulationPageCode, /const simulationCopilotViewContext = useMemo/, 'SimulationPage should build view-specific copilot context')
+assert.match(simulationPageCode, /currentView="simulation"/, 'SimulationPage should send simulation current_view to CopilotPanel')
+assert.match(simulationPageCode, /viewContext={simulationCopilotViewContext}/, 'SimulationPage should pass simulation view_context to CopilotPanel')
+assert.match(simulationPageCode, /className="simulation-copilot-card"/, 'SimulationPage should expose a stable CopilotPanel class for visual smoke')
+assert.match(simulationPageCode, /selectedSimulation/, 'SimulationPage copilot context should include the selected simulation summary')
+assert.match(simulationPageCode, /deployable: template\.deployable/, 'SimulationPage copilot context should carry non-deployable template status')
+assert.doesNotMatch(simulationPageCode, /viewContext={costCopilotViewContext}/, 'SimulationPage should not accidentally reuse cost copilot context')
 
 // ============================================================
 // Section 4: API contract doc — chat endpoint
