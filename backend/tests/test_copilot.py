@@ -119,7 +119,18 @@ def test_copilot_context_adds_view_specific_guidance() -> None:
         current_view="cost-insights",
         view_context={"filters": {"hasSubscriptionFilter": True, "subscriptionKey": "hidden"}},
     )
-    simulation_context = build_copilot_context([], workspace_id=WORKSPACE, current_view="simulation")
+    topology_context = build_copilot_context(
+        [],
+        workspace_id=WORKSPACE,
+        current_view="topology",
+        view_context={"selectedNode": {"name": "vm-app", "sasToken": "hidden"}, "pathAnalysis": {"credentialHint": "hidden"}},
+    )
+    simulation_context = build_copilot_context(
+        [],
+        workspace_id=WORKSPACE,
+        current_view="simulation",
+        view_context={"template": {"format": "bicep", "privateKey": "hidden"}, "selectedSimulation": {"id": "sim-1", "apiToken": "hidden"}},
+    )
 
     assert architecture_context["view_metadata"]["view_kind"] == "architecture"
     assert "topology flows" in architecture_context["view_metadata"]["focus"]
@@ -129,9 +140,16 @@ def test_copilot_context_adds_view_specific_guidance() -> None:
     assert cost_context["view_metadata"]["view_kind"] == "cost-insights"
     assert cost_context["view_context"]["filters"]["hasSubscriptionFilter"] is True
     assert cost_context["view_context"]["filters"]["subscriptionKey"] == "[redacted]"
+    assert topology_context["view_metadata"]["view_kind"] == "topology"
+    assert topology_context["view_context"]["selectedNode"]["name"] == "vm-app"
+    assert topology_context["view_context"]["selectedNode"]["sasToken"] == "[redacted]"
+    assert topology_context["view_context"]["pathAnalysis"]["credentialHint"] == "[redacted]"
     assert simulation_context["view_metadata"]["view_kind"] == "simulation"
     assert "workload planning" in simulation_context["view_metadata"]["focus"]
     assert "IaC warnings" in simulation_context["view_metadata"]["preferred_evidence"]
+    assert simulation_context["view_context"]["template"]["format"] == "bicep"
+    assert simulation_context["view_context"]["template"]["privateKey"] == "[redacted]"
+    assert simulation_context["view_context"]["selectedSimulation"]["apiToken"] == "[redacted]"
 
 
 def test_copilot_provider_status_never_exposes_openrouter_key() -> None:
