@@ -40,6 +40,26 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - rule-based simulation create/list/detail/template/report/fit smoke, run as a focused check with cleanup through the simulation delete endpoint
 - run script start and stop cleanup behavior
 
+## Current local-only Copilot C1 boundary
+
+2026-05-23 C1 has additional local-only Copilot smoke hardening on top of pushed baseline `5a34067`. These commits are not pushed yet and should be treated as local validation evidence until an explicit `git push` approval is given:
+
+- `05e952a` — shared Copilot panel wiring semantics for Cost, Topology, Architecture, and Simulation.
+- `ec3d00d` — OpenRouter provider fallback/no-secret backend tests for auth, rate-limit, gateway, non-JSON, empty-choice, and secret-adjacent error responses.
+- `a051b98` — opt-in hosted provider smoke selector via `AZVISION_COPILOT_SMOKE_PROVIDER`.
+- `fceb2a7` — browserless guard that `copilot_live_ui_smoke.mjs` stays opt-in, skips safely by default, supports provider env override, and checks obvious secret markers.
+
+Safe local gates for this C1 boundary:
+
+```bash
+node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts
+backend/.venv/bin/python -m pytest backend/tests/test_copilot.py -q
+bash -n scripts/copilot_provider_smoke.sh
+bash scripts/check_doc_mirror.sh
+```
+
+Do not run hosted provider or live UI paths as routine acceptance unless the operator intentionally opts in and backend provider env is configured. Do not push/deploy or perform Azure write/remediation without fresh approval.
+
 ## Recent UI i18n validation evidence
 
 2026-05-19 local validation refreshed the UI i18n/readiness evidence after the post-push C1 continuation work:
