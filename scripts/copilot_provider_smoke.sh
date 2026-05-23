@@ -5,6 +5,7 @@ BASE_URL="${AZVISION_API_BASE_URL:-http://127.0.0.1:8000/api/v1}"
 WORKSPACE_ID="${AZVISION_WORKSPACE_ID:-local-demo}"
 OUT_DIR="${AZVISION_PROBE_OUT_DIR:-/tmp}"
 CURL_MAX_TIME="${AZVISION_CURL_MAX_TIME:-30}"
+CHAT_PROVIDER="${AZVISION_COPILOT_SMOKE_PROVIDER:-rule-based}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 TMP_DIR="$OUT_DIR/azvision_copilot_provider_smoke_$TIMESTAMP"
 
@@ -22,6 +23,15 @@ fi
 echo "== AzVision copilot provider smoke =="
 echo "BASE_URL=$BASE_URL"
 echo "WORKSPACE_ID=$WORKSPACE_ID"
+echo "CHAT_PROVIDER=$CHAT_PROVIDER"
+
+case "$CHAT_PROVIDER" in
+  rule-based|ollama|openrouter) ;;
+  *)
+    echo "AZVISION_COPILOT_SMOKE_PROVIDER must be rule-based, ollama, or openrouter" >&2
+    exit 1
+    ;;
+esac
 
 authless_get() {
   local path="$1"
@@ -31,16 +41,30 @@ authless_get() {
 
 providers_code="$(authless_get "/copilot/providers" "$TMP_DIR/providers.json")"
 health_code="$(authless_get "/copilot/providers?health_smoke=true" "$TMP_DIR/providers_health.json")"
+chat_payload="$TMP_DIR/chat_payload.json"
+python3 - "$CHAT_PROVIDER" "$chat_payload" <<'PY'
+import json, pathlib, sys
+provider = sys.argv[1]
+path = pathlib.Path(sys.argv[2])
+path.write_text(json.dumps({
+    "message": "Summarize read-only copilot status",
+    "provider": provider,
+    "current_view": "cost-insights",
+    "current_language": "ko",
+    "view_context": {"filters": {"hasSubscriptionFilter": True, "subscriptionToken": "should-redact"}},
+}))
+PY
 chat_code="$(curl --max-time "$CURL_MAX_TIME" -sS -o "$TMP_DIR/chat.json" -w '%{http_code}' \
   -X POST "$BASE_URL/workspaces/$WORKSPACE_ID/chat?resource_group_limit=5&resource_limit=10" \
   -H 'Content-Type: application/json' \
-  --data '{"message":"Summarize read-only copilot status","provider":"rule-based","current_view":"cost-insights","current_language":"ko","view_context":{"filters":{"hasSubscriptionFilter":true,"subscriptionToken":"should-redact"}}}')"
+  --data "@$chat_payload")"
 
-python3 - "$TMP_DIR" "$providers_code" "$health_code" "$chat_code" "$WORKSPACE_ID" <<'PY'
+python3 - "$TMP_DIR" "$providers_code" "$health_code" "$chat_code" "$WORKSPACE_ID" "$CHAT_PROVIDER" <<'PY'
 import json, pathlib, re, sys
 base = pathlib.Path(sys.argv[1])
 providers_code, health_code, chat_code = map(int, sys.argv[2:5])
 workspace_id = sys.argv[5]
+requested_provider = sys.argv[6]
 
 providers = json.loads((base / 'providers.json').read_text())
 health = json.loads((base / 'providers_health.json').read_text())
@@ -67,8 +91,17 @@ for provider in ('ollama', 'openrouter'):
 assert chat.get('ok') is True
 assert chat.get('workspace_id') == workspace_id
 assert chat.get('read_only') is True
-assert chat.get('provider') == 'rule-based'
-assert chat.get('llm_status') in {'not_configured', 'missing_config', 'ok', 'ollama_provider_error'}
+if requested_provider == 'rule-based':
+    assert chat.get('provider') == 'rule-based', chat
+    assert chat.get('llm_status') in {'not_configured', 'missing_config', 'ok'}, chat
+else:
+    assert chat.get('provider') in {requested_provider, 'rule-based'}, chat
+    assert chat.get('llm_status') in {
+        'not_configured',
+        'missing_config',
+        'ok',
+        f'{requested_provider}_provider_error',
+    }, chat
 assert chat.get('answer')
 assert isinstance(chat.get('suggestions'), list)
 context = chat.get('context') or {}
@@ -88,6 +121,8 @@ print('[copilot] providers={providers} health={health_keys} chat_provider={provi
     provider=chat.get('provider'),
     status=chat.get('llm_status'),
 ))
+if requested_provider != 'rule-based':
+    print(f'[copilot] requested_provider={requested_provider} actual_provider={chat.get("provider")} llm_status={chat.get("llm_status")}')
 PY
 
 echo "Artifacts: $TMP_DIR"

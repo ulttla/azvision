@@ -70,6 +70,8 @@ Provider status smoke after backend start:
 curl -fsS http://127.0.0.1:8000/api/v1/copilot/providers
 curl -fsS 'http://127.0.0.1:8000/api/v1/copilot/providers?health_smoke=true'
 scripts/copilot_provider_smoke.sh
+# Optional hosted-provider invocation after backend env has OpenRouter configured; still safe-falls back without secrets.
+AZVISION_COPILOT_SMOKE_PROVIDER=openrouter scripts/copilot_provider_smoke.sh
 ```
 
 Expected baseline without provider secrets:

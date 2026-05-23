@@ -20,6 +20,7 @@ const copilotUiCode = `${costPageCode}
 ${copilotPanelCode}`
 const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
+const copilotProviderSmokeCode = readFileSync(path.join(repoRoot, 'scripts/copilot_provider_smoke.sh'), 'utf8')
 
 // ============================================================
 // Section 1: CopilotResponse type contract
@@ -167,6 +168,10 @@ assert.match(copilotServicesCode, /isinstance\(item\.get\("text"\), str\)/, 'cop
 assert.match(copilotServicesCode, /openrouter choice did not include content/, 'copilot provider parsing should safely fall back when no usable OpenRouter text content exists')
 assert.match(copilotRoutesCode, /health_smoke/, 'copilot route should accept health_smoke query param')
 assert.match(copilotRoutesCode, /provider_health/, 'copilot route should attach provider_health when health_smoke=true')
+assert.match(copilotProviderSmokeCode, /AZVISION_COPILOT_SMOKE_PROVIDER/, 'copilot provider smoke should allow explicit hosted provider chat selection')
+assert.match(copilotProviderSmokeCode, /rule-based\|ollama\|openrouter/, 'copilot provider smoke should constrain provider override values')
+assert.match(copilotProviderSmokeCode, /requested_provider != 'rule-based'/, 'copilot provider smoke should report requested hosted provider fallback status')
+assert.match(copilotProviderSmokeCode, /subscriptionToken.*should-redact/, 'copilot provider smoke should keep view_context redaction coverage')
 assert.match(copilotPanelCode, /parseCopilotAnswerSections/, 'Shared copilot UI should use section parser for copilot answers')
 assert.match(copilotParserCode, /export function parseCopilotAnswerSections/, 'Copilot answer parser should be exported for focused smoke coverage')
 assert.match(copilotParserCode, /\[A-Za-z가-힣\]/, 'Copilot section parser should recognize Korean heading labels')

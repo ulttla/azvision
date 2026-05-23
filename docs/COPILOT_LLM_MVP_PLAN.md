@@ -146,6 +146,7 @@ Remaining follow-up candidates:
 
 - Keep `topology_view_visual_smoke.mjs`, `architecture_view_visual_smoke.mjs`, `simulation_view_visual_smoke.mjs`, and `copilot_empty_answer_ui_smoke.mjs` as explicit local UI gates rather than adding them to the default browserless smoke bundle because they depend on a running Vite dev server and UI readiness.
 - Optional live LLM UI smoke is available as `scripts/copilot_live_ui_smoke.mjs`; it is opt-in only via `AZVISION_LIVE_COPILOT_SMOKE=1` so normal smoke runs do not depend on LLM latency or provider availability.
+- Optional hosted provider smoke can target OpenRouter explicitly with `AZVISION_COPILOT_SMOKE_PROVIDER=openrouter scripts/copilot_provider_smoke.sh`; it accepts either a successful OpenRouter response or the existing no-secret rule-based fallback when provider config/reachability is missing.
 - Consider deeper `CopilotPanel` UI-level coverage if a frontend test runner is introduced later; current default gate remains browserless smoke plus build, with explicit local UI gates available for visual/Copilot paths.
 
 ## Implementation status — 2026-05-22 C2
