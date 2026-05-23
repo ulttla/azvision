@@ -21,6 +21,7 @@ ${copilotPanelCode}`
 const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 const copilotProviderSmokeCode = readFileSync(path.join(repoRoot, 'scripts/copilot_provider_smoke.sh'), 'utf8')
+const copilotLiveUiSmokeCode = readFileSync(path.join(repoRoot, 'scripts/copilot_live_ui_smoke.mjs'), 'utf8')
 
 // ============================================================
 // Section 1: CopilotResponse type contract
@@ -172,6 +173,10 @@ assert.match(copilotProviderSmokeCode, /AZVISION_COPILOT_SMOKE_PROVIDER/, 'copil
 assert.match(copilotProviderSmokeCode, /rule-based\|ollama\|openrouter/, 'copilot provider smoke should constrain provider override values')
 assert.match(copilotProviderSmokeCode, /requested_provider != 'rule-based'/, 'copilot provider smoke should report requested hosted provider fallback status')
 assert.match(copilotProviderSmokeCode, /subscriptionToken.*should-redact/, 'copilot provider smoke should keep view_context redaction coverage')
+assert.match(copilotLiveUiSmokeCode, /AZVISION_LIVE_COPILOT_SMOKE === '1'/, 'live Copilot UI smoke should remain explicitly opt-in')
+assert.match(copilotLiveUiSmokeCode, /skipped: true/, 'live Copilot UI smoke should safely skip when not enabled')
+assert.match(copilotLiveUiSmokeCode, /AZVISION_COPILOT_PROVIDER \|\| 'ollama'/, 'live Copilot UI smoke should select provider through an explicit env override')
+assert.match(copilotLiveUiSmokeCode, /OPENROUTER_API_KEY/, 'live Copilot UI smoke should assert obvious provider secret markers are not rendered')
 assert.match(copilotPanelCode, /parseCopilotAnswerSections/, 'Shared copilot UI should use section parser for copilot answers')
 assert.match(copilotParserCode, /export function parseCopilotAnswerSections/, 'Copilot answer parser should be exported for focused smoke coverage')
 assert.match(copilotParserCode, /\[A-Za-z가-힣\]/, 'Copilot section parser should recognize Korean heading labels')
