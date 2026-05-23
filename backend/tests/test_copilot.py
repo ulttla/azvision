@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import requests
+
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings, get_settings
@@ -320,6 +322,141 @@ def test_openrouter_error_payload_uses_rule_based_fallback(monkeypatch) -> None:
     assert answer["provider"] == "rule-based"
     assert answer["llm_status"] == "openrouter_provider_error"
     assert "sk-test-secret" not in str(answer)
+
+
+def assert_openrouter_safe_fallback(answer: dict[str, object], secret: str = "sk-test-secret") -> None:
+    assert answer["provider"] == "rule-based"
+    assert answer["llm_status"] == "openrouter_provider_error"
+    assert secret not in str(answer)
+    assert "Bearer" not in str(answer)
+    assert "OPENROUTER_API_KEY" not in str(answer)
+
+
+def test_openrouter_http_401_unauthorized_fallback_never_exposes_key(monkeypatch) -> None:
+    class UnauthorizedResponse:
+        def raise_for_status(self) -> None:
+            raise requests.HTTPError("401 unauthorized for OpenRouter")
+
+        def json(self) -> dict[str, object]:
+            return {"error": {"message": "unauthorized"}}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: UnauthorizedResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert_openrouter_safe_fallback(answer)
+
+
+def test_openrouter_http_429_rate_limited_fallback_never_exposes_key(monkeypatch) -> None:
+    class RateLimitedResponse:
+        def raise_for_status(self) -> None:
+            raise requests.HTTPError("429 rate limited")
+
+        def json(self) -> dict[str, object]:
+            return {"error": {"message": "rate limited"}}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: RateLimitedResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert_openrouter_safe_fallback(answer)
+
+
+def test_openrouter_http_502_bad_gateway_fallback_never_exposes_key(monkeypatch) -> None:
+    class BadGatewayResponse:
+        def raise_for_status(self) -> None:
+            raise requests.HTTPError("502 bad gateway")
+
+        def json(self) -> dict[str, object]:
+            return {"error": {"message": "bad gateway"}}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: BadGatewayResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert_openrouter_safe_fallback(answer)
+
+
+def test_openrouter_non_json_response_fallback_never_exposes_key(monkeypatch) -> None:
+    class NonJsonResponse:
+        text = "<html>not json</html>"
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            raise ValueError("response was not json")
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: NonJsonResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert_openrouter_safe_fallback(answer)
+    assert "not json" not in str(answer)
+
+
+def test_openrouter_empty_choices_array_fallback_never_exposes_key(monkeypatch) -> None:
+    class EmptyChoicesResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"choices": []}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: EmptyChoicesResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert_openrouter_safe_fallback(answer)
+
+
+def test_openrouter_error_response_never_exposes_api_key(monkeypatch) -> None:
+    secret = "sk-test-secret"
+
+    class SecretAdjacentResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"error": {"message": "provider rejected the request"}, "debug": secret}
+
+    monkeypatch.setattr("app.services.copilot.requests.post", lambda *args, **kwargs: SecretAdjacentResponse())
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key=secret,
+        openrouter_model="anthropic/example",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert_openrouter_safe_fallback(answer, secret=secret)
+    for field in ("answer", "context", "suggestions", "provider", "model"):
+        assert secret not in str(answer.get(field))
 
 
 def test_openrouter_non_text_content_parts_use_safe_fallback(monkeypatch) -> None:
