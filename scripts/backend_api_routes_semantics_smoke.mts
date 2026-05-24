@@ -52,6 +52,7 @@ for (const routeFile of routeFiles) {
 // Section 3: app.py should import and include all routers
 // ============================================================
 const appCode = readFileSync(path.join(repoRoot, 'backend/app/main.py'), 'utf8')
+const personalUseAcceptanceCode = readFileSync(path.join(repoRoot, 'scripts/personal_use_acceptance.sh'), 'utf8')
 const routerImports = ['topology', 'cost', 'copilot', 'snapshots', 'simulations', 'exports', 'path_analysis', 'auth']
 for (const route of routerImports) {
   assert.match(appCode, new RegExp(`\\b${route}\\b`), `app.py should reference ${route} routes`)
@@ -73,5 +74,6 @@ assert.match(appCode, /@app\.get\(f"\{settings\.api_v1_prefix\}\/healthz"\)/, 'a
 assert.match(appCode, /@app\.get\("\/readyz"\)/, 'app.py should expose root readyz endpoint')
 assert.match(appCode, /@app\.get\(f"\{settings\.api_v1_prefix\}\/readyz"\)/, 'app.py should expose API-prefixed readyz endpoint for frontend fetchJson')
 assert.match(appCode, /def database_ready\(\).*SELECT 1/s, 'readyz should perform a minimal database readability check')
+assert.match(personalUseAcceptanceCode, /BACKEND_URL\/healthz[\s\S]*BACKEND_URL\/readyz/, 'personal-use acceptance should wait for backend liveness and readiness before smoke execution')
 
 console.log('✅ backend_api_routes_semantics_smoke.mts: all assertions passed')

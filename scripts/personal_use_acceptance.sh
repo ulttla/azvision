@@ -17,7 +17,8 @@ trap cleanup EXIT
 wait_for_backend() {
   local i
   for i in $(seq 1 30); do
-    if curl -fsS "$BACKEND_URL/healthz" >/dev/null 2>&1; then
+    if curl -fsS "$BACKEND_URL/healthz" >/dev/null 2>&1 && \
+      curl -fsS "$BACKEND_URL/readyz" >/dev/null 2>&1; then
       return 0
     fi
     sleep 1
@@ -26,7 +27,8 @@ wait_for_backend() {
 }
 
 start_backend_if_needed() {
-  if curl -fsS "$BACKEND_URL/healthz" >/dev/null 2>&1; then
+  if curl -fsS "$BACKEND_URL/healthz" >/dev/null 2>&1 && \
+    curl -fsS "$BACKEND_URL/readyz" >/dev/null 2>&1; then
     echo "[ok] using existing backend at $BACKEND_URL"
     return 0
   fi
@@ -40,11 +42,11 @@ start_backend_if_needed() {
   STARTED_BACKEND_PID=$!
 
   if ! wait_for_backend; then
-    echo "[fail] temporary backend did not become healthy"
+    echo "[fail] temporary backend did not become live and ready"
     tail -120 /tmp/azvision-personal-acceptance-backend.log || true
     exit 1
   fi
-  echo "[ok] temporary backend healthy"
+  echo "[ok] temporary backend live and ready"
 }
 
 echo "== AzVision personal-use acceptance =="
