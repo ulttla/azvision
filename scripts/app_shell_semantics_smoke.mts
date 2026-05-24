@@ -10,6 +10,7 @@ import path from 'node:path'
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const appCode = readFileSync(path.join(repoRoot, 'frontend/src/App.tsx'), 'utf8')
 const stylesCode = readFileSync(path.join(repoRoot, 'frontend/src/styles.css'), 'utf8')
+const packageJson = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
 
 assert.match(appCode, /import \{ getAuthConfigCheck, getBackendHealth, getTopologyFreshness, getWorkspaces \} from '\.\/lib\/api'/, 'App shell should import backend health, auth config-check, topology freshness, and workspaces for global connectivity')
 assert.match(appCode, /getAuthConfigCheck/, 'App shell should surface auth readiness globally')
@@ -35,6 +36,7 @@ assert.match(appCode, /aria-busy=\{connectivityRefreshing\}/, 'Manual connectivi
 assert.match(appCode, /data-testid="app-connectivity-refresh"/, 'Connectivity row should render a test-addressable manual refresh button')
 assert.match(appCode, /Promise\.allSettled/, 'Manual refresh should update backend, auth, and topology signals together')
 assert.match(appCode, /workspaces\.length === 0\)[\s\S]*?setTopologyFreshness\('empty'\)[\s\S]*?setTopologyNodeCount\(null\)/, 'Topology freshness polling should clear stale node counts when no workspace is available')
+assert.match(packageJson, /app_shell_semantics_smoke\.mts/, 'frontend smoke:semantics should include this app-shell smoke')
 
 assert.match(stylesCode, /\.workspace-connectivity-row/, 'Connectivity row CSS should exist')
 assert.match(stylesCode, /\.connectivity-dot\.online/, 'Online connectivity dot CSS should exist')
