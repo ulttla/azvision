@@ -68,6 +68,27 @@ bash scripts/check_doc_mirror.sh
 
 Do not run hosted provider or live UI paths as routine acceptance unless the operator intentionally opts in and backend provider env is configured. Do not deploy or perform Azure write/remediation without fresh approval.
 
+## 2026-05-24 productization hardening evidence
+
+After personal-use acceptance passed, C1 continued into no-deploy production-readiness hardening. The following pushed commits are included in `origin/main` and all corresponding GitHub CI runs passed:
+
+- `88c9a80` — adds configurable production host validation (`AZVISION_ALLOWED_HOSTS`) and baseline API security headers.
+- `103552b` — keeps `/auth/config-check` local path diagnostics behind debug mode so production does not expose env file paths.
+- `e16f06d` — hides unexpected 500/internal error details when debug is off while preserving debug/dev detail.
+- `fe3583d` — adds `/readyz` and `/api/v1/readyz` database-readiness endpoints with no DB path leakage.
+- `62c247f` — enrolls `/readyz` in CI startup smoke, `personal_use_smoke.sh`, backend API semantics smoke, and docs.
+
+Safe focused gates for this hardening line:
+
+```bash
+backend/.venv/bin/python -m pytest backend/tests/test_security_headers.py backend/tests/test_auth.py backend/tests/test_response_utils.py -q
+npm --prefix frontend run smoke:semantics
+scripts/personal_use_smoke.sh
+bash scripts/check_doc_mirror.sh
+```
+
+These are productization-hardening steps only. They do not imply hosted deployment, Azure write/remediation, multi-user auth, or destructive cleanup approval.
+
 ## Recent UI i18n validation evidence
 
 2026-05-19 local validation refreshed the UI i18n/readiness evidence after the post-push C1 continuation work:

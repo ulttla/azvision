@@ -186,6 +186,7 @@ Current validation evidence:
 - `scripts/copilot_empty_answer_ui_smoke.mjs` covers localized empty-answer fallback and the inline error retry path as an opt-in local UI gate.
 - `scripts/copilot_provider_smoke.sh` now also checks provider-aware chat context wiring for `current_view`, `current_language`, view metadata, and backend redaction of secret-like view context fields.
 - Backend `test_copilot.py` covers the provider-aware `/copilot/chat` route preserving view context/language and redacting secret-like view-context values.
+- Post-acceptance productization hardening is also CI-backed through `88c9a80`, `103552b`, `e16f06d`, `fe3583d`, and `62c247f`: host/security headers, auth diagnostics boundary, production 500 detail masking, `/readyz`, and readiness smoke coverage.
 
 Remaining follow-up candidates after this baseline:
 
