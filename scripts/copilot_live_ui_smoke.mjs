@@ -4,6 +4,24 @@ import { mkdir } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
+const APP_URL = process.env.AZVISION_APP_URL || process.env.AZVISION_UI_URL || 'http://127.0.0.1:5173'
+const OUT_DIR = process.env.AZVISION_OUT_DIR || path.join(os.tmpdir(), `azvision-copilot-live-ui-smoke-${Date.now()}`)
+const PROVIDER = process.env.AZVISION_COPILOT_PROVIDER || 'ollama'
+const PROMPT = process.env.AZVISION_COPILOT_PROMPT || '현재 토폴로지 기준으로 다음 읽기 전용 확인 2가지만 요약해줘.'
+const ENABLED = process.env.AZVISION_LIVE_COPILOT_SMOKE === '1'
+const COPILOT_PROVIDER_STORAGE_KEY = 'azvision:copilot-provider:v1'
+
+if (!ENABLED) {
+  console.log(JSON.stringify({
+    ok: true,
+    skipped: true,
+    reason: 'Set AZVISION_LIVE_COPILOT_SMOKE=1 to run the opt-in live Copilot UI smoke.',
+    appUrl: APP_URL,
+    provider: PROVIDER,
+  }, null, 2))
+  process.exit(0)
+}
+
 const require = createRequire(import.meta.url)
 
 function loadPlaywright() {
@@ -23,24 +41,6 @@ function loadPlaywright() {
 }
 
 const { chromium } = loadPlaywright()
-
-const APP_URL = process.env.AZVISION_APP_URL || process.env.AZVISION_UI_URL || 'http://127.0.0.1:5173'
-const OUT_DIR = process.env.AZVISION_OUT_DIR || path.join(os.tmpdir(), `azvision-copilot-live-ui-smoke-${Date.now()}`)
-const PROVIDER = process.env.AZVISION_COPILOT_PROVIDER || 'ollama'
-const PROMPT = process.env.AZVISION_COPILOT_PROMPT || '현재 토폴로지 기준으로 다음 읽기 전용 확인 2가지만 요약해줘.'
-const ENABLED = process.env.AZVISION_LIVE_COPILOT_SMOKE === '1'
-const COPILOT_PROVIDER_STORAGE_KEY = 'azvision:copilot-provider:v1'
-
-if (!ENABLED) {
-  console.log(JSON.stringify({
-    ok: true,
-    skipped: true,
-    reason: 'Set AZVISION_LIVE_COPILOT_SMOKE=1 to run the opt-in live Copilot UI smoke.',
-    appUrl: APP_URL,
-    provider: PROVIDER,
-  }, null, 2))
-  process.exit(0)
-}
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true })

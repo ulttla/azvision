@@ -37,6 +37,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - OpenRouter provider error fallback coverage for auth/rate-limit/gateway/non-JSON/empty-choice paths, with no-secret assertions
 - opt-in OpenRouter provider smoke invocation via `AZVISION_COPILOT_SMOKE_PROVIDER=openrouter`, preserving no-secret fallback expectations
 - browserless semantics guard for opt-in live Copilot UI smoke skip/provider/secret-marker behavior
+- opt-in live Copilot UI smoke skip path exits before Playwright loading when not enabled
 - non-Cost Copilot view context redaction coverage for Topology and Simulation secret-like fields
 - rule-based simulation create/list/detail/template/report/fit smoke, run as a focused check with cleanup through the simulation delete endpoint
 - run script start and stop cleanup behavior

@@ -175,6 +175,7 @@ assert.match(copilotProviderSmokeCode, /requested_provider != 'rule-based'/, 'co
 assert.match(copilotProviderSmokeCode, /subscriptionToken.*should-redact/, 'copilot provider smoke should keep view_context redaction coverage')
 assert.match(copilotLiveUiSmokeCode, /AZVISION_LIVE_COPILOT_SMOKE === '1'/, 'live Copilot UI smoke should remain explicitly opt-in')
 assert.match(copilotLiveUiSmokeCode, /skipped: true/, 'live Copilot UI smoke should safely skip when not enabled')
+assert.ok(copilotLiveUiSmokeCode.indexOf('if (!ENABLED)') < copilotLiveUiSmokeCode.indexOf('loadPlaywright()'), 'live Copilot UI smoke skip path should not require Playwright to be installed')
 assert.match(copilotLiveUiSmokeCode, /AZVISION_COPILOT_PROVIDER \|\| 'ollama'/, 'live Copilot UI smoke should select provider through an explicit env override')
 assert.match(copilotLiveUiSmokeCode, /OPENROUTER_API_KEY/, 'live Copilot UI smoke should assert obvious provider secret markers are not rendered')
 assert.match(copilotPanelCode, /parseCopilotAnswerSections/, 'Shared copilot UI should use section parser for copilot answers')
