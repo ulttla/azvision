@@ -45,16 +45,19 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - app-shell topology freshness polling clears stale node count when no workspace is available
 - Topology PDF export smoke now guards localized image preparation failure handling
 
-## Current local-only Copilot C1 boundary
+## Current Copilot acceptance boundary
 
-2026-05-23 C1 has additional local-only Copilot smoke hardening on top of pushed baseline `5a34067`. These commits are not pushed yet and should be treated as local validation evidence until an explicit `git push` approval is given:
+2026-05-23/24 Copilot smoke hardening is now included in `origin/main` through baseline `0adb88b`. Treat these commits as pushed validation evidence, not local-only work:
 
 - `05e952a` — shared Copilot panel wiring semantics for Cost, Topology, Architecture, and Simulation.
 - `ec3d00d` — OpenRouter provider fallback/no-secret backend tests for auth, rate-limit, gateway, non-JSON, empty-choice, and secret-adjacent error responses.
 - `a051b98` — opt-in hosted provider smoke selector via `AZVISION_COPILOT_SMOKE_PROVIDER`.
 - `fceb2a7` — browserless guard that `copilot_live_ui_smoke.mjs` stays opt-in, skips safely by default, supports provider env override, and checks obvious secret markers.
+- `8385228` — personal-use acceptance exercises the disabled live Copilot UI skip path.
+- `2eea0ed` — `frontend smoke:semantics` enrollment guard keeps the app-shell semantics smoke in the default browserless bundle.
+- `0adb88b` — documents the live Copilot acceptance skip contract and operator opt-in boundary.
 
-Safe local gates for this C1 boundary:
+Safe focused gates for this boundary:
 
 ```bash
 node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts
@@ -63,7 +66,7 @@ bash -n scripts/copilot_provider_smoke.sh
 bash scripts/check_doc_mirror.sh
 ```
 
-Do not run hosted provider or live UI paths as routine acceptance unless the operator intentionally opts in and backend provider env is configured. Do not push/deploy or perform Azure write/remediation without fresh approval.
+Do not run hosted provider or live UI paths as routine acceptance unless the operator intentionally opts in and backend provider env is configured. Do not deploy or perform Azure write/remediation without fresh approval.
 
 ## Recent UI i18n validation evidence
 
