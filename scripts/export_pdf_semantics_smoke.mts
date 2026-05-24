@@ -40,6 +40,7 @@ assert.match(architecturePage, /image\.onerror = \(\) => reject\(new Error\(t\('
 assertPdfExportContract('TopologyPage', topologyPage, /async function handleExportPdf\(\)/)
 assert.match(topologyPage, /cy\.png\(/, 'TopologyPage should rasterize the Cytoscape canvas before PDF export')
 assert.match(topologyPage, /topology\.canvas\.exportPdf/, 'TopologyPage should render an Export PDF control via i18n key')
+assert.match(topologyPage, /img\.onerror = \(\) => reject\(new Error\(t\('topology\.canvas\.pdfImageLoadFailed'\)\)\)/, 'TopologyPage should surface localized PDF image preparation failures')
 
 // ============================================================
 // Section 3: Frontend API type and backend route support
