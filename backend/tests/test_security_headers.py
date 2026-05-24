@@ -1,14 +1,18 @@
 from app.core.config import Settings
 
 
-def test_security_headers_present_on_healthz(client):
-    response = client.get('/healthz')
-
-    assert response.status_code == 200
+def assert_security_headers(response):
     assert response.headers['x-content-type-options'] == 'nosniff'
     assert response.headers['x-frame-options'] == 'DENY'
     assert response.headers['referrer-policy'] == 'no-referrer'
     assert response.headers['permissions-policy'] == 'camera=(), microphone=(), geolocation=()'
+
+
+def test_security_headers_present_on_healthz(client):
+    response = client.get('/healthz')
+
+    assert response.status_code == 200
+    assert_security_headers(response)
 
 
 def test_allowed_hosts_settings_parses_csv_and_defaults_to_wildcard():
@@ -41,5 +45,6 @@ def test_readyz_returns_503_without_internal_path_details(client, monkeypatch):
         'status': 'degraded',
         'checks': {'database': False},
     }
+    assert_security_headers(response)
     assert 'sqlite' not in response.text.lower()
     assert '/Users/' not in response.text
