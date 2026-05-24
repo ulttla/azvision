@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     debug: bool = True
     api_v1_prefix: str = "/api/v1"
     cors_origins: str = DEFAULT_CORS_ORIGINS
+    allowed_hosts: str = "*"
     database_url: str = "sqlite:///./azvision.db"
 
     azure_tenant_id: str = Field(
@@ -113,6 +114,11 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def allowed_host_list(self) -> list[str]:
+        hosts = [host.strip() for host in self.allowed_hosts.split(",") if host.strip()]
+        return hosts or ["*"]
 
     @property
     def env_file_candidates(self) -> list[str]:

@@ -178,7 +178,7 @@ Current baseline:
 Current validation evidence:
 
 - `scripts/personal_use_acceptance.sh` passes end-to-end.
-- Backend pytest collection is currently 369 tests.
+- Backend pytest collection is currently 371 tests.
 - `npm --prefix frontend run build` passes.
 - `npm --prefix frontend run smoke:semantics` passes, including Copilot parser/API semantics smoke.
 - Live personal-use smoke passes against local Azure read/topology: 54 nodes / 62 edges, Network Path Analysis smoke, manual node/edge path, snapshot path, and cleanup.

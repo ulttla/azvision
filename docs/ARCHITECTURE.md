@@ -90,6 +90,7 @@ AzVision은 수집, 정규화, 그래프 모델링, 수동 보강, 비용 분석
 - secret보다 certificate 우선
 - LLM API key는 사용자가 직접 입력하는 BYOK만 허용
 - company/workspace 분리로 데이터 혼선 방지
+- hosted/production 배포에서는 `AZVISION_ALLOWED_HOSTS`로 허용 host를 고정하고, API 응답에는 기본 security headers(`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`)를 붙인다.
 
 ## 배포 원칙
 - 로컬, NAS, mini PC, Linux 서버에서 동일하게 운영 가능해야 한다
