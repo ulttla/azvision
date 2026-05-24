@@ -12,8 +12,9 @@ const appCode = readFileSync(path.join(repoRoot, 'frontend/src/App.tsx'), 'utf8'
 const stylesCode = readFileSync(path.join(repoRoot, 'frontend/src/styles.css'), 'utf8')
 const packageJson = readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8')
 
-assert.match(appCode, /import \{ getAuthConfigCheck, getBackendHealth, getTopologyFreshness, getWorkspaces \} from '\.\/lib\/api'/, 'App shell should import backend health, auth config-check, topology freshness, and workspaces for global connectivity')
+assert.match(appCode, /import \{ getAuthConfigCheck, getBackendHealth, getBackendReadiness, getTopologyFreshness, getWorkspaces \} from '\.\/lib\/api'/, 'App shell should import backend liveness, readiness, auth config-check, topology freshness, and workspaces for global connectivity')
 assert.match(appCode, /getAuthConfigCheck/, 'App shell should surface auth readiness globally')
+assert.match(appCode, /getBackendReadiness/, 'App shell should require backend readiness in the global backend signal')
 assert.match(appCode, /getTopologyFreshness/, 'App shell should surface topology freshness globally')
 assert.match(appCode, /type BackendConnectivityStatus = 'checking' \| 'online' \| 'offline'/, 'Connectivity status union should stay small')
 assert.match(appCode, /type AuthConnectivityStatus = 'checking' \| 'ready' \| 'not-configured'/, 'Auth connectivity status union should be defined')
@@ -35,6 +36,8 @@ assert.match(appCode, /disabled=\{connectivityRefreshing\}/, 'Manual connectivit
 assert.match(appCode, /aria-busy=\{connectivityRefreshing\}/, 'Manual connectivity refresh button should expose busy state')
 assert.match(appCode, /data-testid="app-connectivity-refresh"/, 'Connectivity row should render a test-addressable manual refresh button')
 assert.match(appCode, /Promise\.allSettled/, 'Manual refresh should update backend, auth, and topology signals together')
+assert.match(appCode, /backendReadinessResult\.value\.checks\.database/, 'Manual backend signal should require database readiness')
+assert.match(appCode, /Promise\.all\(\[getBackendHealth\(\), getBackendReadiness\(\)\]\)/, 'Periodic backend signal should require liveness and readiness together')
 assert.match(appCode, /workspaces\.length === 0\)[\s\S]*?setTopologyFreshness\('empty'\)[\s\S]*?setTopologyNodeCount\(null\)/, 'Topology freshness polling should clear stale node counts when no workspace is available')
 assert.match(packageJson, /app_shell_semantics_smoke\.mts/, 'frontend smoke:semantics should include this app-shell smoke')
 

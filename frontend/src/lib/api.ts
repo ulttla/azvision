@@ -565,8 +565,19 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
+export type BackendReadinessResponse = {
+  status: 'ok' | 'degraded' | string
+  checks: {
+    database: boolean
+  }
+}
+
 export async function getBackendHealth(): Promise<{ status: string }> {
   return fetchJson('/healthz')
+}
+
+export async function getBackendReadiness(): Promise<BackendReadinessResponse> {
+  return fetchJson('/readyz')
 }
 
 export async function getWorkspaces(): Promise<Workspace[]> {

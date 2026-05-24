@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useI18n } from './i18n/context'
-import { getAuthConfigCheck, getBackendHealth, getTopologyFreshness, getWorkspaces } from './lib/api'
+import { getAuthConfigCheck, getBackendHealth, getBackendReadiness, getTopologyFreshness, getWorkspaces } from './lib/api'
 
 const TopologyPage = lazy(async () => {
   const module = await import('./pages/TopologyPage')
@@ -89,8 +89,9 @@ export default function App() {
     setConnectivityRefreshMessage(t('status.refreshing'))
 
     try {
-      const [backendResult, authResult, freshnessResult] = await Promise.allSettled([
+      const [backendHealthResult, backendReadinessResult, authResult, freshnessResult] = await Promise.allSettled([
         getBackendHealth(),
+        getBackendReadiness(),
         getAuthConfigCheck(),
         getWorkspaces().then(async (workspaces) => {
           if (workspaces.length === 0) {
@@ -111,7 +112,13 @@ export default function App() {
       ])
 
       setBackendConnectivity(
-        backendResult.status === 'fulfilled' && backendResult.value.status === 'ok' ? 'online' : 'offline',
+        backendHealthResult.status === 'fulfilled' &&
+          backendHealthResult.value.status === 'ok' &&
+          backendReadinessResult.status === 'fulfilled' &&
+          backendReadinessResult.value.status === 'ok' &&
+          backendReadinessResult.value.checks.database
+          ? 'online'
+          : 'offline',
       )
       setAuthConnectivity(
         authResult.status === 'fulfilled' && authResult.value.auth_ready ? 'ready' : 'not-configured',
@@ -137,9 +144,11 @@ export default function App() {
 
     async function refreshBackendConnectivity() {
       try {
-        const health = await getBackendHealth()
+        const [health, readiness] = await Promise.all([getBackendHealth(), getBackendReadiness()])
         if (active) {
-          setBackendConnectivity(health.status === 'ok' ? 'online' : 'offline')
+          setBackendConnectivity(
+            health.status === 'ok' && readiness.status === 'ok' && readiness.checks.database ? 'online' : 'offline',
+          )
         }
       } catch {
         if (active) {
