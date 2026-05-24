@@ -179,7 +179,7 @@ cp backups/sqlite/<timestamp>/backend-azvision.db backend/azvision.db
 ```
 
 4. Start the app again with `scripts/run_dev.sh`.
-5. Run `scripts/personal_use_smoke.sh` or at minimum `/healthz` + snapshot list checks.
+5. Run `scripts/personal_use_smoke.sh` or at minimum `/healthz` + `/readyz` + snapshot list checks.
 
 ## Daily-use checklist
 

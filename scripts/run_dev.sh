@@ -68,7 +68,8 @@ FRONTEND_PID=$!
 
 echo
 echo "AzVision dev stack is starting."
-wait_for_url "Backend" "http://$BACKEND_HOST:$BACKEND_PORT/healthz"
+wait_for_url "Backend liveness" "http://$BACKEND_HOST:$BACKEND_PORT/healthz"
+wait_for_url "Backend readiness" "http://$BACKEND_HOST:$BACKEND_PORT/readyz"
 wait_for_url "Frontend" "http://$FRONTEND_HOST:$FRONTEND_PORT/"
 echo "API: http://$BACKEND_HOST:$BACKEND_PORT"
 echo "UI:  http://$FRONTEND_HOST:$FRONTEND_PORT"
