@@ -129,4 +129,4 @@ python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspac
 5. If `sqlite_health_check.py` reports orphan archives, treat it as an action signal only; run the retention dry-run and request explicit approval before any cleanup.
 6. If workflow smoke leaves records behind, rerun with a fresh `AZVISION_SMOKE_WORKSPACE_ID` and inspect manual/snapshot/simulation list endpoints for the old smoke workspace.
 
-- 2026-05-23 C2 start: reduced the follow-up campaign chunk to 1 hour from pushed baseline `8385228`; added an explicit app-shell smoke enrollment guard so `frontend smoke:semantics` continues to run `app_shell_semantics_smoke.mts` alongside the existing app-shell assertions.
+- 2026-05-23/24 C2 result: from pushed baseline `8385228`, added an explicit app-shell smoke enrollment guard (`2eea0ed`) so `frontend smoke:semantics` continues to run `app_shell_semantics_smoke.mts`, then documented the live Copilot acceptance skip contract (`0adb88b`). Both commits are included in `origin/main`.
