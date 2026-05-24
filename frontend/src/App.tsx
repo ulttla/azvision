@@ -165,7 +165,10 @@ export default function App() {
       try {
         const workspaces = await getWorkspaces()
         if (!active || workspaces.length === 0) {
-          if (active) setTopologyFreshness('empty')
+          if (active) {
+            setTopologyFreshness('empty')
+            setTopologyNodeCount(null)
+          }
           return
         }
         const freshness = await getTopologyFreshness(workspaces[0].id)

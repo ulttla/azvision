@@ -34,6 +34,7 @@ assert.match(appCode, /disabled=\{connectivityRefreshing\}/, 'Manual connectivit
 assert.match(appCode, /aria-busy=\{connectivityRefreshing\}/, 'Manual connectivity refresh button should expose busy state')
 assert.match(appCode, /data-testid="app-connectivity-refresh"/, 'Connectivity row should render a test-addressable manual refresh button')
 assert.match(appCode, /Promise\.allSettled/, 'Manual refresh should update backend, auth, and topology signals together')
+assert.match(appCode, /workspaces\.length === 0\)[\s\S]*?setTopologyFreshness\('empty'\)[\s\S]*?setTopologyNodeCount\(null\)/, 'Topology freshness polling should clear stale node counts when no workspace is available')
 
 assert.match(stylesCode, /\.workspace-connectivity-row/, 'Connectivity row CSS should exist')
 assert.match(stylesCode, /\.connectivity-dot\.online/, 'Online connectivity dot CSS should exist')

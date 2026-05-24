@@ -41,6 +41,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - non-Cost Copilot view context redaction coverage for Topology and Simulation secret-like fields
 - rule-based simulation create/list/detail/template/report/fit smoke, run as a focused check with cleanup through the simulation delete endpoint
 - run script start and stop cleanup behavior
+- app-shell topology freshness polling clears stale node count when no workspace is available
 
 ## Current local-only Copilot C1 boundary
 
