@@ -55,4 +55,5 @@ def read_test() -> dict:
     except AzureReadTestError:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        message = str(exc) if settings.debug else "Unexpected auth read test failure."
+        raise HTTPException(status_code=500, detail=message) from exc

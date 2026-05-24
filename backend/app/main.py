@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -22,6 +23,12 @@ from app.api.routes.topology import router as topology_router
 from app.api.routes.workspaces import router as workspaces_router
 from app.core.config import get_settings
 from app.db.models import create_db_and_tables
+
+
+def public_error_message(status_code: int, detail: Any) -> str:
+    if status_code >= 500 and not settings.debug:
+        return "Internal server error"
+    return str(detail)
 
 
 @asynccontextmanager
@@ -100,7 +107,18 @@ async def http_exception_handler(_: Request, exc: StarletteHTTPException) -> JSO
         status_code=exc.status_code,
         content=build_error_response(
             status=f"http-{exc.status_code}",
-            message=str(exc.detail),
+            message=public_error_message(exc.status_code, exc.detail),
+        ),
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=500,
+        content=build_error_response(
+            status="http-500",
+            message=public_error_message(500, exc),
         ),
     )
 

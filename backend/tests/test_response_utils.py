@@ -8,7 +8,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.response_utils import build_error_response
 from app.core.azure_client import AzureClientError
-from app.main import azure_client_error_handler, http_exception_handler, validation_exception_handler
+from app.main import (
+    azure_client_error_handler,
+    http_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
 
 
 def _response_body(response) -> dict:
@@ -98,4 +103,34 @@ def test_validation_exception_handler_handles_empty_error_list() -> None:
         "ok": False,
         "status": "http-422",
         "message": "Validation error",
+    }
+
+
+def test_http_exception_handler_hides_5xx_detail_when_debug_disabled(monkeypatch) -> None:
+    import app.main as main
+
+    monkeypatch.setattr(main.settings, "debug", False)
+    response = asyncio.run(
+        http_exception_handler(None, StarletteHTTPException(status_code=500, detail="secret backend detail"))
+    )
+
+    assert response.status_code == 500
+    assert _response_body(response) == {
+        "ok": False,
+        "status": "http-500",
+        "message": "Internal server error",
+    }
+
+
+def test_unhandled_exception_handler_hides_detail_when_debug_disabled(monkeypatch) -> None:
+    import app.main as main
+
+    monkeypatch.setattr(main.settings, "debug", False)
+    response = asyncio.run(unhandled_exception_handler(None, RuntimeError("secret traceback detail")))
+
+    assert response.status_code == 500
+    assert _response_body(response) == {
+        "ok": False,
+        "status": "http-500",
+        "message": "Internal server error",
     }

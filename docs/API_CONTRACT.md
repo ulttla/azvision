@@ -188,7 +188,7 @@
   - 예: `404` → `{ ok: false, status: "http-404", message: "Snapshot not found" }`
   - `502` (Azure/upstream failures surfaced through `AzureClientError` subclasses): `{ ok: false, status: "azure-error", message: "<upstream error>" }`
   - `503` (service not configured): `{ ok: false, status: "http-503", message: "<config error>" }`
-  - `500` (unexpected): `{ ok: false, status: "http-500", message: "<error>" }`
+  - `500` (unexpected): debug/dev에서는 세부 오류를 유지할 수 있으나, debug-off production에서는 `{ ok: false, status: "http-500", message: "Internal server error" }`처럼 내부 detail을 숨긴다.
   - `422` (FastAPI request validation): `{ ok: false, status: "http-422", message: "<field>: <msg>" }` — FastAPI default 422 shape가 아닌 동일 envelope로 정규화됨
   - `AzureClientError` / `AzureInventoryError` / `AzureReadTestError` (subclass): global handler → `502` with `status: "azure-error"`
 - **2026-04-19 hardening:** 모든 route에서 `return build_error_response(...)` (HTTP 200 with ok=false) 패턴 제거. 이제 모든 오류는 non-2xx status code를 사용한다. Error response body에는 더 이상 route-specific 필드(`items`, `nodes`, `summary` 등)가 포함되지 않으며 `{ ok, status, message }`만 반환한다. 이 변경은 frontend `fetchJson`의 non-2xx `message` 읽기 패턴과 호환된다.

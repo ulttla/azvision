@@ -90,7 +90,7 @@ class TestAuthRoutes:
             "message": "Missing required Azure settings or certificate path is invalid. Put Azure values in project root .env or backend/.env and ensure certificate path exists.",
         }
 
-    def test_read_test_route_keeps_unexpected_error_as_http_500(
+    def test_read_test_route_keeps_unexpected_error_detail_in_debug_mode(
         self,
         client: TestClient,
         monkeypatch: pytest.MonkeyPatch,
@@ -100,7 +100,7 @@ class TestAuthRoutes:
         monkeypatch.setattr(
             auth_routes,
             "get_settings",
-            lambda: SimpleNamespace(auth_runtime_ready=True),
+            lambda: SimpleNamespace(auth_runtime_ready=True, debug=True),
         )
         monkeypatch.setattr(
             auth_routes,
@@ -116,6 +116,34 @@ class TestAuthRoutes:
             "status": "http-500",
             "message": "unexpected auth failure",
         }
+
+    def test_read_test_route_hides_unexpected_error_detail_when_debug_disabled(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.auth as auth_routes
+
+        monkeypatch.setattr(
+            auth_routes,
+            "get_settings",
+            lambda: SimpleNamespace(auth_runtime_ready=True, debug=False),
+        )
+        monkeypatch.setattr(
+            auth_routes,
+            "run_azure_read_test",
+            lambda settings: _raise(ValueError("secret upstream traceback")),
+        )
+
+        response = client.get("/api/v1/auth/read-test")
+
+        assert response.status_code == 500
+        assert response.json() == {
+            "ok": False,
+            "status": "http-500",
+            "message": "Unexpected auth read test failure.",
+        }
+        assert "secret upstream traceback" not in response.text
     def test_config_check_hides_local_env_paths_when_debug_disabled(
         self,
         client: TestClient,
