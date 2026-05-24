@@ -160,7 +160,7 @@ C2 continues the same local-only read-only Copilot MVP line from the C1 checkpoi
 - Current C2 validation evidence:
   - `node --experimental-strip-types scripts/copilot_answer_parser_smoke.mts` passes.
   - `npm --prefix frontend run smoke:semantics` passes.
-  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` passes with 31 tests.
+  - `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` passes; current focused collection is 38 tests after later hardening additions.
 
 ## Implementation status — 2026-05-22 final hardening baseline
 
@@ -178,7 +178,7 @@ Current baseline:
 Current validation evidence:
 
 - `scripts/personal_use_acceptance.sh` passes end-to-end.
-- Backend pytest passes with 362 tests.
+- Backend pytest collection is currently 369 tests.
 - `npm --prefix frontend run build` passes.
 - `npm --prefix frontend run smoke:semantics` passes, including Copilot parser/API semantics smoke.
 - Live personal-use smoke passes against local Azure read/topology: 54 nodes / 62 edges, Network Path Analysis smoke, manual node/edge path, snapshot path, and cleanup.
