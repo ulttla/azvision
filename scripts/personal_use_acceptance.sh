@@ -66,6 +66,7 @@ bash -n scripts/cost_report_smoke.sh
 bash -n scripts/cost_insights_smoke.sh
 bash -n scripts/copilot_provider_smoke.sh
 bash -n scripts/simulation_smoke.sh
+node scripts/copilot_live_ui_smoke.mjs
 node --experimental-strip-types scripts/path_analysis_semantics_smoke.mts
 python3 -m py_compile scripts/sqlite_health_check.py
 python3 -m py_compile scripts/archive_retention_dry_run.py
