@@ -20,7 +20,10 @@ DEFAULT_CORS_ORIGINS = ",".join(
 
 class Settings(BaseSettings):
     app_name: str = "AzVision API"
-    environment: str = "development"
+    environment: str = Field(
+        default="development",
+        validation_alias=AliasChoices("AZVISION_ENVIRONMENT", "AZVISION_ENV"),
+    )
     debug: bool = True
     api_v1_prefix: str = "/api/v1"
     cors_origins: str = DEFAULT_CORS_ORIGINS
