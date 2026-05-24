@@ -153,3 +153,29 @@ python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspac
 6. If workflow smoke leaves records behind, rerun with a fresh `AZVISION_SMOKE_WORKSPACE_ID` and inspect manual/snapshot/simulation list endpoints for the old smoke workspace.
 
 - 2026-05-23/24 C2 result: from pushed baseline `8385228`, added an explicit app-shell smoke enrollment guard (`2eea0ed`) so `frontend smoke:semantics` continues to run `app_shell_semantics_smoke.mts`, then documented the live Copilot acceptance skip contract (`0adb88b`). Both commits are included in `origin/main`.
+
+## 2026-05-24 C2 no-deploy hardening evidence
+
+C2 continued the same post-acceptance productization-hardening line without deploy, Azure write/remediation, force push, gateway/config/update, destructive cleanup, or credential handling. The following pushed commits are included in `origin/main`; GitHub CI is green through `b0570b2` / run `26365832916`:
+
+- `ab39a09` — requires both `/healthz` and `/readyz` before `scripts/personal_use_acceptance.sh` treats a temporary backend as ready.
+- `f4d625e` — honors the documented `AZVISION_ENV` alias, plus `AZVISION_ENVIRONMENT`, for environment selection.
+- `f3e75bf` — asserts security headers on degraded `/readyz` responses.
+- `06c9745` — covers root and API-prefixed health/readiness endpoints at TestClient level.
+- `ea12152` — protects Copilot provider health-smoke output from OpenRouter secret/API-key/Bearer leakage.
+- `b0570b2` — makes the app shell backend connectivity signal require both liveness and database readiness.
+
+Focused C2 gates used:
+
+```bash
+backend/.venv/bin/python -m pytest backend/tests/test_config.py backend/tests/test_security_headers.py -q
+backend/.venv/bin/python -m pytest backend/tests/test_copilot.py -q
+node --experimental-strip-types scripts/backend_api_routes_semantics_smoke.mts
+node --experimental-strip-types scripts/app_shell_semantics_smoke.mts
+node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts
+node --experimental-strip-types scripts/frontend_types_semantics_smoke.mts
+npm --prefix frontend run build
+bash scripts/check_doc_mirror.sh
+```
+
+Remaining approval-gated or deferred work stays unchanged: hosted deployment validation, Azure write/remediation, multi-user auth, production secret handling, and destructive cleanup.
