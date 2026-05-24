@@ -9,6 +9,10 @@
 
 ## Phase 1A core endpoints
 
+### Health and readiness
+- `GET /healthz` and `GET /api/v1/healthz`: lightweight process liveness, returns `{ status: "ok" }`.
+- `GET /readyz` and `GET /api/v1/readyz`: production readiness check. Returns `200` with `{ status: "ok", checks: { database: true } }` when the SQLite DB is readable, or `503` with `{ status: "degraded", checks: { database: false } }` without exposing DB paths/details.
+
 ### Workspaces
 - `GET /workspaces`
 - `POST /workspaces`

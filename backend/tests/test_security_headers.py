@@ -17,3 +17,29 @@ def test_allowed_hosts_settings_parses_csv_and_defaults_to_wildcard():
         'azvision.example.com',
         'localhost',
     ]
+
+
+def test_readyz_reports_database_readiness(client):
+    response = client.get('/readyz')
+
+    assert response.status_code == 200
+    assert response.json() == {
+        'status': 'ok',
+        'checks': {'database': True},
+    }
+
+
+def test_readyz_returns_503_without_internal_path_details(client, monkeypatch):
+    import app.main as main
+
+    monkeypatch.setattr(main, 'database_ready', lambda: False)
+
+    response = client.get('/api/v1/readyz')
+
+    assert response.status_code == 503
+    assert response.json() == {
+        'status': 'degraded',
+        'checks': {'database': False},
+    }
+    assert 'sqlite' not in response.text.lower()
+    assert '/Users/' not in response.text

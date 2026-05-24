@@ -34,11 +34,13 @@ After starting the app, verify runtime health:
 
 ```bash
 curl -fsS http://127.0.0.1:8000/healthz
+curl -fsS http://127.0.0.1:8000/readyz
 curl -fsS http://127.0.0.1:8000/api/v1/auth/config-check
 ```
 
 Expected personal-use baseline:
 - `/healthz` returns `{"status":"ok"}`
+- `/readyz` returns database readiness without exposing local DB paths
 - `auth/config-check` shows Azure tenant/client/certificate inputs present and certificate path exists
 
 ## Optional read-only Copilot provider settings

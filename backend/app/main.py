@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import sqlite3
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -22,13 +23,26 @@ from app.api.routes.path_analysis import router as path_analysis_router
 from app.api.routes.topology import router as topology_router
 from app.api.routes.workspaces import router as workspaces_router
 from app.core.config import get_settings
-from app.db.models import create_db_and_tables
+from app.db.models import _resolve_sqlite_path, create_db_and_tables
 
 
 def public_error_message(status_code: int, detail: Any) -> str:
     if status_code >= 500 and not settings.debug:
         return "Internal server error"
     return str(detail)
+
+
+def database_ready() -> bool:
+    current_settings = get_settings()
+    try:
+        db_path = _resolve_sqlite_path(current_settings.database_url)
+        if not db_path.exists():
+            return False
+        with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
+            conn.execute("SELECT 1").fetchone()
+    except Exception:
+        return False
+    return True
 
 
 @asynccontextmanager
@@ -136,3 +150,17 @@ def root() -> dict[str, str]:
 @app.get(f"{settings.api_v1_prefix}/healthz")
 def healthz() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/readyz")
+@app.get(f"{settings.api_v1_prefix}/readyz")
+def readyz() -> JSONResponse:
+    db_ready = database_ready()
+    status_code = 200 if db_ready else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "ok" if db_ready else "degraded",
+            "checks": {"database": db_ready},
+        },
+    )
