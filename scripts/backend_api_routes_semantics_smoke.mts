@@ -66,9 +66,12 @@ assert.match(simulationsCode, /SimulationDeleteResponse/, 'simulations DELETE en
 assert.match(simulationsCode, /service\.delete_simulation/, 'simulations DELETE endpoint should call service cleanup')
 
 // ============================================================
-// Section 5: health endpoint should be available through root and API prefix
+// Section 5: health/readiness endpoints should be available through root and API prefix
 // ============================================================
 assert.match(appCode, /@app\.get\("\/healthz"\)/, 'app.py should expose root healthz endpoint')
 assert.match(appCode, /@app\.get\(f"\{settings\.api_v1_prefix\}\/healthz"\)/, 'app.py should expose API-prefixed healthz endpoint for frontend fetchJson')
+assert.match(appCode, /@app\.get\("\/readyz"\)/, 'app.py should expose root readyz endpoint')
+assert.match(appCode, /@app\.get\(f"\{settings\.api_v1_prefix\}\/readyz"\)/, 'app.py should expose API-prefixed readyz endpoint for frontend fetchJson')
+assert.match(appCode, /def database_ready\(\).*SELECT 1/s, 'readyz should perform a minimal database readability check')
 
 console.log('✅ backend_api_routes_semantics_smoke.mts: all assertions passed')

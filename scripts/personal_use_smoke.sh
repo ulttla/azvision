@@ -105,11 +105,15 @@ echo "SMOKE_WORKSPACE_ID=$SMOKE_WORKSPACE_ID"
 
 ROOT_JSON="$TMP_DIR/root.json"
 HEALTH_JSON="$TMP_DIR/health.json"
+READY_JSON="$TMP_DIR/ready.json"
 curl_json GET "${BASE_URL%/api/v1}/" "$ROOT_JSON"
 curl_json GET "${BASE_URL%/api/v1}/healthz" "$HEALTH_JSON"
+curl_json GET "${BASE_URL%/api/v1}/readyz" "$READY_JSON"
 assert_json_bool "$HEALTH_JSON" status ok
+assert_json_bool "$READY_JSON" status ok
+assert_json_bool "$READY_JSON" checks.database True
 
-echo "[ok] backend root + healthz"
+echo "[ok] backend root + healthz + readyz"
 
 if [ "$SKIP_LIVE" != "1" ]; then
   CONFIG_JSON="$TMP_DIR/config-check.json"

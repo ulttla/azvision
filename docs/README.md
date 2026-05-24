@@ -21,7 +21,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - `/chat` copilot은 read-only LLM provider MVP skeleton까지 확장됨. `GET /copilot/providers`, `POST /copilot/chat`, 기존 `POST /workspaces/{workspace_id}/chat` 호환 route를 제공하며, Ollama/Ollama Cloud와 OpenRouter backend-only provider 설정을 지원한다. provider 미설정, disabled, provider 오류 시 secret 노출 없이 rule-based fallback으로 응답한다.
   - `/simulations` rule-based first-pass 구현 완료. workload 설명 기반 recommended resources, architecture/cost/security notes, next actions, assumptions를 생성하고 SQLite에 저장. 각 simulation은 markdown report, non-deployable Bicep outline template, resource-limit scoped current inventory fit 비교와 frontend download action으로 확인 가능
   - global exception handling 기준으로 `HTTPException` / `AzureClientError` non-2xx 응답이 `{ ok, status, message }` JSON shape로 정규화됨
-  - local runtime smoke 기준 `/` / `/healthz` 200 확인
+  - local runtime smoke 기준 `/` / `/healthz` / `/readyz` 200 확인
   - existing `.env` 기준 live auth `config-check` / `read-test` / topology probe 동작 확인
 - frontend
   - `TopologyPage`에서 workspace / subscription / resource group scope 제어, Cytoscape canvas, node detail, manual node/edge create/update/delete UI 동작
