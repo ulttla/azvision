@@ -80,6 +80,7 @@ bash -n scripts/cost_report_smoke.sh
 bash -n scripts/cost_insights_smoke.sh
 bash -n scripts/copilot_provider_smoke.sh
 bash -n scripts/simulation_smoke.sh
+node scripts/copilot_live_ui_smoke.mjs  # disabled/skip path unless AZVISION_LIVE_COPILOT_SMOKE=1
 node --experimental-strip-types scripts/path_analysis_semantics_smoke.mts
 python3 -m py_compile scripts/sqlite_health_check.py
 python3 -m py_compile scripts/archive_retention_dry_run.py
@@ -131,6 +132,7 @@ Expected result:
 - docs mirror check shows only expected deferred drift
 - archive retention dry-run reports `dry_run=true` and summarizes candidates without deleting or reconciling archives
 - Copilot provider smoke verifies provider list, provider health signal, read-only chat fallback, and no secret-like value exposure
+- Live Copilot UI smoke remains opt-in; routine acceptance only verifies its disabled skip path unless `AZVISION_LIVE_COPILOT_SMOKE=1` is set.
 
 ## Go / no-go rule
 
