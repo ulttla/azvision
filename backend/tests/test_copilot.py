@@ -693,3 +693,34 @@ def test_copilot_providers_route_health_smoke_returns_probe_with_flag(client: Te
     assert "provider_health" in body
     assert "ollama" in body["provider_health"]
     assert "openrouter" in body["provider_health"]
+
+
+def test_copilot_providers_route_health_smoke_never_exposes_provider_secret(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    secret = "sk-test-secret"
+
+    def broken_get(*args, **kwargs):
+        raise ValueError("upstream timeout near secret")
+
+    monkeypatch.setenv("COPILOT_ENABLED", "true")
+    monkeypatch.setenv("COPILOT_DEFAULT_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", secret)
+    monkeypatch.setenv("OPENROUTER_MODEL", "anthropic/example")
+    get_settings.cache_clear()
+    monkeypatch.setattr("app.services.copilot.requests.get", broken_get)
+
+    try:
+        response = client.get("/api/v1/copilot/providers?health_smoke=true")
+    finally:
+        get_settings.cache_clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["provider_health"]["openrouter"]["configured"] is True
+    assert body["provider_health"]["openrouter"]["reachable"] is False
+    assert body["provider_health"]["openrouter"]["detail"] == "unreachable"
+    assert secret not in str(body)
+    assert "OPENROUTER_API_KEY" not in str(body)
+    assert "Bearer" not in str(body)
