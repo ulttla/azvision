@@ -1,3 +1,5 @@
+import pytest
+
 from app.core.config import Settings
 
 
@@ -8,10 +10,12 @@ def assert_security_headers(response):
     assert response.headers['permissions-policy'] == 'camera=(), microphone=(), geolocation=()'
 
 
-def test_security_headers_present_on_healthz(client):
-    response = client.get('/healthz')
+@pytest.mark.parametrize('path', ['/healthz', '/api/v1/healthz'])
+def test_security_headers_present_on_healthz(client, path):
+    response = client.get(path)
 
     assert response.status_code == 200
+    assert response.json() == {'status': 'ok'}
     assert_security_headers(response)
 
 
@@ -23,14 +27,16 @@ def test_allowed_hosts_settings_parses_csv_and_defaults_to_wildcard():
     ]
 
 
-def test_readyz_reports_database_readiness(client):
-    response = client.get('/readyz')
+@pytest.mark.parametrize('path', ['/readyz', '/api/v1/readyz'])
+def test_readyz_reports_database_readiness(client, path):
+    response = client.get(path)
 
     assert response.status_code == 200
     assert response.json() == {
         'status': 'ok',
         'checks': {'database': True},
     }
+    assert_security_headers(response)
 
 
 def test_readyz_returns_503_without_internal_path_details(client, monkeypatch):
