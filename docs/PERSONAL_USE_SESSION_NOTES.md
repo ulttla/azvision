@@ -77,6 +77,8 @@ After personal-use acceptance passed, C1 continued into no-deploy production-rea
 - `e16f06d` — hides unexpected 500/internal error details when debug is off while preserving debug/dev detail.
 - `fe3583d` — adds `/readyz` and `/api/v1/readyz` database-readiness endpoints with no DB path leakage.
 - `62c247f` — enrolls `/readyz` in CI startup smoke, `personal_use_smoke.sh`, backend API semantics smoke, and docs.
+- `1a8ab10` — records the pushed productization-hardening evidence and safe focused gates.
+- `459467b` — makes `scripts/run_dev.sh` wait for both `/healthz` and `/readyz` before declaring the backend ready, and updates recovery-runbook minimum checks.
 
 Safe focused gates for this hardening line:
 
