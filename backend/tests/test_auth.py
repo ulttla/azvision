@@ -116,3 +116,71 @@ class TestAuthRoutes:
             "status": "http-500",
             "message": "unexpected auth failure",
         }
+    def test_config_check_hides_local_env_paths_when_debug_disabled(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.auth as auth_routes
+
+        monkeypatch.setattr(
+            auth_routes,
+            "get_settings",
+            lambda: SimpleNamespace(
+                auth_runtime_ready=True,
+                azure_tenant_id="tenant",
+                azure_client_id="client",
+                azure_certificate_path="/private/path/cert.pem",
+                certificate_path_exists=True,
+                azure_certificate_thumbprint="thumbprint",
+                azure_certificate_password="password",
+                azure_cloud="public",
+                debug=False,
+                env_file_candidates=["/private/project/.env"],
+                discovered_env_files=["/private/project/.env"],
+            ),
+        )
+
+        response = client.get("/api/v1/auth/config-check")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["auth_ready"] is True
+        assert "diagnostics" not in payload
+        assert "env_file_candidates" not in payload["checks"]
+        assert "discovered_env_files" not in payload["checks"]
+        assert "/private/project/.env" not in response.text
+
+    def test_config_check_keeps_local_env_path_diagnostics_in_debug_mode(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.auth as auth_routes
+
+        monkeypatch.setattr(
+            auth_routes,
+            "get_settings",
+            lambda: SimpleNamespace(
+                auth_runtime_ready=False,
+                azure_tenant_id="",
+                azure_client_id="",
+                azure_certificate_path="",
+                certificate_path_exists=False,
+                azure_certificate_thumbprint="",
+                azure_certificate_password="",
+                azure_cloud="public",
+                debug=True,
+                env_file_candidates=["/private/project/.env"],
+                discovered_env_files=["/private/project/.env"],
+            ),
+        )
+
+        response = client.get("/api/v1/auth/config-check")
+
+        assert response.status_code == 200
+        assert response.json()["diagnostics"] == {
+            "env_file_candidates": ["/private/project/.env"],
+            "discovered_env_files": ["/private/project/.env"],
+        }
+

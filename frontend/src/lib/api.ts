@@ -907,7 +907,11 @@ export const createPngExport = (workspaceId: string, imageDataUrl: string) =>
 
 export async function getAuthConfigCheck(): Promise<{
   auth_ready: boolean
-  checks: Record<string, boolean>
+  checks: Record<string, boolean | string>
+  diagnostics?: {
+    env_file_candidates: string[]
+    discovered_env_files: string[]
+  }
   note: string
 }> {
   return fetchJson('/auth/config-check')

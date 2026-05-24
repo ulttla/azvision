@@ -18,6 +18,8 @@
 ### Auth diagnostics
 > 1A에서 credential은 server-side configured profile로 관리. API는 진단용 read만.
 - `GET /auth/config-check`
+  - 기본 응답은 credential/config 준비 여부의 boolean 신호만 노출한다.
+  - local path 계열 진단값(`env_file_candidates`, `discovered_env_files`)은 `AZVISION_DEBUG=true`일 때만 top-level `diagnostics`에 포함하며, production에서는 기본적으로 숨긴다.
 - `GET /auth/read-test`
 
 ### Scans

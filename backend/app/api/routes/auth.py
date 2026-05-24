@@ -9,7 +9,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.get("/config-check")
 def config_check() -> dict:
     settings = get_settings()
-    return {
+    payload = {
         "status": "ok",
         "phase": "1A-live-read-prep",
         "auth_ready": settings.auth_runtime_ready,
@@ -21,11 +21,15 @@ def config_check() -> dict:
             "certificate_thumbprint_present": bool(settings.azure_certificate_thumbprint),
             "certificate_password_present": bool(settings.azure_certificate_password),
             "azure_cloud": settings.azure_cloud,
-            "env_file_candidates": settings.env_file_candidates,
-            "discovered_env_files": settings.discovered_env_files,
         },
         "note": "server-side configured credential profile, diagnostics read only. Preferred env file is project root .env; backend/.env is also supported.",
     }
+    if settings.debug:
+        payload["diagnostics"] = {
+            "env_file_candidates": settings.env_file_candidates,
+            "discovered_env_files": settings.discovered_env_files,
+        }
+    return payload
 
 
 @router.get("/read-test")

@@ -48,7 +48,8 @@ curl http://localhost:8000/api/v1/auth/config-check
 - tenant/client/cert path configured = true
 - certificate path exists = true
 - azure_cloud = public
-- `discovered_env_files`에 실제 읽힌 `.env` 경로가 표시됨
+- `AZVISION_DEBUG=true`인 local/dev 모드에서는 `diagnostics.discovered_env_files`에 실제 읽힌 `.env` 경로가 표시됨
+- production/debug-off 모드에서는 local path 계열 진단값이 응답에서 숨겨짐
 
 ### read test
 ```bash
@@ -81,7 +82,8 @@ curl http://localhost:8000/api/v1/auth/read-test
 - backend가 예상 위치의 `.env`를 읽지 못함
 조치:
 - tenant/client/cert path 재확인
-- `config-check`의 `discovered_env_files` 확인
+- local/dev에서는 `config-check`의 `diagnostics.discovered_env_files` 확인
+- production/debug-off에서는 서버 로그 또는 배포 환경 설정에서 env mount 상태 확인
 
 ### `Certificate file not found`
 원인:

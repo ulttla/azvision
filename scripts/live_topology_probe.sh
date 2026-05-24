@@ -75,13 +75,14 @@ import json, sys
 with open(sys.argv[1], 'r', encoding='utf-8') as f:
     payload = json.load(f)
 checks = payload.get('checks', {})
+diagnostics = payload.get('diagnostics', {})
 print({
     'auth_ready': payload.get('auth_ready'),
     'tenant_id_present': checks.get('tenant_id_present'),
     'client_id_present': checks.get('client_id_present'),
     'certificate_path_present': checks.get('certificate_path_present'),
     'certificate_path_exists': checks.get('certificate_path_exists'),
-    'discovered_env_files': checks.get('discovered_env_files'),
+    'discovered_env_files': diagnostics.get('discovered_env_files'),
 })
 PY
 
