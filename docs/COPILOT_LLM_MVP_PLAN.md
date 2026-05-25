@@ -131,7 +131,7 @@ Completed for the local-only personal MVP path:
 Current validation evidence:
 
 - `scripts/copilot_provider_smoke.sh` reports `chat_provider=ollama` and `llm_status=ok` after local backend reload.
-- `backend/.venv/bin/python -X faulthandler -m pytest backend/tests/test_copilot.py -q` passes with 23 tests.
+- `backend/.venv/bin/python -m pytest tests/test_copilot.py -q` passes with 42 tests after OpenRouter attribution/header hardening.
 - `npm --prefix frontend run build` passes.
 - `npm --prefix frontend run smoke:semantics` passes.
 - `node scripts/copilot_empty_answer_ui_smoke.mjs` passes as an explicit local UI gate when the Vite dev server is running; it mocks an empty Copilot answer and verifies localized fallback rendering plus omission of raw Cost filter values.
