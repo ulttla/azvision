@@ -177,6 +177,11 @@ C2 continued the same post-acceptance productization-hardening line without depl
 - `64c9968` — narrows the next Copilot slice guidance after OpenRouter polish completion.
 - `a4ea095` — guards prefixed OpenRouter secret markers in live UI/provider smokes.
 - `58e754b` — asserts shared Copilot provider storage restoration in the empty-answer UI smoke.
+- `eb4ff2c` — records Copilot provider storage smoke evidence.
+
+2026-05-25 C2 continuation from `eb4ff2c` added one same-scope live UI guard without enabling live provider calls by default. The opt-in live Copilot UI smoke now verifies the shared provider storage selection is restored before submit. This is pushed to `origin/main` through `c624357`; GitHub CI run `26423122917` is green.
+
+- `c624357` — asserts live Copilot UI provider storage restoration before submit, while the default `AZVISION_LIVE_COPILOT_SMOKE` path still skips safely.
 
 Focused C2 gates used:
 
@@ -186,6 +191,7 @@ backend/.venv/bin/python -m pytest backend/tests/test_copilot.py -q
 node --experimental-strip-types scripts/backend_api_routes_semantics_smoke.mts
 node --experimental-strip-types scripts/app_shell_semantics_smoke.mts
 node --experimental-strip-types scripts/copilot_api_semantics_smoke.mts
+node scripts/copilot_live_ui_smoke.mjs
 node --experimental-strip-types scripts/frontend_types_semantics_smoke.mts
 npm --prefix frontend run build
 bash scripts/check_doc_mirror.sh
