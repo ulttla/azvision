@@ -22,6 +22,7 @@ const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 const copilotProviderSmokeCode = readFileSync(path.join(repoRoot, 'scripts/copilot_provider_smoke.sh'), 'utf8')
 const copilotLiveUiSmokeCode = readFileSync(path.join(repoRoot, 'scripts/copilot_live_ui_smoke.mjs'), 'utf8')
+const copilotEmptyAnswerUiSmokeCode = readFileSync(path.join(repoRoot, 'scripts/copilot_empty_answer_ui_smoke.mjs'), 'utf8')
 
 // ============================================================
 // Section 1: CopilotResponse type contract
@@ -191,6 +192,7 @@ assert.match(copilotLiveUiSmokeCode, /AZVISION_COPILOT_PROVIDER \|\| 'ollama'/, 
 assert.match(copilotLiveUiSmokeCode, /OPENROUTER_API_KEY/, 'live Copilot UI smoke should assert obvious provider secret markers are not rendered')
 assert.match(copilotLiveUiSmokeCode, /AZVISION_OPENROUTER_API_KEY/, 'live Copilot UI smoke should assert prefixed OpenRouter secret markers are not rendered')
 assert.match(copilotProviderSmokeCode, /AZVISION_OPENROUTER_API_KEY/, 'copilot provider smoke should assert prefixed OpenRouter secret markers are not returned')
+assert.match(copilotEmptyAnswerUiSmokeCode, /capturedCopilotRequest\.provider !== 'ollama'/, 'empty-answer UI smoke should verify shared provider storage restores ollama')
 assert.match(copilotPanelCode, /parseCopilotAnswerSections/, 'Shared copilot UI should use section parser for copilot answers')
 assert.match(copilotParserCode, /export function parseCopilotAnswerSections/, 'Copilot answer parser should be exported for focused smoke coverage')
 assert.match(copilotParserCode, /\[A-Za-z가-힣\]/, 'Copilot section parser should recognize Korean heading labels')

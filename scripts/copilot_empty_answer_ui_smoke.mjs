@@ -95,6 +95,9 @@ async function main() {
     if (capturedCopilotRequest.current_language !== 'ko') {
       throw new Error(`Expected current_language ko, got ${capturedCopilotRequest.current_language}`)
     }
+    if (capturedCopilotRequest.provider !== 'ollama') {
+      throw new Error(`Expected shared provider storage to restore ollama, got ${capturedCopilotRequest.provider}`)
+    }
     if (capturedCopilotRequest.view_context?.filters?.subscriptionId) {
       throw new Error('Cost copilot view_context should not include raw subscriptionId')
     }
