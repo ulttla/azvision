@@ -167,6 +167,7 @@ assert.match(copilotServicesCode, /_probe_ollama_connectivity/, 'copilot service
 assert.match(copilotServicesCode, /_probe_openrouter_connectivity/, 'copilot services should have openrouter connectivity probe')
 assert.match(copilotServicesCode, /_openrouter_headers/, 'copilot services should centralize OpenRouter headers')
 assert.match(copilotServicesCode, /HTTP-Referer/, 'OpenRouter chat and health probes should support optional app referer header')
+assert.match(copilotServicesCode, /X-OpenRouter-Title/, 'OpenRouter chat and health probes should send canonical app title header')
 assert.match(copilotServicesCode, /X-Title/, 'OpenRouter chat and health probes should support optional app title header')
 assert.match(copilotServicesCode, /headers=_openrouter_headers/, 'OpenRouter chat and health probes should use the shared header builder')
 assert.match(backendConfigCode, /openrouter_http_referer/, 'Settings should expose optional OpenRouter referer config')
