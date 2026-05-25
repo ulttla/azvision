@@ -173,6 +173,9 @@ C2 continued the same post-acceptance productization-hardening line without depl
 - `c0ab0f1` — sends canonical `X-OpenRouter-Title` plus legacy `X-Title` for compatibility and updates docs/tests.
 - `6198ea3` — enrolls `X-OpenRouter-Title` in `copilot_api_semantics_smoke.mts`.
 - `701f4eb` — records pushed attribution evidence in this session note.
+- `7be9387` — refreshes attribution evidence/test-count docs through the latest pushed head at that point.
+- `64c9968` — narrows the next Copilot slice guidance after OpenRouter polish completion.
+- `a4ea095` — guards prefixed OpenRouter secret markers in live UI/provider smokes.
 
 Focused C2 gates used:
 
