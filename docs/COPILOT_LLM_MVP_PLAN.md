@@ -48,9 +48,12 @@ OLLAMA_MODEL=
 OPENROUTER_API_KEY=<backend-env-only>
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=anthropic/claude-sonnet-4.5
+# Optional non-secret OpenRouter app attribution headers.
+OPENROUTER_HTTP_REFERER=https://azvision.example
+OPENROUTER_APP_TITLE=AzVision
 ```
 
-If Azure must use Ollama, run Ollama inside the Azure VM/container environment or expose the Mac mini Ollama endpoint through a private tunnel/VPN. Prefer OpenRouter for the first hosted path.
+If Azure must use Ollama, run Ollama inside the Azure VM/container environment or expose the Mac mini Ollama endpoint through a private tunnel/VPN. Prefer OpenRouter for the first hosted path. `OPENROUTER_HTTP_REFERER` and `OPENROUTER_APP_TITLE` are optional, non-secret hosted-provider attribution values; keep `OPENROUTER_API_KEY` backend-only.
 
 ## Backend shape
 
@@ -147,6 +150,7 @@ Remaining follow-up candidates:
 - Keep `topology_view_visual_smoke.mjs`, `architecture_view_visual_smoke.mjs`, `simulation_view_visual_smoke.mjs`, and `copilot_empty_answer_ui_smoke.mjs` as explicit local UI gates rather than adding them to the default browserless smoke bundle because they depend on a running Vite dev server and UI readiness.
 - Optional live LLM UI smoke is available as `scripts/copilot_live_ui_smoke.mjs`; it is opt-in only via `AZVISION_LIVE_COPILOT_SMOKE=1` so normal smoke runs do not depend on LLM latency or provider availability.
 - Optional hosted provider smoke can target OpenRouter explicitly with `AZVISION_COPILOT_SMOKE_PROVIDER=openrouter scripts/copilot_provider_smoke.sh`; it accepts either a successful OpenRouter response or the existing no-secret rule-based fallback when provider config/reachability is missing.
+- OpenRouter hosted-provider requests and health probes support optional non-secret app attribution headers via `OPENROUTER_HTTP_REFERER` and `OPENROUTER_APP_TITLE`; tests assert these headers are attached without returning provider secrets in chat/provider responses.
 - Consider deeper `CopilotPanel` UI-level coverage if a frontend test runner is introduced later; current default gate remains browserless smoke plus build, with explicit local UI gates available for visual/Copilot paths.
 
 ## Implementation status — 2026-05-22 C2

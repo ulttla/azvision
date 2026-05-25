@@ -61,6 +61,8 @@ Provider targets:
 - `RuleBasedCopilotProvider`: always-available fallback.
 - `OllamaCopilotProvider`: local Ollama API, including Ollama Cloud subscription models through local Ollama.
 - `OpenRouterCopilotProvider`: OpenRouter API-key path for local or hosted deployments.
+  - Optional non-secret app attribution headers can be set with `OPENROUTER_HTTP_REFERER` and `OPENROUTER_APP_TITLE`.
+  - These headers are sent only from the backend provider adapter; API key/token values remain backend-only and are never included in provider status or chat responses.
 
 LLM providers should preserve or extend the route response shape without breaking existing clients. `suggestions[]` may be empty for a successful LLM response until structured answer sections are added:
 - `copilot_mode`

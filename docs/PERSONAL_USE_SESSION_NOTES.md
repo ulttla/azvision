@@ -35,6 +35,7 @@ This file captures short, operator-facing notes for the personal-use readiness b
 - read-only Copilot provider list, provider health signal, chat fallback, and no-secret contract smoke
 - shared Copilot panel wiring for Cost, Topology, Architecture, and Simulation views through browserless semantics smoke
 - OpenRouter provider error fallback coverage for auth/rate-limit/gateway/non-JSON/empty-choice paths, with no-secret assertions
+- OpenRouter optional app attribution header coverage for chat and health-probe requests, keeping API key/token values backend-only
 - opt-in OpenRouter provider smoke invocation via `AZVISION_COPILOT_SMOKE_PROVIDER=openrouter`, preserving no-secret fallback expectations
 - browserless semantics guard for opt-in live Copilot UI smoke skip/provider/secret-marker behavior
 - opt-in live Copilot UI smoke skip path exits before Playwright loading when not enabled
@@ -164,6 +165,8 @@ C2 continued the same post-acceptance productization-hardening line without depl
 - `06c9745` — covers root and API-prefixed health/readiness endpoints at TestClient level.
 - `ea12152` — protects Copilot provider health-smoke output from OpenRouter secret/API-key/Bearer leakage.
 - `b0570b2` — makes the app shell backend connectivity signal require both liveness and database readiness.
+
+Local C1 continuation from baseline `5173b79` adds optional OpenRouter backend-only app attribution headers (`OPENROUTER_HTTP_REFERER`, `OPENROUTER_APP_TITLE`) for hosted-provider chat and health probes, with focused no-secret tests and docs. This is local no-deploy work until committed/pushed separately.
 
 Focused C2 gates used:
 

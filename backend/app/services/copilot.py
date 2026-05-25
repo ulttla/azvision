@@ -330,6 +330,17 @@ def _extract_openrouter_content(payload: dict[str, Any]) -> str:
     raise ValueError("openrouter choice did not include content")
 
 
+def _openrouter_headers(settings: Settings) -> dict[str, str]:
+    headers = {"Authorization": f"Bearer {settings.openrouter_api_key}", "Content-Type": "application/json"}
+    http_referer = settings.openrouter_http_referer.strip()
+    app_title = settings.openrouter_app_title.strip()
+    if http_referer:
+        headers["HTTP-Referer"] = http_referer
+    if app_title:
+        headers["X-Title"] = app_title
+    return headers
+
+
 def _provider_error_fallback(provider: str, model: str, message: str, resources: list[dict[str, Any]], context: dict[str, Any]) -> dict[str, Any]:
     fallback = build_rule_based_copilot_answer(message, resources, context)
     fallback.update({"provider": "rule-based", "model": model or None, "llm_status": f"{provider}_provider_error"})
@@ -383,6 +394,7 @@ class OpenRouterCopilotProvider:
     provider_name = "openrouter"
 
     def __init__(self, settings: Settings):
+        self._settings = settings
         self.base_url = settings.openrouter_base_url.rstrip("/")
         self.model = settings.openrouter_model
         self.api_key = settings.openrouter_api_key
@@ -398,7 +410,7 @@ class OpenRouterCopilotProvider:
         try:
             response = requests.post(
                 self.base_url + "/chat/completions",
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                headers=_openrouter_headers(settings=self._settings),
                 json={"model": self.model, "messages": _build_llm_messages(message, context), "stream": False},
                 timeout=45,
             )
@@ -430,7 +442,7 @@ def _probe_openrouter_connectivity(settings: Settings) -> str:
     try:
         response = requests.get(
             settings.openrouter_base_url.rstrip("/") + "/models",
-            headers={"Authorization": f"Bearer {settings.openrouter_api_key}"},
+            headers=_openrouter_headers(settings),
             timeout=8,
         )
         response.raise_for_status()

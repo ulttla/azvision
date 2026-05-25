@@ -159,7 +159,7 @@ Expected result:
 ## Next development priorities after v0.9
 
 1. Keep the read-only LLM Copilot MVP in the personal-use lane: maintain backend-only Ollama/Ollama Cloud and OpenRouter provider settings, rule-based fallback, no-secret responses, answer section parsing, and redacted view context. See `docs/COPILOT_LLM_MVP_PLAN.md`.
-2. Treat deeper Copilot UI coverage, optional live UI smoke, streaming responses, persistent chat history, hosted deployment polish, and any Azure write/remediation behavior as follow-up work, not personal-use v0.9 blockers.
+2. Treat deeper Copilot UI coverage, optional live UI smoke, streaming responses, persistent chat history, hosted deployment polish, and any Azure write/remediation behavior as follow-up work, not personal-use v0.9 blockers. No-deploy hosted-provider polish may stay in the personal-use lane when it only adds backend-only, non-secret provider metadata/header handling and focused no-secret tests.
 3. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
 4. Maintain the existing PDF export smoke/tests as part of the immediate personal workflow when export behavior changes.
 5. Shared app-shell readiness is now useful outside Architecture View: keep the Backend/Auth/Topology freshness signals and manual `Refresh status` action covered by browserless smoke when shell behavior changes. Keep duplicate-click/busy-state behavior intact so the local operator cannot stack repeated health checks.

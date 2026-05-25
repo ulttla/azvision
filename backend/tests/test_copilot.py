@@ -320,6 +320,72 @@ def test_openrouter_raw_string_content_parts_are_normalized(monkeypatch) -> None
     assert "sk-test-secret" not in str(answer)
 
 
+def test_openrouter_chat_includes_optional_app_attribution_headers(monkeypatch) -> None:
+    captured_headers: dict[str, str] = {}
+
+    class OpenRouterResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"choices": [{"message": {"content": "Hosted provider response."}}]}
+
+    def capture_post(*args, **kwargs):
+        captured_headers.update(kwargs.get("headers") or {})
+        return OpenRouterResponse()
+
+    monkeypatch.setattr("app.services.copilot.requests.post", capture_post)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-secret")
+    monkeypatch.setenv("AZVISION_OPENROUTER_API_KEY", "sk-test-secret")
+    settings = isolated_settings(
+        copilot_enabled=True,
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+        openrouter_http_referer="https://azvision.example",
+        openrouter_app_title="AzVision Personal Use",
+    )
+
+    answer = OpenRouterCopilotProvider(settings).answer("cost risk", [])
+
+    assert answer["provider"] == "openrouter"
+    assert answer["llm_status"] == "ok"
+    assert captured_headers["Authorization"] == "Bearer sk-test-secret"
+    assert captured_headers["Content-Type"] == "application/json"
+    assert captured_headers["HTTP-Referer"] == "https://azvision.example"
+    assert captured_headers["X-Title"] == "AzVision Personal Use"
+    assert "sk-test-secret" not in str(answer)
+
+
+def test_openrouter_health_probe_uses_optional_attribution_headers(monkeypatch) -> None:
+    captured_headers: dict[str, str] = {}
+
+    class ReachableResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+    def capture_get(*args, **kwargs):
+        captured_headers.update(kwargs.get("headers") or {})
+        return ReachableResponse()
+
+    monkeypatch.setattr("app.services.copilot.requests.get", capture_get)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-secret")
+    monkeypatch.setenv("AZVISION_OPENROUTER_API_KEY", "sk-test-secret")
+    settings = isolated_settings(
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+        openrouter_http_referer="https://azvision.example",
+        openrouter_app_title="AzVision Personal Use",
+    )
+
+    result = probe_provider_health(settings)
+
+    assert result["openrouter"]["reachable"] is True
+    assert captured_headers["Authorization"] == "Bearer sk-test-secret"
+    assert captured_headers["HTTP-Referer"] == "https://azvision.example"
+    assert captured_headers["X-Title"] == "AzVision Personal Use"
+    assert "sk-test-secret" not in str(result)
+
+
 def test_openrouter_error_payload_uses_rule_based_fallback(monkeypatch) -> None:
     class ErrorPayloadResponse:
         def raise_for_status(self) -> None:

@@ -102,6 +102,14 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("OPENROUTER_MODEL", "AZVISION_OPENROUTER_MODEL"),
     )
+    openrouter_http_referer: str = Field(
+        default="",
+        validation_alias=AliasChoices("OPENROUTER_HTTP_REFERER", "AZVISION_OPENROUTER_HTTP_REFERER"),
+    )
+    openrouter_app_title: str = Field(
+        default="AzVision",
+        validation_alias=AliasChoices("OPENROUTER_APP_TITLE", "AZVISION_OPENROUTER_APP_TITLE"),
+    )
 
     workspace_default_id: str = "local-demo"
     workspace_default_name: str = "AzVision Demo Workspace"
