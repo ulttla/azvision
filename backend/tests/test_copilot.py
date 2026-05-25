@@ -386,6 +386,57 @@ def test_openrouter_health_probe_uses_optional_attribution_headers(monkeypatch) 
     assert "sk-test-secret" not in str(result)
 
 
+def test_openrouter_attribution_headers_omit_empty_or_keep_defaults(monkeypatch) -> None:
+    """When referer is empty HTTP-Referer is absent; default app_title sends X-Title; empty app_title omits X-Title."""
+    captured_headers: dict[str, str] = {}
+
+    class ReachableResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+    def capture_get(*args, **kwargs):
+        captured_headers.update(kwargs.get("headers") or {})
+        return ReachableResponse()
+
+    monkeypatch.setattr("app.services.copilot.requests.get", capture_get)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-secret")
+    monkeypatch.setenv("AZVISION_OPENROUTER_API_KEY", "sk-test-secret")
+
+    # Case A: empty referer → no HTTP-Referer; default app_title "AzVision" → X-Title present
+    captured_headers.clear()
+    settings_a = isolated_settings(
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+        openrouter_http_referer="",
+    )
+    probe_provider_health(settings_a)
+    assert "HTTP-Referer" not in captured_headers
+    assert captured_headers["X-Title"] == "AzVision"
+
+    # Case B: empty app_title → no X-Title
+    captured_headers.clear()
+    settings_b = isolated_settings(
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+        openrouter_app_title="",
+    )
+    probe_provider_health(settings_b)
+    assert "X-Title" not in captured_headers
+
+    # Case C: both empty → neither attribution header present
+    captured_headers.clear()
+    settings_c = isolated_settings(
+        openrouter_api_key="sk-test-secret",
+        openrouter_model="anthropic/example",
+        openrouter_http_referer="",
+        openrouter_app_title="",
+    )
+    result_c = probe_provider_health(settings_c)
+    assert "HTTP-Referer" not in captured_headers
+    assert "X-Title" not in captured_headers
+    assert "sk-test-secret" not in str(result_c)
+
+
 def test_openrouter_error_payload_uses_rule_based_fallback(monkeypatch) -> None:
     class ErrorPayloadResponse:
         def raise_for_status(self) -> None:
