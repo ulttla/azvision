@@ -176,6 +176,7 @@ C2 continued the same post-acceptance productization-hardening line without depl
 - `7be9387` — refreshes attribution evidence/test-count docs through the latest pushed head at that point.
 - `64c9968` — narrows the next Copilot slice guidance after OpenRouter polish completion.
 - `a4ea095` — guards prefixed OpenRouter secret markers in live UI/provider smokes.
+- `58e754b` — asserts shared Copilot provider storage restoration in the empty-answer UI smoke.
 
 Focused C2 gates used:
 
