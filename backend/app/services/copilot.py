@@ -337,6 +337,7 @@ def _openrouter_headers(settings: Settings) -> dict[str, str]:
     if http_referer:
         headers["HTTP-Referer"] = http_referer
     if app_title:
+        headers["X-OpenRouter-Title"] = app_title
         headers["X-Title"] = app_title
     return headers
 

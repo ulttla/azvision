@@ -352,6 +352,7 @@ def test_openrouter_chat_includes_optional_app_attribution_headers(monkeypatch) 
     assert captured_headers["Authorization"] == "Bearer sk-test-secret"
     assert captured_headers["Content-Type"] == "application/json"
     assert captured_headers["HTTP-Referer"] == "https://azvision.example"
+    assert captured_headers["X-OpenRouter-Title"] == "AzVision Personal Use"
     assert captured_headers["X-Title"] == "AzVision Personal Use"
     assert "sk-test-secret" not in str(answer)
 
@@ -382,12 +383,13 @@ def test_openrouter_health_probe_uses_optional_attribution_headers(monkeypatch) 
     assert result["openrouter"]["reachable"] is True
     assert captured_headers["Authorization"] == "Bearer sk-test-secret"
     assert captured_headers["HTTP-Referer"] == "https://azvision.example"
+    assert captured_headers["X-OpenRouter-Title"] == "AzVision Personal Use"
     assert captured_headers["X-Title"] == "AzVision Personal Use"
     assert "sk-test-secret" not in str(result)
 
 
 def test_openrouter_attribution_headers_omit_empty_or_keep_defaults(monkeypatch) -> None:
-    """When referer is empty HTTP-Referer is absent; default app_title sends X-Title; empty app_title omits X-Title."""
+    """When referer is empty HTTP-Referer is absent; default app_title sends attribution title headers."""
     captured_headers: dict[str, str] = {}
 
     class ReachableResponse:
@@ -402,7 +404,7 @@ def test_openrouter_attribution_headers_omit_empty_or_keep_defaults(monkeypatch)
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test-secret")
     monkeypatch.setenv("AZVISION_OPENROUTER_API_KEY", "sk-test-secret")
 
-    # Case A: empty referer → no HTTP-Referer; default app_title "AzVision" → X-Title present
+    # Case A: empty referer: no HTTP-Referer; default app_title "AzVision" sends title headers.
     captured_headers.clear()
     settings_a = isolated_settings(
         openrouter_api_key="sk-test-secret",
@@ -411,9 +413,10 @@ def test_openrouter_attribution_headers_omit_empty_or_keep_defaults(monkeypatch)
     )
     probe_provider_health(settings_a)
     assert "HTTP-Referer" not in captured_headers
+    assert captured_headers["X-OpenRouter-Title"] == "AzVision"
     assert captured_headers["X-Title"] == "AzVision"
 
-    # Case B: empty app_title → no X-Title
+    # Case B: empty app_title omits title headers.
     captured_headers.clear()
     settings_b = isolated_settings(
         openrouter_api_key="sk-test-secret",
@@ -421,9 +424,10 @@ def test_openrouter_attribution_headers_omit_empty_or_keep_defaults(monkeypatch)
         openrouter_app_title="",
     )
     probe_provider_health(settings_b)
+    assert "X-OpenRouter-Title" not in captured_headers
     assert "X-Title" not in captured_headers
 
-    # Case C: both empty → neither attribution header present
+    # Case C: both empty means no attribution headers.
     captured_headers.clear()
     settings_c = isolated_settings(
         openrouter_api_key="sk-test-secret",
@@ -433,6 +437,7 @@ def test_openrouter_attribution_headers_omit_empty_or_keep_defaults(monkeypatch)
     )
     result_c = probe_provider_health(settings_c)
     assert "HTTP-Referer" not in captured_headers
+    assert "X-OpenRouter-Title" not in captured_headers
     assert "X-Title" not in captured_headers
     assert "sk-test-secret" not in str(result_c)
 

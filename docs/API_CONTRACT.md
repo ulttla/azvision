@@ -173,7 +173,7 @@
 - `POST /workspaces/{workspace_id}/chat`
   - 기존 Cost page 호환 route. request/query/응답 shape는 provider-aware chat과 동일하되 `workspace_id`는 path에서 받는다.
 - 현재 provider는 `rule-based`, `ollama`, `openrouter`를 지원한다. Ollama/OpenRouter 설정이 없거나 `COPILOT_ENABLED=false`이면 rule-based fallback으로 안전하게 응답한다.
-- OpenRouter adapter는 선택적 backend-only app attribution 설정(`OPENROUTER_HTTP_REFERER`, `OPENROUTER_APP_TITLE`)을 upstream 요청/health probe header로만 사용하며, provider status/chat 응답에는 API key/token이나 header 값을 secret으로 반환하지 않는다.
+- OpenRouter adapter는 선택적 backend-only app attribution 설정(`OPENROUTER_HTTP_REFERER`, `OPENROUTER_APP_TITLE`)을 upstream 요청/health probe header로만 사용한다. app title은 `X-OpenRouter-Title`과 legacy `X-Title`로 함께 전송하며, provider status/chat 응답에는 API key/token이나 header 값을 secret으로 반환하지 않는다.
 
 ## Response shape principles
 - 모든 핵심 목록 응답은 `ok`, `workspace_id`, `items` 배열을 기본으로 포함한다
