@@ -166,7 +166,12 @@ C2 continued the same post-acceptance productization-hardening line without depl
 - `ea12152` — protects Copilot provider health-smoke output from OpenRouter secret/API-key/Bearer leakage.
 - `b0570b2` — makes the app shell backend connectivity signal require both liveness and database readiness.
 
-Local C1 continuation from baseline `5173b79` adds optional OpenRouter backend-only app attribution headers (`OPENROUTER_HTTP_REFERER`, `OPENROUTER_APP_TITLE`) for hosted-provider chat and health probes, with focused no-secret tests and docs. This is local no-deploy work until committed/pushed separately.
+2026-05-25 C1 continuation from baseline `5173b79` added optional OpenRouter backend-only app attribution headers (`OPENROUTER_HTTP_REFERER`, `OPENROUTER_APP_TITLE`) for hosted-provider chat and health probes, with focused no-secret tests and docs. The slice is pushed to `origin/main` through `6198ea3`; GitHub CI run `26412816133` is green. Pushed commits:
+
+- `53b683b` — adds optional OpenRouter attribution headers on chat and health probes without returning secrets in provider/chat responses.
+- `96fbf71` — covers blank/empty attribution header omission and default title behavior.
+- `c0ab0f1` — sends canonical `X-OpenRouter-Title` plus legacy `X-Title` for compatibility and updates docs/tests.
+- `6198ea3` — enrolls `X-OpenRouter-Title` in `copilot_api_semantics_smoke.mts`.
 
 Focused C2 gates used:
 
