@@ -111,7 +111,7 @@ assert (context.get('view_metadata') or {}).get('view_kind') == 'cost-insights',
 assert ((context.get('view_context') or {}).get('filters') or {}).get('subscriptionToken') == '[redacted]', context
 
 serialized = json.dumps({'providers': providers, 'health': health, 'chat': chat}, ensure_ascii=False)
-secret_patterns = [r'sk-[A-Za-z0-9_-]{8,}', r'Bearer\s+[A-Za-z0-9._-]+', r'OPENROUTER_API_KEY\s*=']
+secret_patterns = [r'sk-[A-Za-z0-9_-]{8,}', r'Bearer\s+[A-Za-z0-9._-]+', r'OPENROUTER_API_KEY\s*=', r'AZVISION_OPENROUTER_API_KEY\s*=']
 for pattern in secret_patterns:
     assert not re.search(pattern, serialized), f'secret-like value leaked: {pattern}'
 

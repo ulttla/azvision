@@ -73,7 +73,7 @@ async function main() {
 
     const answerText = await page.locator('.topology-copilot-card .cost-copilot-answer').innerText()
     const providerText = await copilotCard.locator('.cost-copilot-answer .mini-chip').first().innerText()
-    for (const forbidden of ['API_KEY', 'OPENROUTER_API_KEY', 'OLLAMA_BASE_URL=', 'Bearer ']) {
+    for (const forbidden of ['API_KEY', 'OPENROUTER_API_KEY', 'AZVISION_OPENROUTER_API_KEY', 'OLLAMA_BASE_URL=', 'Bearer ']) {
       if (answerText.includes(forbidden)) {
         throw new Error(`Live Copilot answer appears to expose a sensitive token/config marker: ${forbidden}`)
       }
