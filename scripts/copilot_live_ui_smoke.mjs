@@ -62,7 +62,12 @@ async function main() {
 
     const copilotCard = page.locator('.topology-copilot-card')
     await copilotCard.waitFor({ timeout: 30_000 })
-    await copilotCard.locator('select.search-input').selectOption(PROVIDER)
+    const providerSelect = copilotCard.locator('select.search-input')
+    const restoredProvider = await providerSelect.inputValue()
+    if (restoredProvider !== PROVIDER) {
+      throw new Error(`Expected shared provider storage to restore ${PROVIDER}, got ${restoredProvider}`)
+    }
+    await providerSelect.selectOption(PROVIDER)
     await copilotCard.locator('textarea.cost-copilot-input').fill(PROMPT)
     await copilotCard.getByRole('button', { name: '질문' }).click()
 

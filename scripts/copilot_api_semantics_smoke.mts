@@ -189,6 +189,7 @@ assert.match(copilotLiveUiSmokeCode, /AZVISION_LIVE_COPILOT_SMOKE === '1'/, 'liv
 assert.match(copilotLiveUiSmokeCode, /skipped: true/, 'live Copilot UI smoke should safely skip when not enabled')
 assert.ok(copilotLiveUiSmokeCode.indexOf('if (!ENABLED)') < copilotLiveUiSmokeCode.indexOf('loadPlaywright()'), 'live Copilot UI smoke skip path should not require Playwright to be installed')
 assert.match(copilotLiveUiSmokeCode, /AZVISION_COPILOT_PROVIDER \|\| 'ollama'/, 'live Copilot UI smoke should select provider through an explicit env override')
+assert.match(copilotLiveUiSmokeCode, /restoredProvider !== PROVIDER/, 'live Copilot UI smoke should verify shared provider storage restores the requested provider before submit')
 assert.match(copilotLiveUiSmokeCode, /OPENROUTER_API_KEY/, 'live Copilot UI smoke should assert obvious provider secret markers are not rendered')
 assert.match(copilotLiveUiSmokeCode, /AZVISION_OPENROUTER_API_KEY/, 'live Copilot UI smoke should assert prefixed OpenRouter secret markers are not rendered')
 assert.match(copilotProviderSmokeCode, /AZVISION_OPENROUTER_API_KEY/, 'copilot provider smoke should assert prefixed OpenRouter secret markers are not returned')
