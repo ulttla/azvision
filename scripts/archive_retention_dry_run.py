@@ -142,6 +142,7 @@ def main() -> int:
     parser.add_argument("--workspace", required=True, help="Workspace ID to inspect")
     parser.add_argument("--keep-recent", type=int, default=DEFAULT_KEEP_RECENT, help="Newest archives to always protect")
     parser.add_argument("--min-age-days", type=int, default=DEFAULT_MIN_AGE_DAYS, help="Minimum archive age for eligibility")
+    parser.add_argument("--now", help="Optional ISO-8601 timestamp for deterministic dry-run evaluation")
     parser.add_argument("--dry-run", action="store_true", help="Required safety flag; no write mode exists")
     args = parser.parse_args()
 
@@ -150,11 +151,16 @@ def main() -> int:
     if not args.db.exists():
         raise SystemExit(f"FAIL: database not found: {args.db}")
 
+    now = parse_sqlite_timestamp(args.now) if args.now else None
+    if args.now and now is None:
+        raise SystemExit(f"FAIL: invalid --now timestamp: {args.now}")
+
     result = select_retention_candidates(
         args.db,
         workspace_id=args.workspace,
         keep_recent=args.keep_recent,
         min_age_days=args.min_age_days,
+        now=now,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
