@@ -212,6 +212,7 @@ export function TopologyPage() {
   const [manualEdges, setManualEdges] = useState<ManualEdge[]>([])
   const [manualLoading, setManualLoading] = useState(false)
   const [canvasMaximized, setCanvasMaximized] = useState(false)
+  const [graphControlsOpen, setGraphControlsOpen] = useState(true)
   const [manualNodeNameInput, setManualNodeNameInput] = useState('')
   const [manualNodeTypeInput, setManualNodeTypeInput] = useState('external-system')
   const [manualNodeVendorInput, setManualNodeVendorInput] = useState('')
@@ -2688,10 +2689,14 @@ export function TopologyPage() {
       </section>
 
       <section className="panel-grid controls-layout collapsible-panel-grid">
-        <details className="panel-card collapsible-panel topology-control-panel">
+        <details
+          className="panel-card collapsible-panel topology-control-panel"
+          open={graphControlsOpen}
+          onToggle={(event) => setGraphControlsOpen(event.currentTarget.open)}
+        >
           <summary className="collapsible-summary">
             <span>{t('topology.controls.heading')}</span>
-            <span className="mini-status">{t('topology.controls.defaultLayoutMode')}</span>
+            <span className="mini-status">{compareLayoutStatus}</span>
           </summary>
           <div className="collapsible-body">
             <div className="section-heading section-heading-inline-action">

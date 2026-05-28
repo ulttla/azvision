@@ -236,6 +236,8 @@ assert.match(topoPageCode, /const edgePreview = useMemo\(\(\) => filteredTopolog
 assert.doesNotMatch(topoPageCode, /filteredTopology\.edges\.slice\(0,\s*16\)/, 'Edge preview should not hide edges behind a fixed 16-item slice')
 assert.match(topoPageCode, /<details className="panel-card collapsible-panel">/, 'Dense lower topology panels should be collapsible instead of always expanded')
 assert.match(topoPageCode, /topology-control-panel/, 'Dense control panels should be collapsible instead of always expanded')
+assert.match(topoPageCode, /graphControlsOpen/, 'Primary graph controls should remain discoverable while still allowing user collapse')
+assert.match(topoPageCode, /<span className="mini-status">\{compareLayoutStatus\}<\/span>/, 'Primary controls summary should show the active layout state instead of a static default label')
 assert.match(topoPageCode, /controls-layout collapsible-panel-grid/, 'Controls should use the collapsible grid treatment')
 assert.match(topoPageCode, /collapsible-panel-grid/, 'Dense lower topology panels should sit in a collapsible grid')
 assert.match(appStyleCode, /\.compact-list\s*\{[\s\S]*overflow-y:\s*auto/, 'compact lists should scroll vertically instead of clipping')
