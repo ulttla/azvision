@@ -177,3 +177,25 @@ def test_request_id_header_is_generated_when_missing() -> None:
 
     assert response.status_code == 200
     assert response.headers["X-Request-ID"].startswith("req_")
+
+
+def test_request_completion_log_uses_safe_metadata(caplog) -> None:
+    import logging
+
+    from app.main import app
+
+    caplog.set_level(logging.INFO, logger="azvision.request")
+    response = TestClient(app).get("/healthz", headers={"X-Request-ID": "req-log-123"})
+
+    assert response.status_code == 200
+    records = [record for record in caplog.records if record.name == "azvision.request"]
+    assert records
+    record = records[-1]
+    assert record.getMessage() == "request_completed"
+    assert record.request_id == "req-log-123"
+    assert record.method == "GET"
+    assert record.path == "/healthz"
+    assert record.status_code == 200
+    assert isinstance(record.duration_ms, float)
+    assert not hasattr(record, "body")
+    assert not hasattr(record, "query_params")

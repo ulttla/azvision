@@ -19,6 +19,14 @@ Implemented baseline:
 
 This is the first building block for structured logs, audit events, and public incident correlation.
 
+## Structured request logging baseline
+
+Implemented baseline:
+
+- `azvision.request` logs one `request_completed` event per response.
+- Logged metadata is limited to request id, method, path, status code, and duration.
+- Request bodies, query strings, credentials, prompts, and provider payloads are not logged by this baseline.
+
 ## Rate-limit target
 
 Initial public beta should protect these routes first:

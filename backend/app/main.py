@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
+import logging
 import sqlite3
+from time import perf_counter
 from uuid import uuid4
 from typing import Any
 
@@ -53,6 +55,7 @@ async def lifespan(_: FastAPI):
 
 
 settings = get_settings()
+request_logger = logging.getLogger("azvision.request")
 
 app = FastAPI(
     title=settings.app_name,
@@ -77,8 +80,20 @@ app.add_middleware(
 async def add_request_id_header(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or f"req_{uuid4().hex}"
     request.state.request_id = request_id
+    started_at = perf_counter()
     response = await call_next(request)
     response.headers.setdefault("X-Request-ID", request_id)
+    duration_ms = round((perf_counter() - started_at) * 1000, 2)
+    request_logger.info(
+        "request_completed",
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "duration_ms": duration_ms,
+        },
+    )
     return response
 
 
