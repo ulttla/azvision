@@ -72,6 +72,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
   - 다음 개발 우선순위는 `docs/PERSONAL_USE_READINESS_PLAN.md` 의 `Next development priorities after v0.9` 섹션을 기준으로 한다. read-only LLM Copilot MVP는 provider/config/context/selector skeleton과 local-only hardening baseline이 들어왔고, OpenRouter attribution/header/secret-marker polish는 `a4ea095` 기준으로 push/CI까지 완료됐다. 개인용 v0.9 판단은 `scripts/personal_use_acceptance.sh` 통과 여부를 우선 기준으로 본다. CopilotPanel provider-storage UI smoke coverage는 `58e754b` 기준 보강됐다. 다음 Copilot slice는 opt-in live UI smoke 유지 또는 필요한 경우 더 깊은 `CopilotPanel` UI coverage로 제한한다. Architecture View polish는 stable path에 들어왔고, export smoke/test 유지, Azure Arc/hybrid 확장, productization 재진입은 후속 순서로 관리한다.
 
 ## Public beta planning
+- `docs/PUBLIC_BETA_BLOCKER_STATUS.md` is the current blocker/status index for public beta readiness.
 - `docs/PUBLIC_BETA_GAP_ANALYSIS.md` tracks the public beta blockers, entry criteria, and launch risk table.
 - `docs/PRODUCTION_DEPLOYMENT_GUIDE.md` defines the production-like deployment path without approving a live deploy; `scripts/production_profile_smoke.sh` checks the example profile files.
 - `docs/SECURITY_HARDENING.md` records the current security baseline and remaining public beta blockers.

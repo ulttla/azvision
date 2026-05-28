@@ -4,6 +4,9 @@ AzVision의 현재 기준선은 개인/내부 데모에 강한 `personal-use v0.
 
 ## Readiness summary
 
+Current blocker rollup: `docs/PUBLIC_BETA_BLOCKER_STATUS.md`.
+
+
 | Area | Current status | Public beta impact | Priority |
 | --- | --- | --- | --- |
 | Core topology and graph workflow | Strong personal-use baseline | Main value path is usable after setup | P0 keep green |

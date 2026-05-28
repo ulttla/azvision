@@ -15,6 +15,7 @@ required_docs=(
   docs/COPILOT_PERSISTENCE_PLAN.md
   docs/RETENTION_EXECUTION_GUARD.md
   docs/HOSTED_E2E_PREFLIGHT_PLAN.md
+  docs/PUBLIC_BETA_BLOCKER_STATUS.md
 )
 
 for file in "${required_docs[@]}"; do
@@ -33,5 +34,7 @@ grep -q 'No deletion from cron' docs/RETENTION_EXECUTION_GUARD.md
 grep -q -- '--dry-run' scripts/archive_retention_dry_run.py
 grep -q 'No-go criteria' docs/RATE_LIMIT_AUDIT_PLAN.md
 grep -q 'No public DNS or open internet exposure' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
+grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
+grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 
 echo 'PASS: AzVision public beta contract smoke completed'
