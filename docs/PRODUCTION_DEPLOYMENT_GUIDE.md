@@ -10,6 +10,24 @@ This guide defines a safe path from local personal-use AzVision to a production-
 - Compose: development-oriented stack.
 - Auth: Azure read-only credentials configured through backend environment variables.
 
+## Production-like example files
+
+This repo now includes a private validation profile:
+
+- `docker-compose.production.example.yml` — production-like compose example bound to localhost by default.
+- `backend/Dockerfile.production` — backend image without reload mode.
+- `frontend/Dockerfile.production` — frontend static build served by nginx.
+- `deploy/nginx/azvision.conf` — static frontend plus `/api/` proxy example.
+- `scripts/production_profile_smoke.sh` — read-only contract check for the files above.
+
+Run the file contract check with:
+
+```bash
+scripts/production_profile_smoke.sh
+```
+
+This is still not a public deploy approval.
+
 ## Production-like target
 
 A public beta deployment should use:

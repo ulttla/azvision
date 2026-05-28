@@ -1,0 +1,47 @@
+# Production-like example profile for private validation only.
+# Do not expose publicly until auth/workspace isolation and hosted runbooks are complete.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.production
+    environment:
+      AZVISION_ENV: production
+      AZVISION_DEBUG: "false"
+      AZVISION_API_V1_PREFIX: /api/v1
+      AZVISION_ALLOWED_HOSTS: ${AZVISION_ALLOWED_HOSTS:?set a concrete host for hosted use}
+      AZVISION_CORS_ORIGINS: ${AZVISION_CORS_ORIGINS:?set exact frontend origins}
+      AZVISION_DATABASE_URL: sqlite:////data/azvision.db
+      COPILOT_ENABLED: ${COPILOT_ENABLED:-false}
+      COPILOT_DEFAULT_PROVIDER: ${COPILOT_DEFAULT_PROVIDER:-rule-based}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://127.0.0.1:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      OPENROUTER_HTTP_REFERER: ${OPENROUTER_HTTP_REFERER:-}
+      OPENROUTER_APP_TITLE: ${OPENROUTER_APP_TITLE:-AzVision}
+    volumes:
+      - azvision-data:/data
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.production
+      args:
+        VITE_API_BASE_URL: /api/v1
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  azvision-data:

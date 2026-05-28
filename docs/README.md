@@ -73,7 +73,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 
 ## Public beta planning
 - `docs/PUBLIC_BETA_GAP_ANALYSIS.md` tracks the public beta blockers, entry criteria, and launch risk table.
-- `docs/PRODUCTION_DEPLOYMENT_GUIDE.md` defines the production-like deployment path without approving a live deploy.
+- `docs/PRODUCTION_DEPLOYMENT_GUIDE.md` defines the production-like deployment path without approving a live deploy; `scripts/production_profile_smoke.sh` checks the example profile files.
 - `docs/SECURITY_HARDENING.md` records the current security baseline and remaining public beta blockers.
 - `docs/ONBOARDING_DESIGN.md` defines the demo workspace and first-run path needed before external users.
 - `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md` defines the account/session/workspace boundary required before public beta.
