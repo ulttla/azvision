@@ -88,6 +88,7 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - Cross-workspace access returns `403` without echoing the requested workspace id.
 - Owner can read/manage its workspace.
 - Viewer can read only and cannot write/manage.
+- Workspace routes now use a local-demo FastAPI dependency seam, covered by `backend/tests/test_workspaces_route_security.py`, so the future session-backed dependency can replace it without changing route contracts.
 
 This is not yet full public beta auth. It is the first safe contract slice for the later FastAPI dependency and route integration.
 

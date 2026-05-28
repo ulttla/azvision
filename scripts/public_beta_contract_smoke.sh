@@ -38,7 +38,9 @@ grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 test -s backend/app/api/workspace_security.py
 test -s backend/tests/test_workspace_security.py
+test -s backend/tests/test_workspaces_route_security.py
 grep -q 'Workspace access denied' backend/app/api/workspace_security.py
 grep -q 'test_cross_workspace_access_is_forbidden_without_identifier_leak' backend/tests/test_workspace_security.py
+grep -q 'test_default_workspace_route_forbids_cross_workspace_without_id_leak' backend/tests/test_workspaces_route_security.py
 
 echo 'PASS: AzVision public beta contract smoke completed'
