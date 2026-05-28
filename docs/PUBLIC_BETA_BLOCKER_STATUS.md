@@ -15,7 +15,7 @@ This table summarizes the public beta blocker state after the C1 public readines
 
 | ID | Area | Current status | Evidence | Remaining gate |
 | --- | --- | --- | --- | --- |
-| G1 | Auth, account, workspace isolation | blocked | `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md` | Implement session/account/workspace membership and isolation tests |
+| G1 | Auth, account, workspace isolation | partial | `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md`, `backend/app/api/workspace_security.py`, `backend/tests/test_workspace_security.py` | Wire session/account/workspace dependency into routes and expand cross-workspace regression tests |
 | G2 | Production-like deployment profile | partial | `docker-compose.production.example.yml`, production Dockerfiles, `scripts/production_profile_smoke.sh`, CI contract smoke | Run private production-like environment and hosted E2E smoke |
 | G3 | API protection and audit trail | partial | `X-Request-ID`, safe request logging, `build_rate_limited_response()`, `docs/RATE_LIMIT_AUDIT_PLAN.md` | Implement actual limiter and audit event storage after identity model |
 | G4 | Public onboarding and demo workspace | partial | `docs/ONBOARDING_DESIGN.md`, `docs/DEMO_WORKSPACE_CONTRACT.md`, backend demo contract tests | Add first-run UI and demo workspace CTA |

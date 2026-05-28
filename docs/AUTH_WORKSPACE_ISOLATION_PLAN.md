@@ -80,6 +80,17 @@ Before public beta, add tests for:
 | Copilot call in workspace | Uses only that workspace context |
 | Export request | Requires membership and audit event |
 
+## Implementation baseline
+
+C2 started the route-agnostic guard layer in `backend/app/api/workspace_security.py`. The first contract tests in `backend/tests/test_workspace_security.py` lock these minimum rules before session persistence is wired into routes:
+
+- Missing auth context returns `401`.
+- Cross-workspace access returns `403` without echoing the requested workspace id.
+- Owner can read/manage its workspace.
+- Viewer can read only and cannot write/manage.
+
+This is not yet full public beta auth. It is the first safe contract slice for the later FastAPI dependency and route integration.
+
 ## Migration approach
 
 1. Add models and repository layer behind feature flag or local-only default.

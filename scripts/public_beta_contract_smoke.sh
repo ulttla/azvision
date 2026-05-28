@@ -36,5 +36,9 @@ grep -q 'No-go criteria' docs/RATE_LIMIT_AUDIT_PLAN.md
 grep -q 'No public DNS or open internet exposure' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
 grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md
+test -s backend/app/api/workspace_security.py
+test -s backend/tests/test_workspace_security.py
+grep -q 'Workspace access denied' backend/app/api/workspace_security.py
+grep -q 'test_cross_workspace_access_is_forbidden_without_identifier_leak' backend/tests/test_workspace_security.py
 
 echo 'PASS: AzVision public beta contract smoke completed'
