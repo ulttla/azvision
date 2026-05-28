@@ -219,10 +219,15 @@ assert.match(topoPageCode, /canvasMaximized/, 'TopologyPage should track canvas 
 assert.match(topoPageCode, /topology\.canvas\.focusMode/, 'TopologyPage should render localized canvas focus-mode action')
 assert.match(topoPageCode, /topology\.canvas\.exitFocus/, 'TopologyPage should render localized canvas exit-focus action')
 assert.match(topoPageCode, /function handleOpenCanvasWindow/, 'TopologyPage should support opening the canvas in a dedicated window')
-assert.match(topoPageCode, /window\.open\('', '_blank'/, 'Canvas popout should use a new browser window')
+assert.match(topoPageCode, /URL\.createObjectURL\(new Blob/, 'Canvas popout should use a Blob URL instead of document.write into a noopener window')
+assert.doesNotMatch(topoPageCode, /popup\.document\.write/, 'Canvas popout should avoid document.write after window.open')
+assert.match(topoPageCode, /window\.open\(blobUrl, '_blank'/, 'Canvas popout should open the generated Blob URL in a new browser window')
+assert.match(topoPageCode, /URL\.revokeObjectURL\(blobUrl\)/, 'Canvas popout should revoke Blob URLs after use')
 assert.match(topoPageCode, /topology\.canvas\.openWindow/, 'TopologyPage should render localized canvas popout action')
 assert.match(topoPageCode, /cy\.resize\(\)/, 'Canvas focus mode should resize Cytoscape before fitting')
 assert.match(topoPageCode, /aria-pressed=\{canvasMaximized\}/, 'Canvas focus toggle should expose pressed state for accessibility')
+assert.match(topoPageCode, /role=\{canvasMaximized \? 'dialog' : undefined\}/, 'Focused canvas should expose dialog semantics')
+assert.match(topoPageCode, /target instanceof HTMLInputElement/, 'Global Escape handling should ignore editable targets')
 assert.match(topoPageCode, /workspace-inventory-list/, 'Workspace inventory preview should have a dedicated scroll class')
 assert.match(topoPageCode, /availableResources\.map/, 'Workspace inventory preview should render the full loaded resource window, not a hard-coded slice')
 assert.doesNotMatch(topoPageCode, /availableResources\.slice\(0,\s*8\)/, 'Workspace inventory preview should not hide resources behind a fixed 8-item slice')
@@ -243,7 +248,7 @@ assert.match(appStyleCode, /\.canvas-card-maximized \.search-form\s*\{[\s\S]*gri
 assert.match(appStyleCode, /overflow-wrap:\s*anywhere/, 'long resource and edge labels should wrap safely')
 assert.match(appStyleCode, /\.collapsible-summary/, 'styles should include modern collapsible section affordances')
 assert.match(appStyleCode, /\.preset-list-grid\s*\{[\s\S]*max-height:\s*620px[\s\S]*overflow-y:\s*auto/, 'snapshot and preset lists should scroll within the controls panel instead of lengthening the full page')
-for (const key of ['topology.canvas.focusMode', 'topology.canvas.exitFocus', 'topology.canvas.openWindow', 'topology.canvas.openedWindow', 'topology.canvas.openWindowFailed']) {
+for (const key of ['topology.canvas.focusMode', 'topology.canvas.exitFocus', 'topology.canvas.openWindow', 'topology.canvas.popoutTitle', 'topology.canvas.openedWindow', 'topology.canvas.openWindowFailed']) {
   assert.ok(dictCode.includes(`'${key}':`), `i18n dict should define ${key}`)
 }
 

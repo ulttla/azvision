@@ -1174,13 +1174,25 @@ export function TopologyPage() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        if (canvasMaximized) {
-          setCanvasMaximized(false)
-          return
-        }
-        setSelectedNodeKey('')
+      if (event.key !== 'Escape') {
+        return
       }
+
+      const target = event.target as HTMLElement | null
+      const isEditableTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        Boolean(target?.isContentEditable)
+      if (isEditableTarget) {
+        return
+      }
+
+      if (canvasMaximized) {
+        setCanvasMaximized(false)
+        return
+      }
+      setSelectedNodeKey('')
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -2202,18 +2214,13 @@ export function TopologyPage() {
       scale: 2,
       bg: '#0b1220',
     })
-    const popup = window.open('', '_blank', 'noopener,noreferrer,width=1440,height=960')
-    if (!popup) {
-      setExportMessage(t('topology.canvas.openWindowFailed'))
-      return
-    }
-
-    popup.document.write(`<!doctype html>
+    const popoutTitle = t('topology.canvas.popoutTitle')
+    const html = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AzVision topology canvas</title>
+  <title>${popoutTitle}</title>
   <style>
     :root { color-scheme: dark; }
     body { margin: 0; min-height: 100vh; background: #020617; color: #e5eefc; font-family: Inter, system-ui, sans-serif; }
@@ -2227,15 +2234,22 @@ export function TopologyPage() {
 <body>
   <header>
     <div>
-      <h1>AzVision topology canvas</h1>
+      <h1>${popoutTitle}</h1>
       <p>${filteredTopology.nodes.length} visible nodes • ${filteredTopology.edges.length} edges</p>
     </div>
   </header>
-  <main><img src="${imageDataUrl}" alt="AzVision topology canvas" /></main>
+  <main><img src="${imageDataUrl}" alt="${popoutTitle}" /></main>
 </body>
-</html>`)
-    popup.document.close()
-    popup.focus()
+</html>`
+    const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
+    const popup = window.open(blobUrl, '_blank', 'noopener,noreferrer,width=1440,height=960')
+    if (!popup) {
+      URL.revokeObjectURL(blobUrl)
+      setExportMessage(t('topology.canvas.openWindowFailed'))
+      return
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
     setExportMessage(t('topology.canvas.openedWindow'))
   }
 
@@ -3490,7 +3504,12 @@ export function TopologyPage() {
       </section>
 
       <section className="panel-grid canvas-layout">
-        <article className={`panel-card canvas-card ${canvasMaximized ? 'canvas-card-maximized' : ''}`}>
+        <article
+          className={`panel-card canvas-card ${canvasMaximized ? 'canvas-card-maximized' : ''}`}
+          role={canvasMaximized ? 'dialog' : undefined}
+          aria-modal={canvasMaximized ? true : undefined}
+          aria-label={t('topology.canvas.heading')}
+        >
           <div className="section-heading">
             <h2>{t('topology.canvas.heading')}</h2>
             <span className="mini-status">
