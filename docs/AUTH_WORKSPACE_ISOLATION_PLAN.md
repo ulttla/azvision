@@ -90,6 +90,7 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - Viewer can read only and cannot write/manage.
 - Workspace routes now use a local-demo FastAPI dependency seam, covered by `backend/tests/test_workspaces_route_security.py`, so the future session-backed dependency can replace it without changing route contracts.
 - Scan routes now use the same seam, covered by `backend/tests/test_scans_route_security.py`; cross-workspace scan requests are denied before inventory collection starts.
+- Export routes now use the same seam, covered by `backend/tests/test_exports.py`; cross-workspace file creation/list/get requests are denied before payload validation or filesystem access.
 
 This is not yet full public beta auth. It is the first safe contract slice for the later FastAPI dependency and route integration.
 

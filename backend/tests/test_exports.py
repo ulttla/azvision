@@ -9,7 +9,7 @@ class TestExportRoutes:
         client: TestClient,
     ):
         response = client.post(
-            "/api/v1/workspaces/ws-export-test/exports",
+            "/api/v1/workspaces/local-demo/exports",
             json={"format": "png"},
         )
 
@@ -25,7 +25,7 @@ class TestExportRoutes:
         client: TestClient,
     ):
         response = client.post(
-            "/api/v1/workspaces/ws-export-test/exports",
+            "/api/v1/workspaces/local-demo/exports",
             json={"format": "png", "image_data_url": "data:image/png;base64,%%%"},
         )
 
@@ -40,7 +40,7 @@ class TestExportRoutes:
         self,
         client: TestClient,
     ):
-        response = client.get("/api/v1/workspaces/ws-export-test/exports/missing-export")
+        response = client.get("/api/v1/workspaces/local-demo/exports/missing-export")
 
         assert response.status_code == 404
         assert response.json() == {
@@ -48,3 +48,30 @@ class TestExportRoutes:
             "status": "http-404",
             "message": "Export not found",
         }
+
+    def test_export_create_forbids_cross_workspace_before_payload_validation(
+        self,
+        client: TestClient,
+    ):
+        response = client.post(
+            "/api/v1/workspaces/workspace-b/exports",
+            json={"format": "png"},
+        )
+
+        assert response.status_code == 403
+        assert response.json() == {
+            "ok": False,
+            "status": "http-403",
+            "message": "Workspace access denied.",
+        }
+        assert "workspace-b" not in response.text
+
+    def test_export_list_forbids_cross_workspace_without_id_leak(
+        self,
+        client: TestClient,
+    ):
+        response = client.get("/api/v1/workspaces/workspace-b/exports")
+
+        assert response.status_code == 403
+        assert response.json()["message"] == "Workspace access denied."
+        assert "workspace-b" not in response.text

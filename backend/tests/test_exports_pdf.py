@@ -34,7 +34,7 @@ class TestPdfExportFunctional:
     def test_pdf_export_returns_valid_pdf_binary(self, client: TestClient, tmp_path: Path) -> None:
         """Export format=pdf should produce a binary that starts with %PDF."""
         response = client.post(
-            "/api/v1/workspaces/ws-pdf-test/exports",
+            "/api/v1/workspaces/local-demo/exports",
             json={"format": "pdf", "image_data_url": _png_data_url()},
         )
         assert response.status_code == 200
@@ -47,7 +47,7 @@ class TestPdfExportFunctional:
         # which is a data URL with application/pdf mime type.
         # We verify the stored file exists and has non-zero size.
         export_id = data["id"]
-        export_dir = tmp_path / "exports" / "ws-pdf-test"
+        export_dir = tmp_path / "exports" / "local-demo"
 
         # The actual export path depends on settings.export_root;
         # we just verify the API returned a consistent record.
@@ -55,11 +55,11 @@ class TestPdfExportFunctional:
     def test_pdf_export_idempotent_with_same_data_url(self, client: TestClient) -> None:
         """Two exports with the same data URL should produce distinct records."""
         r1 = client.post(
-            "/api/v1/workspaces/ws-pdf-test/exports",
+            "/api/v1/workspaces/local-demo/exports",
             json={"format": "pdf", "image_data_url": _png_data_url()},
         )
         r2 = client.post(
-            "/api/v1/workspaces/ws-pdf-test/exports",
+            "/api/v1/workspaces/local-demo/exports",
             json={"format": "pdf", "image_data_url": _png_data_url()},
         )
         assert r1.status_code == 200
@@ -69,14 +69,14 @@ class TestPdfExportFunctional:
     def test_pdf_export_list_returns_both(self, client: TestClient) -> None:
         """list_exports should include both PNG and PDF exports."""
         client.post(
-            "/api/v1/workspaces/ws-pdf-test/exports",
+            "/api/v1/workspaces/local-demo/exports",
             json={"format": "png", "image_data_url": _png_data_url()},
         )
         client.post(
-            "/api/v1/workspaces/ws-pdf-test/exports",
+            "/api/v1/workspaces/local-demo/exports",
             json={"format": "pdf", "image_data_url": _png_data_url()},
         )
-        list_resp = client.get("/api/v1/workspaces/ws-pdf-test/exports")
+        list_resp = client.get("/api/v1/workspaces/local-demo/exports")
         assert list_resp.status_code == 200
         items = list_resp.json()["items"]
         formats = {item["format"] for item in items}
@@ -86,13 +86,13 @@ class TestPdfExportFunctional:
     def test_get_export_pdf_returns_record(self, client: TestClient) -> None:
         """get_export for a PDF export should return the correct record."""
         create_resp = client.post(
-            "/api/v1/workspaces/ws-pdf-test/exports",
+            "/api/v1/workspaces/local-demo/exports",
             json={"format": "pdf", "image_data_url": _png_data_url()},
         )
         assert create_resp.status_code == 200
         export_id = create_resp.json()["id"]
 
-        get_resp = client.get(f"/api/v1/workspaces/ws-pdf-test/exports/{export_id}")
+        get_resp = client.get(f"/api/v1/workspaces/local-demo/exports/{export_id}")
         assert get_resp.status_code == 200
         record = get_resp.json()
         assert record["format"] == "pdf"

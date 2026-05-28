@@ -6,8 +6,13 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.workspace_security import (
+    WorkspaceAccessContext,
+    get_workspace_access_context,
+    require_workspace_access,
+)
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/exports", tags=["exports"])
@@ -56,7 +61,12 @@ def _decode_data_url(data_url: str) -> tuple[str, bytes]:
 
 
 @router.post("")
-def create_export(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+def create_export(
+    workspace_id: str,
+    payload: dict[str, Any],
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    require_workspace_access(context, workspace_id, action="write")
     export_format = str(payload.get("format") or "png").lower()
     if export_format not in SUPPORTED_EXPORT_FORMATS:
         raise HTTPException(
@@ -88,7 +98,11 @@ def create_export(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.get("")
-def list_exports(workspace_id: str) -> dict[str, list[dict[str, Any]]]:
+def list_exports(
+    workspace_id: str,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, list[dict[str, Any]]]:
+    require_workspace_access(context, workspace_id, action="read")
     export_dir = _workspace_export_dir(workspace_id)
     items = [
         _export_record_from_path(workspace_id, path)
@@ -99,7 +113,12 @@ def list_exports(workspace_id: str) -> dict[str, list[dict[str, Any]]]:
 
 
 @router.get("/{export_id}")
-def get_export(workspace_id: str, export_id: str) -> dict[str, Any]:
+def get_export(
+    workspace_id: str,
+    export_id: str,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    require_workspace_access(context, workspace_id, action="read")
     export_dir = _workspace_export_dir(workspace_id)
     for supported_ext in SUPPORTED_EXPORT_FORMATS:
         candidate = export_dir / f"{export_id}.{supported_ext}"
