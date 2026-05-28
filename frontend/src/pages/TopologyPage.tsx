@@ -249,6 +249,8 @@ export function TopologyPage() {
   )
 
   const graphContainerRef = useRef<HTMLDivElement | null>(null)
+  const canvasCardRef = useRef<HTMLElement | null>(null)
+  const previousCanvasFocusRef = useRef<HTMLElement | null>(null)
   const cyRef = useRef<Core | null>(null)
   const presetImportInputRef = useRef<HTMLInputElement | null>(null)
   const snapshotImportInputRef = useRef<HTMLInputElement | null>(null)
@@ -1172,6 +1174,25 @@ export function TopologyPage() {
       document.body.classList.remove('canvas-focus-lock')
     }
   }, [canvasMaximized, graphElements.length])
+
+  useEffect(() => {
+    if (!canvasMaximized) {
+      return
+    }
+
+    previousCanvasFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+    const focusTimer = window.setTimeout(() => {
+      canvasCardRef.current?.focus({ preventScroll: true })
+    }, 0)
+
+    return () => {
+      window.clearTimeout(focusTimer)
+      previousCanvasFocusRef.current?.focus({ preventScroll: true })
+      previousCanvasFocusRef.current = null
+    }
+  }, [canvasMaximized])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -3510,10 +3531,12 @@ export function TopologyPage() {
 
       <section className="panel-grid canvas-layout">
         <article
+          ref={canvasCardRef}
           className={`panel-card canvas-card ${canvasMaximized ? 'canvas-card-maximized' : ''}`}
           role={canvasMaximized ? 'dialog' : undefined}
           aria-modal={canvasMaximized ? true : undefined}
           aria-label={t('topology.canvas.heading')}
+          tabIndex={canvasMaximized ? -1 : undefined}
         >
           <div className="section-heading">
             <h2>{t('topology.canvas.heading')}</h2>
