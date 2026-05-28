@@ -81,6 +81,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - `docs/RATE_LIMIT_AUDIT_PLAN.md` defines the first public API abuse-control and audit trail contract.
 - `docs/COST_INGESTION_PUBLIC_BETA_PLAN.md`, `docs/COPILOT_PERSISTENCE_PLAN.md`, and `docs/RETENTION_EXECUTION_GUARD.md` capture remaining public beta boundaries for cost, Copilot, and retention.
 - `scripts/public_beta_contract_smoke.sh` checks that the public beta contract set is present and keeps key safety phrases intact.
+- `docs/HOSTED_E2E_PREFLIGHT_PLAN.md` defines the private hosted browser/API smoke required before any public exposure.
 
 ## Provider extension notes
 - Cost ingestion / Copilot provider hook의 현재 계약과 향후 교체 지점은 `docs/PROVIDER_EXTENSION_NOTES.md` 참고.

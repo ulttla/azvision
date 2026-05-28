@@ -54,10 +54,10 @@ echo "ROOT_DIR=$ROOT_DIR"
 
 cd "$ROOT_DIR"
 
-echo "[1/16] docs mirror check"
+echo "[1/17] docs mirror check"
 bash scripts/check_doc_mirror.sh
 
-echo "[2/16] script syntax and browserless smoke imports"
+echo "[2/17] script syntax and browserless smoke imports"
 bash -n scripts/run_dev.sh
 bash -n scripts/check_personal_use_ready.sh
 bash -n scripts/backup_sqlite.sh
@@ -70,30 +70,31 @@ bash -n scripts/copilot_provider_smoke.sh
 bash -n scripts/simulation_smoke.sh
 bash -n scripts/production_profile_smoke.sh
 bash -n scripts/public_beta_contract_smoke.sh
+bash -n scripts/hosted_e2e_preflight_contract_smoke.sh
 node scripts/copilot_live_ui_smoke.mjs
 node --experimental-strip-types scripts/path_analysis_semantics_smoke.mts
 python3 -m py_compile scripts/sqlite_health_check.py
 python3 -m py_compile scripts/archive_retention_dry_run.py
 
-echo "[3/16] local readiness preflight"
+echo "[3/17] local readiness preflight"
 scripts/check_personal_use_ready.sh
 
-echo "[4/16] backend tests"
+echo "[4/17] backend tests"
 (
   cd backend
   .venv/bin/python -m pytest -q
 )
 
-echo "[5/16] frontend build"
+echo "[5/17] frontend build"
 npm --prefix frontend run build
 
-echo "[6/16] frontend semantics smokes"
+echo "[6/17] frontend semantics smokes"
 npm --prefix frontend run smoke:semantics
 
-echo "[7/16] SQLite health check"
+echo "[7/17] SQLite health check"
 scripts/sqlite_health_check.py
 
-echo "[8/16] archive retention dry-run smoke"
+echo "[8/17] archive retention dry-run smoke"
 retention_json_file="$(mktemp -t azvision-retention-dry-run.XXXXXX.json)"
 python3 scripts/archive_retention_dry_run.py --db backend/azvision.db --workspace local-demo --dry-run >"$retention_json_file"
 python3 - "$retention_json_file" <<'PY'
@@ -112,13 +113,13 @@ print(
 PY
 rm -f "$retention_json_file"
 
-echo "[9/16] SQLite backup"
+echo "[9/17] SQLite backup"
 scripts/backup_sqlite.sh
 
-echo "[10/16] SQLite backup verification"
+echo "[10/17] SQLite backup verification"
 scripts/verify_sqlite_backup.sh
 
-echo "[11/16] personal workflow smoke"
+echo "[11/17] personal workflow smoke"
 if [ "$RUN_LIVE_SMOKE" = "1" ]; then
   start_backend_if_needed
   scripts/personal_use_smoke.sh
@@ -126,23 +127,26 @@ else
   echo "[skip] personal workflow smoke skipped because AZVISION_ACCEPTANCE_LIVE_SMOKE=$RUN_LIVE_SMOKE"
 fi
 
-echo "[12/16] snapshot compare smoke"
+echo "[12/17] snapshot compare smoke"
 start_backend_if_needed
 scripts/snapshot_compare_smoke.sh
 
-echo "[13/16] cost report smoke"
+echo "[13/17] cost report smoke"
 start_backend_if_needed
 scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
 
-echo "[14/16] copilot provider smoke"
+echo "[14/17] copilot provider smoke"
 start_backend_if_needed
 scripts/copilot_provider_smoke.sh
 
-echo "[15/16] production profile smoke"
+echo "[15/17] production profile smoke"
 scripts/production_profile_smoke.sh
 
-echo "[16/16] public beta contract smoke"
+echo "[16/17] public beta contract smoke"
 scripts/public_beta_contract_smoke.sh
+
+echo "[17/17] hosted E2E preflight contract smoke"
+scripts/hosted_e2e_preflight_contract_smoke.sh
 
 echo "PASS: AzVision personal-use acceptance completed"

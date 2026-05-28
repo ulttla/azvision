@@ -26,7 +26,7 @@ Run the file contract check with:
 scripts/production_profile_smoke.sh
 ```
 
-This is still not a public deploy approval.
+This is still not a public deploy approval. The next runtime gate is `docs/HOSTED_E2E_PREFLIGHT_PLAN.md`.
 
 ## Production-like target
 

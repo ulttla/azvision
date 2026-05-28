@@ -104,7 +104,7 @@ Public beta should not start until all P0 and at least the initial P1 safety bas
 - P0: login/session model exists.
 - P0: workspace isolation tests pass.
 - P0: production-like deployment profile exists and passes health/readiness checks.
-- P0: hosted browser smoke exists for login, demo workspace, topology load, snapshot, and export basics.
+- P0: hosted browser smoke exists for login or demo boundary, demo workspace, topology load, snapshot, and export basics. See `docs/HOSTED_E2E_PREFLIGHT_PLAN.md`.
 - P1: `debug=false` safe default confirmed.
 - P1: explicit allowed hosts/CORS policy documented for hosted environments.
 - P1: public demo workspace or onboarding path exists without requiring Azure credentials.
