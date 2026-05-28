@@ -4,6 +4,7 @@ import asyncio
 import json
 
 from fastapi.exceptions import RequestValidationError
+from fastapi.testclient import TestClient
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.response_utils import build_error_response
@@ -134,3 +135,27 @@ def test_unhandled_exception_handler_hides_detail_when_debug_disabled(monkeypatc
         "status": "http-500",
         "message": "Internal server error",
     }
+
+
+def test_security_headers_include_public_beta_baseline() -> None:
+    from app.main import app
+
+    response = TestClient(app).get("/healthz")
+
+    assert response.status_code == 200
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert response.headers["Permissions-Policy"] == "camera=(), microphone=(), geolocation=()"
+    assert "default-src 'self'" in response.headers["Content-Security-Policy"]
+    assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
+    assert response.headers["X-XSS-Protection"] == "0"
+
+
+def test_hsts_is_enabled_when_debug_is_disabled(monkeypatch) -> None:
+    import app.main as main
+
+    monkeypatch.setattr(main.settings, "debug", False)
+    response = TestClient(main.app).get("/healthz")
+
+    assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"

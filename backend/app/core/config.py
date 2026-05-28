@@ -24,7 +24,7 @@ class Settings(BaseSettings):
         default="development",
         validation_alias=AliasChoices("AZVISION_ENVIRONMENT", "AZVISION_ENV"),
     )
-    debug: bool = True
+    debug: bool = False
     api_v1_prefix: str = "/api/v1"
     cors_origins: str = DEFAULT_CORS_ORIGINS
     allowed_hosts: str = "*"

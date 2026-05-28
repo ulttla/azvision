@@ -158,6 +158,16 @@ Expected result:
 
 ## Next development priorities after v0.9
 
+### Public beta planning bridge
+
+The public beta path is tracked separately from personal-use readiness:
+
+- `docs/PUBLIC_BETA_GAP_ANALYSIS.md` — blockers, entry criteria, and launch risk table.
+- `docs/PRODUCTION_DEPLOYMENT_GUIDE.md` — production-like deployment profile before any public exposure.
+- `docs/SECURITY_HARDENING.md` — safe defaults, headers, rate-limit/audit targets.
+- `docs/ONBOARDING_DESIGN.md` — demo workspace and first-run flow.
+
+
 1. Keep the read-only LLM Copilot MVP in the personal-use lane: maintain backend-only Ollama/Ollama Cloud and OpenRouter provider settings, rule-based fallback, no-secret responses, answer section parsing, and redacted view context. See `docs/COPILOT_LLM_MVP_PLAN.md`.
 2. Treat deeper Copilot UI coverage, optional live UI smoke, streaming responses, persistent chat history, hosted deployment polish, and any Azure write/remediation behavior as follow-up work, not personal-use v0.9 blockers. No-deploy hosted-provider polish may stay in the personal-use lane when it only adds backend-only, non-secret provider metadata/header handling and focused no-secret tests.
 3. Architecture View personal-use polish is now in the stable path: readiness badges, local presentation notes, card ordering, prefixed health check, clipping fix, and board scale/scroll controls are implemented and covered by frontend smoke/build plus post-change acceptance.
