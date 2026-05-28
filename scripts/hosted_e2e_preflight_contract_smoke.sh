@@ -8,6 +8,7 @@ required_files=(
   docs/PRODUCTION_DEPLOYMENT_GUIDE.md
   docs/DEMO_WORKSPACE_CONTRACT.md
   docs/SECURITY_HARDENING.md
+  scripts/hosted_public_beta_smoke.mjs
 )
 
 for file in "${required_files[@]}"; do
@@ -24,5 +25,6 @@ grep -q 'X-Request-ID' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
 grep -q 'demo workspace loads without Azure credentials' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
 grep -q 'No public DNS or open internet exposure' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
 grep -q 'No real Azure write/remediation' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
+node scripts/hosted_public_beta_smoke.mjs --contract-check >/dev/null
 
 echo 'PASS: AzVision hosted E2E preflight contract smoke completed'

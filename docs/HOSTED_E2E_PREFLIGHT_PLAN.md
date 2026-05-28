@@ -65,3 +65,13 @@ The smoke should fail closed if either URL is missing.
 ## Relationship to production profile
 
 `docker-compose.production.example.yml` and `scripts/production_profile_smoke.sh` are file/profile checks. The hosted E2E preflight is the next layer: it validates the running private environment through a browser/API boundary.
+
+## Local contract check
+
+The script can be checked without network access:
+
+```bash
+node scripts/hosted_public_beta_smoke.mjs --contract-check
+```
+
+Normal execution still fails closed unless `AZVISION_HOSTED_BASE_URL` and `AZVISION_HOSTED_API_BASE_URL` are provided.
