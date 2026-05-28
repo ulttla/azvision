@@ -9,6 +9,16 @@ This plan defines the minimum API protection layer needed before AzVision can ru
 - There is no durable audit event model yet.
 - Public traffic should not be enabled until identity and workspace isolation exist.
 
+## Request ID baseline
+
+Implemented baseline:
+
+- Every API response includes `X-Request-ID`.
+- Incoming `X-Request-ID` is preserved when provided.
+- Missing request IDs are generated with a `req_` prefix.
+
+This is the first building block for structured logs, audit events, and public incident correlation.
+
 ## Rate-limit target
 
 Initial public beta should protect these routes first:

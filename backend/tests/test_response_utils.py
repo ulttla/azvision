@@ -159,3 +159,21 @@ def test_hsts_is_enabled_when_debug_is_disabled(monkeypatch) -> None:
     response = TestClient(main.app).get("/healthz")
 
     assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
+
+
+def test_request_id_header_is_returned() -> None:
+    from app.main import app
+
+    response = TestClient(app).get("/healthz", headers={"X-Request-ID": "req-test-123"})
+
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"] == "req-test-123"
+
+
+def test_request_id_header_is_generated_when_missing() -> None:
+    from app.main import app
+
+    response = TestClient(app).get("/healthz")
+
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"].startswith("req_")

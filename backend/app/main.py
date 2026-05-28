@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import sqlite3
+from uuid import uuid4
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -70,6 +71,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_request_id_header(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or f"req_{uuid4().hex}"
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers.setdefault("X-Request-ID", request_id)
+    return response
 
 
 @app.middleware("http")
