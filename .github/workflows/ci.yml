@@ -28,6 +28,9 @@ jobs:
       - name: Compile backend sources
         run: python -m compileall app
 
+      - name: Production profile smoke
+        run: bash ../scripts/production_profile_smoke.sh
+
       - name: Import app smoke
         env:
           AZVISION_DATABASE_URL: sqlite:///./ci-azvision.db
