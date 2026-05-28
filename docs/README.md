@@ -76,6 +76,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - `docs/PRODUCTION_DEPLOYMENT_GUIDE.md` defines the production-like deployment path without approving a live deploy.
 - `docs/SECURITY_HARDENING.md` records the current security baseline and remaining public beta blockers.
 - `docs/ONBOARDING_DESIGN.md` defines the demo workspace and first-run path needed before external users.
+- `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md` defines the account/session/workspace boundary required before public beta.
 
 ## Provider extension notes
 - Cost ingestion / Copilot provider hook의 현재 계약과 향후 교체 지점은 `docs/PROVIDER_EXTENSION_NOTES.md` 참고.

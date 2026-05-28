@@ -31,7 +31,7 @@ Public beta requirement:
 - Minimum roles: owner and viewer.
 
 Suggested sequence:
-1. Define account, workspace member, and credential profile ownership model.
+1. Define account, workspace member, and credential profile ownership model. See `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md`.
 2. Add auth/session boundary before exposing hosted state.
 3. Add tests that prove one workspace cannot read another user's data.
 

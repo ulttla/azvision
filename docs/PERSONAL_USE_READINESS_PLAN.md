@@ -166,6 +166,7 @@ The public beta path is tracked separately from personal-use readiness:
 - `docs/PRODUCTION_DEPLOYMENT_GUIDE.md` — production-like deployment profile before any public exposure.
 - `docs/SECURITY_HARDENING.md` — safe defaults, headers, rate-limit/audit targets.
 - `docs/ONBOARDING_DESIGN.md` — demo workspace and first-run flow.
+- `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md` — account/session/workspace isolation plan.
 
 
 1. Keep the read-only LLM Copilot MVP in the personal-use lane: maintain backend-only Ollama/Ollama Cloud and OpenRouter provider settings, rule-based fallback, no-secret responses, answer section parsing, and redacted view context. See `docs/COPILOT_LLM_MVP_PLAN.md`.
