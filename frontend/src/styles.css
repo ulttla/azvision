@@ -658,6 +658,30 @@ p {
   scrollbar-gutter: stable;
 }
 
+.canvas-card-maximized .search-toolbar {
+  gap: 8px;
+  padding: 10px;
+}
+
+.canvas-card-maximized .search-scope-hint {
+  display: none;
+}
+
+.canvas-card-maximized .search-group-list {
+  max-height: 180px;
+}
+
+@media (min-width: 900px) {
+  .canvas-card-maximized .search-form {
+    grid-template-columns: minmax(280px, 1fr) auto;
+    align-items: center;
+  }
+
+  .canvas-card-maximized .search-actions {
+    justify-content: flex-end;
+  }
+}
+
 .graph-toolbar {
   display: grid;
   gap: 12px;

@@ -235,6 +235,8 @@ assert.match(appStyleCode, /\.canvas-card-maximized/, 'styles should include a f
 assert.match(appStyleCode, /\.graph-canvas-maximized/, 'styles should include focused canvas dimensions')
 assert.match(appStyleCode, /\.canvas-card-maximized \.graph-toolbar\s*\{[\s\S]*position:\s*sticky/, 'focused canvas mode should keep the graph toolbar sticky and accessible')
 assert.match(appStyleCode, /\.canvas-card-maximized \.relation-legend\s*\{[\s\S]*max-height:\s*72px[\s\S]*overflow-y:\s*auto/, 'focused canvas mode should constrain dense legend rows without hiding them')
+assert.match(appStyleCode, /\.canvas-card-maximized \.search-toolbar\s*\{[\s\S]*padding:\s*10px/, 'focused canvas mode should compact the search toolbar')
+assert.match(appStyleCode, /\.canvas-card-maximized \.search-form\s*\{[\s\S]*grid-template-columns:\s*minmax\(280px, 1fr\) auto/, 'focused canvas search form should use a horizontal layout on wide screens')
 assert.match(appStyleCode, /overflow-wrap:\s*anywhere/, 'long resource and edge labels should wrap safely')
 assert.match(appStyleCode, /\.collapsible-summary/, 'styles should include modern collapsible section affordances')
 assert.match(appStyleCode, /\.preset-list-grid\s*\{[\s\S]*max-height:\s*620px[\s\S]*overflow-y:\s*auto/, 'snapshot and preset lists should scroll within the controls panel instead of lengthening the full page')
