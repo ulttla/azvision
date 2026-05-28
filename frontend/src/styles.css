@@ -634,14 +634,28 @@ p {
 }
 
 .canvas-card-maximized .graph-toolbar {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 2;
+  margin: -4px -4px 14px;
+  padding: 4px 4px 12px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.9));
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  backdrop-filter: blur(14px);
 }
 
 .canvas-card-maximized .graph-legend,
 .canvas-card-maximized .relation-legend,
 .canvas-card-maximized .export-hint {
   flex-shrink: 0;
+}
+
+.canvas-card-maximized .graph-legend,
+.canvas-card-maximized .relation-legend {
+  max-height: 72px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
 }
 
 .graph-toolbar {
@@ -1224,7 +1238,8 @@ p {
   cursor: not-allowed;
 }
 
-.graph-legend {
+.graph-legend,
+.relation-legend {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;

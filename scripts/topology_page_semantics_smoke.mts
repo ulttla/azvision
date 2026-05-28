@@ -233,6 +233,8 @@ assert.match(topoPageCode, /collapsible-panel-grid/, 'Dense lower topology panel
 assert.match(appStyleCode, /\.compact-list\s*\{[\s\S]*overflow-y:\s*auto/, 'compact lists should scroll vertically instead of clipping')
 assert.match(appStyleCode, /\.canvas-card-maximized/, 'styles should include a focused/maximized canvas card mode')
 assert.match(appStyleCode, /\.graph-canvas-maximized/, 'styles should include focused canvas dimensions')
+assert.match(appStyleCode, /\.canvas-card-maximized \.graph-toolbar\s*\{[\s\S]*position:\s*sticky/, 'focused canvas mode should keep the graph toolbar sticky and accessible')
+assert.match(appStyleCode, /\.canvas-card-maximized \.relation-legend\s*\{[\s\S]*max-height:\s*72px[\s\S]*overflow-y:\s*auto/, 'focused canvas mode should constrain dense legend rows without hiding them')
 assert.match(appStyleCode, /overflow-wrap:\s*anywhere/, 'long resource and edge labels should wrap safely')
 assert.match(appStyleCode, /\.collapsible-summary/, 'styles should include modern collapsible section affordances')
 assert.match(appStyleCode, /\.preset-list-grid\s*\{[\s\S]*max-height:\s*620px[\s\S]*overflow-y:\s*auto/, 'snapshot and preset lists should scroll within the controls panel instead of lengthening the full page')
