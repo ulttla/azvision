@@ -32,6 +32,9 @@ Implemented now:
 
 ## Rate-limit design target
 
+Detailed contract: `docs/RATE_LIMIT_AUDIT_PLAN.md`.
+
+
 Initial public beta limiter should cover:
 
 - Global unauthenticated request limit.

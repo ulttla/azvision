@@ -68,7 +68,7 @@ Public beta requirement:
 Suggested sequence:
 1. Keep `debug=false` as the safe default.
 2. Add rate-limit design and test plan before implementation.
-3. Add audit event model once account/workspace identity is defined.
+3. Add audit event model once account/workspace identity is defined. See `docs/RATE_LIMIT_AUDIT_PLAN.md`.
 
 ### G4. Public onboarding and demo data
 

@@ -78,6 +78,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - `docs/ONBOARDING_DESIGN.md` defines the demo workspace and first-run path needed before external users.
 - `docs/DEMO_WORKSPACE_CONTRACT.md` guards the mock inventory shape needed for public onboarding.
 - `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md` defines the account/session/workspace boundary required before public beta.
+- `docs/RATE_LIMIT_AUDIT_PLAN.md` defines the first public API abuse-control and audit trail contract.
 
 ## Provider extension notes
 - Cost ingestion / Copilot provider hook의 현재 계약과 향후 교체 지점은 `docs/PROVIDER_EXTENSION_NOTES.md` 참고.
