@@ -75,3 +75,7 @@ node scripts/hosted_public_beta_smoke.mjs --contract-check
 ```
 
 Normal execution still fails closed unless `AZVISION_HOSTED_BASE_URL` and `AZVISION_HOSTED_API_BASE_URL` are provided.
+
+## CI coverage
+
+GitHub CI runs the hosted E2E preflight contract smoke as a contract check only. It does not contact a hosted environment or approve public exposure.
