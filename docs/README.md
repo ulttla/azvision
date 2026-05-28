@@ -76,6 +76,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - `docs/PRODUCTION_DEPLOYMENT_GUIDE.md` defines the production-like deployment path without approving a live deploy; `scripts/production_profile_smoke.sh` checks the example profile files.
 - `docs/SECURITY_HARDENING.md` records the current security baseline and remaining public beta blockers.
 - `docs/ONBOARDING_DESIGN.md` defines the demo workspace and first-run path needed before external users.
+- `docs/DEMO_WORKSPACE_CONTRACT.md` guards the mock inventory shape needed for public onboarding.
 - `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md` defines the account/session/workspace boundary required before public beta.
 
 ## Provider extension notes

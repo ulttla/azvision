@@ -28,6 +28,9 @@ AzVision needs a first-run path that shows value before a user connects Azure cr
 
 ## Demo workspace requirements
 
+The concrete backend contract is tracked in `docs/DEMO_WORKSPACE_CONTRACT.md`.
+
+
 The sample topology should include:
 
 - At least one virtual network and subnet.
