@@ -629,8 +629,9 @@ p {
 }
 
 .canvas-card-maximized .graph-canvas-shell {
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 auto;
+  min-height: 360px;
+  display: flex;
 }
 
 .canvas-card-maximized .graph-toolbar {
@@ -1374,8 +1375,9 @@ p {
 }
 
 .graph-canvas-maximized {
-  height: calc(100vh - 320px);
-  min-height: 620px;
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 360px;
 }
 
 .graph-hover-card {
