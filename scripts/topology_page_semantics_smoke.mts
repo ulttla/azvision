@@ -235,6 +235,7 @@ assert.match(appStyleCode, /\.canvas-card-maximized/, 'styles should include a f
 assert.match(appStyleCode, /\.graph-canvas-maximized/, 'styles should include focused canvas dimensions')
 assert.match(appStyleCode, /overflow-wrap:\s*anywhere/, 'long resource and edge labels should wrap safely')
 assert.match(appStyleCode, /\.collapsible-summary/, 'styles should include modern collapsible section affordances')
+assert.match(appStyleCode, /\.preset-list-grid\s*\{[\s\S]*max-height:\s*620px[\s\S]*overflow-y:\s*auto/, 'snapshot and preset lists should scroll within the controls panel instead of lengthening the full page')
 for (const key of ['topology.canvas.focusMode', 'topology.canvas.exitFocus']) {
   assert.ok(dictCode.includes(`'${key}':`), `i18n dict should define ${key}`)
 }

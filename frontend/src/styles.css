@@ -815,6 +815,20 @@ p {
 
 .preset-list-grid {
   margin-top: 10px;
+  max-height: 620px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.preset-list-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preset-list-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.34);
 }
 
 .storage-guide-card {
