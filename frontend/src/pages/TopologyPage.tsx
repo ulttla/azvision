@@ -211,6 +211,7 @@ export function TopologyPage() {
   const [graphHoverCard, setGraphHoverCard] = useState<GraphHoverCard | null>(null)
   const [manualEdges, setManualEdges] = useState<ManualEdge[]>([])
   const [manualLoading, setManualLoading] = useState(false)
+  const [canvasMaximized, setCanvasMaximized] = useState(false)
   const [manualNodeNameInput, setManualNodeNameInput] = useState('')
   const [manualNodeTypeInput, setManualNodeTypeInput] = useState('external-system')
   const [manualNodeVendorInput, setManualNodeVendorInput] = useState('')
@@ -1155,15 +1156,36 @@ export function TopologyPage() {
   }, [managedInstanceTransition, topologyLoading])
 
   useEffect(() => {
+    document.body.classList.toggle('canvas-focus-lock', canvasMaximized)
+    const resizeTimer = window.setTimeout(() => {
+      const cy = cyRef.current
+      if (!cy) {
+        return
+      }
+      cy.resize()
+      cy.fit(undefined, canvasMaximized ? 64 : 36)
+    }, 80)
+
+    return () => {
+      window.clearTimeout(resizeTimer)
+      document.body.classList.remove('canvas-focus-lock')
+    }
+  }, [canvasMaximized, graphElements.length])
+
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        if (canvasMaximized) {
+          setCanvasMaximized(false)
+          return
+        }
         setSelectedNodeKey('')
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [canvasMaximized])
 
   const loadedSummary = useMemo(() => {
     const nodes = topology?.nodes ?? []
@@ -1244,7 +1266,7 @@ export function TopologyPage() {
       .filter((item) => item.count > 0)
   }, [topology])
 
-  const edgePreview = useMemo(() => filteredTopology.edges.slice(0, 16), [filteredTopology.edges])
+  const edgePreview = useMemo(() => filteredTopology.edges, [filteredTopology.edges])
   const detailEntries = useMemo(() => Object.entries(nodeDetail?.details ?? {}), [nodeDetail])
   const detailScope = useMemo(() => extractDetailScope(nodeDetail), [nodeDetail])
   const inventoryTopResourceTypes = useMemo(() => {
@@ -2545,8 +2567,8 @@ export function TopologyPage() {
               {availableResources.length ? (
                 <div>
                   <h3 className="section-spacer">{t('topology.workspace.inventoryPreview')}</h3>
-                  <ul className="edge-list compact-list">
-                    {availableResources.slice(0, 8).map((resource) => (
+                  <ul className="edge-list compact-list workspace-inventory-list">
+                    {availableResources.map((resource) => (
                       <li key={resource.id ?? `${resource.resource_group ?? 'rg'}:${resource.name ?? 'resource'}`}>
                         <strong>{resource.name ?? t('topology.workspace.unnamedResource')}</strong>
                         <p>{resource.type ?? t('topology.workspace.unknownType')}</p>
@@ -2602,14 +2624,19 @@ export function TopologyPage() {
         </article>
       </section>
 
-      <section className="panel-grid controls-layout">
-        <article className="panel-card">
-          <div className="section-heading">
-            <h2>{t('topology.controls.heading')}</h2>
-            <button type="button" className="toolbar-button" onClick={resetRelationFilters}>
-              {t('topology.controls.resetRelation')}
-            </button>
-          </div>
+      <section className="panel-grid controls-layout collapsible-panel-grid">
+        <details className="panel-card collapsible-panel topology-control-panel">
+          <summary className="collapsible-summary">
+            <span>{t('topology.controls.heading')}</span>
+            <span className="mini-status">{t('topology.controls.defaultLayoutMode')}</span>
+          </summary>
+          <div className="collapsible-body">
+            <div className="section-heading section-heading-inline-action">
+              <span className="mini-status">{t('topology.controls.heading')}</span>
+              <button type="button" className="toolbar-button" onClick={resetRelationFilters}>
+                {t('topology.controls.resetRelation')}
+              </button>
+            </div>
 
           <div className="control-grid">
             <label className="toggle-row">
@@ -3169,10 +3196,15 @@ export function TopologyPage() {
               </button>
             ))}
           </div>
-        </article>
+          </div>
+        </details>
 
-        <article className="panel-card">
-          <h2>{t('topology.resourceFilters.heading')}</h2>
+        <details className="panel-card collapsible-panel topology-control-panel">
+          <summary className="collapsible-summary">
+            <span>{t('topology.resourceFilters.heading')}</span>
+            <span className="mini-status">{Object.values(resourceFilters).filter(Boolean).length}/5</span>
+          </summary>
+          <div className="collapsible-body">
           <div className="filter-chip-grid">
             {(['compute', 'data', 'network', 'web', 'other'] as ResourceCategory[]).map((category) => (
               <button
@@ -3189,15 +3221,17 @@ export function TopologyPage() {
           <p className="hint">
             {tr('topology.controls.rgLazyLoad', { name: focusedResourceGroupName ? focusedResourceGroupName : t('topology.controls.allResourceGroups') })}
           </p>
-        </article>
+          </div>
+        </details>
 
-        <article className="panel-card">
-          <div className="section-heading">
-            <h2>{t('topology.manual.heading')}</h2>
+        <details className="panel-card collapsible-panel topology-control-panel">
+          <summary className="collapsible-summary">
+            <span>{t('topology.manual.heading')}</span>
             <span className="mini-status">
               {manualLoading ? t('topology.canvas.syncing') : tr('topology.manual.countSummary', { nodes: manualNodes.length, edges: manualEdges.length })}
             </span>
-          </div>
+          </summary>
+          <div className="collapsible-body">
 
           <div className="storage-guide-card preset-guide-card">
             <strong>{t('topology.manual.overlay')}</strong>
@@ -3402,11 +3436,12 @@ export function TopologyPage() {
           ) : (
             <p className="hint">{t('topology.manual.noEdges')}</p>
           )}
-        </article>
+          </div>
+        </details>
       </section>
 
       <section className="panel-grid canvas-layout">
-        <article className="panel-card canvas-card">
+        <article className={`panel-card canvas-card ${canvasMaximized ? 'canvas-card-maximized' : ''}`}>
           <div className="section-heading">
             <h2>{t('topology.canvas.heading')}</h2>
             <span className="mini-status">
@@ -3430,6 +3465,14 @@ export function TopologyPage() {
               </button>
               <button type="button" className="toolbar-button" onClick={rerunLayout}>
                 {t('topology.canvas.relayout')}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={() => setCanvasMaximized((current) => !current)}
+                aria-pressed={canvasMaximized}
+              >
+                {canvasMaximized ? t('topology.canvas.exitFocus') : t('topology.canvas.focusMode')}
               </button>
               <button
                 type="button"
@@ -3673,7 +3716,7 @@ export function TopologyPage() {
           </div>
 
           <div className="graph-canvas-shell">
-            <div ref={graphContainerRef} className="graph-canvas" />
+            <div ref={graphContainerRef} className={`graph-canvas ${canvasMaximized ? 'graph-canvas-maximized' : ''}`} />
             {graphHoverCard ? (
               <div
                 className="graph-hover-card"
@@ -4060,78 +4103,90 @@ export function TopologyPage() {
         </article>
       </section>
 
-      <section className="panel-grid three-panels">
-        <article className="panel-card">
-          <div className="section-heading">
-            <h2>{t('topology.bottom.heading.visibleNodes')}</h2>
+      <section className="panel-grid three-panels collapsible-panel-grid">
+        <details className="panel-card collapsible-panel">
+          <summary className="collapsible-summary">
+            <span>{t('topology.bottom.heading.visibleNodes')}</span>
             <span className="mini-status">
               {selectedNode ? `selected: ${selectedNode.display_name}` : t('topology.bottom.noSelection')}
             </span>
+          </summary>
+          <div className="collapsible-body">
+            <ul className="node-list interactive-list compact-list">
+              {filteredTopology.nodes.map((node) => {
+                const isSelected = node.node_key === selectedNodeKey
+                const parentNode = getParentNode(node, topologyNodesByRef)
+                const managedInstanceParent = isManagedInstanceNode(parentNode) ? parentNode : null
+                return (
+                  <li key={node.node_key}>
+                    <button
+                      type="button"
+                      className={`node-button ${isSelected ? 'selected' : ''}`}
+                      onClick={() => selectNode(node.node_key)}
+                    >
+                      <div>
+                        <strong>{node.display_name}</strong>
+                        <p>{getNodeMetaLine(node)}</p>
+                        {managedInstanceParent ? (
+                          <p className="node-parent-meta">
+                            parent MI: {managedInstanceParent.display_name}
+                          </p>
+                        ) : null}
+                        <p className="key-text">{node.node_key}</p>
+                      </div>
+                      <span className={`tag category-${getResourceCategory(node)}`}>{getResourceCategory(node)}</span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
-          <ul className="node-list interactive-list compact-list">
-            {filteredTopology.nodes.map((node) => {
-              const isSelected = node.node_key === selectedNodeKey
-              const parentNode = getParentNode(node, topologyNodesByRef)
-              const managedInstanceParent = isManagedInstanceNode(parentNode) ? parentNode : null
-              return (
-                <li key={node.node_key}>
-                  <button
-                    type="button"
-                    className={`node-button ${isSelected ? 'selected' : ''}`}
-                    onClick={() => selectNode(node.node_key)}
-                  >
-                    <div>
-                      <strong>{node.display_name}</strong>
-                      <p>{getNodeMetaLine(node)}</p>
-                      {managedInstanceParent ? (
-                        <p className="node-parent-meta">
-                          parent MI: {managedInstanceParent.display_name}
-                        </p>
-                      ) : null}
-                      <p className="key-text">{node.node_key}</p>
-                    </div>
-                    <span className={`tag category-${getResourceCategory(node)}`}>{getResourceCategory(node)}</span>
-                  </button>
+        </details>
+
+        <details className="panel-card collapsible-panel">
+          <summary className="collapsible-summary">
+            <span>{t('topology.bottom.composition')}</span>
+            <span className="mini-status">{nodeTypeCounts.length} / {relationCounts.length}</span>
+          </summary>
+          <div className="collapsible-body">
+            <div className="composition-list">
+              {nodeTypeCounts.map((item) => (
+                <div key={item.key} className="composition-row">
+                  <span>{item.key}</span>
+                  <strong>{item.count}</strong>
+                </div>
+              ))}
+            </div>
+
+            <h3 className="section-spacer">{t('topology.bottom.relationTypes')}</h3>
+            <div className="composition-list">
+              {relationCounts.map((item) => (
+                <div key={item.key} className="composition-row relation-row">
+                  <span>{item.key}</span>
+                  <strong>{item.count}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+
+        <details className="panel-card collapsible-panel">
+          <summary className="collapsible-summary">
+            <span>{t('topology.bottom.edgePreview')}</span>
+            <span className="mini-status">{edgePreview.length} edges</span>
+          </summary>
+          <div className="collapsible-body">
+            <ul className="edge-list compact-list edge-preview-list">
+              {edgePreview.map((edge) => (
+                <li key={`${edge.source_node_key}-${edge.relation_type}-${edge.target_node_key}`}>
+                  <strong>{edge.relation_type}</strong>
+                  <p>{edge.source_node_key}</p>
+                  <p>→ {edge.target_node_key}</p>
                 </li>
-              )
-            })}
-          </ul>
-        </article>
-
-        <article className="panel-card">
-          <h2>{t('topology.bottom.composition')}</h2>
-          <div className="composition-list">
-            {nodeTypeCounts.map((item) => (
-              <div key={item.key} className="composition-row">
-                <span>{item.key}</span>
-                <strong>{item.count}</strong>
-              </div>
-            ))}
+              ))}
+            </ul>
           </div>
-
-          <h3 className="section-spacer">{t('topology.bottom.relationTypes')}</h3>
-          <div className="composition-list">
-            {relationCounts.map((item) => (
-              <div key={item.key} className="composition-row relation-row">
-                <span>{item.key}</span>
-                <strong>{item.count}</strong>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="panel-card">
-          <h2>{t('topology.bottom.edgePreview')}</h2>
-          <ul className="edge-list compact-list">
-            {edgePreview.map((edge) => (
-              <li key={`${edge.source_node_key}-${edge.relation_type}-${edge.target_node_key}`}>
-                <strong>{edge.relation_type}</strong>
-                <p>{edge.source_node_key}</p>
-                <p>→ {edge.target_node_key}</p>
-              </li>
-            ))}
-          </ul>
-        </article>
+        </details>
       </section>
     </main>
   )

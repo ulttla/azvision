@@ -16,6 +16,7 @@ const topoOrderCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topol
 const topoStorageCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/storage.ts'), 'utf8')
 const topoCytoscapeCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/cytoscape.ts'), 'utf8')
 const topoStyleCode = readFileSync(path.join(repoRoot, 'frontend/src/pages/topology/cytoscape-style.ts'), 'utf8')
+const appStyleCode = readFileSync(path.join(repoRoot, 'frontend/src/styles.css'), 'utf8')
 const dictCode = readFileSync(path.join(repoRoot, 'frontend/src/i18n/dict.ts'), 'utf8')
 const apiCode = readFileSync(path.join(repoRoot, 'frontend/src/lib/api.ts'), 'utf8')
 
@@ -210,5 +211,32 @@ assert.match(apiCode, /export type TopologyEdge/, 'api.ts should export Topology
 // Section 16: Import preset payload type
 // ============================================================
 assert.match(topoModelCode, /ImportedPresetPayload|ImportedSnapshotPayload/, 'topology/model should export import payload types')
+
+// ============================================================
+// Section 17: UI modernization affordances
+// ============================================================
+assert.match(topoPageCode, /canvasMaximized/, 'TopologyPage should track canvas maximize/focus state')
+assert.match(topoPageCode, /topology\.canvas\.focusMode/, 'TopologyPage should render localized canvas focus-mode action')
+assert.match(topoPageCode, /topology\.canvas\.exitFocus/, 'TopologyPage should render localized canvas exit-focus action')
+assert.match(topoPageCode, /cy\.resize\(\)/, 'Canvas focus mode should resize Cytoscape before fitting')
+assert.match(topoPageCode, /aria-pressed=\{canvasMaximized\}/, 'Canvas focus toggle should expose pressed state for accessibility')
+assert.match(topoPageCode, /workspace-inventory-list/, 'Workspace inventory preview should have a dedicated scroll class')
+assert.match(topoPageCode, /availableResources\.map/, 'Workspace inventory preview should render the full loaded resource window, not a hard-coded slice')
+assert.doesNotMatch(topoPageCode, /availableResources\.slice\(0,\s*8\)/, 'Workspace inventory preview should not hide resources behind a fixed 8-item slice')
+assert.match(topoPageCode, /edge-preview-list/, 'Edge preview should have a dedicated scroll class')
+assert.match(topoPageCode, /const edgePreview = useMemo\(\(\) => filteredTopology\.edges/, 'Edge preview should expose the full filtered edge set inside a scroll container')
+assert.doesNotMatch(topoPageCode, /filteredTopology\.edges\.slice\(0,\s*16\)/, 'Edge preview should not hide edges behind a fixed 16-item slice')
+assert.match(topoPageCode, /<details className="panel-card collapsible-panel">/, 'Dense lower topology panels should be collapsible instead of always expanded')
+assert.match(topoPageCode, /topology-control-panel/, 'Dense control panels should be collapsible instead of always expanded')
+assert.match(topoPageCode, /controls-layout collapsible-panel-grid/, 'Controls should use the collapsible grid treatment')
+assert.match(topoPageCode, /collapsible-panel-grid/, 'Dense lower topology panels should sit in a collapsible grid')
+assert.match(appStyleCode, /\.compact-list\s*\{[\s\S]*overflow-y:\s*auto/, 'compact lists should scroll vertically instead of clipping')
+assert.match(appStyleCode, /\.canvas-card-maximized/, 'styles should include a focused/maximized canvas card mode')
+assert.match(appStyleCode, /\.graph-canvas-maximized/, 'styles should include focused canvas dimensions')
+assert.match(appStyleCode, /overflow-wrap:\s*anywhere/, 'long resource and edge labels should wrap safely')
+assert.match(appStyleCode, /\.collapsible-summary/, 'styles should include modern collapsible section affordances')
+for (const key of ['topology.canvas.focusMode', 'topology.canvas.exitFocus']) {
+  assert.ok(dictCode.includes(`'${key}':`), `i18n dict should define ${key}`)
+}
 
 console.log('✅ topology_page_semantics_smoke.mts: all assertions passed')
