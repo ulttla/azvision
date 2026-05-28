@@ -81,4 +81,4 @@ npm --prefix frontend run smoke:semantics
 scripts/copilot_provider_smoke.sh
 ```
 
-Add targeted tests for any new auth, rate-limit, audit, or deployment profile changes.
+Add targeted tests for any new auth, rate-limit, audit, deployment profile, or public beta contract changes.

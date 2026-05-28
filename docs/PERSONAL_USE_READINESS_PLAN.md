@@ -81,6 +81,7 @@ bash -n scripts/cost_insights_smoke.sh
 bash -n scripts/copilot_provider_smoke.sh
 bash -n scripts/simulation_smoke.sh
 bash -n scripts/production_profile_smoke.sh
+bash -n scripts/public_beta_contract_smoke.sh
 node scripts/copilot_live_ui_smoke.mjs  # disabled/skip path unless AZVISION_LIVE_COPILOT_SMOKE=1
 node --experimental-strip-types scripts/path_analysis_semantics_smoke.mts
 python3 -m py_compile scripts/sqlite_health_check.py
@@ -100,6 +101,7 @@ scripts/cost_report_smoke.sh
 scripts/cost_insights_smoke.sh
 scripts/copilot_provider_smoke.sh
 scripts/production_profile_smoke.sh  # production profile file-contract smoke
+scripts/public_beta_contract_smoke.sh  # public beta contract completeness smoke
 ```
 
 With backend running, the workflow-specific checks are:

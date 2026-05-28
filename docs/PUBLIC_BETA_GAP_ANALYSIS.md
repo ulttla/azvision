@@ -129,3 +129,4 @@ Public beta should not start until all P0 and at least the initial P1 safety bas
 2. Onboarding design with demo workspace requirements.
 3. Auth/workspace isolation design before product-track code implementation.
 4. Rate-limit and audit trail implementation after identity model is chosen.
+5. Cost ingestion, Copilot persistence, and retention write-mode boundaries are tracked in `docs/COST_INGESTION_PUBLIC_BETA_PLAN.md`, `docs/COPILOT_PERSISTENCE_PLAN.md`, and `docs/RETENTION_EXECUTION_GUARD.md`.
