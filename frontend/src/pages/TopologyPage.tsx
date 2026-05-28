@@ -2190,6 +2190,55 @@ export function TopologyPage() {
     }
   }
 
+  function handleOpenCanvasWindow() {
+    const cy = cyRef.current
+    if (!graphElements.length || !cy) {
+      setExportMessage(t('topology.export.unavailableNoGraph'))
+      return
+    }
+
+    const imageDataUrl = cy.png({
+      full: true,
+      scale: 2,
+      bg: '#0b1220',
+    })
+    const popup = window.open('', '_blank', 'noopener,noreferrer,width=1440,height=960')
+    if (!popup) {
+      setExportMessage(t('topology.canvas.openWindowFailed'))
+      return
+    }
+
+    popup.document.write(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AzVision topology canvas</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; min-height: 100vh; background: #020617; color: #e5eefc; font-family: Inter, system-ui, sans-serif; }
+    header { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; gap: 16px; padding: 14px 18px; background: rgba(15, 23, 42, 0.92); border-bottom: 1px solid rgba(148, 163, 184, 0.2); backdrop-filter: blur(14px); }
+    h1 { margin: 0; font-size: 16px; }
+    p { margin: 4px 0 0; color: #94a3b8; font-size: 12px; }
+    main { padding: 18px; }
+    img { display: block; width: 100%; height: auto; border-radius: 18px; border: 1px solid rgba(148, 163, 184, 0.22); background: #0b1220; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>AzVision topology canvas</h1>
+      <p>${filteredTopology.nodes.length} visible nodes • ${filteredTopology.edges.length} edges</p>
+    </div>
+  </header>
+  <main><img src="${imageDataUrl}" alt="AzVision topology canvas" /></main>
+</body>
+</html>`)
+    popup.document.close()
+    popup.focus()
+    setExportMessage(t('topology.canvas.openedWindow'))
+  }
+
   function toggleResourceFilter(category: ResourceCategory) {
     setResourceFilters((current) => ({
       ...current,
@@ -3489,6 +3538,14 @@ export function TopologyPage() {
                 disabled={exportLoading || !canExportTopology}
               >
                 {exportLoading ? t('topology.canvas.exporting') : t('topology.canvas.exportPdf')}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={handleOpenCanvasWindow}
+                disabled={!canExportTopology}
+              >
+                {t('topology.canvas.openWindow')}
               </button>
             </div>
 
