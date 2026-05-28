@@ -53,6 +53,11 @@ Rate-limited responses should use the existing error envelope:
 
 HTTP status should be `429` and should include `Retry-After` when the limiter can calculate it.
 
+Implemented response helper:
+
+- `build_rate_limited_response()` centralizes the `429` payload.
+- It preserves the stable `rate-limited` status and optional `Retry-After` header for future limiter middleware.
+
 ## Audit trail target
 
 Audit events should be safe, structured metadata. They should not store secrets, raw prompts, Azure credential material, certificate paths, or request bodies.

@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.response_utils import build_error_response
+from app.api.response_utils import build_error_response, build_rate_limited_response
 from app.core.azure_client import AzureClientError
 from app.main import (
     azure_client_error_handler,
@@ -199,3 +199,22 @@ def test_request_completion_log_uses_safe_metadata(caplog) -> None:
     assert isinstance(record.duration_ms, float)
     assert not hasattr(record, "body")
     assert not hasattr(record, "query_params")
+
+
+def test_rate_limited_response_contract() -> None:
+    response = build_rate_limited_response(retry_after_seconds=30)
+
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "30"
+    assert _response_body(response) == {
+        "ok": False,
+        "status": "rate-limited",
+        "message": "Too many requests. Please retry later.",
+    }
+
+
+def test_rate_limited_response_clamps_negative_retry_after() -> None:
+    response = build_rate_limited_response(retry_after_seconds=-10)
+
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "0"
