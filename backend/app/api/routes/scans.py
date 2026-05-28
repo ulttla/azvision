@@ -1,8 +1,13 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.api.workspace_security import (
+    WorkspaceAccessContext,
+    get_workspace_access_context,
+    require_workspace_access,
+)
 from app.collectors.azure_inventory import collect_inventory
 from app.core.config import get_settings
 
@@ -27,7 +32,9 @@ def start_scan(
     subscription_id: str | None = Query(default=None),
     resource_group_limit: int = Query(default=200, ge=1, le=500),
     resource_limit: int = Query(default=200, ge=1, le=500),
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
+    require_workspace_access(context, workspace_id, action="manage")
     settings = get_settings()
     scan_id = f"scan_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
     started_at = datetime.now(timezone.utc)
@@ -60,10 +67,19 @@ def start_scan(
 
 
 @router.get("")
-def list_scans(workspace_id: str) -> dict[str, list[dict[str, Any]]]:
+def list_scans(
+    workspace_id: str,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, list[dict[str, Any]]]:
+    require_workspace_access(context, workspace_id, action="read")
     return {"items": [_scan_stub(workspace_id)]}
 
 
 @router.get("/{scan_id}")
-def get_scan(workspace_id: str, scan_id: str) -> dict[str, Any]:
+def get_scan(
+    workspace_id: str,
+    scan_id: str,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    require_workspace_access(context, workspace_id, action="read")
     return _scan_stub(workspace_id, scan_id=scan_id)

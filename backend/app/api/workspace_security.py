@@ -5,6 +5,8 @@ from typing import Literal
 
 from fastapi import HTTPException, status
 
+from app.core.config import get_settings
+
 WorkspaceRole = Literal["owner", "viewer"]
 WorkspaceAction = Literal["read", "write", "manage"]
 
@@ -25,6 +27,21 @@ class WorkspaceMembership:
 class WorkspaceAccessContext:
     account_id: str
     memberships: tuple[WorkspaceMembership, ...]
+
+
+def get_workspace_access_context() -> WorkspaceAccessContext:
+    """Return the local-demo access context until session auth is wired."""
+    settings = get_settings()
+    return WorkspaceAccessContext(
+        account_id="local-demo-account",
+        memberships=(
+            WorkspaceMembership(
+                workspace_id=settings.workspace_default_id,
+                account_id="local-demo-account",
+                role="owner",
+            ),
+        ),
+    )
 
 
 def require_workspace_access(

@@ -4,32 +4,12 @@ from fastapi import APIRouter, Depends
 
 from app.api.workspace_security import (
     WorkspaceAccessContext,
-    WorkspaceMembership,
+    get_workspace_access_context,
     require_workspace_access,
 )
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
-
-
-def get_workspace_access_context() -> WorkspaceAccessContext:
-    """Return the local-demo access context until session auth is wired.
-
-    Public beta will replace this dependency with session-backed account and
-    workspace membership lookup. Keeping it as a FastAPI dependency lets tests
-    override it without exposing any public auth surface yet.
-    """
-    settings = get_settings()
-    return WorkspaceAccessContext(
-        account_id="local-demo-account",
-        memberships=(
-            WorkspaceMembership(
-                workspace_id=settings.workspace_default_id,
-                account_id="local-demo-account",
-                role="owner",
-            ),
-        ),
-    )
 
 
 def _default_workspace() -> dict[str, Any]:
