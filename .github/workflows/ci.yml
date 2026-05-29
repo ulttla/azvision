@@ -28,6 +28,9 @@ jobs:
       - name: Compile backend sources
         run: python -m compileall app
 
+      - name: Backend tests
+        run: python -m pytest tests -q
+
       - name: Production profile smoke
         run: bash ../scripts/production_profile_smoke.sh
 
