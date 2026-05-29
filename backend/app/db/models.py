@@ -28,6 +28,35 @@ DDL_STATEMENTS = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS accounts (
+        id TEXT PRIMARY KEY,
+        email TEXT,
+        display_name TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        disabled_at TEXT
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        expires_at TEXT,
+        revoked_at TEXT
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS workspace_members (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(workspace_id, account_id)
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS credential_profiles (
         id TEXT PRIMARY KEY,
         workspace_id TEXT NOT NULL,
@@ -188,6 +217,18 @@ DDL_STATEMENTS = [
         node_count INTEGER NOT NULL DEFAULT 0,
         edge_count INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS audit_events (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT,
+        account_id TEXT,
+        event_type TEXT NOT NULL,
+        request_id TEXT,
+        outcome TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        metadata_json TEXT
     )
     """,
     """

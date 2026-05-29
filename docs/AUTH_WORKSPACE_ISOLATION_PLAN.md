@@ -93,8 +93,11 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - Export routes now use the same seam, covered by `backend/tests/test_exports.py`; cross-workspace file creation/list/get requests are denied before payload validation or filesystem access.
 - Current workspace-scoped inventory, topology, snapshots, simulations, cost, Copilot workspace chat, and path-analysis routes now use the same membership seam, covered by `backend/tests/test_workspace_isolation_contract.py` cross-workspace denial tests.
 - Mutation-sensitive manual topology, snapshot, and simulation endpoints also have first-pass write-level owner/viewer checks through `require_workspace_write_membership()`.
+- Account, session, workspace member, and audit event tables now exist in the SQLite DDL.
+- `get_workspace_access_context()` can resolve bearer-token sessions by SHA-256 token hash, reject revoked/expired/disabled sessions with `401`, and hydrate workspace memberships from `workspace_members`; requests without a bearer token still fall back to local-demo compatibility until login routes exist.
+- `backend/tests/test_workspace_session_security.py` covers member allow, non-member deny without workspace id leak, invalid token `401`, viewer write denial, and no-token local-demo compatibility.
 
-This is not yet full public beta auth. It is a route-level isolation contract slice for the later FastAPI session/account dependency. Public beta still needs real session lookup, account persistence, credential ownership, and audit events before exposure.
+This is not yet full public beta auth. It is a route-level isolation and session lookup contract slice. Public beta still needs login/session issuance routes, account lifecycle UX, credential ownership, and audit event writes before exposure.
 
 ## Migration approach
 

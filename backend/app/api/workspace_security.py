@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+import sqlite3
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Literal
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 
 from app.core.config import get_settings
 
@@ -29,8 +33,84 @@ class WorkspaceAccessContext:
     memberships: tuple[WorkspaceMembership, ...]
 
 
-def get_workspace_access_context() -> WorkspaceAccessContext:
-    """Return the local-demo access context until session auth is wired."""
+def _resolve_sqlite_path(database_url: str) -> Path:
+    prefix = "sqlite:///"
+    if not database_url.startswith(prefix):
+        raise ValueError(f"Only sqlite URLs are supported for workspace auth lookup: {database_url}")
+    return Path(database_url[len(prefix):]).expanduser().resolve()
+
+
+def _bearer_token(request: Request) -> str | None:
+    value = request.headers.get("authorization", "").strip()
+    prefix = "Bearer "
+    if not value.lower().startswith(prefix.lower()):
+        return None
+    token = value[len(prefix):].strip()
+    return token or None
+
+
+def _parse_expires_at(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    normalized = value.replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def _session_context_from_token(token: str) -> WorkspaceAccessContext | None:
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    db_path = _resolve_sqlite_path(get_settings().database_url)
+    if not db_path.exists():
+        return None
+
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        session = conn.execute(
+            """
+            SELECT s.account_id, s.expires_at, s.revoked_at, a.disabled_at
+            FROM sessions s
+            JOIN accounts a ON a.id = s.account_id
+            WHERE s.token_hash = ?
+            """,
+            (token_hash,),
+        ).fetchone()
+        if session is None or session["revoked_at"] or session["disabled_at"]:
+            return None
+        expires_at = _parse_expires_at(session["expires_at"])
+        if expires_at is not None and expires_at <= datetime.now(UTC):
+            return None
+
+        rows = conn.execute(
+            """
+            SELECT workspace_id, account_id, role
+            FROM workspace_members
+            WHERE account_id = ?
+            """,
+            (session["account_id"],),
+        ).fetchall()
+
+    memberships: list[WorkspaceMembership] = []
+    for row in rows:
+        role = row["role"]
+        if role not in _ROLE_ACTIONS:
+            continue
+        memberships.append(
+            WorkspaceMembership(
+                workspace_id=row["workspace_id"],
+                account_id=row["account_id"],
+                role=role,
+            )
+        )
+
+    return WorkspaceAccessContext(
+        account_id=session["account_id"],
+        memberships=tuple(memberships),
+    )
+
+
+def _local_demo_context() -> WorkspaceAccessContext:
     settings = get_settings()
     return WorkspaceAccessContext(
         account_id="local-demo-account",
@@ -43,6 +123,26 @@ def get_workspace_access_context() -> WorkspaceAccessContext:
         ),
     )
 
+
+def get_workspace_access_context(request: Request) -> WorkspaceAccessContext:
+    """Return session-backed workspace access, falling back to local-demo.
+
+    This is the public-beta auth seam: route contracts already depend on this
+    function, so a real login/session implementation can replace the source of
+    account memberships without changing protected routes. Until login routes
+    exist, requests without a bearer token retain local-demo compatibility.
+    """
+    token = _bearer_token(request)
+    if token is None:
+        return _local_demo_context()
+
+    context = _session_context_from_token(token)
+    if context is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session.",
+        )
+    return context
 
 
 async def require_workspace_membership(
