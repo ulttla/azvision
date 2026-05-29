@@ -6,6 +6,12 @@ from fastapi import APIRouter, HTTPException, Request
 
 from app.api.workspace_security import _bearer_token, get_workspace_access_context, record_audit_event
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
+from app.auth.oidc_login import (
+    OIDCLoginError,
+    OIDCNotConfiguredError,
+    resolve_oidc_workspace_grant,
+    verify_oidc_id_token,
+)
 from app.auth.session_issuer import issue_workspace_session, revoke_workspace_session, stable_dev_account_id
 from app.core.config import get_settings
 
@@ -79,6 +85,60 @@ def create_dev_session(request: Request, payload: dict[str, Any] | None = None) 
         metadata={"role": role, "ttl_minutes": ttl_minutes},
     )
 
+    return {
+        "ok": True,
+        "status": "created",
+        "session_id": issued.session_id,
+        "account_id": issued.account_id,
+        "workspace_id": issued.workspace_id,
+        "role": issued.role,
+        "expires_at": issued.expires_at,
+        "token": issued.token,
+        "token_type": issued.token_type,
+    }
+
+
+@router.post("/oidc/session")
+def create_oidc_session(request: Request, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    settings = get_settings()
+    if not settings.auth_oidc_login_enabled:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    body = payload or {}
+    id_token = str(body.get("id_token") or "").strip()
+    if not id_token:
+        raise HTTPException(status_code=400, detail="id_token is required")
+
+    try:
+        identity = verify_oidc_id_token(settings, id_token)
+        grant = resolve_oidc_workspace_grant(
+            settings,
+            identity,
+            str(body.get("workspace_id") or "").strip() or None,
+            body,
+        )
+    except OIDCNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail="OIDC login is not configured.") from exc
+    except OIDCLoginError as exc:
+        raise HTTPException(status_code=401, detail="Invalid OIDC login.") from exc
+
+    issued = issue_workspace_session(
+        database_url=settings.database_url,
+        workspace_id=grant.workspace_id,
+        email=grant.email,
+        role=grant.role,
+        ttl_minutes=60,
+        account_id=grant.account_id,
+        display_name=grant.display_name or grant.email,
+    )
+    record_audit_event(
+        event_type="auth.oidc_session.created",
+        outcome="success",
+        workspace_id=issued.workspace_id,
+        account_id=issued.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"issuer": identity.issuer, "subject_hash": issued.account_id},
+    )
     return {
         "ok": True,
         "status": "created",

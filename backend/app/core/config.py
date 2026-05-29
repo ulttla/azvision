@@ -117,6 +117,18 @@ class Settings(BaseSettings):
         default=False,
         validation_alias=AliasChoices("AZVISION_AUTH_DEV_SESSION_ENABLED", "AUTH_DEV_SESSION_ENABLED"),
     )
+    auth_oidc_login_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("AZVISION_AUTH_OIDC_LOGIN_ENABLED", "AUTH_OIDC_LOGIN_ENABLED"),
+    )
+    auth_oidc_issuer: str = Field(
+        default="",
+        validation_alias=AliasChoices("AZVISION_AUTH_OIDC_ISSUER", "AUTH_OIDC_ISSUER"),
+    )
+    auth_oidc_audience: str = Field(
+        default="",
+        validation_alias=AliasChoices("AZVISION_AUTH_OIDC_AUDIENCE", "AUTH_OIDC_AUDIENCE"),
+    )
     export_root: str = str(PROJECT_DIR / "exports")
 
     model_config = SettingsConfigDict(
