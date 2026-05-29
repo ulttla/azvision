@@ -96,7 +96,7 @@ Run sequence for an approved private target:
 1. Confirm target boundary and host/CORS values.
 2. Run `node scripts/hosted_public_beta_smoke.mjs --contract-check` locally.
 3. Run `node scripts/hosted_public_beta_smoke.mjs` with the two hosted URL env vars.
-4. Capture pass/fail, commit SHA, target label, and whether any cleanup failed.
+4. Capture pass/fail, commit SHA, target label, and whether any cleanup failed in `docs/HOSTED_E2E_RUN_RECORD_TEMPLATE.md` format.
 5. Do not promote to public exposure from smoke success alone; public exposure remains a separate approval gate.
 
 ## Local contract check
