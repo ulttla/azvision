@@ -17,7 +17,7 @@ This table summarizes the public beta blocker state after the C1 public readines
 | --- | --- | --- | --- | --- |
 | G1 | Auth, account, workspace isolation | partial | `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md`, `backend/app/api/workspace_security.py`, `backend/app/api/routes/auth.py`, `backend/app/api/routes/workspaces.py`, `backend/app/api/routes/exports.py`, `backend/app/api/routes/snapshots.py`, `backend/app/auth/session_issuer.py`, `backend/app/db/models.py`, `backend/tests/test_workspace_security.py`, `backend/tests/test_workspaces_route_security.py`, `backend/tests/test_scans_route_security.py`, `backend/tests/test_exports.py`, `backend/tests/test_snapshots.py`, `backend/tests/test_session_issuer.py`, `backend/tests/test_workspace_isolation_contract.py`, `backend/tests/test_workspace_session_security.py`, `backend/tests/test_credential_profiles_model.py`, `backend/tests/test_credential_profiles_routes.py` | Session/account lookup seam exists for bearer-token sessions and workspace memberships; `/auth/me` exposes current account/memberships without token echo; session issuance/revocation helper stores only token hashes; local dev-session issuance is disabled by default and writes non-secret auth audit events; workspace create/update and credential profile table/routes enforce workspace owner boundaries, soft delete, audit writes, and secret metadata rejection; export creation plus snapshot restore/delete now write non-secret audit events; remaining gate is real login/OIDC entrypoint and broader audit event coverage before public exposure |
 | G2 | Production-like deployment profile | partial | `docker-compose.production.example.yml`, production Dockerfiles, `scripts/production_profile_smoke.sh`, CI contract smoke | Run private production-like environment and hosted E2E smoke |
-| G3 | API protection and audit trail | partial | `X-Request-ID`, safe request logging, `build_rate_limited_response()`, `docs/RATE_LIMIT_AUDIT_PLAN.md` | Implement actual limiter and audit event storage after identity model |
+| G3 | API protection and audit trail | partial | `X-Request-ID`, safe request logging, `build_rate_limited_response()`, `audit_events` table, `record_audit_event()`, auth/session/workspace/credential/export/snapshot audit tests, `docs/RATE_LIMIT_AUDIT_PLAN.md` | Implement actual limiter and finish audit coverage for remaining public-abuse-sensitive routes |
 | G4 | Public onboarding and demo workspace | partial | `docs/ONBOARDING_DESIGN.md`, `docs/DEMO_WORKSPACE_CONTRACT.md`, backend demo contract tests | Add first-run UI and demo workspace CTA |
 | G5 | Hosted E2E preflight | partial | `docs/HOSTED_E2E_PREFLIGHT_PLAN.md`, `scripts/hosted_public_beta_smoke.mjs`, CI contract check | Execute against private hosted profile before exposure |
 | G6 | Real cost ingestion | deferred | `docs/COST_INGESTION_PUBLIC_BETA_PLAN.md`, noop provider labels unknown cost data | Implement provider only if beta claims real billing data |
@@ -29,7 +29,7 @@ This table summarizes the public beta blocker state after the C1 public readines
 
 Public beta remains **not ready** until at least:
 
-1. G1 auth/workspace isolation route guard seam remains in place, and auth/session lookup plus session issuance are implemented and tested on top of it.
+1. G1 auth/workspace isolation real login/OIDC entrypoint is wired on top of the tested session lookup/issuance/revocation seam.
 2. G2 private production-like environment is run successfully.
 3. G5 hosted E2E smoke passes against that private environment.
 4. G3 actual rate limiting exists for public-abuse-sensitive routes.
@@ -46,6 +46,10 @@ Public beta remains **not ready** until at least:
 - Cost, Copilot persistence, retention write-mode boundary docs.
 - Hosted E2E preflight plan and fail-closed smoke skeleton.
 - Public beta contract smokes wired into GitHub CI.
+- Workspace route guard coverage expanded across current workspace-scoped routes.
+- Bearer session lookup, dev-session issue/use/me/logout/reuse-deny contract, and hash-only session persistence helper.
+- Credential profile ownership schema and create/list/update/delete route contracts with non-secret audit events.
+- Non-secret audit events for auth session actions, workspace management, export creation, snapshot restore/delete.
 
 ## Current recommendation
 
