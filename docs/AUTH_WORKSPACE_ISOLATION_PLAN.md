@@ -100,20 +100,20 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - Expired sessions and disabled accounts are rejected at HTTP level with `401` tests.
 - `/auth/me` returns the current bearer session account and workspace memberships without echoing the token; missing bearer tokens are rejected with `401`.
 - `/auth/logout` revokes the current bearer session, writes `auth.session.revoked`, and rejects later use of the same token.
-- `backend/tests/test_workspace_session_security.py` covers member allow, non-member deny without workspace id leak, invalid token `401`, viewer write denial, no-token local-demo compatibility, disabled dev-session behavior, enabled owner token access, and enabled viewer write denial.
+- `backend/tests/test_workspace_session_security.py` covers member allow, non-member deny without workspace id leak, invalid/expired/disabled/revoked token `401`, viewer write denial, no-token local-demo compatibility, disabled dev-session behavior, enabled owner token access, enabled viewer write denial, `/auth/me`, and `/auth/logout`.
 
 Credential profile route contracts now cover owner create/list/update/delete, viewer create/update/delete denial, cross-workspace list denial without id leak, required `secret_ref`, soft delete, and rejection of sensitive metadata keys. Creation/update/delete write non-secret `credential_profile.*` audit events. Workspace create/update write non-secret workspace audit events containing field names only. Export creation writes a non-secret `export.created` audit event without persisting the image payload in audit metadata. Snapshot restore/delete actions write `snapshot.restore_recorded` and `snapshot.deleted` audit events.
 
-This is not yet full public beta auth. It is a route-level isolation, session lookup, local dev-session, credential ownership, and initial audit-write contract slice. Public beta still needs real login/session issuance, account lifecycle UX, and broader audit event coverage before exposure.
+This is not yet full public beta auth. It is a route-level isolation, session lookup, local dev-session, credential ownership, and initial audit-write contract slice. Public beta still needs a real login/OIDC entrypoint, account lifecycle UX, and broader audit event coverage before exposure. The session persistence path itself is already tested and should be reused by the real identity entrypoint.
 
 ## Migration approach
 
-1. Add models and repository layer behind feature flag or local-only default.
-2. Keep `local-demo` compatibility for personal-use mode.
-3. Add auth dependency in no-op local mode first.
-4. Add session implementation.
-5. Flip public beta profile to require auth.
-6. Add cross-workspace regression tests before any hosted beta.
+1. Keep `local-demo` compatibility for personal-use mode.
+2. Wire the real login/OIDC entrypoint to `issue_workspace_session()` and keep raw bearer tokens one-time only.
+3. Define account lifecycle UX: invite, disable, membership role changes, and logout/session revoke surface.
+4. Decide credential-profile cross-owner policy inside one workspace: owner-only self-management vs workspace-owner manage-all with explicit audit reason.
+5. Flip public beta profile to require auth and disable local-demo fallback for public routes.
+6. Add cross-workspace and token lifecycle regression tests before any hosted beta.
 
 ## Public beta go/no-go
 
