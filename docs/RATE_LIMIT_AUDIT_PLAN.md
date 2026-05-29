@@ -57,7 +57,7 @@ Implemented response helper and middleware:
 
 - `build_rate_limited_response()` centralizes the `429` payload.
 - It preserves the stable `rate-limited` status and optional `Retry-After` header.
-- `InMemoryRateLimiter` provides a process-local fixed-window limiter for auth, exports, Copilot, and default route groups.
+- `InMemoryRateLimiter` provides a process-local fixed-window limiter for auth, OIDC session login, exports, Copilot, and default route groups.
 - The limiter is disabled by default and enabled with `AZVISION_RATE_LIMIT_ENABLED=true`; production should replace or front it with shared storage/gateway enforcement before multi-instance public traffic.
 
 ## Audit trail target

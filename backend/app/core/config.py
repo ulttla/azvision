@@ -153,6 +153,13 @@ class Settings(BaseSettings):
         default=20,
         validation_alias=AliasChoices("AZVISION_RATE_LIMIT_AUTH_PER_WINDOW", "RATE_LIMIT_AUTH_PER_WINDOW"),
     )
+    rate_limit_auth_oidc_session_per_window: int = Field(
+        default=10,
+        validation_alias=AliasChoices(
+            "AZVISION_RATE_LIMIT_AUTH_OIDC_SESSION_PER_WINDOW",
+            "RATE_LIMIT_AUTH_OIDC_SESSION_PER_WINDOW",
+        ),
+    )
     rate_limit_exports_per_window: int = Field(
         default=30,
         validation_alias=AliasChoices("AZVISION_RATE_LIMIT_EXPORTS_PER_WINDOW", "RATE_LIMIT_EXPORTS_PER_WINDOW"),

@@ -39,6 +39,8 @@ class InMemoryRateLimiter:
 
 
 def route_limit_group(path: str) -> str:
+    if path.endswith("/auth/oidc/session"):
+        return "auth_oidc_session"
     if "/auth/" in path:
         return "auth"
     if "/exports" in path:

@@ -108,6 +108,7 @@ async def enforce_rate_limits(request: Request, call_next):
     group = route_limit_group(request.url.path)
     limits = {
         "auth": current_settings.rate_limit_auth_per_window,
+        "auth_oidc_session": current_settings.rate_limit_auth_oidc_session_per_window,
         "exports": current_settings.rate_limit_exports_per_window,
         "copilot": current_settings.rate_limit_copilot_per_window,
         "default": current_settings.rate_limit_default_per_window,
