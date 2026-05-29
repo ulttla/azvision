@@ -237,3 +237,34 @@ def test_logout_without_bearer_requires_auth(db_path, monkeypatch):
 
     assert response.status_code == 401
     assert response.json().get("message") == "Authentication required."
+
+
+def test_auth_me_returns_current_session_without_token(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    monkeypatch.setenv("AZVISION_AUTH_DEV_SESSION_ENABLED", "true")
+    get_settings.cache_clear()
+
+    with _client() as client:
+        session_response = client.post(
+            "/api/v1/auth/dev-session",
+            json={"workspace_id": "workspace-a", "email": "owner@example.test", "role": "owner"},
+        )
+        token = session_response.json()["token"]
+        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["account_id"] == session_response.json()["account_id"]
+    assert payload["memberships"] == [{"workspace_id": "workspace-a", "role": "owner"}]
+    assert token not in response.text
+
+
+def test_auth_me_requires_bearer_session(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+
+    with _client() as client:
+        response = client.get("/api/v1/auth/me")
+
+    assert response.status_code == 401
+    assert response.json().get("message") == "Authentication required."

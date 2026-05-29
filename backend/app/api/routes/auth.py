@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.api.workspace_security import _bearer_token, record_audit_event
+from app.api.workspace_security import _bearer_token, get_workspace_access_context, record_audit_event
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
 from app.auth.session_issuer import issue_workspace_session, revoke_workspace_session, stable_dev_account_id
 from app.core.config import get_settings
@@ -90,6 +90,24 @@ def create_dev_session(request: Request, payload: dict[str, Any] | None = None) 
         "expires_at": issued.expires_at,
         "token": issued.token,
         "token_type": issued.token_type,
+    }
+
+
+@router.get("/me")
+def me(request: Request) -> dict[str, Any]:
+    if _bearer_token(request) is None:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    context = get_workspace_access_context(request)
+    return {
+        "ok": True,
+        "account_id": context.account_id,
+        "memberships": [
+            {
+                "workspace_id": membership.workspace_id,
+                "role": membership.role,
+            }
+            for membership in context.memberships
+        ],
     }
 
 

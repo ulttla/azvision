@@ -97,6 +97,7 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - `get_workspace_access_context()` can resolve bearer-token sessions by SHA-256 token hash, reject revoked/expired/disabled sessions with `401`, and hydrate workspace memberships from `workspace_members`; requests without a bearer token still fall back to local-demo compatibility until login routes exist.
 - `/auth/dev-session` can issue a local development bearer token only when `AZVISION_AUTH_DEV_SESSION_ENABLED=true`; it is disabled by default, is not a public login flow, and writes an `auth.dev_session.created` audit event without token leakage.
 - Session issuance persistence is isolated in `app.auth.session_issuer.issue_workspace_session()`: callers receive the raw bearer token once, while SQLite stores only the SHA-256 token hash plus account/workspace membership rows.
+- `/auth/me` returns the current bearer session account and workspace memberships without echoing the token; missing bearer tokens are rejected with `401`.
 - `/auth/logout` revokes the current bearer session, writes `auth.session.revoked`, and rejects later use of the same token.
 - `backend/tests/test_workspace_session_security.py` covers member allow, non-member deny without workspace id leak, invalid token `401`, viewer write denial, no-token local-demo compatibility, disabled dev-session behavior, enabled owner token access, and enabled viewer write denial.
 
