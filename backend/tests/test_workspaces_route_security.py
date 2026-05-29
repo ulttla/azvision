@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import sqlite3
+
 from fastapi.testclient import TestClient
 
 from app.api.routes.workspaces import get_workspace_access_context
@@ -30,6 +33,51 @@ def test_default_workspace_route_forbids_cross_workspace_without_id_leak():
         "message": "Workspace access denied.",
     }
     assert "workspace-b" not in response.text
+
+
+def test_workspace_patch_writes_non_secret_audit_event(client: TestClient, db_path):
+    response = client.patch(
+        "/api/v1/workspaces/local-demo",
+        json={"name": "Updated", "description": "Changed"},
+        headers={"X-Request-Id": "req-workspace-update"},
+    )
+
+    assert response.status_code == 200
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        event = conn.execute(
+            "SELECT * FROM audit_events WHERE event_type = ?",
+            ("workspace.updated",),
+        ).fetchone()
+    assert event is not None
+    assert event["workspace_id"] == "local-demo"
+    assert event["account_id"] == "test-account"
+    assert event["request_id"] == "req-workspace-update"
+    assert json.loads(event["metadata_json"]) == {"fields": ["description", "name"]}
+    assert "Updated" not in event["metadata_json"]
+    assert "Changed" not in event["metadata_json"]
+
+
+def test_workspace_create_writes_non_secret_audit_event(client: TestClient, db_path):
+    response = client.post(
+        "/api/v1/workspaces",
+        json={"id": "local-demo", "name": "Created"},
+        headers={"X-Request-Id": "req-workspace-create"},
+    )
+
+    assert response.status_code == 200
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        event = conn.execute(
+            "SELECT * FROM audit_events WHERE event_type = ?",
+            ("workspace.created",),
+        ).fetchone()
+    assert event is not None
+    assert event["workspace_id"] == "local-demo"
+    assert event["account_id"] == "test-account"
+    assert event["request_id"] == "req-workspace-create"
+    assert json.loads(event["metadata_json"]) == {"fields": ["id", "name"]}
+    assert "Created" not in event["metadata_json"]
 
 
 def test_viewer_dependency_override_cannot_patch_workspace(client: TestClient):

@@ -94,6 +94,7 @@ def list_workspaces(
 @router.post("")
 def create_workspace(
     payload: dict[str, Any],
+    request: Request,
     context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
     workspace = _default_workspace()
@@ -105,7 +106,15 @@ def create_workspace(
             "description": payload.get("description", workspace["description"]),
         }
     )
-    require_workspace_access(context, workspace["id"], action="manage")
+    membership = require_workspace_access(context, workspace["id"], action="manage")
+    record_audit_event(
+        event_type="workspace.created",
+        outcome="success",
+        workspace_id=workspace["id"],
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"fields": sorted(payload.keys())},
+    )
     return workspace
 
 
@@ -124,12 +133,21 @@ def get_workspace(
 def update_workspace(
     workspace_id: str,
     payload: dict[str, Any],
+    request: Request,
     context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
-    require_workspace_access(context, workspace_id, action="manage")
+    membership = require_workspace_access(context, workspace_id, action="manage")
     workspace = _default_workspace()
     workspace["id"] = workspace_id
     workspace.update(payload)
+    record_audit_event(
+        event_type="workspace.updated",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"fields": sorted(payload.keys())},
+    )
     return workspace
 
 
