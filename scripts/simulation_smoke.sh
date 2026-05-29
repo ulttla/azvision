@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BASE_URL="${AZVISION_API_BASE_URL:-http://127.0.0.1:8000/api/v1}"
-WORKSPACE_ID="${AZVISION_SIMULATION_WORKSPACE_ID:-simulation-smoke-$(date +%Y%m%d%H%M%S)}"
+WORKSPACE_ID="${AZVISION_SIMULATION_WORKSPACE_ID:-${AZVISION_WORKSPACE_ID:-simulation-smoke-$(date +%Y%m%d%H%M%S)}}"
 OUT_DIR="${AZVISION_PROBE_OUT_DIR:-/tmp}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 TMP_DIR="$OUT_DIR/azvision_simulation_smoke_$TIMESTAMP"
