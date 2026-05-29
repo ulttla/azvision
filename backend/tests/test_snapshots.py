@@ -7,6 +7,9 @@ Covers:
 """
 from __future__ import annotations
 
+import json
+import sqlite3
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -588,6 +591,31 @@ class TestSnapshotRouteRestoreEvent:
         assert body["restore_count"] == 1
         assert body["last_restored_at"] != ""
 
+    def test_post_restore_event_writes_audit_event(self, client: TestClient, db_path):
+        created = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots", json=_create_payload()
+        ).json()
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{created['id']}/restore-events",
+            headers={"X-Request-Id": "req-snapshot-restore"},
+        )
+
+        assert resp.status_code == 200
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            event = conn.execute(
+                "SELECT * FROM audit_events WHERE event_type = ?",
+                ("snapshot.restore_recorded",),
+            ).fetchone()
+        assert event is not None
+        assert event["workspace_id"] == WORKSPACE
+        assert event["account_id"] == "test-account"
+        assert event["request_id"] == "req-snapshot-restore"
+        assert json.loads(event["metadata_json"]) == {
+            "restore_count": 1,
+            "snapshot_id": created["id"],
+        }
+
     def test_post_restore_event_nonexistent_returns_404(self, client: TestClient):
         resp = client.post(
             f"/api/v1/workspaces/{WORKSPACE}/snapshots/snap_gone/restore-events"
@@ -608,6 +636,28 @@ class TestSnapshotRouteDelete:
         body = resp.json()
         assert body["status"] == "deleted"
         assert body["snapshot_id"] == created["id"]
+
+    def test_delete_writes_audit_event(self, client: TestClient, db_path):
+        created = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots", json=_create_payload()
+        ).json()
+        resp = client.delete(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{created['id']}",
+            headers={"X-Request-Id": "req-snapshot-delete"},
+        )
+
+        assert resp.status_code == 200
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            event = conn.execute(
+                "SELECT * FROM audit_events WHERE event_type = ?",
+                ("snapshot.deleted",),
+            ).fetchone()
+        assert event is not None
+        assert event["workspace_id"] == WORKSPACE
+        assert event["account_id"] == "test-account"
+        assert event["request_id"] == "req-snapshot-delete"
+        assert json.loads(event["metadata_json"]) == {"snapshot_id": created["id"]}
 
     def test_delete_nonexistent_returns_404(self, client: TestClient):
         resp = client.delete(f"/api/v1/workspaces/{WORKSPACE}/snapshots/snap_gone")

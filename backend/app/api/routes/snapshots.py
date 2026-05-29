@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from app.api.workspace_security import require_workspace_membership, require_workspace_write_membership
+from app.api.workspace_security import (
+    WorkspaceAccessContext,
+    get_workspace_access_context,
+    record_audit_event,
+    require_workspace_access,
+    require_workspace_membership,
+    require_workspace_write_membership,
+)
 from app.schemas.snapshots import (
     SnapshotCompareRequest,
     SnapshotCompareResponse,
@@ -86,20 +93,50 @@ def update_snapshot(
 
 
 @router.post("/{snapshot_id}/restore-events", response_model=SnapshotRecord, dependencies=[Depends(require_workspace_write_membership)])
-def record_snapshot_restore_event(workspace_id: str, snapshot_id: str) -> SnapshotRecord:
+def record_snapshot_restore_event(
+    workspace_id: str,
+    snapshot_id: str,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> SnapshotRecord:
+    membership = require_workspace_access(context, workspace_id, action="write")
     try:
-        return service.record_restore_event(workspace_id, snapshot_id)
+        record = service.record_restore_event(workspace_id, snapshot_id)
     except SnapshotNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Snapshot not found") from exc
 
+    record_audit_event(
+        event_type="snapshot.restore_recorded",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"snapshot_id": snapshot_id, "restore_count": record.restore_count},
+    )
+    return record
+
 
 @router.delete("/{snapshot_id}", dependencies=[Depends(require_workspace_write_membership)])
-def delete_snapshot(workspace_id: str, snapshot_id: str) -> dict[str, str]:
+def delete_snapshot(
+    workspace_id: str,
+    snapshot_id: str,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, str]:
+    membership = require_workspace_access(context, workspace_id, action="write")
     try:
         service.delete_snapshot(workspace_id, snapshot_id)
     except SnapshotNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Snapshot not found") from exc
 
+    record_audit_event(
+        event_type="snapshot.deleted",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"snapshot_id": snapshot_id},
+    )
     return {
         "workspace_id": workspace_id,
         "snapshot_id": snapshot_id,
