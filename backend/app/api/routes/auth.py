@@ -17,14 +17,18 @@ def config_check() -> dict:
             "tenant_id_present": bool(settings.azure_tenant_id),
             "client_id_present": bool(settings.azure_client_id),
             "certificate_path_present": bool(settings.azure_certificate_path),
-            "certificate_path_exists": settings.certificate_path_exists,
             "certificate_thumbprint_present": bool(settings.azure_certificate_thumbprint),
-            "certificate_password_present": bool(settings.azure_certificate_password),
             "azure_cloud": settings.azure_cloud,
         },
         "note": "server-side configured credential profile, diagnostics read only. Preferred env file is project root .env; backend/.env is also supported.",
     }
     if settings.debug:
+        payload["checks"].update(
+            {
+                "certificate_path_exists": settings.certificate_path_exists,
+                "certificate_password_present": bool(settings.azure_certificate_password),
+            }
+        )
         payload["diagnostics"] = {
             "env_file_candidates": settings.env_file_candidates,
             "discovered_env_files": settings.discovered_env_files,

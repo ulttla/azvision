@@ -177,7 +177,10 @@ class TestAuthRoutes:
         assert "diagnostics" not in payload
         assert "env_file_candidates" not in payload["checks"]
         assert "discovered_env_files" not in payload["checks"]
+        assert "certificate_path_exists" not in payload["checks"]
+        assert "certificate_password_present" not in payload["checks"]
         assert "/private/project/.env" not in response.text
+        assert "password" not in response.text
 
     def test_config_check_keeps_local_env_path_diagnostics_in_debug_mode(
         self,
@@ -207,7 +210,10 @@ class TestAuthRoutes:
         response = client.get("/api/v1/auth/config-check")
 
         assert response.status_code == 200
-        assert response.json()["diagnostics"] == {
+        payload = response.json()
+        assert payload["checks"]["certificate_path_exists"] is False
+        assert payload["checks"]["certificate_password_present"] is False
+        assert payload["diagnostics"] == {
             "env_file_candidates": ["/private/project/.env"],
             "discovered_env_files": ["/private/project/.env"],
         }
