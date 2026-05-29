@@ -132,3 +132,110 @@ def test_cross_workspace_credential_profiles_denied_without_leak(db_path, monkey
     assert response.status_code == 403
     assert response.json().get("message") == "Workspace access denied."
     assert "workspace-b" not in response.text
+
+
+def test_owner_can_update_credential_profile_without_secret_metadata(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    _seed_session(db_path, token="owner-token")
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            """
+            INSERT INTO credential_profiles(id, workspace_id, owner_account_id, provider, auth_type, secret_ref, metadata_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("cred-a", "workspace-a", "account-owner", "azure", "certificate", "secret://old", '{}'),
+        )
+        conn.commit()
+
+    with _client() as client:
+        response = client.patch(
+            "/api/v1/workspaces/workspace-a/credential-profiles/cred-a",
+            json={"secret_ref": "secret://new", "metadata": {"tenant_id": "tenant-b"}},
+            headers={"Authorization": "Bearer owner-token", "X-Request-Id": "req-cred-update"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["secret_ref"] == "secret://new"
+    assert response.json()["metadata"] == {"tenant_id": "tenant-b"}
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        event = conn.execute(
+            "SELECT * FROM audit_events WHERE event_type = ?",
+            ("credential_profile.updated",),
+        ).fetchone()
+    assert event is not None
+    assert event["request_id"] == "req-cred-update"
+    assert json.loads(event["metadata_json"]) == {
+        "credential_profile_id": "cred-a",
+        "fields": ["metadata_json", "secret_ref"],
+    }
+    assert "secret://new" not in event["metadata_json"]
+
+
+def test_credential_profile_delete_is_soft_delete_and_audited(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    _seed_session(db_path, token="owner-token")
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            """
+            INSERT INTO credential_profiles(id, workspace_id, owner_account_id, provider, auth_type, secret_ref, metadata_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("cred-a", "workspace-a", "account-owner", "azure", "certificate", "secret://pointer", '{}'),
+        )
+        conn.commit()
+
+    with _client() as client:
+        deleted = client.delete(
+            "/api/v1/workspaces/workspace-a/credential-profiles/cred-a",
+            headers={"Authorization": "Bearer owner-token", "X-Request-Id": "req-cred-delete"},
+        )
+        listed = client.get(
+            "/api/v1/workspaces/workspace-a/credential-profiles",
+            headers={"Authorization": "Bearer owner-token"},
+        )
+
+    assert deleted.status_code == 200
+    assert deleted.json() == {"ok": True, "status": "deleted", "id": "cred-a"}
+    assert listed.status_code == 200
+    assert listed.json()["items"] == []
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        profile = conn.execute("SELECT disabled_at FROM credential_profiles WHERE id = ?", ("cred-a",)).fetchone()
+        event = conn.execute(
+            "SELECT * FROM audit_events WHERE event_type = ?",
+            ("credential_profile.deleted",),
+        ).fetchone()
+    assert profile["disabled_at"]
+    assert event is not None
+    assert event["request_id"] == "req-cred-delete"
+
+
+def test_viewer_cannot_update_or_delete_credential_profile(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    _seed_session(db_path, token="viewer-token", role="viewer")
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            """
+            INSERT INTO credential_profiles(id, workspace_id, owner_account_id, provider, auth_type, secret_ref, metadata_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            ("cred-a", "workspace-a", "account-owner", "azure", "certificate", "secret://pointer", '{}'),
+        )
+        conn.commit()
+
+    with _client() as client:
+        patch_response = client.patch(
+            "/api/v1/workspaces/workspace-a/credential-profiles/cred-a",
+            json={"metadata": {"tenant_id": "blocked"}},
+            headers={"Authorization": "Bearer viewer-token"},
+        )
+        delete_response = client.delete(
+            "/api/v1/workspaces/workspace-a/credential-profiles/cred-a",
+            headers={"Authorization": "Bearer viewer-token"},
+        )
+
+    assert patch_response.status_code == 403
+    assert patch_response.json().get("message") == "Workspace action denied."
+    assert delete_response.status_code == 403
+    assert delete_response.json().get("message") == "Workspace action denied."

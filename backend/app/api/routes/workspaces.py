@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -66,6 +67,19 @@ def _credential_profile_row(row: sqlite3.Row) -> dict[str, Any]:
         "created_at": row["created_at"],
         "disabled_at": row["disabled_at"],
     }
+
+
+def _fetch_credential_profile(conn: sqlite3.Connection, workspace_id: str, profile_id: str) -> sqlite3.Row:
+    row = conn.execute(
+        """
+        SELECT * FROM credential_profiles
+        WHERE workspace_id = ? AND id = ? AND disabled_at IS NULL
+        """,
+        (workspace_id, profile_id),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Credential profile not found.")
+    return row
 
 
 @router.get("")
@@ -184,3 +198,89 @@ def create_credential_profile(
         metadata={"credential_profile_id": profile_id, "provider": provider, "auth_type": auth_type},
     )
     return _credential_profile_row(row)
+
+
+@router.patch("/{workspace_id}/credential-profiles/{profile_id}")
+def update_credential_profile(
+    workspace_id: str,
+    profile_id: str,
+    payload: dict[str, Any],
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    membership = require_workspace_access(context, workspace_id, action="manage")
+    updates: dict[str, Any] = {}
+    if "provider" in payload:
+        provider = str(payload.get("provider") or "").strip()
+        if not provider:
+            raise HTTPException(status_code=400, detail="provider must not be empty")
+        updates["provider"] = provider
+    if "auth_type" in payload:
+        auth_type = str(payload.get("auth_type") or "").strip()
+        if not auth_type:
+            raise HTTPException(status_code=400, detail="auth_type must not be empty")
+        updates["auth_type"] = auth_type
+    if "secret_ref" in payload:
+        secret_ref = str(payload.get("secret_ref") or "").strip()
+        if not secret_ref:
+            raise HTTPException(status_code=400, detail="secret_ref must not be empty")
+        updates["secret_ref"] = secret_ref
+    if "metadata" in payload:
+        updates["metadata_json"] = json.dumps(
+            _reject_sensitive_metadata(payload.get("metadata")),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+
+    with _connect() as conn:
+        _fetch_credential_profile(conn, workspace_id, profile_id)
+        if updates:
+            set_clause = ", ".join(f"{column} = ?" for column in updates)
+            conn.execute(
+                f"UPDATE credential_profiles SET {set_clause} WHERE workspace_id = ? AND id = ?",
+                (*updates.values(), workspace_id, profile_id),
+            )
+        row = _fetch_credential_profile(conn, workspace_id, profile_id)
+        conn.commit()
+
+    record_audit_event(
+        event_type="credential_profile.updated",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"credential_profile_id": profile_id, "fields": sorted(updates.keys())},
+    )
+    return _credential_profile_row(row)
+
+
+@router.delete("/{workspace_id}/credential-profiles/{profile_id}")
+def delete_credential_profile(
+    workspace_id: str,
+    profile_id: str,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    membership = require_workspace_access(context, workspace_id, action="manage")
+    disabled_at = datetime.now(UTC).isoformat()
+    with _connect() as conn:
+        _fetch_credential_profile(conn, workspace_id, profile_id)
+        conn.execute(
+            """
+            UPDATE credential_profiles
+            SET disabled_at = ?
+            WHERE workspace_id = ? AND id = ? AND disabled_at IS NULL
+            """,
+            (disabled_at, workspace_id, profile_id),
+        )
+        conn.commit()
+
+    record_audit_event(
+        event_type="credential_profile.deleted",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"credential_profile_id": profile_id},
+    )
+    return {"ok": True, "status": "deleted", "id": profile_id}

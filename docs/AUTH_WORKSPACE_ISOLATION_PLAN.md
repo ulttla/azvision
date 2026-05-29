@@ -98,9 +98,9 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - `/auth/dev-session` can issue a local development bearer token only when `AZVISION_AUTH_DEV_SESSION_ENABLED=true`; it is disabled by default, is not a public login flow, and writes an `auth.dev_session.created` audit event without token leakage.
 - `backend/tests/test_workspace_session_security.py` covers member allow, non-member deny without workspace id leak, invalid token `401`, viewer write denial, no-token local-demo compatibility, disabled dev-session behavior, enabled owner token access, and enabled viewer write denial.
 
-Credential profile route contracts now cover owner create/list, viewer create denial, cross-workspace list denial without id leak, required `secret_ref`, and rejection of sensitive metadata keys. Creation writes a non-secret `credential_profile.created` audit event.
+Credential profile route contracts now cover owner create/list/update/delete, viewer create/update/delete denial, cross-workspace list denial without id leak, required `secret_ref`, soft delete, and rejection of sensitive metadata keys. Creation/update/delete write non-secret `credential_profile.*` audit events.
 
-This is not yet full public beta auth. It is a route-level isolation, session lookup, local dev-session, credential ownership, and initial audit-write contract slice. Public beta still needs real login/session issuance, account lifecycle UX, credential profile update/delete semantics, and broader audit event coverage before exposure.
+This is not yet full public beta auth. It is a route-level isolation, session lookup, local dev-session, credential ownership, and initial audit-write contract slice. Public beta still needs real login/session issuance, account lifecycle UX, and broader audit event coverage before exposure.
 
 ## Migration approach
 
