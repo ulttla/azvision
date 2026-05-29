@@ -1,6 +1,6 @@
 # Public Beta Blocker Status
 
-This table summarizes the public beta blocker state after the C1 public readiness work. It is a live planning index, not a launch approval.
+This table summarizes the public beta blocker state after the C1 public readiness work. It is a live planning index, not a launch approval. Final approval gate template: `docs/PUBLIC_BETA_APPROVAL_GATE.md`.
 
 ## Status legend
 
