@@ -29,7 +29,7 @@ This table summarizes the public beta blocker state after the C1 public readines
 
 Public beta remains **not ready** until at least:
 
-1. G1 auth/session lookup is implemented and tested on top of the route-level workspace guard seam.
+1. G1 auth/workspace isolation route guard seam remains in place, and auth/session lookup is implemented and tested on top of it.
 2. G2 private production-like environment is run successfully.
 3. G5 hosted E2E smoke passes against that private environment.
 4. G3 actual rate limiting exists for public-abuse-sensitive routes.
