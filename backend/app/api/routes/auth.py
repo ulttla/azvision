@@ -4,9 +4,9 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.api.workspace_security import record_audit_event
+from app.api.workspace_security import _bearer_token, record_audit_event
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
-from app.auth.session_issuer import issue_workspace_session, stable_dev_account_id
+from app.auth.session_issuer import issue_workspace_session, revoke_workspace_session, stable_dev_account_id
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -91,6 +91,26 @@ def create_dev_session(request: Request, payload: dict[str, Any] | None = None) 
         "token": issued.token,
         "token_type": issued.token_type,
     }
+
+
+@router.post("/logout")
+def logout(request: Request) -> dict[str, Any]:
+    token = _bearer_token(request)
+    if token is None:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    revoked = revoke_workspace_session(database_url=get_settings().database_url, token=token)
+    if revoked is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired session.")
+
+    record_audit_event(
+        event_type="auth.session.revoked",
+        outcome="success",
+        account_id=revoked.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"session_id": revoked.session_id},
+    )
+    return {"ok": True, "status": "revoked"}
 
 
 @router.get("/read-test")

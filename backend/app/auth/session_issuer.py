@@ -21,6 +21,13 @@ class IssuedWorkspaceSession:
     token_type: str = "bearer"
 
 
+@dataclass(frozen=True)
+class RevokedWorkspaceSession:
+    session_id: str
+    account_id: str
+    revoked_at: str
+
+
 def stable_dev_account_id(email: str) -> str:
     return f"dev-{hashlib.sha256(email.encode('utf-8')).hexdigest()[:12]}"
 
@@ -87,4 +94,36 @@ def issue_workspace_session(
         role=role,
         expires_at=expires_at,
         token=token,
+    )
+
+
+def revoke_workspace_session(*, database_url: str, token: str) -> RevokedWorkspaceSession | None:
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    db_path = _resolve_sqlite_path(database_url)
+    if not db_path.exists():
+        return None
+
+    revoked_at = datetime.now(UTC).isoformat()
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            """
+            SELECT id, account_id
+            FROM sessions
+            WHERE token_hash = ? AND revoked_at IS NULL
+            """,
+            (token_hash,),
+        ).fetchone()
+        if row is None:
+            return None
+        conn.execute(
+            "UPDATE sessions SET revoked_at = ? WHERE id = ?",
+            (revoked_at, row["id"]),
+        )
+        conn.commit()
+
+    return RevokedWorkspaceSession(
+        session_id=row["id"],
+        account_id=row["account_id"],
+        revoked_at=revoked_at,
     )

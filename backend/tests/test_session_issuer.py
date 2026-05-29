@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import sqlite3
 
-from app.auth.session_issuer import issue_workspace_session, stable_dev_account_id
+from app.auth.session_issuer import issue_workspace_session, revoke_workspace_session, stable_dev_account_id
 
 
 def test_stable_dev_account_id_is_email_derived_without_plain_email_leak():
@@ -41,3 +41,25 @@ def test_issue_workspace_session_persists_hash_only_and_membership(db_path):
     assert session is not None
     assert session["token_hash"] == hashlib.sha256(issued.token.encode("utf-8")).hexdigest()
     assert issued.token not in session["token_hash"]
+
+
+def test_revoke_workspace_session_marks_session_revoked_without_token_persistence(db_path):
+    issued = issue_workspace_session(
+        database_url=f"sqlite:///{db_path}",
+        workspace_id="workspace-a",
+        email="owner@example.test",
+        role="owner",
+        ttl_minutes=60,
+    )
+
+    revoked = revoke_workspace_session(database_url=f"sqlite:///{db_path}", token=issued.token)
+
+    assert revoked is not None
+    assert revoked.session_id == issued.session_id
+    assert revoked.account_id == issued.account_id
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        session = conn.execute("SELECT * FROM sessions WHERE id = ?", (issued.session_id,)).fetchone()
+    assert session["revoked_at"] == revoked.revoked_at
+    assert issued.token not in session["token_hash"]
+    assert revoke_workspace_session(database_url=f"sqlite:///{db_path}", token=issued.token) is None
