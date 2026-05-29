@@ -31,7 +31,7 @@ from app.db.models import _resolve_sqlite_path, create_db_and_tables
 
 
 def public_error_message(status_code: int, detail: Any) -> str:
-    if status_code >= 500 and not settings.debug:
+    if status_code == 500 and not settings.debug:
         return "Internal server error"
     return str(detail)
 
