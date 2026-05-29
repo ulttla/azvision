@@ -60,10 +60,13 @@ DDL_STATEMENTS = [
     CREATE TABLE IF NOT EXISTS credential_profiles (
         id TEXT PRIMARY KEY,
         workspace_id TEXT NOT NULL,
+        owner_account_id TEXT,
         provider TEXT NOT NULL,
         auth_type TEXT NOT NULL,
+        secret_ref TEXT NOT NULL DEFAULT '',
         metadata_json TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        disabled_at TEXT
     )
     """,
     """
@@ -261,6 +264,30 @@ def create_db_and_tables() -> None:
         for statement in DDL_STATEMENTS:
             cursor.execute(statement)
 
+        _ensure_column(
+            cursor,
+            "credential_profiles",
+            "owner_account_id",
+            "owner_account_id TEXT",
+        )
+        _ensure_column(
+            cursor,
+            "credential_profiles",
+            "secret_ref",
+            "secret_ref TEXT NOT NULL DEFAULT ''",
+        )
+        _ensure_column(
+            cursor,
+            "credential_profiles",
+            "disabled_at",
+            "disabled_at TEXT",
+        )
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_credential_profiles_workspace_owner
+            ON credential_profiles (workspace_id, owner_account_id)
+            """
+        )
         _ensure_column(
             cursor,
             "snapshots",

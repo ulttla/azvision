@@ -32,6 +32,12 @@ def _create_test_db(db_path: Path) -> None:
         cursor = conn.cursor()
         for stmt in DDL_STATEMENTS:
             cursor.execute(stmt)
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_credential_profiles_workspace_owner
+            ON credential_profiles (workspace_id, owner_account_id)
+            """
+        )
         # Run the same backfill migration as production startup
         cursor.execute(
             "UPDATE snapshots "
