@@ -86,32 +86,59 @@ def verify_oidc_id_token(settings: Settings, id_token: str) -> VerifiedOIDCIdent
     )
 
 
-def _load_workspace_map(settings: Settings) -> dict[str, Any]:
+def _validate_workspace_grant(grant: Any, *, path: str) -> dict[str, Any]:
+    if not isinstance(grant, dict):
+        raise OIDCNotConfiguredError(f"OIDC workspace mapping is invalid at {path}.")
+    workspace_id = str(grant.get("workspace_id") or "").strip()
+    if not workspace_id:
+        raise OIDCNotConfiguredError(f"OIDC workspace mapping is missing workspace_id at {path}.")
+    role = str(grant.get("role") or "viewer").strip().lower()
+    if role not in {"owner", "viewer"}:
+        raise OIDCNotConfiguredError(f"OIDC workspace mapping has invalid role at {path}.")
+    return {"workspace_id": workspace_id, "role": role}
+
+
+def _validate_workspace_map(parsed: Any) -> dict[str, list[dict[str, Any]]]:
+    if not isinstance(parsed, dict):
+        raise OIDCNotConfiguredError("OIDC workspace mapping is invalid: root must be an object.")
+    users = parsed.get("users")
+    if not isinstance(users, dict):
+        raise OIDCNotConfiguredError("OIDC workspace mapping is invalid: users must be an object.")
+
+    normalized: dict[str, list[dict[str, Any]]] = {}
+    for raw_email, entry in users.items():
+        email = str(raw_email or "").strip().lower()
+        if not email:
+            raise OIDCNotConfiguredError("OIDC workspace mapping contains an empty user key.")
+        if not isinstance(entry, dict):
+            raise OIDCNotConfiguredError(f"OIDC workspace mapping is invalid for {email}: entry must be an object.")
+
+        if "workspaces" in entry:
+            workspaces = entry["workspaces"]
+            if not isinstance(workspaces, list) or not workspaces:
+                raise OIDCNotConfiguredError(f"OIDC workspace mapping is invalid for {email}: workspaces must be a non-empty list.")
+            normalized[email] = [
+                _validate_workspace_grant(item, path=f"users.{email}.workspaces[{index}]")
+                for index, item in enumerate(workspaces)
+            ]
+        else:
+            normalized[email] = [_validate_workspace_grant(entry, path=f"users.{email}")]
+    return normalized
+
+
+def _load_workspace_map(settings: Settings) -> dict[str, list[dict[str, Any]]]:
     raw = settings.auth_oidc_workspace_map_json.strip()
     if not raw:
         raise OIDCNotConfiguredError("OIDC workspace mapping is not configured.")
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise OIDCNotConfiguredError("OIDC workspace mapping is invalid.") from exc
-    if not isinstance(parsed, dict):
-        raise OIDCNotConfiguredError("OIDC workspace mapping is invalid.")
-    return parsed
+        raise OIDCNotConfiguredError("OIDC workspace mapping is invalid JSON.") from exc
+    return _validate_workspace_map(parsed)
 
 
-def _grants_for_email(mapping: dict[str, Any], email: str) -> list[dict[str, Any]]:
-    users = mapping.get("users")
-    if not isinstance(users, dict):
-        return []
-    entry = users.get(email.lower())
-    if not isinstance(entry, dict):
-        return []
-    workspaces = entry.get("workspaces")
-    if isinstance(workspaces, list):
-        return [item for item in workspaces if isinstance(item, dict)]
-    if entry.get("workspace_id"):
-        return [entry]
-    return []
+def _grants_for_email(mapping: dict[str, list[dict[str, Any]]], email: str) -> list[dict[str, Any]]:
+    return mapping.get(email.lower(), [])
 
 
 def resolve_oidc_workspace_grant(

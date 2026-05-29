@@ -131,6 +131,58 @@ def test_resolve_oidc_workspace_grant_rejects_unmapped_workspace():
         )
 
 
+def test_resolve_oidc_workspace_grant_supports_single_workspace_mapping_default_viewer():
+    identity = VerifiedOIDCIdentity(
+        issuer="https://login.example.test",
+        subject="subject-a",
+        email="owner@example.test",
+    )
+
+    grant = resolve_oidc_workspace_grant(
+        Settings(auth_oidc_workspace_map_json='{"users":{"owner@example.test":{"workspace_id":"ws-a"}}}'),
+        identity,
+        None,
+        {},
+    )
+
+    assert grant.workspace_id == "ws-a"
+    assert grant.role == "viewer"
+
+
+def test_resolve_oidc_workspace_grant_rejects_malformed_workspaces_config():
+    identity = VerifiedOIDCIdentity(
+        issuer="https://login.example.test",
+        subject="subject-a",
+        email="owner@example.test",
+    )
+
+    with pytest.raises(OIDCNotConfiguredError, match="workspaces must be a non-empty list"):
+        resolve_oidc_workspace_grant(
+            Settings(auth_oidc_workspace_map_json='{"users":{"owner@example.test":{"workspaces":"ws-a"}}}'),
+            identity,
+            None,
+            {},
+        )
+
+
+def test_resolve_oidc_workspace_grant_rejects_invalid_role_config():
+    identity = VerifiedOIDCIdentity(
+        issuer="https://login.example.test",
+        subject="subject-a",
+        email="owner@example.test",
+    )
+
+    with pytest.raises(OIDCNotConfiguredError, match="invalid role"):
+        resolve_oidc_workspace_grant(
+            Settings(
+                auth_oidc_workspace_map_json='{"users":{"owner@example.test":{"workspaces":[{"workspace_id":"ws-a","role":"admin"}]}}}'
+            ),
+            identity,
+            None,
+            {},
+        )
+
+
 def test_resolve_oidc_workspace_grant_fails_closed_without_mapping():
     identity = VerifiedOIDCIdentity(
         issuer="https://login.example.test",
