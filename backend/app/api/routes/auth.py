@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import hashlib
-import secrets
-import sqlite3
-import uuid
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.api.workspace_security import _resolve_sqlite_path, record_audit_event
+from app.api.workspace_security import record_audit_event
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
+from app.auth.session_issuer import issue_workspace_session, stable_dev_account_id
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -63,49 +59,23 @@ def create_dev_session(request: Request, payload: dict[str, Any] | None = None) 
     if role not in {"owner", "viewer"}:
         raise HTTPException(status_code=400, detail="role must be owner or viewer")
     email = str(body.get("email") or "local-dev@example.test")
-    account_id = str(body.get("account_id") or f"dev-{hashlib.sha256(email.encode('utf-8')).hexdigest()[:12]}")
     ttl_minutes = int(body.get("ttl_minutes") or 60)
+    issued = issue_workspace_session(
+        database_url=settings.database_url,
+        workspace_id=workspace_id,
+        email=email,
+        role=role,
+        ttl_minutes=ttl_minutes,
+        account_id=str(body.get("account_id") or stable_dev_account_id(email)),
+        display_name=body.get("display_name") or email,
+    )
     ttl_minutes = max(5, min(ttl_minutes, 24 * 60))
-
-    token = secrets.token_urlsafe(32)
-    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-    session_id = f"sess_{uuid.uuid4().hex}"
-    member_id = f"member_{uuid.uuid4().hex}"
-    expires_at = (datetime.now(UTC) + timedelta(minutes=ttl_minutes)).isoformat()
-
-    db_path = _resolve_sqlite_path(settings.database_url)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(str(db_path)) as conn:
-        conn.execute(
-            """
-            INSERT INTO accounts(id, email, display_name)
-            VALUES (?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET email=excluded.email, display_name=excluded.display_name
-            """,
-            (account_id, email, body.get("display_name") or email),
-        )
-        conn.execute(
-            """
-            INSERT INTO workspace_members(id, workspace_id, account_id, role)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(workspace_id, account_id) DO UPDATE SET role=excluded.role
-            """,
-            (member_id, workspace_id, account_id, role),
-        )
-        conn.execute(
-            """
-            INSERT INTO sessions(id, account_id, token_hash, expires_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (session_id, account_id, token_hash, expires_at),
-        )
-        conn.commit()
 
     record_audit_event(
         event_type="auth.dev_session.created",
         outcome="success",
         workspace_id=workspace_id,
-        account_id=account_id,
+        account_id=issued.account_id,
         request_id=request.headers.get("x-request-id"),
         metadata={"role": role, "ttl_minutes": ttl_minutes},
     )
@@ -113,13 +83,13 @@ def create_dev_session(request: Request, payload: dict[str, Any] | None = None) 
     return {
         "ok": True,
         "status": "created",
-        "session_id": session_id,
-        "account_id": account_id,
-        "workspace_id": workspace_id,
-        "role": role,
-        "expires_at": expires_at,
-        "token": token,
-        "token_type": "bearer",
+        "session_id": issued.session_id,
+        "account_id": issued.account_id,
+        "workspace_id": issued.workspace_id,
+        "role": issued.role,
+        "expires_at": issued.expires_at,
+        "token": issued.token,
+        "token_type": issued.token_type,
     }
 
 
