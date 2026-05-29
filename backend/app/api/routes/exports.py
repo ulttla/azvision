@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.workspace_security import (
     WorkspaceAccessContext,
     get_workspace_access_context,
+    record_audit_event,
     require_workspace_access,
 )
 from app.core.config import get_settings
@@ -64,9 +65,10 @@ def _decode_data_url(data_url: str) -> tuple[str, bytes]:
 def create_export(
     workspace_id: str,
     payload: dict[str, Any],
+    request: Request,
     context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
-    require_workspace_access(context, workspace_id, action="write")
+    membership = require_workspace_access(context, workspace_id, action="write")
     export_format = str(payload.get("format") or "png").lower()
     if export_format not in SUPPORTED_EXPORT_FORMATS:
         raise HTTPException(
@@ -94,6 +96,18 @@ def create_export(
 
     record = _export_record_from_path(workspace_id, export_path)
     record["format"] = export_format
+    record_audit_event(
+        event_type="export.created",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={
+            "export_id": record["id"],
+            "format": export_format,
+            "size_bytes": record["size_bytes"],
+        },
+    )
     return record
 
 

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import sqlite3
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -11,6 +14,36 @@ def _restrictive_client() -> TestClient:
 
 
 class TestExportRoutes:
+    def test_create_export_writes_non_secret_audit_event(
+        self,
+        client: TestClient,
+        db_path,
+    ):
+        response = client.post(
+            "/api/v1/workspaces/local-demo/exports",
+            json={"format": "png", "export_id": "export-a", "image_data_url": "data:image/png;base64,aGk="},
+            headers={"X-Request-Id": "req-export-create"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["id"] == "export-a"
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            event = conn.execute(
+                "SELECT * FROM audit_events WHERE event_type = ?",
+                ("export.created",),
+            ).fetchone()
+        assert event is not None
+        assert event["workspace_id"] == "local-demo"
+        assert event["account_id"] == "test-account"
+        assert event["request_id"] == "req-export-create"
+        assert json.loads(event["metadata_json"]) == {
+            "export_id": "export-a",
+            "format": "png",
+            "size_bytes": 2,
+        }
+        assert "aGk=" not in event["metadata_json"]
+
     def test_create_export_requires_image_data_url_with_http_400_envelope(
         self,
         client: TestClient,
