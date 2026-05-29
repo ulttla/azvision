@@ -1,17 +1,22 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.api.workspace_security import require_workspace_membership, require_workspace_write_membership
 from app.collectors.azure_inventory import resolve_resource_items
 from app.core.config import get_settings
 from app.schemas.simulations import SimulationCreateRequest, SimulationDeleteResponse, SimulationFitResponse, SimulationListResponse, SimulationRecord, SimulationReportResponse, SimulationTemplateResponse
 from app.services.simulations import SimulationNotFoundError, SimulationService
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/simulations", tags=["simulations"])
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}/simulations",
+    tags=["simulations"],
+    dependencies=[Depends(require_workspace_membership)],
+)
 service = SimulationService()
 
 
-@router.post("", response_model=SimulationRecord)
+@router.post("", response_model=SimulationRecord, dependencies=[Depends(require_workspace_write_membership)])
 def create_simulation(workspace_id: str, payload: SimulationCreateRequest) -> SimulationRecord:
     return service.create_simulation(workspace_id, payload)
 
@@ -29,7 +34,7 @@ def get_simulation(workspace_id: str, simulation_id: str) -> SimulationRecord:
         raise HTTPException(status_code=404, detail="Simulation not found") from exc
 
 
-@router.delete("/{simulation_id}", response_model=SimulationDeleteResponse)
+@router.delete("/{simulation_id}", response_model=SimulationDeleteResponse, dependencies=[Depends(require_workspace_write_membership)])
 def delete_simulation(workspace_id: str, simulation_id: str) -> SimulationDeleteResponse:
     try:
         service.delete_simulation(workspace_id, simulation_id)

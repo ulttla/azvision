@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.main import app
+
+
+def _restrictive_client() -> TestClient:
+    """Fresh TestClient without the conftest wildcard override."""
+    return TestClient(app, raise_server_exceptions=True)
+
 
 class TestExportRoutes:
     def test_create_export_requires_image_data_url_with_http_400_envelope(
@@ -51,8 +58,8 @@ class TestExportRoutes:
 
     def test_export_create_forbids_cross_workspace_before_payload_validation(
         self,
-        client: TestClient,
     ):
+        client = _restrictive_client()
         response = client.post(
             "/api/v1/workspaces/workspace-b/exports",
             json={"format": "png"},
@@ -68,8 +75,8 @@ class TestExportRoutes:
 
     def test_export_list_forbids_cross_workspace_without_id_leak(
         self,
-        client: TestClient,
     ):
+        client = _restrictive_client()
         response = client.get("/api/v1/workspaces/workspace-b/exports")
 
         assert response.status_code == 403

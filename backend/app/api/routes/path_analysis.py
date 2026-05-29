@@ -7,8 +7,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.api.workspace_security import require_workspace_membership
 from app.collectors.azure_inventory import (
     AzureInventoryError,
     resolve_inventory_collection,
@@ -16,7 +17,11 @@ from app.collectors.azure_inventory import (
 from app.core.config import get_settings
 from app.services.path_analysis import PathVerdict, analyze_path
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/path-analysis", tags=["path-analysis"])
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}/path-analysis",
+    tags=["path-analysis"],
+    dependencies=[Depends(require_workspace_membership)],
+)
 
 
 def _path_analysis_to_dict(result: Any) -> dict[str, Any]:

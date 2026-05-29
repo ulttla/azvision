@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.workspace_security import require_workspace_membership, require_workspace_write_membership
 from app.schemas.snapshots import (
     SnapshotCompareRequest,
     SnapshotCompareResponse,
@@ -22,7 +23,11 @@ from app.schemas.topology_archive import (
 from app.services.snapshots import SnapshotNotFoundError, SnapshotService
 from app.services.topology_normalizer import normalize_topology, topology_diff
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/snapshots", tags=["snapshots"])
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}/snapshots",
+    tags=["snapshots"],
+    dependencies=[Depends(require_workspace_membership)],
+)
 service = SnapshotService()
 
 
@@ -43,7 +48,7 @@ def list_snapshots(
     return SnapshotListResponse(workspace_id=workspace_id, items=service.list_snapshots(workspace_id, query))
 
 
-@router.post("", response_model=SnapshotRecord)
+@router.post("", response_model=SnapshotRecord, dependencies=[Depends(require_workspace_write_membership)])
 def create_snapshot(workspace_id: str, payload: SnapshotCreateRequest) -> SnapshotRecord:
     return service.create_snapshot(workspace_id, payload)
 
@@ -68,7 +73,7 @@ def get_snapshot(workspace_id: str, snapshot_id: str) -> SnapshotRecord:
         raise HTTPException(status_code=404, detail="Snapshot not found") from exc
 
 
-@router.patch("/{snapshot_id}", response_model=SnapshotRecord)
+@router.patch("/{snapshot_id}", response_model=SnapshotRecord, dependencies=[Depends(require_workspace_write_membership)])
 def update_snapshot(
     workspace_id: str,
     snapshot_id: str,
@@ -80,7 +85,7 @@ def update_snapshot(
         raise HTTPException(status_code=404, detail="Snapshot not found") from exc
 
 
-@router.post("/{snapshot_id}/restore-events", response_model=SnapshotRecord)
+@router.post("/{snapshot_id}/restore-events", response_model=SnapshotRecord, dependencies=[Depends(require_workspace_write_membership)])
 def record_snapshot_restore_event(workspace_id: str, snapshot_id: str) -> SnapshotRecord:
     try:
         return service.record_restore_event(workspace_id, snapshot_id)
@@ -88,7 +93,7 @@ def record_snapshot_restore_event(workspace_id: str, snapshot_id: str) -> Snapsh
         raise HTTPException(status_code=404, detail="Snapshot not found") from exc
 
 
-@router.delete("/{snapshot_id}")
+@router.delete("/{snapshot_id}", dependencies=[Depends(require_workspace_write_membership)])
 def delete_snapshot(workspace_id: str, snapshot_id: str) -> dict[str, str]:
     try:
         service.delete_snapshot(workspace_id, snapshot_id)
@@ -107,7 +112,7 @@ def delete_snapshot(workspace_id: str, snapshot_id: str) -> dict[str, str]:
 # ============================================================
 
 
-@router.post("/{snapshot_id}/topology-archive", response_model=TopologyArchiveResponse)
+@router.post("/{snapshot_id}/topology-archive", response_model=TopologyArchiveResponse, dependencies=[Depends(require_workspace_write_membership)])
 def store_topology_archive(
     workspace_id: str,
     snapshot_id: str,

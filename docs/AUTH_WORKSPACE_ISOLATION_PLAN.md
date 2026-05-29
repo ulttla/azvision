@@ -91,8 +91,10 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - Workspace routes now use a local-demo FastAPI dependency seam, covered by `backend/tests/test_workspaces_route_security.py`, so the future session-backed dependency can replace it without changing route contracts.
 - Scan routes now use the same seam, covered by `backend/tests/test_scans_route_security.py`; cross-workspace scan requests are denied before inventory collection starts.
 - Export routes now use the same seam, covered by `backend/tests/test_exports.py`; cross-workspace file creation/list/get requests are denied before payload validation or filesystem access.
+- Current workspace-scoped inventory, topology, snapshots, simulations, cost, Copilot workspace chat, and path-analysis routes now use the same membership seam, covered by `backend/tests/test_workspace_isolation_contract.py` cross-workspace denial tests.
+- Mutation-sensitive manual topology, snapshot, and simulation endpoints also have first-pass write-level owner/viewer checks through `require_workspace_write_membership()`.
 
-This is not yet full public beta auth. It is the first safe contract slice for the later FastAPI dependency and route integration.
+This is not yet full public beta auth. It is a route-level isolation contract slice for the later FastAPI session/account dependency. Public beta still needs real session lookup, account persistence, credential ownership, and audit events before exposure.
 
 ## Migration approach
 

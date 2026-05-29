@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.api.workspace_security import require_workspace_membership
 from app.collectors.azure_inventory import resolve_inventory_collection
 from app.core.config import get_settings
 from app.services.cost_analysis import (
@@ -14,7 +15,11 @@ from app.services.cost_analysis import (
 )
 from app.services.cost_ingestion import get_default_cost_ingestion_provider
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/cost", tags=["cost"])
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}/cost",
+    tags=["cost"],
+    dependencies=[Depends(require_workspace_membership)],
+)
 
 
 def _inventory_resources(

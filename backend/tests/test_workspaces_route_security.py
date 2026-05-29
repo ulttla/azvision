@@ -7,6 +7,11 @@ from app.api.workspace_security import WorkspaceAccessContext, WorkspaceMembersh
 from app.main import app
 
 
+def _restrictive_client() -> TestClient:
+    """Fresh TestClient without the conftest wildcard override."""
+    return TestClient(app, raise_server_exceptions=True)
+
+
 def test_default_workspace_route_allows_local_demo_owner(client: TestClient):
     response = client.get("/api/v1/workspaces/local-demo")
 
@@ -14,7 +19,8 @@ def test_default_workspace_route_allows_local_demo_owner(client: TestClient):
     assert response.json()["id"] == "local-demo"
 
 
-def test_default_workspace_route_forbids_cross_workspace_without_id_leak(client: TestClient):
+def test_default_workspace_route_forbids_cross_workspace_without_id_leak():
+    client = _restrictive_client()
     response = client.get("/api/v1/workspaces/workspace-b")
 
     assert response.status_code == 403
@@ -49,7 +55,8 @@ def test_viewer_dependency_override_cannot_patch_workspace(client: TestClient):
     assert response.json()["message"] == "Workspace action denied."
 
 
-def test_workspace_create_cannot_escape_local_membership(client: TestClient):
+def test_workspace_create_cannot_escape_local_membership():
+    client = _restrictive_client()
     response = client.post("/api/v1/workspaces", json={"id": "workspace-b", "name": "Other"})
 
     assert response.status_code == 403

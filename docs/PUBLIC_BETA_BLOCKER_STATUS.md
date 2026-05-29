@@ -15,7 +15,7 @@ This table summarizes the public beta blocker state after the C1 public readines
 
 | ID | Area | Current status | Evidence | Remaining gate |
 | --- | --- | --- | --- | --- |
-| G1 | Auth, account, workspace isolation | partial | `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md`, `backend/app/api/workspace_security.py`, `backend/tests/test_workspace_security.py`, `backend/tests/test_workspaces_route_security.py`, `backend/tests/test_scans_route_security.py`, `backend/tests/test_exports.py` | Replace local-demo dependency with session/account lookup and expand guard to remaining workspace-scoped routes |
+| G1 | Auth, account, workspace isolation | partial | `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md`, `backend/app/api/workspace_security.py`, `backend/tests/test_workspace_security.py`, `backend/tests/test_workspaces_route_security.py`, `backend/tests/test_scans_route_security.py`, `backend/tests/test_exports.py`, `backend/tests/test_workspace_isolation_contract.py` | Replace local-demo dependency with session/account lookup; route-level guard now covers current workspace-scoped routes, with write-level owner/viewer checks started for mutation endpoints |
 | G2 | Production-like deployment profile | partial | `docker-compose.production.example.yml`, production Dockerfiles, `scripts/production_profile_smoke.sh`, CI contract smoke | Run private production-like environment and hosted E2E smoke |
 | G3 | API protection and audit trail | partial | `X-Request-ID`, safe request logging, `build_rate_limited_response()`, `docs/RATE_LIMIT_AUDIT_PLAN.md` | Implement actual limiter and audit event storage after identity model |
 | G4 | Public onboarding and demo workspace | partial | `docs/ONBOARDING_DESIGN.md`, `docs/DEMO_WORKSPACE_CONTRACT.md`, backend demo contract tests | Add first-run UI and demo workspace CTA |
@@ -29,7 +29,7 @@ This table summarizes the public beta blocker state after the C1 public readines
 
 Public beta remains **not ready** until at least:
 
-1. G1 auth/workspace isolation is implemented and tested.
+1. G1 auth/session lookup is implemented and tested on top of the route-level workspace guard seam.
 2. G2 private production-like environment is run successfully.
 3. G5 hosted E2E smoke passes against that private environment.
 4. G3 actual rate limiting exists for public-abuse-sensitive routes.
@@ -49,4 +49,4 @@ Public beta remains **not ready** until at least:
 
 ## Current recommendation
 
-Next product-track slice should start with G1 auth/workspace isolation. G2/G5 can continue in parallel only as private environment validation; do not expose AzVision publicly before G1 is in place.
+Next product-track slice should continue G1 by replacing the local-demo access context with real session/account lookup and tightening remaining write/manage role semantics. G2/G5 can continue in parallel only as private environment validation; do not expose AzVision publicly before G1 session auth is in place.

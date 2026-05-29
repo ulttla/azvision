@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.api.workspace_security import require_workspace_membership
 from app.collectors.azure_inventory import (
     resolve_inventory_collection,
     resolve_resource_group_items,
@@ -8,7 +9,11 @@ from app.collectors.azure_inventory import (
 )
 from app.core.config import get_settings
 
-router = APIRouter(prefix="/workspaces/{workspace_id}", tags=["inventory"])
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}",
+    tags=["inventory"],
+    dependencies=[Depends(require_workspace_membership)],
+)
 
 
 @router.get("/subscriptions")

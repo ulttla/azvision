@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.api.workspace_security import require_workspace_membership, require_workspace_write_membership
 from app.collectors.azure_inventory import (
     AzureInventoryCollection,
     AzureInventoryError,
@@ -15,7 +16,11 @@ from app.services.topology_inference import (
     infer_network_relationship_edges,
 )
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/topology", tags=["topology"])
+router = APIRouter(
+    prefix="/workspaces/{workspace_id}/topology",
+    tags=["topology"],
+    dependencies=[Depends(require_workspace_membership)],
+)
 
 
 def _projection_mode_label(source_mode: str) -> str:
@@ -800,7 +805,7 @@ def _serialize_manual_node(node: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-@router.post("/manual-nodes")
+@router.post("/manual-nodes", dependencies=[Depends(require_workspace_write_membership)])
 def create_manual_node(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     repo = _manual_repo()
     created = repo.create_manual_node(workspace_id, payload)
@@ -811,7 +816,7 @@ def create_manual_node(workspace_id: str, payload: dict[str, Any]) -> dict[str, 
     }
 
 
-@router.post("/manual-edges")
+@router.post("/manual-edges", dependencies=[Depends(require_workspace_write_membership)])
 def create_manual_edge(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     _validate_manual_edge_payload(workspace_id, payload)
     repo = _manual_repo()
@@ -844,7 +849,7 @@ def list_manual_edges(workspace_id: str) -> dict[str, Any]:
     }
 
 
-@router.patch("/manual-nodes/{manual_node_ref}")
+@router.patch("/manual-nodes/{manual_node_ref}", dependencies=[Depends(require_workspace_write_membership)])
 def update_manual_node(
     workspace_id: str,
     manual_node_ref: str,
@@ -861,7 +866,7 @@ def update_manual_node(
     }
 
 
-@router.patch("/manual-edges/{manual_edge_ref}")
+@router.patch("/manual-edges/{manual_edge_ref}", dependencies=[Depends(require_workspace_write_membership)])
 def update_manual_edge(
     workspace_id: str,
     manual_edge_ref: str,
@@ -880,7 +885,7 @@ def update_manual_edge(
     return {"ok": True, "status": "updated", **updated}
 
 
-@router.delete("/manual-nodes/{manual_node_ref}")
+@router.delete("/manual-nodes/{manual_node_ref}", dependencies=[Depends(require_workspace_write_membership)])
 def delete_manual_node(workspace_id: str, manual_node_ref: str) -> dict[str, Any]:
     repo = _manual_repo()
     deleted = repo.delete_manual_node(workspace_id, manual_node_ref)
@@ -894,7 +899,7 @@ def delete_manual_node(workspace_id: str, manual_node_ref: str) -> dict[str, Any
     raise HTTPException(status_code=404, detail="Requested manual node was not found.")
 
 
-@router.delete("/manual-edges/{manual_edge_ref}")
+@router.delete("/manual-edges/{manual_edge_ref}", dependencies=[Depends(require_workspace_write_membership)])
 def delete_manual_edge(workspace_id: str, manual_edge_ref: str) -> dict[str, Any]:
     repo = _manual_repo()
     deleted = repo.delete_manual_edge(workspace_id, manual_edge_ref)

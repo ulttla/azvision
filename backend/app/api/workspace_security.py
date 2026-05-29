@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 
 from app.core.config import get_settings
 
@@ -42,6 +42,29 @@ def get_workspace_access_context() -> WorkspaceAccessContext:
             ),
         ),
     )
+
+
+
+async def require_workspace_membership(
+    workspace_id: str,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> WorkspaceMembership:
+    """Route-agnostic workspace membership check.
+
+    Designed as a router-level dependency (dependencies=[Depends(require_workspace_membership)]).
+    Gates every route under the router with a minimum read-level membership check.
+    Individual routes that need write/manage access should add a per-route
+    require_workspace_access(..., action="write"/"manage") call on top.
+    """
+    return require_workspace_access(context, workspace_id, action="read")
+
+
+async def require_workspace_write_membership(
+    workspace_id: str,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> WorkspaceMembership:
+    """Route-agnostic workspace write check for mutation endpoints."""
+    return require_workspace_access(context, workspace_id, action="write")
 
 
 def require_workspace_access(

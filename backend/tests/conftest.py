@@ -140,10 +140,60 @@ def client(
     monkeypatch.setenv("OPENROUTER_API_KEY", "")
     monkeypatch.setenv("OPENROUTER_MODEL", "")
 
+    # 4. Import app and override workspace access context for workspaces used
+    #    by non-security route tests. Security tests use a restrictive client.
     from app.main import app
+    from app.api.workspace_security import (
+        WorkspaceAccessContext,
+        WorkspaceMembership,
+        get_workspace_access_context,
+    )
 
-    with TestClient(app, raise_server_exceptions=True) as c:
-        yield c
+    def _test_access_context() -> WorkspaceAccessContext:
+        test_workspace_ids = (
+            "local-demo",
+            "ws-copilot-test",
+            "ws-cost-test",
+            "ws-inventory-test",
+            "ws-manual-test",
+            "ws-other",
+            "ws-path-analysis-test",
+            "ws-simulation-test",
+            "ws-test-001",
+            "ws-topology-test",
+            "no-such-ws",
+            "other-workspace",
+        )
+        return WorkspaceAccessContext(
+            account_id="test-account",
+            memberships=tuple(
+                WorkspaceMembership(
+                    workspace_id=workspace_id,
+                    account_id="test-account",
+                    role="owner",
+                )
+                for workspace_id in test_workspace_ids
+            ),
+        )
+
+    app.dependency_overrides[get_workspace_access_context] = _test_access_context
+
+    try:
+        with TestClient(app, raise_server_exceptions=True) as c:
+            yield c
+    finally:
+        app.dependency_overrides.pop(get_workspace_access_context, None)
 
     # Restore cache so subsequent tests start fresh
     get_settings.cache_clear()
+
+
+@pytest.fixture
+def unpatched_app():
+    """FastAPI app without the broad test access override.
+
+    For security tests that need to verify cross-workspace denial behavior.
+    The default get_workspace_access_context only grants local-demo membership.
+    """
+    from app.main import app as _app
+    return _app

@@ -2,11 +2,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.api.workspace_security import (
+    WorkspaceAccessContext,
+    get_workspace_access_context,
+    require_workspace_access,
+)
 from app.collectors.azure_inventory import resolve_inventory_collection
 from app.core.config import get_settings
-from app.services.copilot import build_copilot_context, get_configured_copilot_provider, list_copilot_providers, probe_provider_health
+from app.services.copilot import (
+    build_copilot_context,
+    get_configured_copilot_provider,
+    list_copilot_providers,
+    probe_provider_health,
+)
 
 router = APIRouter(tags=["copilot"])
 
@@ -90,8 +100,10 @@ def post_provider_aware_copilot_message(
     resource_group_name: str | None = Query(default=None),
     resource_group_limit: int = Query(default=200, ge=1, le=1000),
     resource_limit: int = Query(default=500, ge=1, le=5000),
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
     workspace_id = str(payload.get("workspace_id") or get_settings().workspace_default_id)
+    require_workspace_access(context, workspace_id, action="read")
     return _answer_payload(
         workspace_id=workspace_id,
         payload=payload,
@@ -110,7 +122,9 @@ def post_copilot_message(
     resource_group_name: str | None = Query(default=None),
     resource_group_limit: int = Query(default=200, ge=1, le=1000),
     resource_limit: int = Query(default=500, ge=1, le=5000),
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
+    require_workspace_access(context, workspace_id, action="read")
     return _answer_payload(
         workspace_id=workspace_id,
         payload=payload,
