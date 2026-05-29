@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import Depends, HTTPException, Request, status
 
@@ -122,6 +124,34 @@ def _local_demo_context() -> WorkspaceAccessContext:
             ),
         ),
     )
+
+
+def record_audit_event(
+    *,
+    event_type: str,
+    outcome: str,
+    workspace_id: str | None = None,
+    account_id: str | None = None,
+    request_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> str | None:
+    """Append a best-effort audit event without leaking sensitive values."""
+    db_path = _resolve_sqlite_path(get_settings().database_url)
+    if not db_path.exists():
+        return None
+
+    event_id = f"audit_{uuid.uuid4().hex}"
+    metadata_json = json.dumps(metadata or {}, sort_keys=True, separators=(",", ":"))
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            """
+            INSERT INTO audit_events(id, workspace_id, account_id, event_type, request_id, outcome, metadata_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (event_id, workspace_id, account_id, event_type, request_id, outcome, metadata_json),
+        )
+        conn.commit()
+    return event_id
 
 
 def get_workspace_access_context(request: Request) -> WorkspaceAccessContext:

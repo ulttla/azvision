@@ -7,9 +7,9 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from app.api.workspace_security import _resolve_sqlite_path
+from app.api.workspace_security import _resolve_sqlite_path, record_audit_event
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
 from app.core.config import get_settings
 
@@ -47,7 +47,7 @@ def config_check() -> dict:
 
 
 @router.post("/dev-session")
-def create_dev_session(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+def create_dev_session(request: Request, payload: dict[str, Any] | None = None) -> dict[str, Any]:
     """Issue a local development session token when explicitly enabled.
 
     This is not a public login flow. It exists only to exercise the session
@@ -100,6 +100,15 @@ def create_dev_session(payload: dict[str, Any] | None = None) -> dict[str, Any]:
             (session_id, account_id, token_hash, expires_at),
         )
         conn.commit()
+
+    record_audit_event(
+        event_type="auth.dev_session.created",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"role": role, "ttl_minutes": ttl_minutes},
+    )
 
     return {
         "ok": True,

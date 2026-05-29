@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
 
@@ -139,6 +140,7 @@ def test_enabled_dev_session_issues_bearer_token_for_workspace(db_path, monkeypa
         session_response = client.post(
             "/api/v1/auth/dev-session",
             json={"workspace_id": "workspace-a", "email": "owner@example.test", "role": "owner"},
+            headers={"X-Request-Id": "req-dev-session"},
         )
         assert session_response.status_code == 200
         session_payload = session_response.json()
@@ -157,6 +159,18 @@ def test_enabled_dev_session_issues_bearer_token_for_workspace(db_path, monkeypa
 
     assert allowed.status_code == 200
     assert denied.status_code == 403
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        event = conn.execute(
+            "SELECT * FROM audit_events WHERE event_type = ?",
+            ("auth.dev_session.created",),
+        ).fetchone()
+    assert event is not None
+    assert event["workspace_id"] == "workspace-a"
+    assert event["outcome"] == "success"
+    assert event["request_id"] == "req-dev-session"
+    assert json.loads(event["metadata_json"]) == {"role": "owner", "ttl_minutes": 60}
+    assert token not in event["metadata_json"]
 
 
 def test_enabled_dev_session_viewer_token_cannot_write(db_path, monkeypatch):
