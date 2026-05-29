@@ -96,7 +96,9 @@ class TestAuthRoutes:
         monkeypatch: pytest.MonkeyPatch,
     ):
         import app.api.routes.auth as auth_routes
+        import app.main as main
 
+        monkeypatch.setattr(main.settings, "debug", True)
         monkeypatch.setattr(
             auth_routes,
             "get_settings",
@@ -123,7 +125,9 @@ class TestAuthRoutes:
         monkeypatch: pytest.MonkeyPatch,
     ):
         import app.api.routes.auth as auth_routes
+        import app.main as main
 
+        monkeypatch.setattr(main.settings, "debug", False)
         monkeypatch.setattr(
             auth_routes,
             "get_settings",
@@ -141,7 +145,7 @@ class TestAuthRoutes:
         assert response.json() == {
             "ok": False,
             "status": "http-500",
-            "message": "Unexpected auth read test failure.",
+            "message": "Internal server error",
         }
         assert "secret upstream traceback" not in response.text
     def test_config_check_hides_local_env_paths_when_debug_disabled(
