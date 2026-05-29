@@ -12,7 +12,8 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.response_utils import build_error_response
+from app.api.rate_limiter import InMemoryRateLimiter, request_rate_limit_key, route_limit_group
+from app.api.response_utils import build_error_response, build_rate_limited_response
 from app.api.routes.auth import router as auth_router
 from app.api.routes.copilot import router as copilot_router
 from app.api.routes.cost import router as cost_router
@@ -56,6 +57,7 @@ async def lifespan(_: FastAPI):
 
 settings = get_settings()
 request_logger = logging.getLogger("azvision.request")
+rate_limiter = InMemoryRateLimiter(window_seconds=settings.rate_limit_window_seconds)
 
 app = FastAPI(
     title=settings.app_name,
@@ -95,6 +97,31 @@ async def add_request_id_header(request: Request, call_next):
         },
     )
     return response
+
+
+@app.middleware("http")
+async def enforce_rate_limits(request: Request, call_next):
+    current_settings = get_settings()
+    if not current_settings.rate_limit_enabled:
+        return await call_next(request)
+
+    group = route_limit_group(request.url.path)
+    limits = {
+        "auth": current_settings.rate_limit_auth_per_window,
+        "exports": current_settings.rate_limit_exports_per_window,
+        "copilot": current_settings.rate_limit_copilot_per_window,
+        "default": current_settings.rate_limit_default_per_window,
+    }
+    allowed, retry_after = rate_limiter.check(
+        key=request_rate_limit_key(request),
+        limit=limits.get(group, current_settings.rate_limit_default_per_window),
+    )
+    if not allowed:
+        response = build_rate_limited_response(retry_after_seconds=retry_after)
+        request_id = getattr(request.state, "request_id", None) or request.headers.get("X-Request-ID") or f"req_{uuid4().hex}"
+        response.headers.setdefault("X-Request-ID", request_id)
+        return response
+    return await call_next(request)
 
 
 @app.middleware("http")

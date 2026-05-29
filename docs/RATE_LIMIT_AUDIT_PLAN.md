@@ -5,7 +5,7 @@ This plan defines the minimum API protection layer needed before AzVision can ru
 ## Current state
 
 - Security headers and safe debug defaults are in place.
-- There is no request rate limiter yet.
+- A process-local fixed-window request limiter exists behind `AZVISION_RATE_LIMIT_ENABLED=false` by default.
 - There is no durable audit event model yet.
 - Public traffic should not be enabled until identity and workspace isolation exist.
 
@@ -53,10 +53,12 @@ Rate-limited responses should use the existing error envelope:
 
 HTTP status should be `429` and should include `Retry-After` when the limiter can calculate it.
 
-Implemented response helper:
+Implemented response helper and middleware:
 
 - `build_rate_limited_response()` centralizes the `429` payload.
-- It preserves the stable `rate-limited` status and optional `Retry-After` header for future limiter middleware.
+- It preserves the stable `rate-limited` status and optional `Retry-After` header.
+- `InMemoryRateLimiter` provides a process-local fixed-window limiter for auth, exports, Copilot, and default route groups.
+- The limiter is disabled by default and enabled with `AZVISION_RATE_LIMIT_ENABLED=true`; production should replace or front it with shared storage/gateway enforcement before multi-instance public traffic.
 
 ## Audit trail target
 
@@ -98,9 +100,9 @@ Minimum event types:
 
 1. Add request id middleware.
 2. Add safe structured logging with request id, route, status, and duration.
-3. Add limiter abstraction with in-memory local backend first.
-4. Add rate-limited response tests.
-5. Add audit event repository and tests after account/workspace identity exists.
+3. Add limiter abstraction with in-memory local backend first. [done]
+4. Add rate-limited response tests. [done]
+5. Replace process-local storage with shared storage/gateway enforcement for multi-instance hosting.
 6. Add public beta runbook section for reviewing audit events.
 
 ## No-go criteria

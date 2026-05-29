@@ -129,6 +129,30 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("AZVISION_AUTH_OIDC_AUDIENCE", "AUTH_OIDC_AUDIENCE"),
     )
+    rate_limit_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("AZVISION_RATE_LIMIT_ENABLED", "RATE_LIMIT_ENABLED"),
+    )
+    rate_limit_window_seconds: int = Field(
+        default=60,
+        validation_alias=AliasChoices("AZVISION_RATE_LIMIT_WINDOW_SECONDS", "RATE_LIMIT_WINDOW_SECONDS"),
+    )
+    rate_limit_default_per_window: int = Field(
+        default=120,
+        validation_alias=AliasChoices("AZVISION_RATE_LIMIT_DEFAULT_PER_WINDOW", "RATE_LIMIT_DEFAULT_PER_WINDOW"),
+    )
+    rate_limit_auth_per_window: int = Field(
+        default=20,
+        validation_alias=AliasChoices("AZVISION_RATE_LIMIT_AUTH_PER_WINDOW", "RATE_LIMIT_AUTH_PER_WINDOW"),
+    )
+    rate_limit_exports_per_window: int = Field(
+        default=30,
+        validation_alias=AliasChoices("AZVISION_RATE_LIMIT_EXPORTS_PER_WINDOW", "RATE_LIMIT_EXPORTS_PER_WINDOW"),
+    )
+    rate_limit_copilot_per_window: int = Field(
+        default=20,
+        validation_alias=AliasChoices("AZVISION_RATE_LIMIT_COPILOT_PER_WINDOW", "RATE_LIMIT_COPILOT_PER_WINDOW"),
+    )
     export_root: str = str(PROJECT_DIR / "exports")
 
     model_config = SettingsConfigDict(
