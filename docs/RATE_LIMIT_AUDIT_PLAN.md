@@ -116,12 +116,21 @@ Minimum public beta limits to configure at the shared layer:
 | `copilot` | `AZVISION_RATE_LIMIT_COPILOT_PER_WINDOW=20` | account plus workspace |
 | `default` | `AZVISION_RATE_LIMIT_DEFAULT_PER_WINDOW=120` | source IP or account plus workspace when available |
 
+Provider selection guidance:
+
+| Hosting shape | Recommended limiter | Why |
+| --- | --- | --- |
+| Managed platform or reverse proxy available | Edge/gateway limiter | Best first public beta path: blocks abuse before app workers, no new app storage dependency, and can be tested independently. |
+| Multiple app workers without edge limiter | Redis/shared-store limiter | Keeps the app-level response contract and gives global quota across workers. |
+| Single private preview process only | In-app limiter plus strict private access boundary | Acceptable only as a temporary private preview control; not a public beta control. |
+
 Pre-exposure verification:
 
 1. Trigger the shared limiter for each group and confirm HTTP `429` behavior.
 2. Confirm `Retry-After` exists or document why the edge cannot emit it.
 3. Confirm request logs include `X-Request-ID` and do not include tokens, prompts, or credentials.
 4. Confirm app-level limiter remains disabled or is configured as a secondary defense, not the only multi-instance control.
+5. Record limiter provider, configured limits, test request IDs, commit SHA, and rollback/disable path in the release notes.
 
 ## Implementation sequence
 

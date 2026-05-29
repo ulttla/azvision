@@ -70,6 +70,35 @@ The smoke should fail closed if either URL is missing.
 
 `scripts/hosted_public_beta_smoke.mjs` now covers frontend load, health/readiness headers, workspace discovery, demo topology nodes/edges, snapshot create/list/detail/restore/delete cleanup, cost unknown/estimated/mock labeling, Copilot fallback response, and secret-like output scanning.
 
+## Private execution readiness checklist
+
+Do not run the hosted smoke against any internet-exposed target until Gun explicitly approves the target and exposure boundary. A private target is ready only when all checks below are true:
+
+| Gate | Required proof |
+| --- | --- |
+| Target boundary | URL is private-only, allowlisted, VPN/Tailscale/internal, or otherwise not broadly public |
+| App profile | Backend runs with `AZVISION_ENV=production` and `AZVISION_DEBUG=false` |
+| Host/CORS | `AZVISION_ALLOWED_HOSTS` and `AZVISION_CORS_ORIGINS` are concrete values, no wildcard |
+| Data mode | Demo/mock workspace available; no real Azure write/remediation credentials needed |
+| Secret hygiene | Secrets are backend-only; smoke output and page text must not expose provider keys, tokens, passwords, or certificate content |
+| Abuse control | Either shared edge/gateway limiter is active, or this is explicitly a single-process private preview with app limiter enabled as secondary control |
+| Rollback | Operator can disable the private route without deleting data |
+
+Required operator inputs before a real run:
+
+```bash
+export AZVISION_HOSTED_BASE_URL="https://private-preview.example"
+export AZVISION_HOSTED_API_BASE_URL="https://private-preview.example/api/v1"
+```
+
+Run sequence for an approved private target:
+
+1. Confirm target boundary and host/CORS values.
+2. Run `node scripts/hosted_public_beta_smoke.mjs --contract-check` locally.
+3. Run `node scripts/hosted_public_beta_smoke.mjs` with the two hosted URL env vars.
+4. Capture pass/fail, commit SHA, target label, and whether any cleanup failed.
+5. Do not promote to public exposure from smoke success alone; public exposure remains a separate approval gate.
+
 ## Local contract check
 
 The script can be checked without network access:
