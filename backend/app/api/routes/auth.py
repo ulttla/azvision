@@ -1,5 +1,15 @@
+from __future__ import annotations
+
+import hashlib
+import secrets
+import sqlite3
+import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 
+from app.api.workspace_security import _resolve_sqlite_path
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
 from app.core.config import get_settings
 
@@ -34,6 +44,74 @@ def config_check() -> dict:
             "discovered_env_files": settings.discovered_env_files,
         }
     return payload
+
+
+@router.post("/dev-session")
+def create_dev_session(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Issue a local development session token when explicitly enabled.
+
+    This is not a public login flow. It exists only to exercise the session
+    lookup seam safely before a real identity provider is wired.
+    """
+    settings = get_settings()
+    if not settings.auth_dev_session_enabled:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    body = payload or {}
+    workspace_id = str(body.get("workspace_id") or settings.workspace_default_id)
+    role = str(body.get("role") or "owner")
+    if role not in {"owner", "viewer"}:
+        raise HTTPException(status_code=400, detail="role must be owner or viewer")
+    email = str(body.get("email") or "local-dev@example.test")
+    account_id = str(body.get("account_id") or f"dev-{hashlib.sha256(email.encode('utf-8')).hexdigest()[:12]}")
+    ttl_minutes = int(body.get("ttl_minutes") or 60)
+    ttl_minutes = max(5, min(ttl_minutes, 24 * 60))
+
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    session_id = f"sess_{uuid.uuid4().hex}"
+    member_id = f"member_{uuid.uuid4().hex}"
+    expires_at = (datetime.now(UTC) + timedelta(minutes=ttl_minutes)).isoformat()
+
+    db_path = _resolve_sqlite_path(settings.database_url)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            """
+            INSERT INTO accounts(id, email, display_name)
+            VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET email=excluded.email, display_name=excluded.display_name
+            """,
+            (account_id, email, body.get("display_name") or email),
+        )
+        conn.execute(
+            """
+            INSERT INTO workspace_members(id, workspace_id, account_id, role)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(workspace_id, account_id) DO UPDATE SET role=excluded.role
+            """,
+            (member_id, workspace_id, account_id, role),
+        )
+        conn.execute(
+            """
+            INSERT INTO sessions(id, account_id, token_hash, expires_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (session_id, account_id, token_hash, expires_at),
+        )
+        conn.commit()
+
+    return {
+        "ok": True,
+        "status": "created",
+        "session_id": session_id,
+        "account_id": account_id,
+        "workspace_id": workspace_id,
+        "role": role,
+        "expires_at": expires_at,
+        "token": token,
+        "token_type": "bearer",
+    }
 
 
 @router.get("/read-test")

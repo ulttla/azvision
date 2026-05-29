@@ -117,3 +117,64 @@ def test_no_bearer_keeps_local_demo_compatibility(client: TestClient):
 
     assert response.status_code == 200
     assert response.json().get("ok") is True
+
+
+def test_dev_session_route_disabled_by_default(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    monkeypatch.delenv("AZVISION_AUTH_DEV_SESSION_ENABLED", raising=False)
+    get_settings.cache_clear()
+
+    with _client() as client:
+        response = client.post("/api/v1/auth/dev-session", json={"workspace_id": "workspace-a"})
+
+    assert response.status_code == 404
+
+
+def test_enabled_dev_session_issues_bearer_token_for_workspace(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    monkeypatch.setenv("AZVISION_AUTH_DEV_SESSION_ENABLED", "true")
+    get_settings.cache_clear()
+
+    with _client() as client:
+        session_response = client.post(
+            "/api/v1/auth/dev-session",
+            json={"workspace_id": "workspace-a", "email": "owner@example.test", "role": "owner"},
+        )
+        assert session_response.status_code == 200
+        session_payload = session_response.json()
+        token = session_payload["token"]
+        assert session_payload["workspace_id"] == "workspace-a"
+        assert session_payload["role"] == "owner"
+
+        allowed = client.get(
+            "/api/v1/workspaces/workspace-a/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        denied = client.get(
+            "/api/v1/workspaces/workspace-b/subscriptions",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert allowed.status_code == 200
+    assert denied.status_code == 403
+
+
+def test_enabled_dev_session_viewer_token_cannot_write(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    monkeypatch.setenv("AZVISION_AUTH_DEV_SESSION_ENABLED", "true")
+    get_settings.cache_clear()
+
+    with _client() as client:
+        session_response = client.post(
+            "/api/v1/auth/dev-session",
+            json={"workspace_id": "workspace-a", "email": "viewer@example.test", "role": "viewer"},
+        )
+        token = session_response.json()["token"]
+        response = client.post(
+            "/api/v1/workspaces/workspace-a/simulations",
+            json={"name": "blocked"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert response.status_code == 403
+    assert response.json().get("message") == "Workspace action denied."

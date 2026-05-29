@@ -95,9 +95,10 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - Mutation-sensitive manual topology, snapshot, and simulation endpoints also have first-pass write-level owner/viewer checks through `require_workspace_write_membership()`.
 - Account, session, workspace member, and audit event tables now exist in the SQLite DDL.
 - `get_workspace_access_context()` can resolve bearer-token sessions by SHA-256 token hash, reject revoked/expired/disabled sessions with `401`, and hydrate workspace memberships from `workspace_members`; requests without a bearer token still fall back to local-demo compatibility until login routes exist.
-- `backend/tests/test_workspace_session_security.py` covers member allow, non-member deny without workspace id leak, invalid token `401`, viewer write denial, and no-token local-demo compatibility.
+- `/auth/dev-session` can issue a local development bearer token only when `AZVISION_AUTH_DEV_SESSION_ENABLED=true`; it is disabled by default and is not a public login flow.
+- `backend/tests/test_workspace_session_security.py` covers member allow, non-member deny without workspace id leak, invalid token `401`, viewer write denial, no-token local-demo compatibility, disabled dev-session behavior, enabled owner token access, and enabled viewer write denial.
 
-This is not yet full public beta auth. It is a route-level isolation and session lookup contract slice. Public beta still needs login/session issuance routes, account lifecycle UX, credential ownership, and audit event writes before exposure.
+This is not yet full public beta auth. It is a route-level isolation, session lookup, and local dev-session contract slice. Public beta still needs real login/session issuance, account lifecycle UX, credential ownership, and audit event writes before exposure.
 
 ## Migration approach
 

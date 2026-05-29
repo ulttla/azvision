@@ -113,6 +113,10 @@ class Settings(BaseSettings):
 
     workspace_default_id: str = "local-demo"
     workspace_default_name: str = "AzVision Demo Workspace"
+    auth_dev_session_enabled: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("AZVISION_AUTH_DEV_SESSION_ENABLED", "AUTH_DEV_SESSION_ENABLED"),
+    )
     export_root: str = str(PROJECT_DIR / "exports")
 
     model_config = SettingsConfigDict(
