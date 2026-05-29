@@ -66,6 +66,10 @@ The smoke should fail closed if either URL is missing.
 
 `docker-compose.production.example.yml` and `scripts/production_profile_smoke.sh` are file/profile checks. The hosted E2E preflight is the next layer: it validates the running private environment through a browser/API boundary.
 
+## Current smoke coverage
+
+`scripts/hosted_public_beta_smoke.mjs` now covers frontend load, health/readiness headers, workspace discovery, demo topology nodes/edges, snapshot create/list/detail/restore/delete cleanup, cost unknown/estimated/mock labeling, Copilot fallback response, and secret-like output scanning.
+
 ## Local contract check
 
 The script can be checked without network access:
