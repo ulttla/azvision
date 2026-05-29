@@ -235,6 +235,14 @@ DDL_STATEMENTS = [
     )
     """,
     """
+    CREATE INDEX IF NOT EXISTS idx_audit_events_type
+    ON audit_events (event_type)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_audit_events_workspace_created_at
+    ON audit_events (workspace_id, created_at)
+    """,
+    """
     CREATE INDEX IF NOT EXISTS idx_topology_archives_workspace
     ON snapshot_topology_archives (workspace_id, snapshot_id)
     """,

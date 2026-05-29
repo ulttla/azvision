@@ -59,17 +59,16 @@ def create_dev_session(request: Request, payload: dict[str, Any] | None = None) 
     if role not in {"owner", "viewer"}:
         raise HTTPException(status_code=400, detail="role must be owner or viewer")
     email = str(body.get("email") or "local-dev@example.test")
-    ttl_minutes = int(body.get("ttl_minutes") or 60)
+    ttl_minutes = max(5, min(int(body.get("ttl_minutes") or 60), 24 * 60))
     issued = issue_workspace_session(
         database_url=settings.database_url,
         workspace_id=workspace_id,
         email=email,
         role=role,
         ttl_minutes=ttl_minutes,
-        account_id=str(body.get("account_id") or stable_dev_account_id(email)),
+        account_id=stable_dev_account_id(email),
         display_name=body.get("display_name") or email,
     )
-    ttl_minutes = max(5, min(ttl_minutes, 24 * 60))
 
     record_audit_event(
         event_type="auth.dev_session.created",

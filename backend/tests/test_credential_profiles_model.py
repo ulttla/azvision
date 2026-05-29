@@ -3,6 +3,14 @@ from __future__ import annotations
 import sqlite3
 
 
+def test_audit_events_schema_has_query_indexes(db_path):
+    with sqlite3.connect(str(db_path)) as conn:
+        indexes = {row[1] for row in conn.execute("PRAGMA index_list(audit_events)").fetchall()}
+
+    assert "idx_audit_events_type" in indexes
+    assert "idx_audit_events_workspace_created_at" in indexes
+
+
 def test_credential_profiles_schema_has_workspace_owner_and_secret_ref(db_path):
     with sqlite3.connect(str(db_path)) as conn:
         columns = {

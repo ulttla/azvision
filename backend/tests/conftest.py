@@ -38,6 +38,18 @@ def _create_test_db(db_path: Path) -> None:
             ON credential_profiles (workspace_id, owner_account_id)
             """
         )
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_audit_events_type
+            ON audit_events (event_type)
+            """
+        )
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_audit_events_workspace_created_at
+            ON audit_events (workspace_id, created_at)
+            """
+        )
         # Run the same backfill migration as production startup
         cursor.execute(
             "UPDATE snapshots "

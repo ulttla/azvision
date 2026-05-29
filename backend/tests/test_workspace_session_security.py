@@ -85,6 +85,34 @@ def test_bearer_session_forbids_non_member_workspace(db_path, monkeypatch):
     assert "workspace-b" not in response.text
 
 
+def test_expired_bearer_session_returns_401(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    _seed_session(db_path, token="expired-token", expires_delta=timedelta(minutes=-1))
+
+    with _client() as client:
+        response = client.get(
+            "/api/v1/workspaces/workspace-a/subscriptions",
+            headers={"Authorization": "Bearer expired-token"},
+        )
+
+    assert response.status_code == 401
+    assert response.json().get("message") == "Invalid or expired session."
+
+
+def test_disabled_account_bearer_session_returns_401(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    _seed_session(db_path, token="disabled-token", disabled=True)
+
+    with _client() as client:
+        response = client.get(
+            "/api/v1/workspaces/workspace-a/subscriptions",
+            headers={"Authorization": "Bearer disabled-token"},
+        )
+
+    assert response.status_code == 401
+    assert response.json().get("message") == "Invalid or expired session."
+
+
 def test_invalid_bearer_session_returns_401(db_path, monkeypatch):
     _use_db(monkeypatch, db_path)
 
@@ -129,6 +157,27 @@ def test_dev_session_route_disabled_by_default(db_path, monkeypatch):
         response = client.post("/api/v1/auth/dev-session", json={"workspace_id": "workspace-a"})
 
     assert response.status_code == 404
+
+
+def test_enabled_dev_session_ignores_supplied_account_id(db_path, monkeypatch):
+    _use_db(monkeypatch, db_path)
+    monkeypatch.setenv("AZVISION_AUTH_DEV_SESSION_ENABLED", "true")
+    get_settings.cache_clear()
+
+    with _client() as client:
+        response = client.post(
+            "/api/v1/auth/dev-session",
+            json={
+                "workspace_id": "workspace-a",
+                "email": "owner@example.test",
+                "role": "owner",
+                "account_id": "forged-admin",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["account_id"] != "forged-admin"
+    assert response.json()["account_id"].startswith("dev-")
 
 
 def test_enabled_dev_session_issues_bearer_token_for_workspace(db_path, monkeypatch):
