@@ -96,7 +96,7 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - Account, session, workspace member, audit event, and credential profile ownership columns now exist in the SQLite DDL.
 - `get_workspace_access_context()` can resolve bearer-token sessions by SHA-256 token hash, reject revoked/expired/disabled sessions with `401`, and hydrate workspace memberships from `workspace_members`; requests without a bearer token still fall back to local-demo compatibility until login routes exist.
 - `/auth/dev-session` can issue a local development bearer token only when `AZVISION_AUTH_DEV_SESSION_ENABLED=true`; it is disabled by default, is not a public login flow, derives account ids server-side from email, and writes an `auth.dev_session.created` audit event without token leakage.
-- `/auth/oidc/session` is the real login entrypoint contract: disabled by default, fails closed when the verifier or workspace mapping is not configured, and only issues a session after a verified identity plus resolved workspace grant are supplied by server-side seams.
+- `/auth/oidc/session` is the real login entrypoint contract: disabled by default, fails closed when the verifier or workspace mapping is not configured, and only issues a session after a verified identity plus resolved workspace grant are supplied by server-side seams. The verifier requires configured issuer, audience, and JWKS URL and performs RS256/JWKS validation before claims are trusted.
 - Session issuance persistence is isolated in `app.auth.session_issuer.issue_workspace_session()`: callers receive the raw bearer token once, while SQLite stores only the SHA-256 token hash plus account/workspace membership rows.
 - Expired sessions and disabled accounts are rejected at HTTP level with `401` tests.
 - `/auth/me` returns the current bearer session account and workspace memberships without echoing the token; missing bearer tokens are rejected with `401`.
@@ -105,12 +105,12 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 
 Credential profile route contracts now cover owner create/list/update/delete, viewer create/update/delete denial, cross-workspace list denial without id leak, required `secret_ref`, soft delete, and rejection of sensitive metadata keys. Creation/update/delete write non-secret `credential_profile.*` audit events. Workspace create/update write non-secret workspace audit events containing field names only. Export creation writes a non-secret `export.created` audit event without persisting the image payload in audit metadata. Snapshot restore/delete actions write `snapshot.restore_recorded` and `snapshot.deleted` audit events.
 
-This is not yet full public beta auth. It is a route-level isolation, session lookup, local dev-session, OIDC entrypoint contract, credential ownership, and initial audit-write contract slice. Public beta still needs a production OIDC verifier/JWKS implementation, account lifecycle UX, and broader audit event coverage before exposure. The session persistence path itself is already tested and reused by the OIDC entrypoint contract.
+This is not yet full public beta auth. It is a route-level isolation, session lookup, local dev-session, OIDC entrypoint/verifier contract, credential ownership, and initial audit-write contract slice. Public beta still needs OIDC workspace mapping/account lifecycle UX, provider-specific configuration, and broader audit event coverage before exposure. The session persistence path itself is already tested and reused by the OIDC entrypoint contract.
 
 ## Migration approach
 
 1. Keep `local-demo` compatibility for personal-use mode.
-2. Implement production OIDC verifier/JWKS/audience checks behind `/auth/oidc/session` and keep raw bearer tokens one-time only.
+2. Configure provider-specific OIDC issuer/audience/JWKS values behind `/auth/oidc/session` and keep raw bearer tokens one-time only.
 3. Define account lifecycle UX and OIDC workspace mapping: invite, disable, membership role changes, and logout/session revoke surface.
 4. Decide credential-profile cross-owner policy inside one workspace: owner-only self-management vs workspace-owner manage-all with explicit audit reason.
 5. Flip public beta profile to require auth and disable local-demo fallback for public routes.

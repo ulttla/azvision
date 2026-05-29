@@ -129,6 +129,10 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("AZVISION_AUTH_OIDC_AUDIENCE", "AUTH_OIDC_AUDIENCE"),
     )
+    auth_oidc_jwks_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("AZVISION_AUTH_OIDC_JWKS_URL", "AUTH_OIDC_JWKS_URL"),
+    )
     rate_limit_enabled: bool = Field(
         default=False,
         validation_alias=AliasChoices("AZVISION_RATE_LIMIT_ENABLED", "RATE_LIMIT_ENABLED"),
