@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from importlib import import_module
 from typing import Any
@@ -85,6 +86,34 @@ def verify_oidc_id_token(settings: Settings, id_token: str) -> VerifiedOIDCIdent
     )
 
 
+def _load_workspace_map(settings: Settings) -> dict[str, Any]:
+    raw = settings.auth_oidc_workspace_map_json.strip()
+    if not raw:
+        raise OIDCNotConfiguredError("OIDC workspace mapping is not configured.")
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise OIDCNotConfiguredError("OIDC workspace mapping is invalid.") from exc
+    if not isinstance(parsed, dict):
+        raise OIDCNotConfiguredError("OIDC workspace mapping is invalid.")
+    return parsed
+
+
+def _grants_for_email(mapping: dict[str, Any], email: str) -> list[dict[str, Any]]:
+    users = mapping.get("users")
+    if not isinstance(users, dict):
+        return []
+    entry = users.get(email.lower())
+    if not isinstance(entry, dict):
+        return []
+    workspaces = entry.get("workspaces")
+    if isinstance(workspaces, list):
+        return [item for item in workspaces if isinstance(item, dict)]
+    if entry.get("workspace_id"):
+        return [entry]
+    return []
+
+
 def resolve_oidc_workspace_grant(
     settings: Settings,
     identity: VerifiedOIDCIdentity,
@@ -93,7 +122,33 @@ def resolve_oidc_workspace_grant(
 ) -> OIDCWorkspaceSessionGrant:
     """Resolve workspace membership for a verified OIDC identity.
 
-    This is the future invite/tenant mapping seam. It deliberately fails closed
-    until account lifecycle and workspace membership mapping are implemented.
+    Uses an explicit server-side JSON allowlist. Caller payload can select among
+    already-granted workspaces, but cannot create membership or role claims.
     """
-    raise OIDCNotConfiguredError("OIDC workspace mapping is not configured.")
+    mapping = _load_workspace_map(settings)
+    grants = _grants_for_email(mapping, identity.email)
+    if not grants:
+        raise OIDCLoginError("OIDC identity is not mapped to a workspace.")
+
+    selected = None
+    for grant in grants:
+        workspace_id = str(grant.get("workspace_id") or "").strip()
+        if not workspace_id:
+            continue
+        if requested_workspace_id is None or requested_workspace_id == workspace_id:
+            selected = grant
+            break
+    if selected is None:
+        raise OIDCLoginError("OIDC identity is not mapped to the requested workspace.")
+
+    role = str(selected.get("role") or "viewer").strip().lower()
+    if role not in {"owner", "viewer"}:
+        raise OIDCNotConfiguredError("OIDC workspace mapping has invalid role.")
+
+    return OIDCWorkspaceSessionGrant(
+        account_id=oidc_account_id(issuer=identity.issuer, subject=identity.subject),
+        email=identity.email,
+        workspace_id=str(selected["workspace_id"]).strip(),
+        role=role,
+        display_name=identity.display_name,
+    )

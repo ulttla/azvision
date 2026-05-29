@@ -5,7 +5,14 @@ from types import SimpleNamespace
 import pytest
 
 from app.auth import oidc_login
-from app.auth.oidc_login import OIDCLoginError, OIDCNotConfiguredError, verify_oidc_id_token
+from app.auth.oidc_login import (
+    OIDCLoginError,
+    OIDCNotConfiguredError,
+    VerifiedOIDCIdentity,
+    oidc_account_id,
+    resolve_oidc_workspace_grant,
+    verify_oidc_id_token,
+)
 from app.core.config import Settings
 
 
@@ -80,3 +87,56 @@ def test_verify_oidc_id_token_requires_subject_and_email(monkeypatch):
             ),
             "signed-token",
         )
+
+
+def test_resolve_oidc_workspace_grant_uses_server_side_mapping_only():
+    identity = VerifiedOIDCIdentity(
+        issuer="https://login.example.test",
+        subject="subject-a",
+        email="Owner@Example.Test",
+        display_name="Owner",
+    )
+
+    grant = resolve_oidc_workspace_grant(
+        Settings(
+            auth_oidc_workspace_map_json='{"users":{"owner@example.test":{"workspaces":[{"workspace_id":"ws-a","role":"owner"}]}}}'
+        ),
+        identity,
+        "ws-a",
+        {"workspace_id": "ws-a", "role": "admin"},
+    )
+
+    assert grant.account_id == oidc_account_id(issuer=identity.issuer, subject=identity.subject)
+    assert grant.email == "Owner@Example.Test"
+    assert grant.workspace_id == "ws-a"
+    assert grant.role == "owner"
+    assert grant.display_name == "Owner"
+
+
+def test_resolve_oidc_workspace_grant_rejects_unmapped_workspace():
+    identity = VerifiedOIDCIdentity(
+        issuer="https://login.example.test",
+        subject="subject-a",
+        email="owner@example.test",
+    )
+
+    with pytest.raises(OIDCLoginError):
+        resolve_oidc_workspace_grant(
+            Settings(
+                auth_oidc_workspace_map_json='{"users":{"owner@example.test":{"workspaces":[{"workspace_id":"ws-a","role":"owner"}]}}}'
+            ),
+            identity,
+            "ws-b",
+            {},
+        )
+
+
+def test_resolve_oidc_workspace_grant_fails_closed_without_mapping():
+    identity = VerifiedOIDCIdentity(
+        issuer="https://login.example.test",
+        subject="subject-a",
+        email="owner@example.test",
+    )
+
+    with pytest.raises(OIDCNotConfiguredError):
+        resolve_oidc_workspace_grant(Settings(), identity, None, {})
