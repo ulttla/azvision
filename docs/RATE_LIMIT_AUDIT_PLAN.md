@@ -67,7 +67,7 @@ Audit events should be safe, structured metadata. They should not store secrets,
 Minimum event types:
 
 - `session.login.success`
-- `session.login.failure`
+- `auth.oidc_session.failed`
 - `workspace.created`
 - `workspace.updated`
 - `workspace.member.changed`

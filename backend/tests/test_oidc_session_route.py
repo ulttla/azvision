@@ -36,13 +36,27 @@ def test_oidc_session_enabled_but_unconfigured_fails_closed(db_path, monkeypatch
     get_settings.cache_clear()
 
     with _client() as client:
-        response = client.post("/api/v1/auth/oidc/session", json={"id_token": "opaque"})
+        response = client.post(
+            "/api/v1/auth/oidc/session",
+            json={"id_token": "opaque", "workspace_id": "workspace-a"},
+            headers={"X-Request-ID": "req-oidc-failed"},
+        )
 
     assert response.status_code == 503
     assert response.json().get("message") == "OIDC login is not configured."
     with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
         session_count = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+        event = conn.execute(
+            "SELECT * FROM audit_events WHERE event_type = ?",
+            ("auth.oidc_session.failed",),
+        ).fetchone()
     assert session_count == 0
+    assert event is not None
+    assert event["workspace_id"] == "workspace-a"
+    assert event["request_id"] == "req-oidc-failed"
+    assert json.loads(event["metadata_json"]) == {"reason": "not_configured"}
+    assert "opaque" not in event["metadata_json"]
 
 
 def test_oidc_session_success_uses_verified_identity_and_never_echoes_id_token(db_path, monkeypatch):

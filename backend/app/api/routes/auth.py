@@ -109,17 +109,32 @@ def create_oidc_session(request: Request, payload: dict[str, Any] | None = None)
     if not id_token:
         raise HTTPException(status_code=400, detail="id_token is required")
 
+    requested_workspace_id = str(body.get("workspace_id") or "").strip() or None
     try:
         identity = verify_oidc_id_token(settings, id_token)
         grant = resolve_oidc_workspace_grant(
             settings,
             identity,
-            str(body.get("workspace_id") or "").strip() or None,
+            requested_workspace_id,
             body,
         )
     except OIDCNotConfiguredError as exc:
+        record_audit_event(
+            event_type="auth.oidc_session.failed",
+            outcome="failure",
+            workspace_id=requested_workspace_id,
+            request_id=request.headers.get("x-request-id"),
+            metadata={"reason": "not_configured"},
+        )
         raise HTTPException(status_code=503, detail="OIDC login is not configured.") from exc
     except OIDCLoginError as exc:
+        record_audit_event(
+            event_type="auth.oidc_session.failed",
+            outcome="failure",
+            workspace_id=requested_workspace_id,
+            request_id=request.headers.get("x-request-id"),
+            metadata={"reason": "invalid_login"},
+        )
         raise HTTPException(status_code=401, detail="Invalid OIDC login.") from exc
 
     issued = issue_workspace_session(
