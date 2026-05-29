@@ -96,14 +96,42 @@ Minimum event types:
 }
 ```
 
+## Shared enforcement gate
+
+The in-app limiter is acceptable only for local development and private single-process validation. Before multi-instance or public traffic, one of these shared enforcement paths must be enabled:
+
+| Path | Requirement | Notes |
+| --- | --- | --- |
+| Edge/gateway limiter | Enforce per-IP and route-group limits before traffic reaches the app | Preferred for public beta if the hosting platform supports it. Preserve the app's `429` JSON envelope where possible, or document the platform envelope as an external edge response. |
+| Shared store limiter | Replace process-local buckets with Redis or equivalent shared storage | Keep `route_limit_group()`, `request_rate_limit_key()`, `Retry-After`, and the stable `rate-limited` payload contract. |
+| Single-process private preview | May use `AZVISION_RATE_LIMIT_ENABLED=true` only when one backend process handles all preview traffic | Not acceptable for public beta or horizontally scaled deployment. |
+
+Minimum public beta limits to configure at the shared layer:
+
+| Group | App env baseline | Shared enforcement key |
+| --- | --- | --- |
+| `auth_oidc_session` | `AZVISION_RATE_LIMIT_AUTH_OIDC_SESSION_PER_WINDOW=10` | source IP, then account/email when available |
+| `auth` | `AZVISION_RATE_LIMIT_AUTH_PER_WINDOW=20` | source IP |
+| `exports` | `AZVISION_RATE_LIMIT_EXPORTS_PER_WINDOW=30` | account plus workspace |
+| `copilot` | `AZVISION_RATE_LIMIT_COPILOT_PER_WINDOW=20` | account plus workspace |
+| `default` | `AZVISION_RATE_LIMIT_DEFAULT_PER_WINDOW=120` | source IP or account plus workspace when available |
+
+Pre-exposure verification:
+
+1. Trigger the shared limiter for each group and confirm HTTP `429` behavior.
+2. Confirm `Retry-After` exists or document why the edge cannot emit it.
+3. Confirm request logs include `X-Request-ID` and do not include tokens, prompts, or credentials.
+4. Confirm app-level limiter remains disabled or is configured as a secondary defense, not the only multi-instance control.
+
 ## Implementation sequence
 
-1. Add request id middleware.
-2. Add safe structured logging with request id, route, status, and duration.
+1. Add request id middleware. [done]
+2. Add safe structured logging with request id, route, status, and duration. [done]
 3. Add limiter abstraction with in-memory local backend first. [done]
 4. Add rate-limited response tests. [done]
-5. Replace process-local storage with shared storage/gateway enforcement for multi-instance hosting.
-6. Add public beta runbook section for reviewing audit events.
+5. Add shared storage/gateway enforcement runbook. [done]
+6. Replace process-local storage with shared storage/gateway enforcement for multi-instance hosting.
+7. Add public beta runbook section for reviewing audit events.
 
 ## No-go criteria
 
