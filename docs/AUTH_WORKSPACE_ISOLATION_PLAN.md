@@ -99,6 +99,7 @@ C2 started the route-agnostic guard layer in `backend/app/api/workspace_security
 - `/auth/oidc/session` is the real login entrypoint contract: disabled by default, fails closed when the verifier or workspace mapping is not configured, and only issues a session after a verified identity plus resolved workspace grant are supplied by server-side seams. The verifier requires configured issuer, audience, and JWKS URL and performs RS256/JWKS validation before claims are trusted. Initial workspace mapping uses an explicit server-side JSON allowlist, validates shape/roles up front, and ignores caller-supplied role claims.
 - `/auth/config-check` now reports OIDC readiness with non-secret booleans and counts only: login enabled, issuer/audience/JWKS presence, workspace map presence/validity, mapped user count, and grant count. It does not echo issuer, audience, JWKS URL, mapped email, or workspace IDs.
 - Session issuance persistence is isolated in `app.auth.session_issuer.issue_workspace_session()`: callers receive the raw bearer token once, while SQLite stores only the SHA-256 token hash plus account/workspace membership rows.
+- Account lifecycle foundation now includes `disable_account_sessions()`, which marks an account disabled and revokes active sessions in one helper for future invite/disable/admin flows. This helper is covered in isolated DB tests and is not exposed as a public management route yet.
 - Expired sessions and disabled accounts are rejected at HTTP level with `401` tests.
 - `/auth/me` returns the current bearer session account and workspace memberships without echoing the token; missing bearer tokens are rejected with `401`.
 - `/auth/logout` revokes the current bearer session, writes `auth.session.revoked`, and rejects later use of the same token.
@@ -112,7 +113,7 @@ This is not yet full public beta auth. It is a route-level isolation, session lo
 
 1. Keep `local-demo` compatibility for personal-use mode.
 2. Configure provider-specific OIDC issuer/audience/JWKS/workspace-map values behind `/auth/oidc/session` and keep raw bearer tokens one-time only.
-3. Define account lifecycle UX beyond the JSON allowlist: invite, disable, membership role changes, and logout/session revoke surface.
+3. Define account lifecycle UX beyond the JSON allowlist: invite, disable, membership role changes, and management route authorization. The backend disable/revoke helper exists, but no public account management route is approved yet.
 4. Decide credential-profile cross-owner policy inside one workspace: owner-only self-management vs workspace-owner manage-all with explicit audit reason.
 5. Flip public beta profile to require auth and disable local-demo fallback for public routes.
 6. Add cross-workspace and token lifecycle regression tests before any hosted beta.

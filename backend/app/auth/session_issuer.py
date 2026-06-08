@@ -28,6 +28,13 @@ class RevokedWorkspaceSession:
     revoked_at: str
 
 
+@dataclass(frozen=True)
+class DisabledAccountSessions:
+    account_id: str
+    disabled_at: str
+    revoked_session_count: int
+
+
 def stable_dev_account_id(email: str) -> str:
     return f"dev-{hashlib.sha256(email.encode('utf-8')).hexdigest()[:12]}"
 
@@ -126,4 +133,37 @@ def revoke_workspace_session(*, database_url: str, token: str) -> RevokedWorkspa
         session_id=row["id"],
         account_id=row["account_id"],
         revoked_at=revoked_at,
+    )
+
+
+def disable_account_sessions(*, database_url: str, account_id: str) -> DisabledAccountSessions | None:
+    """Disable an account and revoke its active sessions for account lifecycle flows."""
+    db_path = _resolve_sqlite_path(database_url)
+    if not db_path.exists():
+        return None
+
+    disabled_at = datetime.now(UTC).isoformat()
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        account = conn.execute(
+            "SELECT id FROM accounts WHERE id = ?",
+            (account_id,),
+        ).fetchone()
+        if account is None:
+            return None
+
+        conn.execute(
+            "UPDATE accounts SET disabled_at = COALESCE(disabled_at, ?) WHERE id = ?",
+            (disabled_at, account_id),
+        )
+        cursor = conn.execute(
+            "UPDATE sessions SET revoked_at = COALESCE(revoked_at, ?) WHERE account_id = ? AND revoked_at IS NULL",
+            (disabled_at, account_id),
+        )
+        conn.commit()
+
+    return DisabledAccountSessions(
+        account_id=account_id,
+        disabled_at=disabled_at,
+        revoked_session_count=cursor.rowcount,
     )

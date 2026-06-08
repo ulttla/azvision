@@ -42,6 +42,7 @@ grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'OIDC readiness' docs/AUTH_WORKSPACE_ISOLATION_PLAN.md
 grep -q 'workspace_map_valid' backend/app/api/routes/auth.py
+grep -q 'disable_account_sessions' backend/app/auth/session_issuer.py
 grep -q 'demo-safe topology' docs/PUBLIC_BETA_QUICK_START.md
 grep -q 'App shell public beta readiness card' docs/PUBLIC_BETA_CHANGELOG.md
 grep -q 'copilot.chat.requested' backend/app/api/routes/copilot.py
