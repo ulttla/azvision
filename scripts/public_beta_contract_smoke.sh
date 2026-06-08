@@ -46,6 +46,8 @@ grep -q 'workspace_map_valid' backend/app/api/routes/auth.py
 grep -q 'rate_limit_readiness_summary' backend/app/api/routes/auth.py
 grep -q 'public_beta_shared_gate_satisfied' backend/app/api/rate_limiter.py
 grep -q 'disable_account_sessions' backend/app/auth/session_issuer.py
+grep -q 'auth_account_management_enabled' backend/app/core/config.py
+grep -q 'auth.account.disabled' backend/app/api/routes/auth.py
 grep -q 'demo-safe topology' docs/PUBLIC_BETA_QUICK_START.md
 grep -q 'demo-status' backend/app/api/routes/workspaces.py
 grep -q 'demo-bootstrap' backend/app/api/routes/workspaces.py

@@ -68,6 +68,7 @@ Current minimum event types:
 
 - `session.issued`
 - `session.revoked`
+- `auth.account.disabled`
 - `auth.oidc_session.failed`
 - `auth.oidc_session.succeeded`
 - `workspace.created`

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.rate_limiter import rate_limit_readiness_summary
-from app.api.workspace_security import _bearer_token, get_workspace_access_context, record_audit_event
+from app.api.workspace_security import WorkspaceAccessContext, _bearer_token, get_workspace_access_context, record_audit_event
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
 from app.auth.oidc_login import (
     OIDCLoginError,
@@ -14,7 +14,7 @@ from app.auth.oidc_login import (
     resolve_oidc_workspace_grant,
     verify_oidc_id_token,
 )
-from app.auth.session_issuer import issue_workspace_session, revoke_workspace_session, stable_dev_account_id
+from app.auth.session_issuer import disable_account_sessions, issue_workspace_session, revoke_workspace_session, stable_dev_account_id
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -197,6 +197,34 @@ def me(request: Request) -> dict[str, Any]:
             }
             for membership in context.memberships
         ],
+    }
+
+
+@router.post("/account/disable")
+def disable_own_account(
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    settings = get_settings()
+    if not settings.auth_account_management_enabled:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    disabled = disable_account_sessions(database_url=settings.database_url, account_id=context.account_id)
+    if disabled is None:
+        raise HTTPException(status_code=404, detail="Account not found.")
+
+    record_audit_event(
+        event_type="auth.account.disabled",
+        outcome="success",
+        account_id=disabled.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"revoked_session_count": disabled.revoked_session_count},
+    )
+    return {
+        "ok": True,
+        "status": "disabled",
+        "account_id": disabled.account_id,
+        "revoked_session_count": disabled.revoked_session_count,
     }
 
 

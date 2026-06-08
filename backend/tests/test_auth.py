@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import sqlite3
 from types import SimpleNamespace
 
 import requests
@@ -300,6 +302,66 @@ class TestAuthRoutes:
             "public_beta_shared_gate_satisfied": True,
         }
         assert "cloudflare-secret-zone" not in response.text
+
+    def test_disable_own_account_is_hidden_when_management_disabled(self, client: TestClient):
+        response = client.post("/api/v1/auth/account/disable")
+
+        assert response.status_code == 404
+        assert response.json()["message"] == "Not found"
+
+    def test_disable_own_account_revokes_sessions_and_writes_non_secret_audit(
+        self,
+        client: TestClient,
+        db_path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        from app.core.config import get_settings
+
+        monkeypatch.setenv("AZVISION_AUTH_ACCOUNT_MANAGEMENT_ENABLED", "true")
+        get_settings.cache_clear()
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.execute(
+                "INSERT INTO accounts(id, email, display_name) VALUES (?, ?, ?)",
+                ("test-account", "owner@example.test", "Owner Name"),
+            )
+            conn.execute(
+                "INSERT INTO sessions(id, account_id, token_hash, expires_at) VALUES (?, ?, ?, ?)",
+                ("sess-a", "test-account", "hash-a", "2099-01-01T00:00:00+00:00"),
+            )
+            conn.execute(
+                "INSERT INTO sessions(id, account_id, token_hash, expires_at) VALUES (?, ?, ?, ?)",
+                ("sess-b", "test-account", "hash-b", "2099-01-01T00:00:00+00:00"),
+            )
+            conn.commit()
+
+        response = client.post(
+            "/api/v1/auth/account/disable",
+            headers={"X-Request-Id": "req-account-disable"},
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "ok": True,
+            "status": "disabled",
+            "account_id": "test-account",
+            "revoked_session_count": 2,
+        }
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            account = conn.execute("SELECT * FROM accounts WHERE id = ?", ("test-account",)).fetchone()
+            sessions = conn.execute("SELECT * FROM sessions WHERE account_id = ?", ("test-account",)).fetchall()
+            event = conn.execute(
+                "SELECT * FROM audit_events WHERE event_type = ?",
+                ("auth.account.disabled",),
+            ).fetchone()
+        assert account["disabled_at"]
+        assert all(session["revoked_at"] == account["disabled_at"] for session in sessions)
+        assert event is not None
+        assert event["account_id"] == "test-account"
+        assert event["request_id"] == "req-account-disable"
+        assert json.loads(event["metadata_json"]) == {"revoked_session_count": 2}
+        assert "owner@example.test" not in event["metadata_json"]
+        get_settings.cache_clear()
 
     def test_config_check_keeps_local_env_path_diagnostics_in_debug_mode(
         self,
