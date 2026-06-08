@@ -80,6 +80,51 @@ def test_workspace_create_writes_non_secret_audit_event(client: TestClient, db_p
     assert "Created" not in event["metadata_json"]
 
 
+def test_demo_status_reports_mock_demo_without_writing_secrets(client: TestClient):
+    response = client.get("/api/v1/workspaces/demo-status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "workspace_id": "local-demo",
+        "is_demo": True,
+        "mode": "mock",
+        "has_topology": True,
+        "node_count": 0,
+        "edge_count": 0,
+    }
+    assert "secret" not in response.text.lower()
+
+
+def test_demo_bootstrap_is_idempotent_and_writes_non_secret_audit_event(client: TestClient, db_path):
+    first = client.post(
+        "/api/v1/workspaces/demo-bootstrap",
+        headers={"X-Request-Id": "req-demo-bootstrap-1"},
+    )
+    second = client.post(
+        "/api/v1/workspaces/demo-bootstrap",
+        headers={"X-Request-Id": "req-demo-bootstrap-2"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["status"] == "ready"
+    assert first.json()["bootstrap_outcome"] == "success"
+    assert second.json()["bootstrap_outcome"] == "skipped"
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.row_factory = sqlite3.Row
+        workspace = conn.execute("SELECT * FROM workspaces WHERE id = ?", ("local-demo",)).fetchone()
+        events = conn.execute(
+            "SELECT * FROM audit_events WHERE event_type = ? ORDER BY created_at, request_id",
+            ("workspace.demo_bootstrapped",),
+        ).fetchall()
+    assert workspace is not None
+    assert workspace["name"] == "AzVision Demo Workspace"
+    assert [event["outcome"] for event in events] == ["success", "skipped"]
+    assert [event["request_id"] for event in events] == ["req-demo-bootstrap-1", "req-demo-bootstrap-2"]
+    assert all(json.loads(event["metadata_json"]) == {"workspace_id": "local-demo"} for event in events)
+    assert all("AzVision Demo Workspace" not in event["metadata_json"] for event in events)
+
+
 def test_viewer_dependency_override_cannot_patch_workspace(client: TestClient):
     def viewer_context() -> WorkspaceAccessContext:
         return WorkspaceAccessContext(
@@ -110,3 +155,26 @@ def test_workspace_create_cannot_escape_local_membership():
     assert response.status_code == 403
     assert response.json()["message"] == "Workspace access denied."
     assert "workspace-b" not in response.text
+
+
+def test_viewer_dependency_override_cannot_bootstrap_demo_workspace(client: TestClient):
+    def viewer_context() -> WorkspaceAccessContext:
+        return WorkspaceAccessContext(
+            account_id="acct-viewer",
+            memberships=(
+                WorkspaceMembership(
+                    workspace_id="local-demo",
+                    account_id="acct-viewer",
+                    role="viewer",
+                ),
+            ),
+        )
+
+    app.dependency_overrides[get_workspace_access_context] = viewer_context
+    try:
+        response = client.post("/api/v1/workspaces/demo-bootstrap")
+    finally:
+        app.dependency_overrides.pop(get_workspace_access_context, None)
+
+    assert response.status_code == 403
+    assert response.json()["message"] == "Workspace action denied."

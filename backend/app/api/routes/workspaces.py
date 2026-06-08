@@ -82,6 +82,29 @@ def _fetch_credential_profile(conn: sqlite3.Connection, workspace_id: str, profi
     return row
 
 
+def _demo_workspace_status() -> dict[str, Any]:
+    settings = get_settings()
+    workspace_id = settings.workspace_default_id
+    with _connect() as conn:
+        node_count = conn.execute(
+            "SELECT COUNT(*) FROM resource_nodes WHERE workspace_id = ?",
+            (workspace_id,),
+        ).fetchone()[0]
+        edge_count = conn.execute(
+            "SELECT COUNT(*) FROM relationship_edges WHERE workspace_id = ?",
+            (workspace_id,),
+        ).fetchone()[0]
+    mode = settings.topology_mode_resolved
+    return {
+        "workspace_id": workspace_id,
+        "is_demo": workspace_id == "local-demo",
+        "mode": mode,
+        "has_topology": bool(node_count or edge_count or mode == "mock"),
+        "node_count": int(node_count),
+        "edge_count": int(edge_count),
+    }
+
+
 @router.get("")
 def list_workspaces(
     context: WorkspaceAccessContext = Depends(get_workspace_access_context),
@@ -116,6 +139,49 @@ def create_workspace(
         metadata={"fields": sorted(payload.keys())},
     )
     return workspace
+
+
+@router.get("/demo-status")
+def get_demo_workspace_status(
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    settings = get_settings()
+    require_workspace_access(context, settings.workspace_default_id, action="read")
+    return _demo_workspace_status()
+
+
+@router.post("/demo-bootstrap")
+def bootstrap_demo_workspace(
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    settings = get_settings()
+    workspace = _default_workspace()
+    membership = require_workspace_access(context, workspace["id"], action="manage")
+    with _connect() as conn:
+        cursor = conn.execute(
+            """
+            INSERT OR IGNORE INTO workspaces(id, name, company_name, description)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                workspace["id"],
+                workspace["name"],
+                workspace["company_name"],
+                workspace["description"],
+            ),
+        )
+        conn.commit()
+    outcome = "success" if cursor.rowcount else "skipped"
+    record_audit_event(
+        event_type="workspace.demo_bootstrapped",
+        outcome=outcome,
+        workspace_id=settings.workspace_default_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"workspace_id": settings.workspace_default_id},
+    )
+    return {**_demo_workspace_status(), "status": "ready", "bootstrap_outcome": outcome}
 
 
 @router.get("/{workspace_id}")

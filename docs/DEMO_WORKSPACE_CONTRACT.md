@@ -8,7 +8,12 @@ A public beta user should be able to understand AzVision before connecting Azure
 
 ## Backend source
 
-The current backend already has a mock inventory source in `backend/app/collectors/azure_inventory.py`. The demo contract requires that source to keep enough resources for:
+The current backend already has a mock inventory source in `backend/app/collectors/azure_inventory.py`. The demo onboarding API also exposes:
+
+- `GET /api/v1/workspaces/demo-status`: read-only status for the configured default workspace. It reports only non-secret fields: workspace id, whether it is the local demo, resolved topology mode, topology availability, and node/edge counts.
+- `POST /api/v1/workspaces/demo-bootstrap`: idempotent local demo workspace bootstrap. It requires manage access to the default workspace, inserts the demo workspace row if missing, returns `status=ready`, and emits `workspace.demo_bootstrapped` with only the workspace id in metadata.
+
+The demo contract requires the mock source to keep enough resources for:
 
 - subscription and resource group navigation
 - virtual network and subnet visualization
@@ -55,4 +60,4 @@ Future UI onboarding should:
 
 ## Validation
 
-The mock inventory contract is guarded by backend tests. The tests should fail if the sample topology loses the minimum public onboarding coverage listed above.
+The mock inventory contract is guarded by backend tests. The tests should fail if the sample topology loses the minimum public onboarding coverage listed above. Demo onboarding route tests also assert that bootstrap is idempotent, viewer accounts cannot bootstrap, and audit metadata does not echo workspace names or secret-like values.
