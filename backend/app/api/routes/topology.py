@@ -1,9 +1,16 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from app.api.workspace_security import require_workspace_membership, require_workspace_write_membership
+from app.api.workspace_security import (
+    WorkspaceAccessContext,
+    get_workspace_access_context,
+    record_audit_event,
+    require_workspace_access,
+    require_workspace_membership,
+    require_workspace_write_membership,
+)
 from app.collectors.azure_inventory import (
     AzureInventoryCollection,
     AzureInventoryError,
@@ -805,10 +812,28 @@ def _serialize_manual_node(node: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _manual_payload_fields(payload: dict[str, Any]) -> list[str]:
+    return sorted(str(key) for key in payload.keys())
+
+
 @router.post("/manual-nodes", dependencies=[Depends(require_workspace_write_membership)])
-def create_manual_node(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+def create_manual_node(
+    workspace_id: str,
+    payload: dict[str, Any],
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    membership = require_workspace_access(context, workspace_id, action="write")
     repo = _manual_repo()
     created = repo.create_manual_node(workspace_id, payload)
+    record_audit_event(
+        event_type="manual_node.created",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"manual_ref": created["manual_ref"], "fields": _manual_payload_fields(payload)},
+    )
     return {
         "ok": True,
         "status": "created",
@@ -817,10 +842,28 @@ def create_manual_node(workspace_id: str, payload: dict[str, Any]) -> dict[str, 
 
 
 @router.post("/manual-edges", dependencies=[Depends(require_workspace_write_membership)])
-def create_manual_edge(workspace_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+def create_manual_edge(
+    workspace_id: str,
+    payload: dict[str, Any],
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    membership = require_workspace_access(context, workspace_id, action="write")
     _validate_manual_edge_payload(workspace_id, payload)
     repo = _manual_repo()
     created = repo.create_manual_edge(workspace_id, payload)
+    record_audit_event(
+        event_type="manual_edge.created",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={
+            "manual_edge_ref": created["manual_edge_ref"],
+            "relation_type": created.get("relation_type"),
+            "fields": _manual_payload_fields(payload),
+        },
+    )
     return {
         "ok": True,
         "status": "created",
@@ -854,11 +897,22 @@ def update_manual_node(
     workspace_id: str,
     manual_node_ref: str,
     payload: dict[str, Any],
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
+    membership = require_workspace_access(context, workspace_id, action="write")
     repo = _manual_repo()
     updated = repo.update_manual_node(workspace_id, manual_node_ref, payload)
     if updated is None:
         raise HTTPException(status_code=404, detail="Requested manual node was not found.")
+    record_audit_event(
+        event_type="manual_node.updated",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"manual_ref": manual_node_ref, "fields": _manual_payload_fields(payload)},
+    )
     return {
         "ok": True,
         "status": "updated",
@@ -871,7 +925,10 @@ def update_manual_edge(
     workspace_id: str,
     manual_edge_ref: str,
     payload: dict[str, Any],
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
+    membership = require_workspace_access(context, workspace_id, action="write")
     repo = _manual_repo()
     current = repo.get_manual_edge(workspace_id, manual_edge_ref)
     if current is None:
@@ -882,14 +939,36 @@ def update_manual_edge(
     updated = repo.update_manual_edge(workspace_id, manual_edge_ref, payload)
     if updated is None:
         raise HTTPException(status_code=404, detail="Requested manual edge was not found.")
+    record_audit_event(
+        event_type="manual_edge.updated",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"manual_edge_ref": manual_edge_ref, "fields": _manual_payload_fields(payload)},
+    )
     return {"ok": True, "status": "updated", **updated}
 
 
 @router.delete("/manual-nodes/{manual_node_ref}", dependencies=[Depends(require_workspace_write_membership)])
-def delete_manual_node(workspace_id: str, manual_node_ref: str) -> dict[str, Any]:
+def delete_manual_node(
+    workspace_id: str,
+    manual_node_ref: str,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    membership = require_workspace_access(context, workspace_id, action="write")
     repo = _manual_repo()
     deleted = repo.delete_manual_node(workspace_id, manual_node_ref)
     if deleted:
+        record_audit_event(
+            event_type="manual_node.deleted",
+            outcome="success",
+            workspace_id=workspace_id,
+            account_id=membership.account_id,
+            request_id=request.headers.get("x-request-id"),
+            metadata={"manual_ref": manual_node_ref},
+        )
         return {
             "ok": True,
             "workspace_id": workspace_id,
@@ -900,10 +979,24 @@ def delete_manual_node(workspace_id: str, manual_node_ref: str) -> dict[str, Any
 
 
 @router.delete("/manual-edges/{manual_edge_ref}", dependencies=[Depends(require_workspace_write_membership)])
-def delete_manual_edge(workspace_id: str, manual_edge_ref: str) -> dict[str, Any]:
+def delete_manual_edge(
+    workspace_id: str,
+    manual_edge_ref: str,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> dict[str, Any]:
+    membership = require_workspace_access(context, workspace_id, action="write")
     repo = _manual_repo()
     deleted = repo.delete_manual_edge(workspace_id, manual_edge_ref)
     if deleted:
+        record_audit_event(
+            event_type="manual_edge.deleted",
+            outcome="success",
+            workspace_id=workspace_id,
+            account_id=membership.account_id,
+            request_id=request.headers.get("x-request-id"),
+            metadata={"manual_edge_ref": manual_edge_ref},
+        )
         return {
             "ok": True,
             "workspace_id": workspace_id,

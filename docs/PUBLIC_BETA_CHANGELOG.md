@@ -2,6 +2,21 @@
 
 This changelog tracks user-facing public beta readiness changes. It is not a release approval record.
 
+## 2026-06-08 (continued)
+
+### Added
+
+- Public beta audit coverage for abuse-sensitive routes.
+  - Copilot chat requests now record non-secret provider/model/prompt length metadata.
+  - Scan starts now record non-secret limits and a stable subscription hash instead of raw subscription ID.
+  - Manual topology node/edge create/update/delete paths now record references and changed field names only.
+  - Simulation create/delete paths now record simulation IDs and safe summary metadata only.
+- Public beta contract smoke now greps for the audit event types so accidental removal fails CI.
+
+### Validation target
+
+- Backend route audit tests must confirm request ID, account ID, workspace ID, and no raw prompt/name/secret-bearing values in audit metadata.
+
 ## 2026-06-08
 
 ### Added

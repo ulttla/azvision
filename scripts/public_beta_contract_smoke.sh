@@ -40,6 +40,16 @@ grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'demo-safe topology' docs/PUBLIC_BETA_QUICK_START.md
 grep -q 'App shell public beta readiness card' docs/PUBLIC_BETA_CHANGELOG.md
+grep -q 'copilot.chat.requested' backend/app/api/routes/copilot.py
+grep -q 'scan.started' backend/app/api/routes/scans.py
+grep -q 'manual_node.created' backend/app/api/routes/topology.py
+grep -q 'manual_node.updated' backend/app/api/routes/topology.py
+grep -q 'manual_node.deleted' backend/app/api/routes/topology.py
+grep -q 'manual_edge.created' backend/app/api/routes/topology.py
+grep -q 'manual_edge.updated' backend/app/api/routes/topology.py
+grep -q 'manual_edge.deleted' backend/app/api/routes/topology.py
+grep -q 'simulation.created' backend/app/api/routes/simulations.py
+grep -q 'simulation.deleted' backend/app/api/routes/simulations.py
 test -s backend/app/api/workspace_security.py
 test -s backend/tests/test_workspace_security.py
 test -s backend/tests/test_workspaces_route_security.py

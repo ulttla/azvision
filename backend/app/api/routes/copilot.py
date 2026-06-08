@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.api.workspace_security import (
     WorkspaceAccessContext,
     get_workspace_access_context,
+    record_audit_event,
     require_workspace_access,
 )
 from app.collectors.azure_inventory import resolve_inventory_collection
@@ -78,6 +79,18 @@ def _answer_payload(
     return response
 
 
+def _chat_audit_metadata(payload: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
+    message = str(payload.get("message") or "")
+    provider_override = payload.get("provider")
+    model_value = payload.get("model")
+    return {
+        "provider": str(response.get("provider") or provider_override or "unknown"),
+        "provider_override_present": provider_override is not None,
+        "model_present": bool(model_value),
+        "prompt_chars": len(message),
+    }
+
+
 @router.get("/copilot/providers")
 def get_copilot_providers(health_smoke: bool = Query(default=False)) -> dict[str, Any]:
     settings = get_settings()
@@ -96,6 +109,7 @@ def get_copilot_providers(health_smoke: bool = Query(default=False)) -> dict[str
 @router.post("/copilot/chat")
 def post_provider_aware_copilot_message(
     payload: dict[str, Any],
+    request: Request,
     subscription_id: str | None = Query(default=None),
     resource_group_name: str | None = Query(default=None),
     resource_group_limit: int = Query(default=200, ge=1, le=1000),
@@ -103,8 +117,8 @@ def post_provider_aware_copilot_message(
     context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
     workspace_id = str(payload.get("workspace_id") or get_settings().workspace_default_id)
-    require_workspace_access(context, workspace_id, action="read")
-    return _answer_payload(
+    membership = require_workspace_access(context, workspace_id, action="read")
+    response = _answer_payload(
         workspace_id=workspace_id,
         payload=payload,
         subscription_id=subscription_id,
@@ -112,20 +126,30 @@ def post_provider_aware_copilot_message(
         resource_group_limit=resource_group_limit,
         resource_limit=resource_limit,
     )
+    record_audit_event(
+        event_type="copilot.chat.requested",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata=_chat_audit_metadata(payload, response),
+    )
+    return response
 
 
 @router.post("/workspaces/{workspace_id}/chat")
 def post_copilot_message(
     workspace_id: str,
     payload: dict[str, Any],
+    request: Request,
     subscription_id: str | None = Query(default=None),
     resource_group_name: str | None = Query(default=None),
     resource_group_limit: int = Query(default=200, ge=1, le=1000),
     resource_limit: int = Query(default=500, ge=1, le=5000),
     context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> dict[str, Any]:
-    require_workspace_access(context, workspace_id, action="read")
-    return _answer_payload(
+    membership = require_workspace_access(context, workspace_id, action="read")
+    response = _answer_payload(
         workspace_id=workspace_id,
         payload=payload,
         subscription_id=subscription_id,
@@ -133,3 +157,12 @@ def post_copilot_message(
         resource_group_limit=resource_group_limit,
         resource_limit=resource_limit,
     )
+    record_audit_event(
+        event_type="copilot.chat.requested",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata=_chat_audit_metadata(payload, response),
+    )
+    return response

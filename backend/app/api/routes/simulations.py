@@ -1,8 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from app.api.workspace_security import require_workspace_membership, require_workspace_write_membership
+from app.api.workspace_security import (
+    WorkspaceAccessContext,
+    get_workspace_access_context,
+    record_audit_event,
+    require_workspace_access,
+    require_workspace_membership,
+    require_workspace_write_membership,
+)
 from app.collectors.azure_inventory import resolve_resource_items
 from app.core.config import get_settings
 from app.schemas.simulations import SimulationCreateRequest, SimulationDeleteResponse, SimulationFitResponse, SimulationListResponse, SimulationRecord, SimulationReportResponse, SimulationTemplateResponse
@@ -17,8 +24,28 @@ service = SimulationService()
 
 
 @router.post("", response_model=SimulationRecord, dependencies=[Depends(require_workspace_write_membership)])
-def create_simulation(workspace_id: str, payload: SimulationCreateRequest) -> SimulationRecord:
-    return service.create_simulation(workspace_id, payload)
+def create_simulation(
+    workspace_id: str,
+    payload: SimulationCreateRequest,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> SimulationRecord:
+    membership = require_workspace_access(context, workspace_id, action="write")
+    created = service.create_simulation(workspace_id, payload)
+    record_audit_event(
+        event_type="simulation.created",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={
+            "simulation_id": created.simulation_id,
+            "environment": created.environment,
+            "workload_name_present": bool(created.workload_name),
+            "description_chars": len(created.description),
+        },
+    )
+    return created
 
 
 @router.get("", response_model=SimulationListResponse)
@@ -35,11 +62,25 @@ def get_simulation(workspace_id: str, simulation_id: str) -> SimulationRecord:
 
 
 @router.delete("/{simulation_id}", response_model=SimulationDeleteResponse, dependencies=[Depends(require_workspace_write_membership)])
-def delete_simulation(workspace_id: str, simulation_id: str) -> SimulationDeleteResponse:
+def delete_simulation(
+    workspace_id: str,
+    simulation_id: str,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> SimulationDeleteResponse:
+    membership = require_workspace_access(context, workspace_id, action="write")
     try:
         service.delete_simulation(workspace_id, simulation_id)
     except SimulationNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Simulation not found") from exc
+    record_audit_event(
+        event_type="simulation.deleted",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"simulation_id": simulation_id},
+    )
     return SimulationDeleteResponse(workspace_id=workspace_id, simulation_id=simulation_id)
 
 
