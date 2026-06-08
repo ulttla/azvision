@@ -35,6 +35,10 @@ assert.match(appCode, /connectivityRefreshing/, 'Manual connectivity refresh sho
 assert.match(appCode, /disabled=\{connectivityRefreshing\}/, 'Manual connectivity refresh button should disable while refreshing')
 assert.match(appCode, /aria-busy=\{connectivityRefreshing\}/, 'Manual connectivity refresh button should expose busy state')
 assert.match(appCode, /data-testid="app-connectivity-refresh"/, 'Connectivity row should render a test-addressable manual refresh button')
+assert.match(appCode, /data-testid="public-beta-onboarding"/, 'App shell should expose a test-addressable public beta onboarding card')
+assert.match(appCode, /t\('publicBeta\.title'\)/, 'Public beta onboarding card should render localized title copy')
+assert.match(appCode, /setViewMode\('topology'\)/, 'Public beta onboarding CTA should send first-run users to the topology demo path')
+assert.match(appCode, /t\('publicBeta\.cta\.status'\)/, 'Public beta onboarding should expose a readiness refresh CTA')
 assert.match(appCode, /Promise\.allSettled/, 'Manual refresh should update backend, auth, and topology signals together')
 assert.match(appCode, /backendReadinessResult\.value\.checks\.database/, 'Manual backend signal should require database readiness')
 assert.match(appCode, /Promise\.all\(\[getBackendHealth\(\), getBackendReadiness\(\)\]\)/, 'Periodic backend signal should require liveness and readiness together')
@@ -47,5 +51,7 @@ assert.match(stylesCode, /\.connectivity-dot\.checking/, 'Checking connectivity 
 assert.match(stylesCode, /\.connectivity-dot\.offline/, 'Offline connectivity dot CSS should exist')
 assert.match(stylesCode, /\.workspace-connectivity-refresh/, 'Manual connectivity refresh button CSS should exist')
 assert.match(stylesCode, /\.workspace-connectivity-refresh:disabled/, 'Manual connectivity refresh disabled CSS should exist')
+assert.match(stylesCode, /\.public-beta-onboarding/, 'Public beta onboarding card CSS should exist')
+assert.match(stylesCode, /\.public-beta-actions/, 'Public beta onboarding actions CSS should exist')
 
 console.log('✅ app_shell_semantics_smoke.mts: all assertions passed')

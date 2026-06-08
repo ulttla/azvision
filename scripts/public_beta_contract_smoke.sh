@@ -16,6 +16,8 @@ required_docs=(
   docs/RETENTION_EXECUTION_GUARD.md
   docs/HOSTED_E2E_PREFLIGHT_PLAN.md
   docs/PUBLIC_BETA_BLOCKER_STATUS.md
+  docs/PUBLIC_BETA_QUICK_START.md
+  docs/PUBLIC_BETA_CHANGELOG.md
 )
 
 for file in "${required_docs[@]}"; do
@@ -36,6 +38,8 @@ grep -q 'No-go criteria' docs/RATE_LIMIT_AUDIT_PLAN.md
 grep -q 'No public DNS or open internet exposure' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
 grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md
+grep -q 'demo-safe topology' docs/PUBLIC_BETA_QUICK_START.md
+grep -q 'App shell public beta readiness card' docs/PUBLIC_BETA_CHANGELOG.md
 test -s backend/app/api/workspace_security.py
 test -s backend/tests/test_workspace_security.py
 test -s backend/tests/test_workspaces_route_security.py

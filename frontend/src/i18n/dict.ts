@@ -14,6 +14,16 @@ export const dict = {
     'shell.subtext':
       'Switch between topology exploration, presentation architecture, cost triage, and simulation planning.',
     'shell.loading': 'Loading AzVision workspace…',
+    'publicBeta.aria': 'Public beta readiness quick start',
+    'publicBeta.kicker': 'Private validation only',
+    'publicBeta.title': 'Public beta readiness path',
+    'publicBeta.subtext':
+      'Use the demo workspace and private hosted smoke records before any public exposure decision.',
+    'publicBeta.step.demo': 'Start with demo-safe topology and no Azure write path.',
+    'publicBeta.step.privateSmoke': 'Run the private hosted smoke record before promotion.',
+    'publicBeta.step.approval': 'Keep deploy, exposure, provider secrets, and rollback approval separate.',
+    'publicBeta.cta.demo': 'Open demo path',
+    'publicBeta.cta.status': 'Refresh readiness',
 
     // ── Connectivity status row ───────────────────────────
     'status.backend': 'Backend',
@@ -766,6 +776,16 @@ export const dict = {
     'shell.subtext':
       '토폴로지 탐색, 프레젠테이션 아키텍처, 비용 분석, 시뮬레이션 계획을 전환하세요.',
     'shell.loading': 'AzVision 워크스페이스 로딩 중…',
+    'publicBeta.aria': '공개 베타 준비 빠른 시작',
+    'publicBeta.kicker': '비공개 검증 전용',
+    'publicBeta.title': '공개 베타 준비 경로',
+    'publicBeta.subtext':
+      '공개 노출을 결정하기 전 데모 워크스페이스와 비공개 호스팅 smoke 기록을 먼저 사용하세요.',
+    'publicBeta.step.demo': 'Azure 쓰기 경로 없는 데모 안전 토폴로지에서 시작',
+    'publicBeta.step.privateSmoke': '승격 전 비공개 호스팅 smoke 기록 실행',
+    'publicBeta.step.approval': '배포, 공개 노출, provider secret, rollback 승인은 별도 유지',
+    'publicBeta.cta.demo': '데모 경로 열기',
+    'publicBeta.cta.status': '준비 상태 새로고침',
 
     // ── Connectivity status row ───────────────────────────
     'status.backend': '백엔드',

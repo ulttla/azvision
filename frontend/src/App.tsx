@@ -270,6 +270,27 @@ export default function App() {
                 </span>
               ) : null}
             </div>
+
+            <section className="public-beta-onboarding" aria-label={t('publicBeta.aria')} data-testid="public-beta-onboarding">
+              <div>
+                <p className="public-beta-kicker">{t('publicBeta.kicker')}</p>
+                <h2>{t('publicBeta.title')}</h2>
+                <p>{t('publicBeta.subtext')}</p>
+              </div>
+              <ol className="public-beta-steps">
+                <li>{t('publicBeta.step.demo')}</li>
+                <li>{t('publicBeta.step.privateSmoke')}</li>
+                <li>{t('publicBeta.step.approval')}</li>
+              </ol>
+              <div className="public-beta-actions">
+                <button type="button" className="toolbar-button primary" onClick={() => setViewMode('topology')}>
+                  {t('publicBeta.cta.demo')}
+                </button>
+                <button type="button" className="toolbar-button" onClick={handleRefreshConnectivity} disabled={connectivityRefreshing}>
+                  {t('publicBeta.cta.status')}
+                </button>
+              </div>
+            </section>
           </div>
 
           <div className="view-toggle" role="tablist" aria-label={t('aria.viewMode')}>
