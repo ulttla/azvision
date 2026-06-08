@@ -5,6 +5,7 @@ cd "$ROOT_DIR"
 
 required_docs=(
   docs/PUBLIC_BETA_GAP_ANALYSIS.md
+  docs/PUBLIC_BETA_APPROVAL_GATE.md
   docs/AUTH_WORKSPACE_ISOLATION_PLAN.md
   docs/PRODUCTION_DEPLOYMENT_GUIDE.md
   docs/SECURITY_HARDENING.md
@@ -37,6 +38,8 @@ grep -q 'No shared chat history before workspace isolation' docs/COPILOT_PERSIST
 grep -q 'No deletion from cron' docs/RETENTION_EXECUTION_GUARD.md
 grep -q -- '--dry-run' scripts/archive_retention_dry_run.py
 grep -q 'No-go criteria' docs/RATE_LIMIT_AUDIT_PLAN.md
+grep -q 'Current recommendation' docs/PUBLIC_BETA_APPROVAL_GATE.md
+grep -q 'Public exposure remains blocked' docs/PUBLIC_BETA_APPROVAL_GATE.md
 grep -q 'Public exposure approved by this run: \*\*No\*\*' docs/SHARED_LIMITER_EVIDENCE_TEMPLATE.md
 grep -q 'No public DNS or open internet exposure' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
 grep -q -- '--json' scripts/hosted_public_beta_smoke.mjs

@@ -18,7 +18,7 @@ This gate is the final approval checklist before AzVision can move from private 
 
 | Gate | Evidence |
 | --- | --- |
-| GitHub CI green at release commit | CI run URL and commit SHA |
+| GitHub CI green at release commit | CI run URL and commit SHA; C1 campaign evidence is summarized in `docs/PUBLIC_BETA_C1_EVIDENCE.md` |
 | Backend pytest runs in CI | CI backend job includes `python -m pytest tests -q` |
 | Public beta contract smoke passes | `scripts/public_beta_contract_smoke.sh` output |
 | Hosted smoke passes on private target | Completed `docs/HOSTED_E2E_RUN_RECORD_TEMPLATE.md` record |
@@ -56,6 +56,6 @@ approver:
 approval_time:
 ```
 
-## Current C3 recommendation
+## Current recommendation
 
-Continue private validation only. The next practical step is to choose the hosted private target and limiter provider, then run the hosted smoke with a completed run record. Public exposure remains a separate approval step.
+Continue private validation only. C1 added CI-backed auth, audit, limiter-readiness, demo-onboarding, hosted-smoke evidence-output, and evidence-register scaffolding. Public exposure remains blocked until the hosted private target, shared limiter provider, OIDC/account lifecycle target values, and rollback path are explicitly selected and verified.
