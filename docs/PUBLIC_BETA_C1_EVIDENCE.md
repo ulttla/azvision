@@ -26,6 +26,8 @@ This register summarizes AzVision C1 public beta readiness evidence from the 202
 | `12fc1c3` | Demo onboarding frontend/API wiring | Frontend semantics/build and contract smoke | `27170127008` success |
 | `6f4befa` | Public beta onboarding card extraction | Frontend semantics/build and contract smoke | `27170236617` success |
 | `92f3956` | Disabled-by-default account management route contract | Auth/session targeted tests, full backend tests, contract smoke | `27170387338` success |
+| `88f7053` | C1 evidence register | Public beta contract smoke | `27171391798` success |
+| `dc1d558` | Approval gate refresh | Public beta contract smoke | `27171463166` success |
 
 ## Current gate state
 
@@ -33,6 +35,15 @@ This register summarizes AzVision C1 public beta readiness evidence from the 202
 - G3 API protection/audit trail: improved, still partial until real shared limiter provider enforcement evidence exists.
 - G4 onboarding/demo path: backend route contract, frontend CTA wiring, and component extraction are in CI-backed state.
 - G9 docs/changelog: quick start, changelog, blocker status, and this evidence register exist.
+
+## C2 handoff criteria
+
+C2 should start from this evidence register and avoid reopening already validated C1 slices unless CI or tests regress. Preferred next work:
+
+1. G1: choose and document provider-specific OIDC/account lifecycle target values, or add disabled-by-default route contracts that keep public exposure blocked.
+2. G3: convert shared limiter readiness into provider-specific evidence only after a provider/private environment is selected.
+3. G5: prepare private hosted smoke run records, but do not execute against a hosted target without the target and access boundary being explicitly approved.
+4. Keep all deploy, public exposure, Azure write/remediation, secret handling, and OpenClaw runtime changes outside this campaign approval.
 
 ## Remaining approval-dependent evidence
 
