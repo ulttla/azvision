@@ -10,6 +10,7 @@ This changelog tracks user-facing public beta readiness changes. It is not a rel
   - The app shell imports `getDemoWorkspaceStatus()` for the global readiness row.
   - The demo CTA calls `bootstrapDemoWorkspace()` before routing users to Topology View.
   - A demo readiness badge exposes a small `ready` / `pending` signal without showing secrets or provider values.
+  - The public beta onboarding card is isolated in `PublicBetaOnboarding` so future checklist work can stay focused.
 
 ### Validation target
 

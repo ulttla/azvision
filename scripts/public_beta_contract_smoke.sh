@@ -53,6 +53,8 @@ grep -q 'workspace.demo_bootstrapped' backend/app/api/routes/workspaces.py
 grep -q 'getDemoWorkspaceStatus' frontend/src/lib/api.ts
 grep -q 'bootstrapDemoWorkspace' frontend/src/lib/api.ts
 grep -q 'public-beta-demo-badge' frontend/src/App.tsx
+grep -q 'public-beta-onboarding' frontend/src/components/PublicBetaOnboarding.tsx
+grep -q 'PublicBetaOnboarding' frontend/src/App.tsx
 grep -q 'App shell public beta readiness card' docs/PUBLIC_BETA_CHANGELOG.md
 grep -q 'copilot.chat.requested' backend/app/api/routes/copilot.py
 grep -q 'scan.started' backend/app/api/routes/scans.py

@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { PublicBetaOnboarding } from './components/PublicBetaOnboarding'
 import { useI18n } from './i18n/context'
 import { bootstrapDemoWorkspace, getAuthConfigCheck, getBackendHealth, getBackendReadiness, getDemoWorkspaceStatus, getTopologyFreshness, getWorkspaces } from './lib/api'
 
@@ -322,31 +323,12 @@ export default function App() {
               ) : null}
             </div>
 
-            <section
-              className={`public-beta-onboarding ${isFirstRun ? 'first-run' : 'readiness-reminder'}`}
-              aria-label={t('publicBeta.aria')}
-              data-testid="public-beta-onboarding"
-              data-first-run={isFirstRun ? 'true' : 'false'}
-            >
-              <div>
-                <p className="public-beta-kicker">{isFirstRun ? t('publicBeta.firstRun.kicker') : t('publicBeta.kicker')}</p>
-                <h2>{isFirstRun ? t('publicBeta.firstRun.title') : t('publicBeta.title')}</h2>
-                <p>{isFirstRun ? t('publicBeta.firstRun.subtext') : t('publicBeta.subtext')}</p>
-              </div>
-              <ol className="public-beta-steps">
-                <li>{t('publicBeta.step.demo')}</li>
-                <li>{t('publicBeta.step.privateSmoke')}</li>
-                <li>{t('publicBeta.step.approval')}</li>
-              </ol>
-              <div className="public-beta-actions">
-                <button type="button" className="toolbar-button primary" onClick={handleOpenDemoPath} data-testid="public-beta-demo-cta">
-                  {isFirstRun ? t('publicBeta.firstRun.cta.demo') : t('publicBeta.cta.demo')}
-                </button>
-                <button type="button" className="toolbar-button" onClick={handleRefreshConnectivity} disabled={connectivityRefreshing}>
-                  {t('publicBeta.cta.status')}
-                </button>
-              </div>
-            </section>
+            <PublicBetaOnboarding
+              isFirstRun={isFirstRun}
+              connectivityRefreshing={connectivityRefreshing}
+              onOpenDemoPath={handleOpenDemoPath}
+              onRefreshConnectivity={handleRefreshConnectivity}
+            />
           </div>
 
           <div className="view-toggle" role="tablist" aria-label={t('aria.viewMode')}>
