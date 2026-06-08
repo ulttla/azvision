@@ -35,7 +35,7 @@ Use this record for every approved private hosted smoke. Do not use it to approv
 node scripts/hosted_public_beta_smoke.mjs --contract-check
 AZVISION_HOSTED_BASE_URL="<private-url>" \
 AZVISION_HOSTED_API_BASE_URL="<private-api-url>" \
-node scripts/hosted_public_beta_smoke.mjs
+node scripts/hosted_public_beta_smoke.mjs --json
 ```
 
 ## Results

@@ -109,6 +109,8 @@ async function main() {
     return
   }
 
+  const jsonOutput = process.argv.includes('--json')
+
   if (process.argv.includes('--contract-check')) {
     for (const name of REQUIRED_ENV) {
       if (!REQUIRED_ENV.includes(name)) throw new Error(`internal contract mismatch for ${name}`)
@@ -120,29 +122,35 @@ async function main() {
   const baseUrl = normalizeUrl(process.env.AZVISION_HOSTED_BASE_URL, 'AZVISION_HOSTED_BASE_URL')
   const apiBaseUrl = normalizeUrl(process.env.AZVISION_HOSTED_API_BASE_URL, 'AZVISION_HOSTED_API_BASE_URL')
 
+  const completedChecks = []
+
   const page = await fetchText(baseUrl)
   if (!page.response.ok) {
     throw new Error(`frontend returned ${page.response.status}`)
   }
   assertNoSecretLikeText('frontend page', page.text)
+  completedChecks.push('frontend loads')
 
   const health = await fetchJson(`${baseUrl}/healthz`)
   if (!health.response.ok || health.payload.status !== 'ok') {
     throw new Error('/healthz did not return status=ok')
   }
   assertSecurityHeaders(health.response, '/healthz')
+  completedChecks.push('/healthz')
 
   const ready = await fetchJson(`${baseUrl}/readyz`)
   if (![200, 503].includes(ready.response.status)) {
     throw new Error(`/readyz returned unexpected status ${ready.response.status}`)
   }
   assertSecurityHeaders(ready.response, '/readyz')
+  completedChecks.push('/readyz')
 
   const apiHealth = await fetchJson(`${apiBaseUrl}/healthz`)
   if (!apiHealth.response.ok || apiHealth.payload.status !== 'ok') {
     throw new Error('/api/v1/healthz did not return status=ok')
   }
   assertSecurityHeaders(apiHealth.response, '/api/v1/healthz')
+  completedChecks.push('/api/v1/healthz')
 
   const workspaces = await fetchJson(`${apiBaseUrl}/workspaces`)
   assertOkJson(workspaces, '/workspaces')
@@ -154,6 +162,7 @@ async function main() {
   if (!workspaceId) {
     throw new Error('workspace item missing id')
   }
+  completedChecks.push('workspace discovery')
 
   const topology = await fetchJson(`${apiBaseUrl}/workspaces/${encodeURIComponent(workspaceId)}/topology`)
   assertOkJson(topology, '/topology')
@@ -162,6 +171,7 @@ async function main() {
   if (nodes.length < 1 || edges.length < 1) {
     throw new Error('demo topology must include nodes and edges')
   }
+  completedChecks.push('demo topology nodes/edges')
 
   const snapshotName = `hosted-smoke-${Date.now()}`
   const snapshot = await postJson(`${apiBaseUrl}/workspaces/${encodeURIComponent(workspaceId)}/snapshots`, {
@@ -202,6 +212,7 @@ async function main() {
       throw new Error(`snapshot cleanup failed with ${deleted.response.status}`)
     }
     assertSecurityHeaders(deleted.response, 'snapshot cleanup')
+    completedChecks.push('snapshot create/list/detail/restore/delete cleanup')
   }
 
   const cost = await fetchJson(`${apiBaseUrl}/workspaces/${encodeURIComponent(workspaceId)}/cost/summary`)
@@ -210,6 +221,7 @@ async function main() {
   if (!costText.includes('unknown') && !costText.includes('estimated') && !costText.includes('mock')) {
     throw new Error('cost summary did not expose unknown/estimated/mock cost labeling')
   }
+  completedChecks.push('cost unknown/estimated/mock label')
 
   const copilot = await postJson(`${apiBaseUrl}/workspaces/${encodeURIComponent(workspaceId)}/chat`, {
     message: 'Give a short public beta smoke summary without secrets.',
@@ -218,6 +230,22 @@ async function main() {
   assertOkJson(copilot, 'copilot fallback')
   if (!copilot.payload.answer && !copilot.payload.message) {
     throw new Error('copilot fallback did not return answer text')
+  }
+  completedChecks.push('copilot fallback')
+  completedChecks.push('secret-like output scan')
+  completedChecks.push('security headers / X-Request-ID')
+
+  if (jsonOutput) {
+    console.log(JSON.stringify({
+      ok: true,
+      status: 'pass',
+      public_exposure_approved: false,
+      workspace_id: workspaceId,
+      node_count: nodes.length,
+      edge_count: edges.length,
+      checks: completedChecks,
+    }, null, 2))
+    return
   }
 
   console.log(`PASS: hosted public beta smoke completed workspace=${workspaceId} nodes=${nodes.length} edges=${edges.length}`)
