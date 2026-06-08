@@ -82,6 +82,7 @@ Azure topology explorer 기반의 AzVision 개발 repo.
 - `docs/DEMO_WORKSPACE_CONTRACT.md` guards the mock inventory shape needed for public onboarding.
 - `docs/AUTH_WORKSPACE_ISOLATION_PLAN.md` defines the account/session/workspace boundary required before public beta.
 - `docs/RATE_LIMIT_AUDIT_PLAN.md` defines the first public API abuse-control and audit trail contract.
+- `docs/SHARED_LIMITER_EVIDENCE_TEMPLATE.md` records shared limiter or edge/gateway limiter proof before exposure.
 - `docs/COST_INGESTION_PUBLIC_BETA_PLAN.md`, `docs/COPILOT_PERSISTENCE_PLAN.md`, and `docs/RETENTION_EXECUTION_GUARD.md` capture remaining public beta boundaries for cost, Copilot, and retention.
 - `scripts/public_beta_contract_smoke.sh` checks that the public beta contract set is present and keeps key safety phrases intact.
 - `docs/HOSTED_E2E_PREFLIGHT_PLAN.md` defines the private hosted browser/API smoke required before any public exposure; `scripts/hosted_public_beta_smoke.mjs` is the fail-closed skeleton. CI runs the public beta contract smokes without contacting a hosted environment.

@@ -11,6 +11,7 @@ required_docs=(
   docs/ONBOARDING_DESIGN.md
   docs/DEMO_WORKSPACE_CONTRACT.md
   docs/RATE_LIMIT_AUDIT_PLAN.md
+  docs/SHARED_LIMITER_EVIDENCE_TEMPLATE.md
   docs/COST_INGESTION_PUBLIC_BETA_PLAN.md
   docs/COPILOT_PERSISTENCE_PLAN.md
   docs/RETENTION_EXECUTION_GUARD.md
@@ -35,6 +36,7 @@ grep -q 'No shared chat history before workspace isolation' docs/COPILOT_PERSIST
 grep -q 'No deletion from cron' docs/RETENTION_EXECUTION_GUARD.md
 grep -q -- '--dry-run' scripts/archive_retention_dry_run.py
 grep -q 'No-go criteria' docs/RATE_LIMIT_AUDIT_PLAN.md
+grep -q 'Public exposure approved by this run: \*\*No\*\*' docs/SHARED_LIMITER_EVIDENCE_TEMPLATE.md
 grep -q 'No public DNS or open internet exposure' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
 grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md
