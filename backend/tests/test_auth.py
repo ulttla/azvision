@@ -186,6 +186,53 @@ class TestAuthRoutes:
         assert "/private/project/.env" not in response.text
         assert "password" not in response.text
 
+    def test_config_check_reports_oidc_readiness_without_provider_value_leak(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.auth as auth_routes
+
+        monkeypatch.setattr(
+            auth_routes,
+            "get_settings",
+            lambda: SimpleNamespace(
+                auth_runtime_ready=False,
+                azure_tenant_id="",
+                azure_client_id="",
+                azure_certificate_path="",
+                azure_certificate_thumbprint="",
+                azure_cloud="public",
+                debug=False,
+                auth_oidc_login_enabled=True,
+                auth_oidc_issuer="https://login.example.test/tenant-secret",
+                auth_oidc_audience="client-secret-id",
+                auth_oidc_jwks_url="https://login.example.test/keys-secret",
+                auth_oidc_workspace_map_json=(
+                    '{"users":{"owner@example.test":{"workspaces":[{"workspace_id":"workspace-a","role":"owner"}]}}}'
+                ),
+            ),
+        )
+
+        response = client.get("/api/v1/auth/config-check")
+
+        assert response.status_code == 200
+        oidc = response.json()["checks"]["oidc"]
+        assert oidc == {
+            "login_enabled": True,
+            "issuer_present": True,
+            "audience_present": True,
+            "jwks_url_present": True,
+            "workspace_map_present": True,
+            "workspace_map_valid": True,
+            "mapped_user_count": 1,
+            "grant_count": 1,
+        }
+        assert "tenant-secret" not in response.text
+        assert "client-secret-id" not in response.text
+        assert "owner@example.test" not in response.text
+        assert "workspace-a" not in response.text
+
     def test_config_check_keeps_local_env_path_diagnostics_in_debug_mode(
         self,
         client: TestClient,

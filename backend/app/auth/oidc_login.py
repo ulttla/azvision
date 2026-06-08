@@ -137,6 +137,23 @@ def _load_workspace_map(settings: Settings) -> dict[str, list[dict[str, Any]]]:
     return _validate_workspace_map(parsed)
 
 
+def oidc_workspace_map_summary(settings: Settings) -> dict[str, int | bool]:
+    """Return non-secret OIDC workspace map readiness counts for config checks."""
+    raw = getattr(settings, "auth_oidc_workspace_map_json", "").strip()
+    if not raw:
+        return {"present": False, "valid": False, "mapped_user_count": 0, "grant_count": 0}
+    try:
+        mapping = _load_workspace_map(settings)
+    except OIDCNotConfiguredError:
+        return {"present": True, "valid": False, "mapped_user_count": 0, "grant_count": 0}
+    return {
+        "present": True,
+        "valid": True,
+        "mapped_user_count": len(mapping),
+        "grant_count": sum(len(grants) for grants in mapping.values()),
+    }
+
+
 def _grants_for_email(mapping: dict[str, list[dict[str, Any]]], email: str) -> list[dict[str, Any]]:
     return mapping.get(email.lower(), [])
 

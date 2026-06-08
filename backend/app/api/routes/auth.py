@@ -9,6 +9,7 @@ from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
 from app.auth.oidc_login import (
     OIDCLoginError,
     OIDCNotConfiguredError,
+    oidc_workspace_map_summary,
     resolve_oidc_workspace_grant,
     verify_oidc_id_token,
 )
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.get("/config-check")
 def config_check() -> dict:
     settings = get_settings()
+    workspace_map = oidc_workspace_map_summary(settings)
     payload = {
         "status": "ok",
         "phase": "1A-live-read-prep",
@@ -31,6 +33,16 @@ def config_check() -> dict:
             "certificate_path_present": bool(settings.azure_certificate_path),
             "certificate_thumbprint_present": bool(settings.azure_certificate_thumbprint),
             "azure_cloud": settings.azure_cloud,
+            "oidc": {
+                "login_enabled": bool(getattr(settings, "auth_oidc_login_enabled", False)),
+                "issuer_present": bool(getattr(settings, "auth_oidc_issuer", "")),
+                "audience_present": bool(getattr(settings, "auth_oidc_audience", "")),
+                "jwks_url_present": bool(getattr(settings, "auth_oidc_jwks_url", "")),
+                "workspace_map_present": workspace_map["present"],
+                "workspace_map_valid": workspace_map["valid"],
+                "mapped_user_count": workspace_map["mapped_user_count"],
+                "grant_count": workspace_map["grant_count"],
+            },
         },
         "note": "server-side configured credential profile, diagnostics read only. Preferred env file is project root .env; backend/.env is also supported.",
     }
