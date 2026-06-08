@@ -130,6 +130,12 @@ Minimum public beta limits to configure at the shared layer:
 | `copilot` | `AZVISION_RATE_LIMIT_COPILOT_PER_WINDOW=20` | account plus workspace |
 | `default` | `AZVISION_RATE_LIMIT_DEFAULT_PER_WINDOW=120` | source IP or account plus workspace when available |
 
+Runtime readiness reporting:
+
+- `/api/v1/auth/config-check` reports rate-limit readiness using booleans and counts only.
+- It exposes whether app-level limiter settings are positive, whether a shared provider is configured, and whether shared enforcement is marked active.
+- It does not echo the shared provider value, request keys, account identifiers, or route-specific runtime traffic.
+
 Provider selection guidance:
 
 | Hosting shape | Recommended limiter | Why |
@@ -144,7 +150,8 @@ Pre-exposure verification:
 2. Confirm `Retry-After` exists or document why the edge cannot emit it.
 3. Confirm request logs include `X-Request-ID` and do not include tokens, prompts, or credentials.
 4. Confirm app-level limiter remains disabled or is configured as a secondary defense, not the only multi-instance control.
-5. Record limiter provider, configured limits, test request IDs, commit SHA, and rollback/disable path in the release notes.
+5. Confirm `/auth/config-check` reports `public_beta_shared_gate_satisfied=true` without echoing provider names or secret-like values.
+6. Record limiter provider, configured limits, test request IDs, commit SHA, and rollback/disable path in the release notes.
 
 ## Implementation sequence
 
@@ -154,8 +161,9 @@ Pre-exposure verification:
 4. Add rate-limited response tests. [done]
 5. Add shared storage/gateway enforcement runbook. [done]
 6. Add non-secret audit coverage for current public-abuse-sensitive routes. [done]
-7. Replace process-local storage with shared storage/gateway enforcement for multi-instance hosting.
-8. Add public beta runbook section for reviewing audit events.
+7. Add non-secret `/auth/config-check` shared limiter readiness reporting. [done]
+8. Replace process-local storage with shared storage/gateway enforcement for multi-instance hosting.
+9. Add public beta runbook section for reviewing audit events.
 
 ## No-go criteria
 

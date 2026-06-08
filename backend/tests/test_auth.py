@@ -168,6 +168,15 @@ class TestAuthRoutes:
                 azure_certificate_password="password",
                 azure_cloud="public",
                 debug=False,
+                rate_limit_enabled=False,
+                rate_limit_window_seconds=60,
+                rate_limit_default_per_window=120,
+                rate_limit_auth_per_window=20,
+                rate_limit_auth_oidc_session_per_window=10,
+                rate_limit_exports_per_window=30,
+                rate_limit_copilot_per_window=20,
+                rate_limit_shared_provider="",
+                rate_limit_shared_enforced=False,
                 env_file_candidates=["/private/project/.env"],
                 discovered_env_files=["/private/project/.env"],
             ),
@@ -211,6 +220,15 @@ class TestAuthRoutes:
                 auth_oidc_workspace_map_json=(
                     '{"users":{"owner@example.test":{"workspaces":[{"workspace_id":"workspace-a","role":"owner"}]}}}'
                 ),
+                rate_limit_enabled=True,
+                rate_limit_window_seconds=60,
+                rate_limit_default_per_window=120,
+                rate_limit_auth_per_window=20,
+                rate_limit_auth_oidc_session_per_window=10,
+                rate_limit_exports_per_window=30,
+                rate_limit_copilot_per_window=20,
+                rate_limit_shared_provider="edge-provider-secret-name",
+                rate_limit_shared_enforced=True,
             ),
         )
 
@@ -232,6 +250,56 @@ class TestAuthRoutes:
         assert "client-secret-id" not in response.text
         assert "owner@example.test" not in response.text
         assert "workspace-a" not in response.text
+        assert "edge-provider-secret-name" not in response.text
+
+    def test_config_check_reports_rate_limit_readiness_without_provider_value_leak(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.auth as auth_routes
+
+        monkeypatch.setattr(
+            auth_routes,
+            "get_settings",
+            lambda: SimpleNamespace(
+                auth_runtime_ready=False,
+                azure_tenant_id="",
+                azure_client_id="",
+                azure_certificate_path="",
+                azure_certificate_thumbprint="",
+                azure_cloud="public",
+                debug=False,
+                auth_oidc_login_enabled=False,
+                auth_oidc_issuer="",
+                auth_oidc_audience="",
+                auth_oidc_jwks_url="",
+                auth_oidc_workspace_map_json="",
+                rate_limit_enabled=True,
+                rate_limit_window_seconds=60,
+                rate_limit_default_per_window=120,
+                rate_limit_auth_per_window=20,
+                rate_limit_auth_oidc_session_per_window=10,
+                rate_limit_exports_per_window=30,
+                rate_limit_copilot_per_window=20,
+                rate_limit_shared_provider="cloudflare-secret-zone",
+                rate_limit_shared_enforced=True,
+            ),
+        )
+
+        response = client.get("/api/v1/auth/config-check")
+
+        assert response.status_code == 200
+        assert response.json()["checks"]["rate_limit"] == {
+            "app_limiter_enabled": True,
+            "window_seconds_positive": True,
+            "limits_positive": True,
+            "configured_group_count": 5,
+            "shared_provider_present": True,
+            "shared_enforced": True,
+            "public_beta_shared_gate_satisfied": True,
+        }
+        assert "cloudflare-secret-zone" not in response.text
 
     def test_config_check_keeps_local_env_path_diagnostics_in_debug_mode(
         self,
@@ -253,6 +321,15 @@ class TestAuthRoutes:
                 azure_certificate_password="",
                 azure_cloud="public",
                 debug=True,
+                rate_limit_enabled=False,
+                rate_limit_window_seconds=60,
+                rate_limit_default_per_window=120,
+                rate_limit_auth_per_window=20,
+                rate_limit_auth_oidc_session_per_window=10,
+                rate_limit_exports_per_window=30,
+                rate_limit_copilot_per_window=20,
+                rate_limit_shared_provider="",
+                rate_limit_shared_enforced=False,
                 env_file_candidates=["/private/project/.env"],
                 discovered_env_files=["/private/project/.env"],
             ),

@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from app.api.rate_limiter import rate_limit_readiness_summary
 from app.api.workspace_security import _bearer_token, get_workspace_access_context, record_audit_event
 from app.auth.azure_read_test import AzureReadTestError, run_azure_read_test
 from app.auth.oidc_login import (
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def config_check() -> dict:
     settings = get_settings()
     workspace_map = oidc_workspace_map_summary(settings)
+    rate_limit = rate_limit_readiness_summary(settings)
     payload = {
         "status": "ok",
         "phase": "1A-live-read-prep",
@@ -43,6 +45,7 @@ def config_check() -> dict:
                 "mapped_user_count": workspace_map["mapped_user_count"],
                 "grant_count": workspace_map["grant_count"],
             },
+            "rate_limit": rate_limit,
         },
         "note": "server-side configured credential profile, diagnostics read only. Preferred env file is project root .env; backend/.env is also supported.",
     }

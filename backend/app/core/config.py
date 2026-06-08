@@ -168,6 +168,14 @@ class Settings(BaseSettings):
         default=20,
         validation_alias=AliasChoices("AZVISION_RATE_LIMIT_COPILOT_PER_WINDOW", "RATE_LIMIT_COPILOT_PER_WINDOW"),
     )
+    rate_limit_shared_provider: str = Field(
+        default="",
+        validation_alias=AliasChoices("AZVISION_RATE_LIMIT_SHARED_PROVIDER", "RATE_LIMIT_SHARED_PROVIDER"),
+    )
+    rate_limit_shared_enforced: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("AZVISION_RATE_LIMIT_SHARED_ENFORCED", "RATE_LIMIT_SHARED_ENFORCED"),
+    )
     export_root: str = str(PROJECT_DIR / "exports")
 
     model_config = SettingsConfigDict(
