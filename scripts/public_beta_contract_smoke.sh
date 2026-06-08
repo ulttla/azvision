@@ -58,6 +58,9 @@ grep -q 'manual_edge.updated' backend/app/api/routes/topology.py
 grep -q 'manual_edge.deleted' backend/app/api/routes/topology.py
 grep -q 'simulation.created' backend/app/api/routes/simulations.py
 grep -q 'simulation.deleted' backend/app/api/routes/simulations.py
+grep -q 'snapshot.created' backend/app/api/routes/snapshots.py
+grep -q 'snapshot.updated' backend/app/api/routes/snapshots.py
+grep -q 'snapshot.topology_archived' backend/app/api/routes/snapshots.py
 test -s backend/app/api/workspace_security.py
 test -s backend/tests/test_workspace_security.py
 test -s backend/tests/test_workspaces_route_security.py

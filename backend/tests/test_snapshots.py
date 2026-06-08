@@ -447,6 +447,27 @@ class TestSnapshotRouteCreate:
         assert body["id"].startswith("snap_")
         assert body["workspace_id"] == WORKSPACE
 
+    def test_post_writes_non_secret_audit_event(self, client: TestClient, db_path):
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(),
+            headers={"X-Request-Id": "req-snapshot-create"},
+        )
+
+        assert resp.status_code in (200, 201)
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            event = conn.execute(
+                "SELECT * FROM audit_events WHERE event_type = ?",
+                ("snapshot.created",),
+            ).fetchone()
+        assert event is not None
+        assert event["workspace_id"] == WORKSPACE
+        assert event["account_id"] == "test-account"
+        assert event["request_id"] == "req-snapshot-create"
+        assert json.loads(event["metadata_json"]) == {"snapshot_id": resp.json()["id"]}
+        assert "Test Snapshot" not in event["metadata_json"]
+
     def test_post_missing_name_returns_422(self, client: TestClient):
         payload = _create_payload()
         del payload["name"]
@@ -566,6 +587,30 @@ class TestSnapshotRoutePatch:
         )
         assert resp.status_code == 200
         assert resp.json()["is_pinned"] is True
+
+    def test_patch_writes_non_secret_audit_event(self, client: TestClient, db_path):
+        created = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots", json=_create_payload(name="Before")
+        ).json()
+        resp = client.patch(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{created['id']}",
+            json={"name": "After"},
+            headers={"X-Request-Id": "req-snapshot-update"},
+        )
+
+        assert resp.status_code == 200
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            event = conn.execute(
+                "SELECT * FROM audit_events WHERE event_type = ?",
+                ("snapshot.updated",),
+            ).fetchone()
+        assert event is not None
+        assert event["workspace_id"] == WORKSPACE
+        assert event["account_id"] == "test-account"
+        assert event["request_id"] == "req-snapshot-update"
+        assert json.loads(event["metadata_json"]) == {"snapshot_id": created["id"]}
+        assert "After" not in event["metadata_json"]
 
     def test_patch_nonexistent_returns_404(self, client: TestClient):
         resp = client.patch(
@@ -865,6 +910,32 @@ class TestTopologyArchiveRoute:
         body = resp.json()
         assert body["node_count"] == 0
         assert body["edge_count"] == 0
+
+    def test_store_topology_archive_writes_non_secret_audit_event(self, client: TestClient, db_path):
+        snap = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots",
+            json=_create_payload(name="AuditTopo"),
+        ).json()
+
+        resp = client.post(
+            f"/api/v1/workspaces/{WORKSPACE}/snapshots/{snap['id']}/topology-archive",
+            json={"topology": {"nodes": [{"node_key": "node-a", "display_name": "Private Node"}], "edges": []}},
+            headers={"X-Request-Id": "req-snapshot-topology-archive"},
+        )
+
+        assert resp.status_code == 200
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            event = conn.execute(
+                "SELECT * FROM audit_events WHERE event_type = ?",
+                ("snapshot.topology_archived",),
+            ).fetchone()
+        assert event is not None
+        assert event["workspace_id"] == WORKSPACE
+        assert event["account_id"] == "test-account"
+        assert event["request_id"] == "req-snapshot-topology-archive"
+        assert json.loads(event["metadata_json"]) == {"snapshot_id": snap["id"]}
+        assert "Private Node" not in event["metadata_json"]
 
     def test_store_topology_archive_deterministic_hash(self, client: TestClient):
         snap = client.post(

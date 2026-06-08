@@ -75,8 +75,11 @@ Current minimum event types:
 - `credential_profile.created`
 - `credential_profile.updated`
 - `credential_profile.deleted`
+- `snapshot.created`
+- `snapshot.updated`
 - `snapshot.restored`
 - `snapshot.deleted`
+- `snapshot.topology_archived`
 - `export.created`
 - `copilot.chat.requested`
 - `scan.started`
@@ -160,7 +163,7 @@ Pre-exposure verification:
 3. Add limiter abstraction with in-memory local backend first. [done]
 4. Add rate-limited response tests. [done]
 5. Add shared storage/gateway enforcement runbook. [done]
-6. Add non-secret audit coverage for current public-abuse-sensitive routes. [done]
+6. Add non-secret audit coverage for current public-abuse-sensitive routes, including snapshot create/update/delete/restore/topology-archive. [done]
 7. Add non-secret `/auth/config-check` shared limiter readiness reporting. [done]
 8. Replace process-local storage with shared storage/gateway enforcement for multi-instance hosting.
 9. Add public beta runbook section for reviewing audit events.

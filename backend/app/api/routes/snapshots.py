@@ -56,8 +56,23 @@ def list_snapshots(
 
 
 @router.post("", response_model=SnapshotRecord, dependencies=[Depends(require_workspace_write_membership)])
-def create_snapshot(workspace_id: str, payload: SnapshotCreateRequest) -> SnapshotRecord:
-    return service.create_snapshot(workspace_id, payload)
+def create_snapshot(
+    workspace_id: str,
+    payload: SnapshotCreateRequest,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
+) -> SnapshotRecord:
+    membership = require_workspace_access(context, workspace_id, action="write")
+    record = service.create_snapshot(workspace_id, payload)
+    record_audit_event(
+        event_type="snapshot.created",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"snapshot_id": record.id},
+    )
+    return record
 
 
 @router.post("/compare", response_model=SnapshotCompareResponse)
@@ -85,11 +100,24 @@ def update_snapshot(
     workspace_id: str,
     snapshot_id: str,
     payload: SnapshotUpdateRequest,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> SnapshotRecord:
+    membership = require_workspace_access(context, workspace_id, action="write")
     try:
-        return service.update_snapshot(workspace_id, snapshot_id, payload)
+        record = service.update_snapshot(workspace_id, snapshot_id, payload)
     except SnapshotNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Snapshot not found") from exc
+
+    record_audit_event(
+        event_type="snapshot.updated",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"snapshot_id": snapshot_id},
+    )
+    return record
 
 
 @router.post("/{snapshot_id}/restore-events", response_model=SnapshotRecord, dependencies=[Depends(require_workspace_write_membership)])
@@ -154,6 +182,8 @@ def store_topology_archive(
     workspace_id: str,
     snapshot_id: str,
     payload: TopologyArchiveRequest,
+    request: Request,
+    context: WorkspaceAccessContext = Depends(get_workspace_access_context),
 ) -> TopologyArchiveResponse:
     """Store a normalized topology archive for a snapshot.
 
@@ -166,6 +196,8 @@ def store_topology_archive(
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid topology payload: {exc}") from exc
 
+    membership = require_workspace_access(context, workspace_id, action="write")
+
     # Store in repository
     from app.repositories.topology_archive import TopologyArchiveRepository
 
@@ -177,6 +209,15 @@ def store_topology_archive(
         topology_hash=normalized["topology_hash"],
         node_count=normalized["node_count"],
         edge_count=normalized["edge_count"],
+    )
+
+    record_audit_event(
+        event_type="snapshot.topology_archived",
+        outcome="success",
+        workspace_id=workspace_id,
+        account_id=membership.account_id,
+        request_id=request.headers.get("x-request-id"),
+        metadata={"snapshot_id": snapshot_id},
     )
 
     return TopologyArchiveResponse(
