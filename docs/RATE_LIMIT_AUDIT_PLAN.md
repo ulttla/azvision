@@ -6,7 +6,7 @@ This plan defines the minimum API protection layer needed before AzVision can ru
 
 - Security headers and safe debug defaults are in place.
 - A process-local fixed-window request limiter exists behind `AZVISION_RATE_LIMIT_ENABLED=false` by default.
-- There is no durable audit event model yet.
+- A durable SQLite `audit_events` model and route helper exist for current public beta seams.
 - Public traffic should not be enabled until identity and workspace isolation exist.
 
 ## Request ID baseline
@@ -64,20 +64,34 @@ Implemented response helper and middleware:
 
 Audit events should be safe, structured metadata. They should not store secrets, raw prompts, Azure credential material, certificate paths, or request bodies.
 
-Minimum event types:
+Current minimum event types:
 
-- `session.login.success`
+- `session.issued`
+- `session.revoked`
 - `auth.oidc_session.failed`
+- `auth.oidc_session.succeeded`
 - `workspace.created`
 - `workspace.updated`
-- `workspace.member.changed`
 - `credential_profile.created`
 - `credential_profile.updated`
 - `credential_profile.deleted`
 - `snapshot.restored`
 - `snapshot.deleted`
-- `export.generated`
-- `copilot.provider.changed`
+- `export.created`
+- `copilot.chat.requested`
+- `scan.started`
+- `manual_node.created`
+- `manual_node.updated`
+- `manual_node.deleted`
+- `manual_edge.created`
+- `manual_edge.updated`
+- `manual_edge.deleted`
+- `simulation.created`
+- `simulation.deleted`
+
+Remaining audit expansion candidate after public beta auth provider selection:
+
+- `workspace.member.changed`
 
 ## Audit event shape
 
@@ -139,8 +153,9 @@ Pre-exposure verification:
 3. Add limiter abstraction with in-memory local backend first. [done]
 4. Add rate-limited response tests. [done]
 5. Add shared storage/gateway enforcement runbook. [done]
-6. Replace process-local storage with shared storage/gateway enforcement for multi-instance hosting.
-7. Add public beta runbook section for reviewing audit events.
+6. Add non-secret audit coverage for current public-abuse-sensitive routes. [done]
+7. Replace process-local storage with shared storage/gateway enforcement for multi-instance hosting.
+8. Add public beta runbook section for reviewing audit events.
 
 ## No-go criteria
 
