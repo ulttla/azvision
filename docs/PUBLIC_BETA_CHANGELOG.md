@@ -2,6 +2,19 @@
 
 This changelog tracks user-facing public beta readiness changes. It is not a release approval record.
 
+## 2026-06-08 (continued 3)
+
+### Added
+
+- Demo onboarding frontend wiring now calls the backend demo route contract.
+  - The app shell imports `getDemoWorkspaceStatus()` for the global readiness row.
+  - The demo CTA calls `bootstrapDemoWorkspace()` before routing users to Topology View.
+  - A demo readiness badge exposes a small `ready` / `pending` signal without showing secrets or provider values.
+
+### Validation target
+
+- App-shell semantics smoke must assert the demo status helper, idempotent bootstrap CTA, and badge CSS hooks.
+
 ## 2026-06-08 (continued 2)
 
 ### Changed

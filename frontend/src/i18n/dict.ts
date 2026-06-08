@@ -29,6 +29,8 @@ export const dict = {
     'publicBeta.cta.demo': 'Open demo path',
     'publicBeta.firstRun.cta.demo': 'Try demo path',
     'publicBeta.cta.status': 'Refresh readiness',
+    'publicBeta.demoBadge.ready': 'Demo ready',
+    'publicBeta.demoBadge.pending': 'Demo pending',
 
     // ── Connectivity status row ───────────────────────────
     'status.backend': 'Backend',
@@ -796,6 +798,8 @@ export const dict = {
     'publicBeta.cta.demo': '데모 경로 열기',
     'publicBeta.firstRun.cta.demo': '데모 경로 체험',
     'publicBeta.cta.status': '준비 상태 새로고침',
+    'publicBeta.demoBadge.ready': '데모 준비됨',
+    'publicBeta.demoBadge.pending': '데모 확인 중',
 
     // ── Connectivity status row ───────────────────────────
     'status.backend': '백엔드',

@@ -150,6 +150,28 @@ textarea {
   font-weight: 600;
 }
 
+.public-beta-demo-badge {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.58);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.public-beta-demo-badge.ready {
+  border-color: rgba(34, 197, 94, 0.36);
+  color: #bbf7d0;
+  background: rgba(20, 83, 45, 0.22);
+}
+
+.public-beta-demo-badge.unavailable {
+  border-color: rgba(251, 191, 36, 0.32);
+  color: #fde68a;
+  background: rgba(120, 53, 15, 0.2);
+}
+
 .public-beta-onboarding {
   display: grid;
   grid-template-columns: minmax(240px, 1.2fr) minmax(260px, 1fr) auto;

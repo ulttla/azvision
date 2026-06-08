@@ -50,6 +50,9 @@ grep -q 'demo-safe topology' docs/PUBLIC_BETA_QUICK_START.md
 grep -q 'demo-status' backend/app/api/routes/workspaces.py
 grep -q 'demo-bootstrap' backend/app/api/routes/workspaces.py
 grep -q 'workspace.demo_bootstrapped' backend/app/api/routes/workspaces.py
+grep -q 'getDemoWorkspaceStatus' frontend/src/lib/api.ts
+grep -q 'bootstrapDemoWorkspace' frontend/src/lib/api.ts
+grep -q 'public-beta-demo-badge' frontend/src/App.tsx
 grep -q 'App shell public beta readiness card' docs/PUBLIC_BETA_CHANGELOG.md
 grep -q 'copilot.chat.requested' backend/app/api/routes/copilot.py
 grep -q 'scan.started' backend/app/api/routes/scans.py

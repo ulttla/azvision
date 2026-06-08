@@ -5,6 +5,17 @@ export type Workspace = {
   description?: string
 }
 
+export type DemoWorkspaceStatus = {
+  workspace_id: string
+  is_demo: boolean
+  mode: string
+  has_topology: boolean
+  node_count: number
+  edge_count: number
+  status?: string
+  bootstrap_outcome?: 'success' | 'skipped' | string
+}
+
 export type InventorySubscription = {
   subscription_id?: string
   display_name?: string
@@ -583,6 +594,14 @@ export async function getBackendReadiness(): Promise<BackendReadinessResponse> {
 export async function getWorkspaces(): Promise<Workspace[]> {
   const data = await fetchJson<{ items: Workspace[] }>('/workspaces')
   return data.items
+}
+
+export async function getDemoWorkspaceStatus(): Promise<DemoWorkspaceStatus> {
+  return fetchJson<DemoWorkspaceStatus>('/workspaces/demo-status')
+}
+
+export async function bootstrapDemoWorkspace(): Promise<DemoWorkspaceStatus> {
+  return fetchJson<DemoWorkspaceStatus>('/workspaces/demo-bootstrap', { method: 'POST' })
 }
 
 export async function getWorkspaceSubscriptions(

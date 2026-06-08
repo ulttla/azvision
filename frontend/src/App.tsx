@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useI18n } from './i18n/context'
-import { getAuthConfigCheck, getBackendHealth, getBackendReadiness, getTopologyFreshness, getWorkspaces } from './lib/api'
+import { bootstrapDemoWorkspace, getAuthConfigCheck, getBackendHealth, getBackendReadiness, getDemoWorkspaceStatus, getTopologyFreshness, getWorkspaces } from './lib/api'
 
 const TopologyPage = lazy(async () => {
   const module = await import('./pages/TopologyPage')
@@ -75,6 +75,7 @@ export default function App() {
   const [topologyFreshness, setTopologyFreshness] = useState<TopologyFreshnessStatus>('checking')
   const [topologyNodeCount, setTopologyNodeCount] = useState<number | null>(null)
   const [workspaceCount, setWorkspaceCount] = useState<number | null>(null)
+  const [demoWorkspaceStatus, setDemoWorkspaceStatus] = useState<'checking' | 'ready' | 'unavailable'>('checking')
   const [connectivityRefreshMessage, setConnectivityRefreshMessage] = useState('')
   const [connectivityRefreshing, setConnectivityRefreshing] = useState(false)
 
@@ -88,12 +89,14 @@ export default function App() {
     setAuthConnectivity('checking')
     setTopologyFreshness('checking')
     setConnectivityRefreshMessage(t('status.refreshing'))
+    setDemoWorkspaceStatus('checking')
 
     try {
-      const [backendHealthResult, backendReadinessResult, authResult, freshnessResult] = await Promise.allSettled([
+      const [backendHealthResult, backendReadinessResult, authResult, demoStatusResult, freshnessResult] = await Promise.allSettled([
         getBackendHealth(),
         getBackendReadiness(),
         getAuthConfigCheck(),
+        getDemoWorkspaceStatus(),
         getWorkspaces().then(async (workspaces) => {
           if (workspaces.length === 0) {
             return { status: 'empty' as const, nodeCount: null, workspaceCount: 0 }
@@ -124,6 +127,11 @@ export default function App() {
       )
       setAuthConnectivity(
         authResult.status === 'fulfilled' && authResult.value.auth_ready ? 'ready' : 'not-configured',
+      )
+      setDemoWorkspaceStatus(
+        demoStatusResult.status === 'fulfilled' && demoStatusResult.value.is_demo && demoStatusResult.value.has_topology
+          ? 'ready'
+          : 'unavailable',
       )
 
       if (freshnessResult.status === 'fulfilled') {
@@ -174,6 +182,19 @@ export default function App() {
       }
     }
 
+    async function refreshDemoWorkspaceStatus() {
+      try {
+        const demoStatus = await getDemoWorkspaceStatus()
+        if (active) {
+          setDemoWorkspaceStatus(demoStatus.is_demo && demoStatus.has_topology ? 'ready' : 'unavailable')
+        }
+      } catch {
+        if (active) {
+          setDemoWorkspaceStatus('unavailable')
+        }
+      }
+    }
+
     async function refreshTopologyFreshness() {
       try {
         const workspaces = await getWorkspaces()
@@ -208,20 +229,38 @@ export default function App() {
 
     void refreshBackendConnectivity()
     void refreshAuthConnectivity()
+    void refreshDemoWorkspaceStatus()
     void refreshTopologyFreshness()
     const intervalId = window.setInterval(refreshBackendConnectivity, 30000)
     const authIntervalId = window.setInterval(refreshAuthConnectivity, 30000)
+    const demoIntervalId = window.setInterval(refreshDemoWorkspaceStatus, 60000)
     const topologyIntervalId = window.setInterval(refreshTopologyFreshness, 60000)
 
     return () => {
       active = false
       window.clearInterval(intervalId)
       window.clearInterval(authIntervalId)
+      window.clearInterval(demoIntervalId)
       window.clearInterval(topologyIntervalId)
     }
   }, [])
 
   const isFirstRun = workspaceCount === 0 && topologyFreshness === 'empty'
+
+  async function handleOpenDemoPath() {
+    setConnectivityRefreshMessage(t('status.refreshing'))
+    try {
+      const demoStatus = await bootstrapDemoWorkspace()
+      setDemoWorkspaceStatus(demoStatus.is_demo && demoStatus.has_topology ? 'ready' : 'unavailable')
+      setWorkspaceCount((current) => current ?? 1)
+      setViewMode('topology')
+      setConnectivityRefreshMessage(t('status.refreshed'))
+      window.setTimeout(() => setConnectivityRefreshMessage(''), 2500)
+    } catch {
+      setDemoWorkspaceStatus('unavailable')
+      setViewMode('topology')
+    }
+  }
 
   return (
     <>
@@ -263,6 +302,9 @@ export default function App() {
                   {t('status.topology')} {freshnessLabels[topologyFreshness] ?? topologyFreshness}{topologyNodeCount !== null ? ` (${topologyNodeCount} ${t('common.nodes')})` : ''}
                 </span>
               </span>
+              <span className={`public-beta-demo-badge ${demoWorkspaceStatus}`} data-testid="public-beta-demo-badge">
+                {demoWorkspaceStatus === 'ready' ? t('publicBeta.demoBadge.ready') : t('publicBeta.demoBadge.pending')}
+              </span>
               <button
                 type="button"
                 className="workspace-connectivity-refresh"
@@ -297,7 +339,7 @@ export default function App() {
                 <li>{t('publicBeta.step.approval')}</li>
               </ol>
               <div className="public-beta-actions">
-                <button type="button" className="toolbar-button primary" onClick={() => setViewMode('topology')}>
+                <button type="button" className="toolbar-button primary" onClick={handleOpenDemoPath} data-testid="public-beta-demo-cta">
                   {isFirstRun ? t('publicBeta.firstRun.cta.demo') : t('publicBeta.cta.demo')}
                 </button>
                 <button type="button" className="toolbar-button" onClick={handleRefreshConnectivity} disabled={connectivityRefreshing}>
