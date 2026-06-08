@@ -66,3 +66,7 @@ The in-app limiter is process-local and is acceptable only for local development
 - Shared limiter evidence result: PASS / FAIL
 - Public exposure approved by this run: **No**
 - Follow-up needed:
+
+## Related evidence
+
+C1 application-side limiter readiness and audit evidence are summarized in `docs/PUBLIC_BETA_C1_EVIDENCE.md`. This template is still required for provider-specific edge/gateway or shared-store proof; C1 CI success is not shared limiter enforcement evidence by itself.

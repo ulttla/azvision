@@ -41,7 +41,9 @@ grep -q 'No-go criteria' docs/RATE_LIMIT_AUDIT_PLAN.md
 grep -q 'Current recommendation' docs/PUBLIC_BETA_APPROVAL_GATE.md
 grep -q 'Public exposure remains blocked' docs/PUBLIC_BETA_APPROVAL_GATE.md
 grep -q 'Public exposure approved by this run: \*\*No\*\*' docs/SHARED_LIMITER_EVIDENCE_TEMPLATE.md
+grep -q 'C1 application-side limiter readiness' docs/SHARED_LIMITER_EVIDENCE_TEMPLATE.md
 grep -q 'No public DNS or open internet exposure' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
+grep -q 'C1 CI-backed readiness evidence' docs/HOSTED_E2E_PREFLIGHT_PLAN.md
 grep -q -- '--json' scripts/hosted_public_beta_smoke.mjs
 grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md

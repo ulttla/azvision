@@ -112,3 +112,7 @@ Normal execution still fails closed unless `AZVISION_HOSTED_BASE_URL` and `AZVIS
 ## CI coverage
 
 GitHub CI runs the hosted E2E preflight contract smoke as a contract check only. It does not contact a hosted environment or approve public exposure.
+
+## Related evidence
+
+C1 CI-backed readiness evidence is summarized in `docs/PUBLIC_BETA_C1_EVIDENCE.md`. Use that register as the commit/CI baseline before filling a real hosted run record. Hosted execution still requires an explicitly approved private target and must not be inferred from C1 CI success alone.
