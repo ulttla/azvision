@@ -19,10 +19,15 @@ export const dict = {
     'publicBeta.title': 'Public beta readiness path',
     'publicBeta.subtext':
       'Use the demo workspace and private hosted smoke records before any public exposure decision.',
+    'publicBeta.firstRun.kicker': 'First run',
+    'publicBeta.firstRun.title': 'Start with a demo-safe workspace',
+    'publicBeta.firstRun.subtext':
+      'No workspace or topology snapshot is loaded yet. Start in Topology View with demo-safe data before connecting real Azure scope.',
     'publicBeta.step.demo': 'Start with demo-safe topology and no Azure write path.',
     'publicBeta.step.privateSmoke': 'Run the private hosted smoke record before promotion.',
     'publicBeta.step.approval': 'Keep deploy, exposure, provider secrets, and rollback approval separate.',
     'publicBeta.cta.demo': 'Open demo path',
+    'publicBeta.firstRun.cta.demo': 'Try demo path',
     'publicBeta.cta.status': 'Refresh readiness',
 
     // ── Connectivity status row ───────────────────────────
@@ -781,10 +786,15 @@ export const dict = {
     'publicBeta.title': '공개 베타 준비 경로',
     'publicBeta.subtext':
       '공개 노출을 결정하기 전 데모 워크스페이스와 비공개 호스팅 smoke 기록을 먼저 사용하세요.',
+    'publicBeta.firstRun.kicker': '첫 실행',
+    'publicBeta.firstRun.title': '데모 안전 워크스페이스에서 시작',
+    'publicBeta.firstRun.subtext':
+      '아직 워크스페이스나 토폴로지 스냅샷이 없습니다. 실제 Azure scope 연결 전 Topology View에서 데모 안전 데이터로 먼저 시작하세요.',
     'publicBeta.step.demo': 'Azure 쓰기 경로 없는 데모 안전 토폴로지에서 시작',
     'publicBeta.step.privateSmoke': '승격 전 비공개 호스팅 smoke 기록 실행',
     'publicBeta.step.approval': '배포, 공개 노출, provider secret, rollback 승인은 별도 유지',
     'publicBeta.cta.demo': '데모 경로 열기',
+    'publicBeta.firstRun.cta.demo': '데모 경로 체험',
     'publicBeta.cta.status': '준비 상태 새로고침',
 
     // ── Connectivity status row ───────────────────────────

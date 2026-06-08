@@ -74,6 +74,7 @@ export default function App() {
   const [authConnectivity, setAuthConnectivity] = useState<AuthConnectivityStatus>('checking')
   const [topologyFreshness, setTopologyFreshness] = useState<TopologyFreshnessStatus>('checking')
   const [topologyNodeCount, setTopologyNodeCount] = useState<number | null>(null)
+  const [workspaceCount, setWorkspaceCount] = useState<number | null>(null)
   const [connectivityRefreshMessage, setConnectivityRefreshMessage] = useState('')
   const [connectivityRefreshing, setConnectivityRefreshing] = useState(false)
 
@@ -95,18 +96,19 @@ export default function App() {
         getAuthConfigCheck(),
         getWorkspaces().then(async (workspaces) => {
           if (workspaces.length === 0) {
-            return { status: 'empty' as const, nodeCount: null }
+            return { status: 'empty' as const, nodeCount: null, workspaceCount: 0 }
           }
 
           const freshness = await getTopologyFreshness(workspaces[0].id)
           if (freshness.generated_at === null) {
-            return { status: 'empty' as const, nodeCount: null }
+            return { status: 'empty' as const, nodeCount: null, workspaceCount: workspaces.length }
           }
 
           const ageMs = Date.now() - new Date(freshness.generated_at).getTime()
           return {
             status: ageMs < 24 * 60 * 60 * 1000 ? ('fresh' as const) : ('stale' as const),
             nodeCount: freshness.node_count,
+            workspaceCount: workspaces.length,
           }
         }),
       ])
@@ -127,9 +129,11 @@ export default function App() {
       if (freshnessResult.status === 'fulfilled') {
         setTopologyFreshness(freshnessResult.value.status)
         setTopologyNodeCount(freshnessResult.value.nodeCount)
+        setWorkspaceCount(freshnessResult.value.workspaceCount)
       } else {
         setTopologyFreshness('empty')
         setTopologyNodeCount(null)
+        setWorkspaceCount(null)
       }
 
       setConnectivityRefreshMessage(t('status.refreshed'))
@@ -177,9 +181,11 @@ export default function App() {
           if (active) {
             setTopologyFreshness('empty')
             setTopologyNodeCount(null)
+            setWorkspaceCount(workspaces.length)
           }
           return
         }
+        setWorkspaceCount(workspaces.length)
         const freshness = await getTopologyFreshness(workspaces[0].id)
         if (!active) return
         if (freshness.generated_at === null) {
@@ -195,6 +201,7 @@ export default function App() {
         if (active) {
           setTopologyFreshness('empty')
           setTopologyNodeCount(null)
+          setWorkspaceCount(null)
         }
       }
     }
@@ -213,6 +220,8 @@ export default function App() {
       window.clearInterval(topologyIntervalId)
     }
   }, [])
+
+  const isFirstRun = workspaceCount === 0 && topologyFreshness === 'empty'
 
   return (
     <>
@@ -271,11 +280,16 @@ export default function App() {
               ) : null}
             </div>
 
-            <section className="public-beta-onboarding" aria-label={t('publicBeta.aria')} data-testid="public-beta-onboarding">
+            <section
+              className={`public-beta-onboarding ${isFirstRun ? 'first-run' : 'readiness-reminder'}`}
+              aria-label={t('publicBeta.aria')}
+              data-testid="public-beta-onboarding"
+              data-first-run={isFirstRun ? 'true' : 'false'}
+            >
               <div>
-                <p className="public-beta-kicker">{t('publicBeta.kicker')}</p>
-                <h2>{t('publicBeta.title')}</h2>
-                <p>{t('publicBeta.subtext')}</p>
+                <p className="public-beta-kicker">{isFirstRun ? t('publicBeta.firstRun.kicker') : t('publicBeta.kicker')}</p>
+                <h2>{isFirstRun ? t('publicBeta.firstRun.title') : t('publicBeta.title')}</h2>
+                <p>{isFirstRun ? t('publicBeta.firstRun.subtext') : t('publicBeta.subtext')}</p>
               </div>
               <ol className="public-beta-steps">
                 <li>{t('publicBeta.step.demo')}</li>
@@ -284,7 +298,7 @@ export default function App() {
               </ol>
               <div className="public-beta-actions">
                 <button type="button" className="toolbar-button primary" onClick={() => setViewMode('topology')}>
-                  {t('publicBeta.cta.demo')}
+                  {isFirstRun ? t('publicBeta.firstRun.cta.demo') : t('publicBeta.cta.demo')}
                 </button>
                 <button type="button" className="toolbar-button" onClick={handleRefreshConnectivity} disabled={connectivityRefreshing}>
                   {t('publicBeta.cta.status')}

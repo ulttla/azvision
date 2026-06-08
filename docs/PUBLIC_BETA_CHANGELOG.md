@@ -2,6 +2,19 @@
 
 This changelog tracks user-facing public beta readiness changes. It is not a release approval record.
 
+## 2026-06-08 (continued 2)
+
+### Changed
+
+- Public beta onboarding card now has a conditional first-run variant.
+  - First-run mode is derived from empty workspace count plus empty topology freshness.
+  - The card exposes `data-first-run` for lightweight UI and browserless assertions.
+  - First-run visual emphasis respects reduced-motion preference.
+
+### Validation target
+
+- Frontend app-shell semantics smoke must assert first-run state derivation, `data-first-run`, conditional copy, and first-run CSS hooks.
+
 ## 2026-06-08 (continued)
 
 ### Added
