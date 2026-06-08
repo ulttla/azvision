@@ -1,0 +1,42 @@
+# Public Beta C1 Evidence Register
+
+This register summarizes AzVision C1 public beta readiness evidence from the 2026-06-08 long-work-window campaign. It is not a public launch approval.
+
+## Approval boundary
+
+- Approved for this campaign: commits created and validated during the campaign may be pushed to `origin/main`.
+- Required after push: GitHub CI success confirmation.
+- Not approved here: force push, tag, release, deploy, public exposure, Azure write/remediation, OpenClaw gateway/config/update/restart, destructive cleanup, credential or secret handling.
+
+## Validated commits
+
+| Commit | Area | Local validation | GitHub CI |
+| --- | --- | --- | --- |
+| `f3cedfd` | Public beta onboarding path | App shell semantics/build and contract smoke | `27164254563` success |
+| `0122c81` | Public-abuse-sensitive audit coverage | Backend targeted/full tests and contract smoke | `27164731244` success |
+| `c708789` | Conditional first-run card | Frontend semantics/build and contract smoke | `27164936574` success |
+| `749d35c` | Public beta readiness gates docs | Contract smoke | `27165062895` success |
+| `354bbfd` | Shared limiter evidence template | Contract smoke | `27165246723` success |
+| `06d636e` | Non-secret OIDC readiness reporting | Backend targeted/full tests and contract smoke | `27165475867` success |
+| `cd22a01` | Account disable/session revoke helper | Backend targeted/full tests and contract smoke | `27165636465` success |
+| `46e46c4` | Hosted smoke JSON evidence output | Hosted smoke contract check and contract smoke | `27165800714` success |
+| `e04cd25` | Shared limiter readiness reporting | Backend targeted/full tests and contract smoke | `27166156683` success |
+| `ad41f11` | Snapshot mutation audit coverage | `tests/test_snapshots.py`, full backend tests, contract smoke | `27167049074` success |
+| `2d2c87e` | Demo onboarding backend route contract | `tests/test_workspaces_route_security.py`, full backend tests, contract smoke | `27168570713` success |
+| `12fc1c3` | Demo onboarding frontend/API wiring | Frontend semantics/build and contract smoke | `27170127008` success |
+| `6f4befa` | Public beta onboarding card extraction | Frontend semantics/build and contract smoke | `27170236617` success |
+| `92f3956` | Disabled-by-default account management route contract | Auth/session targeted tests, full backend tests, contract smoke | `27170387338` success |
+
+## Current gate state
+
+- G1 auth/account/workspace isolation: improved, still partial until provider-specific target values and broader lifecycle UX/route authorization are approved.
+- G3 API protection/audit trail: improved, still partial until real shared limiter provider enforcement evidence exists.
+- G4 onboarding/demo path: backend route contract, frontend CTA wiring, and component extraction are in CI-backed state.
+- G9 docs/changelog: quick start, changelog, blocker status, and this evidence register exist.
+
+## Remaining approval-dependent evidence
+
+- Private hosted smoke run against an approved private target.
+- Shared limiter provider trigger evidence and rollback/disable path.
+- Provider-specific OIDC/account lifecycle target values.
+- Any deploy, public exposure, release, or Azure write action.

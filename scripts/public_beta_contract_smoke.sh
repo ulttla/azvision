@@ -19,6 +19,7 @@ required_docs=(
   docs/PUBLIC_BETA_BLOCKER_STATUS.md
   docs/PUBLIC_BETA_QUICK_START.md
   docs/PUBLIC_BETA_CHANGELOG.md
+  docs/PUBLIC_BETA_C1_EVIDENCE.md
 )
 
 for file in "${required_docs[@]}"; do
@@ -41,6 +42,8 @@ grep -q 'No public DNS or open internet exposure' docs/HOSTED_E2E_PREFLIGHT_PLAN
 grep -q -- '--json' scripts/hosted_public_beta_smoke.mjs
 grep -q 'Public beta remains' docs/PUBLIC_BETA_BLOCKER_STATUS.md
 grep -q 'G1 auth/workspace isolation' docs/PUBLIC_BETA_BLOCKER_STATUS.md
+grep -q 'Not approved here' docs/PUBLIC_BETA_C1_EVIDENCE.md
+grep -q '27170387338' docs/PUBLIC_BETA_C1_EVIDENCE.md
 grep -q 'OIDC readiness' docs/AUTH_WORKSPACE_ISOLATION_PLAN.md
 grep -q 'workspace_map_valid' backend/app/api/routes/auth.py
 grep -q 'rate_limit_readiness_summary' backend/app/api/routes/auth.py
