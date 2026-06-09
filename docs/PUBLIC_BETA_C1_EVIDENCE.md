@@ -38,12 +38,21 @@ This register summarizes AzVision C1 public beta readiness evidence from the 202
 
 ## C2 handoff criteria
 
-C2 should start from this evidence register and avoid reopening already validated C1 slices unless CI or tests regress. Preferred next work:
+C2 should start from this evidence register and avoid reopening already validated C1 slices unless CI or tests regress.
 
-1. G1: choose and document provider-specific OIDC/account lifecycle target values, or add disabled-by-default route contracts that keep public exposure blocked.
-2. G3: convert shared limiter readiness into provider-specific evidence only after a provider/private environment is selected.
-3. G5: prepare private hosted smoke run records, but do not execute against a hosted target without the target and access boundary being explicitly approved.
-4. Keep all deploy, public exposure, Azure write/remediation, secret handling, and OpenClaw runtime changes outside this campaign approval.
+Safe same-goal work that can continue without extra approval:
+
+1. G1: document provider-specific OIDC/account lifecycle decisions as placeholders or add disabled-by-default route contracts that keep public exposure blocked.
+2. G3: improve provider-agnostic shared limiter docs, readiness reporting, and evidence templates without configuring a real provider.
+3. G5: prepare hosted smoke run-record structure and local contract checks without contacting a hosted target.
+4. G9: keep blocker status, approval gate, changelog, quick start, and evidence register synchronized.
+
+Approval-dependent work that must remain gated:
+
+1. Selecting or entering real OIDC issuer/audience/JWKS/workspace-map values.
+2. Configuring or testing a real edge/gateway/shared-store limiter provider.
+3. Running hosted smoke against any private or public target.
+4. Deploy, public exposure, release/tag, Azure write/remediation, credential/secret handling, destructive cleanup, or OpenClaw runtime changes.
 
 ## Remaining approval-dependent evidence
 
