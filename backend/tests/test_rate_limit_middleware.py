@@ -4,9 +4,18 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from app.api.rate_limiter import rate_limit_readiness_summary
+from app.api.rate_limiter import rate_limit_readiness_summary, route_limit_group
 from app.core.config import get_settings
 from app.main import app, rate_limiter
+
+
+def test_route_limit_group_contract_covers_public_beta_route_groups():
+    assert route_limit_group("/api/v1/auth/oidc/session") == "auth_oidc_session"
+    assert route_limit_group("/api/v1/auth/config-check") == "auth"
+    assert route_limit_group("/api/v1/workspaces/local-demo/exports") == "exports"
+    assert route_limit_group("/api/v1/copilot/chat") == "copilot"
+    assert route_limit_group("/api/v1/workspaces/local-demo/chat") == "copilot"
+    assert route_limit_group("/api/v1/workspaces/local-demo/topology") == "default"
 
 
 def test_rate_limit_readiness_requires_provider_and_enforcement():
