@@ -28,6 +28,22 @@ This register summarizes AzVision C1 public beta readiness evidence from the 202
 | `92f3956` | Disabled-by-default account management route contract | Auth/session targeted tests, full backend tests, contract smoke | `27170387338` success |
 | `88f7053` | C1 evidence register | Public beta contract smoke | `27171391798` success |
 | `dc1d558` | Approval gate refresh | Public beta contract smoke | `27171463166` success |
+| `1a7725b` | C1 to C2 handoff criteria | Public beta contract smoke | `27172659316` success |
+| `e156364` | C1 evidence links for exposure proof templates | Public beta contract smoke | `27173858157` success |
+| `b492b0b` | C2 safe/gated work split | Public beta contract smoke | `27175032573` success |
+
+## Final validation snapshot
+
+Final C1 local validation on 2026-06-09 UTC, after `b492b0b` CI success:
+
+- Backend tests: `506 passed`.
+- Frontend semantics smoke: PASS.
+- Frontend production build: PASS.
+- Public beta contract smoke: PASS.
+- Repository state: `main...origin/main` clean.
+- Latest GitHub CI baseline: `b492b0b`, run `27175032573`, success.
+
+This validates the C1 evidence baseline only. It does not approve private hosted smoke execution, shared limiter provider configuration, deployment, public exposure, Azure write/remediation, release/tag, credential/secret handling, or OpenClaw runtime changes.
 
 ## Current gate state
 

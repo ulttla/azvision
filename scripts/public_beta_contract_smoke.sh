@@ -51,7 +51,10 @@ grep -q 'Not approved here' docs/PUBLIC_BETA_C1_EVIDENCE.md
 grep -q 'C2 handoff criteria' docs/PUBLIC_BETA_C1_EVIDENCE.md
 grep -q 'Safe same-goal work' docs/PUBLIC_BETA_C1_EVIDENCE.md
 grep -q 'Approval-dependent work' docs/PUBLIC_BETA_C1_EVIDENCE.md
+grep -q 'Final validation snapshot' docs/PUBLIC_BETA_C1_EVIDENCE.md
+grep -q '506 passed' docs/PUBLIC_BETA_C1_EVIDENCE.md
 grep -q '27171463166' docs/PUBLIC_BETA_C1_EVIDENCE.md
+grep -q '27175032573' docs/PUBLIC_BETA_C1_EVIDENCE.md
 grep -q 'OIDC readiness' docs/AUTH_WORKSPACE_ISOLATION_PLAN.md
 grep -q 'workspace_map_valid' backend/app/api/routes/auth.py
 grep -q 'rate_limit_readiness_summary' backend/app/api/routes/auth.py
