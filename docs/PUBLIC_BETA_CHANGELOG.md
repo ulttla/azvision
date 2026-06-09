@@ -2,6 +2,20 @@
 
 This changelog tracks user-facing public beta readiness changes. It is not a release approval record.
 
+## 2026-06-08 (continued 4)
+
+### Added
+
+- Provider-safe account lifecycle readiness scaffold.
+  - `/auth/config-check` now includes non-secret account lifecycle booleans for dev-session, OIDC login, account-management enablement, and public-route fail-closed state.
+  - The app shell renders account lifecycle readiness pills for OIDC mapping, account-management gating, public-route fail-closed status, and shared limiter evidence.
+  - API contract and auth isolation docs clarify that provider values, hosted targets, secrets, and public exposure remain approval-gated.
+
+### Validation target
+
+- Backend auth tests must confirm account lifecycle readiness does not leak provider/secret values.
+- App-shell semantics smoke must assert account lifecycle panel hooks, fail-closed status, and shared limiter evidence status.
+
 ## 2026-06-08 (continued 3)
 
 ### Added

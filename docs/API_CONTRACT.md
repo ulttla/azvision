@@ -19,11 +19,23 @@
 - `GET /workspaces/{workspace_id}`
 - `PATCH /workspaces/{workspace_id}`
 
-### Auth diagnostics
-> 1A에서 credential은 server-side configured profile로 관리. API는 진단용 read만.
+### Auth diagnostics and lifecycle contracts
+> 1A에서 credential은 server-side configured profile로 관리. public beta 전까지 provider 값과 secret은 API/UI에 노출하지 않는다.
 - `GET /auth/config-check`
-  - 기본 응답은 credential/config 준비 여부의 boolean 신호만 노출한다.
+  - 기본 응답은 credential/config 준비 여부의 boolean/count 신호만 노출한다.
+  - OIDC readiness는 `login_enabled`, issuer/audience/JWKS/workspace-map presence, mapped user count, grant count만 포함하며 provider URL, audience value, mapped email, workspace id는 echo하지 않는다.
+  - Account lifecycle readiness는 `dev_session_enabled`, `oidc_login_enabled`, `account_management_enabled`, `public_routes_fail_closed`만 포함한다.
+  - Rate-limit readiness는 local limiter/shared-provider presence/enforcement/gate booleans and counts만 포함한다.
   - local path 계열 진단값(`env_file_candidates`, `discovered_env_files`)은 `AZVISION_DEBUG=true`일 때만 top-level `diagnostics`에 포함하며, production에서는 기본적으로 숨긴다.
+- `GET /auth/me`
+  - bearer token이 없으면 `401`.
+  - 성공 시 current account id와 workspace memberships만 반환하며 raw token은 echo하지 않는다.
+- `POST /auth/account/disable`
+  - `AZVISION_AUTH_ACCOUNT_MANAGEMENT_ENABLED=true`일 때만 노출된다.
+  - 기본값은 hidden/fail-closed `404`이며, enabled 상태에서는 current account sessions를 revoke하고 non-secret audit metadata만 기록한다.
+- `POST /auth/logout`
+  - bearer token이 없거나 invalid/revoked/expired이면 `401`.
+  - 성공 시 current session을 revoke하고 raw token은 저장/반환하지 않는다.
 - `GET /auth/read-test`
 
 ### Scans
