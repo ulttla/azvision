@@ -957,7 +957,7 @@ export type AuthConfigCheckResponse = {
       dev_session_enabled: boolean
       oidc_login_enabled: boolean
       account_management_enabled: boolean
-      public_routes_fail_closed: boolean
+      public_routes_exposure_gated: boolean
     }
     rate_limit?: {
       app_limiter_enabled: boolean

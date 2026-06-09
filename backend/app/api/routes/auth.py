@@ -25,6 +25,10 @@ def config_check() -> dict:
     settings = get_settings()
     workspace_map = oidc_workspace_map_summary(settings)
     rate_limit = rate_limit_readiness_summary(settings)
+    dev_session_enabled = bool(getattr(settings, "auth_dev_session_enabled", False))
+    oidc_login_enabled = bool(getattr(settings, "auth_oidc_login_enabled", False))
+    account_management_enabled = bool(getattr(settings, "auth_account_management_enabled", False))
+    public_routes_exposure_gated = not (dev_session_enabled or oidc_login_enabled or account_management_enabled)
     payload = {
         "status": "ok",
         "phase": "1A-live-read-prep",
@@ -36,7 +40,7 @@ def config_check() -> dict:
             "certificate_thumbprint_present": bool(settings.azure_certificate_thumbprint),
             "azure_cloud": settings.azure_cloud,
             "oidc": {
-                "login_enabled": bool(getattr(settings, "auth_oidc_login_enabled", False)),
+                "login_enabled": oidc_login_enabled,
                 "issuer_present": bool(getattr(settings, "auth_oidc_issuer", "")),
                 "audience_present": bool(getattr(settings, "auth_oidc_audience", "")),
                 "jwks_url_present": bool(getattr(settings, "auth_oidc_jwks_url", "")),
@@ -46,10 +50,10 @@ def config_check() -> dict:
                 "grant_count": workspace_map["grant_count"],
             },
             "account_lifecycle": {
-                "dev_session_enabled": bool(getattr(settings, "auth_dev_session_enabled", False)),
-                "oidc_login_enabled": bool(getattr(settings, "auth_oidc_login_enabled", False)),
-                "account_management_enabled": bool(getattr(settings, "auth_account_management_enabled", False)),
-                "public_routes_fail_closed": not bool(getattr(settings, "auth_account_management_enabled", False)),
+                "dev_session_enabled": dev_session_enabled,
+                "oidc_login_enabled": oidc_login_enabled,
+                "account_management_enabled": account_management_enabled,
+                "public_routes_exposure_gated": public_routes_exposure_gated,
             },
             "rate_limit": rate_limit,
         },

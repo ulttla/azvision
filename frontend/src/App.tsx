@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { PublicBetaOnboarding } from './components/PublicBetaOnboarding'
 import { useI18n } from './i18n/context'
+import type { DictKey } from './i18n/dict'
 import { bootstrapDemoWorkspace, getAuthConfigCheck, getBackendHealth, getBackendReadiness, getDemoWorkspaceStatus, getTopologyFreshness, getWorkspaces } from './lib/api'
 import type { AuthConfigCheckResponse } from './lib/api'
 
@@ -50,31 +51,29 @@ function ReadinessPill({ label, ready }: { label: string; ready: boolean }) {
   )
 }
 
-function AccountLifecycleReadiness({ authReadiness }: { authReadiness: AuthConfigCheckResponse | null }) {
+function AccountLifecycleReadiness({ authReadiness, t }: { authReadiness: AuthConfigCheckResponse | null; t: (key: DictKey) => string }) {
   const oidc = authReadiness?.checks.oidc
   const lifecycle = authReadiness?.checks.account_lifecycle
   const rateLimit = authReadiness?.checks.rate_limit
   const oidcProviderReady = Boolean(
     oidc?.login_enabled && oidc.issuer_present && oidc.audience_present && oidc.jwks_url_present && oidc.workspace_map_present && oidc.workspace_map_valid,
   )
+  const accountManagementGated = lifecycle?.account_management_enabled === false
+  const publicRoutesExposureGated = lifecycle?.public_routes_exposure_gated === true
   const sharedLimiterReady = Boolean(rateLimit?.public_beta_shared_gate_satisfied)
-  const publicRoutesFailClosed = lifecycle?.public_routes_fail_closed !== false
 
   return (
-    <section className="account-lifecycle-readiness" data-testid="account-lifecycle-readiness" aria-label="Account lifecycle readiness">
+    <section className="account-lifecycle-readiness" data-testid="account-lifecycle-readiness" aria-label={t('accountLifecycle.aria')}>
       <div>
-        <p className="account-lifecycle-kicker">Account lifecycle</p>
-        <h2>Provider-safe readiness</h2>
-        <p>
-          Non-secret auth, account-management, and shared-limiter signals only. Real provider values, hosted target checks,
-          and public exposure remain approval-gated.
-        </p>
+        <p className="account-lifecycle-kicker">{t('accountLifecycle.kicker')}</p>
+        <h2>{t('accountLifecycle.title')}</h2>
+        <p>{t('accountLifecycle.subtext')}</p>
       </div>
       <div className="account-lifecycle-pill-row" data-testid="account-lifecycle-pill-row">
-        <ReadinessPill label="OIDC provider mapped" ready={oidcProviderReady} />
-        <ReadinessPill label="Account management gated" ready={!lifecycle?.account_management_enabled} />
-        <ReadinessPill label="Public routes fail closed" ready={publicRoutesFailClosed} />
-        <ReadinessPill label="Shared limiter evidence" ready={sharedLimiterReady} />
+        <ReadinessPill label={t('accountLifecycle.pill.oidcMapped')} ready={oidcProviderReady} />
+        <ReadinessPill label={t('accountLifecycle.pill.accountManagementGated')} ready={accountManagementGated} />
+        <ReadinessPill label={t('accountLifecycle.pill.publicRoutesGated')} ready={publicRoutesExposureGated} />
+        <ReadinessPill label={t('accountLifecycle.pill.sharedLimiter')} ready={sharedLimiterReady} />
       </div>
     </section>
   )
@@ -377,7 +376,7 @@ export default function App() {
               onRefreshConnectivity={handleRefreshConnectivity}
             />
 
-            <AccountLifecycleReadiness authReadiness={authReadiness} />
+            <AccountLifecycleReadiness authReadiness={authReadiness} t={t} />
           </div>
 
           <div className="view-toggle" role="tablist" aria-label={t('aria.viewMode')}>

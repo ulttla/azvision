@@ -24,7 +24,7 @@
 - `GET /auth/config-check`
   - 기본 응답은 credential/config 준비 여부의 boolean/count 신호만 노출한다.
   - OIDC readiness는 `login_enabled`, issuer/audience/JWKS/workspace-map presence, mapped user count, grant count만 포함하며 provider URL, audience value, mapped email, workspace id는 echo하지 않는다.
-  - Account lifecycle readiness는 `dev_session_enabled`, `oidc_login_enabled`, `account_management_enabled`, `public_routes_fail_closed`만 포함한다.
+  - Account lifecycle readiness는 `dev_session_enabled`, `oidc_login_enabled`, `account_management_enabled`, `public_routes_exposure_gated`만 포함한다. `public_routes_exposure_gated`는 dev-session, OIDC login, account-management route가 모두 꺼져 있을 때만 true인 UI aggregate 신호다.
   - Rate-limit readiness는 local limiter/shared-provider presence/enforcement/gate booleans and counts만 포함한다.
   - local path 계열 진단값(`env_file_candidates`, `discovered_env_files`)은 `AZVISION_DEBUG=true`일 때만 top-level `diagnostics`에 포함하며, production에서는 기본적으로 숨긴다.
 - `GET /auth/me`

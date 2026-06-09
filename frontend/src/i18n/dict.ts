@@ -31,6 +31,15 @@ export const dict = {
     'publicBeta.cta.status': 'Refresh readiness',
     'publicBeta.demoBadge.ready': 'Demo ready',
     'publicBeta.demoBadge.pending': 'Demo pending',
+    'accountLifecycle.aria': 'Account lifecycle readiness',
+    'accountLifecycle.kicker': 'Account lifecycle',
+    'accountLifecycle.title': 'Provider-safe readiness',
+    'accountLifecycle.subtext':
+      'Non-secret auth, account-management, and shared-limiter signals only. Real provider values, hosted target checks, and public exposure remain approval-gated.',
+    'accountLifecycle.pill.oidcMapped': 'OIDC provider mapped',
+    'accountLifecycle.pill.accountManagementGated': 'Account management gated',
+    'accountLifecycle.pill.publicRoutesGated': 'Public routes exposure gated',
+    'accountLifecycle.pill.sharedLimiter': 'Shared limiter evidence',
 
     // ── Connectivity status row ───────────────────────────
     'status.backend': 'Backend',
@@ -800,6 +809,15 @@ export const dict = {
     'publicBeta.cta.status': '준비 상태 새로고침',
     'publicBeta.demoBadge.ready': '데모 준비됨',
     'publicBeta.demoBadge.pending': '데모 확인 중',
+    'accountLifecycle.aria': '계정 수명주기 준비 상태',
+    'accountLifecycle.kicker': '계정 수명주기',
+    'accountLifecycle.title': 'provider 안전 준비 상태',
+    'accountLifecycle.subtext':
+      'secret 없는 인증, 계정 관리, 공유 limiter 신호만 표시합니다. 실제 provider 값, 호스팅 대상 확인, 공개 노출은 별도 승인 후 진행합니다.',
+    'accountLifecycle.pill.oidcMapped': 'OIDC provider 매핑',
+    'accountLifecycle.pill.accountManagementGated': '계정 관리 gate 유지',
+    'accountLifecycle.pill.publicRoutesGated': '공개 route 노출 gate 유지',
+    'accountLifecycle.pill.sharedLimiter': '공유 limiter 증거',
 
     // ── Connectivity status row ───────────────────────────
     'status.backend': '백엔드',

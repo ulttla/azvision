@@ -252,7 +252,7 @@ class TestAuthRoutes:
             "dev_session_enabled": False,
             "oidc_login_enabled": True,
             "account_management_enabled": False,
-            "public_routes_fail_closed": True,
+            "public_routes_exposure_gated": False,
         }
         assert "tenant-secret" not in response.text
         assert "client-secret-id" not in response.text
@@ -308,6 +308,54 @@ class TestAuthRoutes:
             "public_beta_shared_gate_satisfied": True,
         }
         assert "cloudflare-secret-zone" not in response.text
+
+    def test_config_check_reports_account_lifecycle_exposure_gate_inverse(
+        self,
+        client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        import app.api.routes.auth as auth_routes
+
+        def settings(**overrides):
+            base = {
+                "auth_runtime_ready": False,
+                "azure_tenant_id": "",
+                "azure_client_id": "",
+                "azure_certificate_path": "",
+                "azure_certificate_thumbprint": "",
+                "azure_cloud": "public",
+                "debug": False,
+                "auth_dev_session_enabled": False,
+                "auth_oidc_login_enabled": False,
+                "auth_oidc_issuer": "",
+                "auth_oidc_audience": "",
+                "auth_oidc_jwks_url": "",
+                "auth_oidc_workspace_map_json": "",
+                "auth_account_management_enabled": False,
+                "rate_limit_enabled": False,
+                "rate_limit_window_seconds": 60,
+                "rate_limit_default_per_window": 120,
+                "rate_limit_auth_per_window": 20,
+                "rate_limit_auth_oidc_session_per_window": 10,
+                "rate_limit_exports_per_window": 30,
+                "rate_limit_copilot_per_window": 20,
+                "rate_limit_shared_provider": "",
+                "rate_limit_shared_enforced": False,
+            }
+            base.update(overrides)
+            return SimpleNamespace(**base)
+
+        cases = [
+            ({}, True),
+            ({"auth_dev_session_enabled": True}, False),
+            ({"auth_oidc_login_enabled": True}, False),
+            ({"auth_account_management_enabled": True}, False),
+        ]
+        for overrides, expected_gated in cases:
+            monkeypatch.setattr(auth_routes, "get_settings", lambda overrides=overrides: settings(**overrides))
+            response = client.get("/api/v1/auth/config-check")
+            assert response.status_code == 200
+            assert response.json()["checks"]["account_lifecycle"]["public_routes_exposure_gated"] is expected_gated
 
     def test_disable_own_account_is_hidden_when_management_disabled(self, client: TestClient):
         response = client.post("/api/v1/auth/account/disable")
