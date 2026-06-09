@@ -67,6 +67,19 @@ Approval-dependent work that must remain gated:
 3. Running hosted smoke against any private or public target.
 4. Deploy, public exposure, release/tag, Azure write/remediation, credential/secret handling, destructive cleanup, or OpenClaw runtime changes.
 
+## C2 safe-lane progress after handoff
+
+Validated after C1 closeout without crossing public exposure/provider/secret boundaries:
+
+| Commit | Scope | Validation |
+| --- | --- | --- |
+| `6e26afa` | Provider-safe account lifecycle readiness surface in `/auth/config-check` and app shell | CI `27178003847` success |
+| `1e7241e` | API/auth/blocker/changelog docs aligned to account lifecycle readiness gate | CI `27178187141` success |
+| `357d2c5` | Frontend helpers for `/auth/me` and disabled-by-default account disable route; token remains caller-provided request header only | CI `27178251733` success |
+| `1af53a0` | Review WARN fixes: renamed public-route aggregate to `public_routes_exposure_gated`, unknown state is pending, i18n keys added, inverse backend tests added, account lifecycle decision template added | CI `27178445983` success |
+
+C2 evidence still does not approve deploy, public exposure, real provider values, hosted smoke, shared limiter provider setup, Azure write/remediation, credentials, tags, releases, force push, or OpenClaw runtime changes.
+
 ## Remaining approval-dependent evidence
 
 - Private hosted smoke run against an approved private target.
