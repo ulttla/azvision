@@ -1,9 +1,42 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 
+from app.api.rate_limiter import rate_limit_readiness_summary
 from app.core.config import get_settings
 from app.main import app, rate_limiter
+
+
+def test_rate_limit_readiness_requires_provider_and_enforcement():
+    base = {
+        "rate_limit_enabled": True,
+        "rate_limit_window_seconds": 60,
+        "rate_limit_default_per_window": 120,
+        "rate_limit_auth_per_window": 20,
+        "rate_limit_auth_oidc_session_per_window": 10,
+        "rate_limit_exports_per_window": 30,
+        "rate_limit_copilot_per_window": 20,
+    }
+
+    provider_only = rate_limit_readiness_summary(
+        SimpleNamespace(**base, rate_limit_shared_provider="edge-gateway", rate_limit_shared_enforced=False)
+    )
+    enforced_only = rate_limit_readiness_summary(
+        SimpleNamespace(**base, rate_limit_shared_provider="", rate_limit_shared_enforced=True)
+    )
+    shared_ready = rate_limit_readiness_summary(
+        SimpleNamespace(**base, rate_limit_shared_provider="edge-gateway", rate_limit_shared_enforced=True)
+    )
+
+    assert provider_only["shared_provider_present"] is True
+    assert provider_only["shared_enforced"] is False
+    assert provider_only["public_beta_shared_gate_satisfied"] is False
+    assert enforced_only["shared_provider_present"] is False
+    assert enforced_only["shared_enforced"] is True
+    assert enforced_only["public_beta_shared_gate_satisfied"] is False
+    assert shared_ready["public_beta_shared_gate_satisfied"] is True
 
 
 def test_rate_limit_disabled_by_default(client: TestClient):

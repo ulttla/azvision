@@ -59,6 +59,7 @@ Implemented response helper and middleware:
 - It preserves the stable `rate-limited` status and optional `Retry-After` header.
 - `InMemoryRateLimiter` provides a process-local fixed-window limiter for auth, OIDC session login, exports, Copilot, and default route groups.
 - The limiter is disabled by default and enabled with `AZVISION_RATE_LIMIT_ENABLED=true`; production should replace or front it with shared storage/gateway enforcement before multi-instance public traffic.
+- `/auth/config-check` exposes shared limiter readiness as booleans/counts only. `public_beta_shared_gate_satisfied` is true only when a shared provider is present and enforcement is explicitly enabled; provider-only or enforced-only states remain blocked.
 
 ## Audit trail target
 

@@ -24,6 +24,9 @@ The in-app limiter is process-local and is acceptable only for local development
 | Gun approved this private/public-beta-candidate target |  |  |
 | Target boundary documented |  |  |
 | App-level limiter role documented as primary or secondary |  |  |
+| Shared limiter provider name is present in `/auth/config-check` only as a boolean |  |  |
+| Shared enforcement flag is true in `/auth/config-check` |  |  |
+| `public_beta_shared_gate_satisfied` is true only when provider presence and enforcement are both true |  |  |
 | Shared limiter configuration is versioned or exportable |  |  |
 | No secrets in limiter rules or logs |  |  |
 | Rollback/disable path known |  |  |
@@ -46,6 +49,7 @@ The in-app limiter is process-local and is acceptable only for local development
 4. Confirm request IDs are present in app logs or edge logs.
 5. Confirm no prompt, token, provider key, password, certificate text, or Azure credential appears in limiter logs.
 6. Confirm app workers are not the only enforcement point for public or multi-instance traffic.
+7. Confirm provider-only or enforced-only states fail the public beta shared gate; both provider presence and enforcement must be true.
 
 ## Result table
 
