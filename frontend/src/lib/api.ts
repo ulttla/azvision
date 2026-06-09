@@ -935,15 +935,48 @@ export async function createExport(
 export const createPngExport = (workspaceId: string, imageDataUrl: string) =>
   createExport(workspaceId, 'png', imageDataUrl)
 
-export async function getAuthConfigCheck(): Promise<{
+export type AuthConfigCheckResponse = {
   auth_ready: boolean
-  checks: Record<string, boolean | string>
+  checks: {
+    tenant_id_present?: boolean
+    client_id_present?: boolean
+    certificate_path_present?: boolean
+    certificate_thumbprint_present?: boolean
+    azure_cloud?: string
+    oidc?: {
+      login_enabled: boolean
+      issuer_present: boolean
+      audience_present: boolean
+      jwks_url_present: boolean
+      workspace_map_present: boolean
+      workspace_map_valid: boolean
+      mapped_user_count: number
+      grant_count: number
+    }
+    account_lifecycle?: {
+      dev_session_enabled: boolean
+      oidc_login_enabled: boolean
+      account_management_enabled: boolean
+      public_routes_fail_closed: boolean
+    }
+    rate_limit?: {
+      app_limiter_enabled: boolean
+      window_seconds_positive: boolean
+      limits_positive: boolean
+      configured_group_count: number
+      shared_provider_present: boolean
+      shared_enforced: boolean
+      public_beta_shared_gate_satisfied: boolean
+    }
+  }
   diagnostics?: {
     env_file_candidates: string[]
     discovered_env_files: string[]
   }
   note: string
-}> {
+}
+
+export async function getAuthConfigCheck(): Promise<AuthConfigCheckResponse> {
   return fetchJson('/auth/config-check')
 }
 

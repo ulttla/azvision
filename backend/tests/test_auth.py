@@ -248,6 +248,12 @@ class TestAuthRoutes:
             "mapped_user_count": 1,
             "grant_count": 1,
         }
+        assert response.json()["checks"]["account_lifecycle"] == {
+            "dev_session_enabled": False,
+            "oidc_login_enabled": True,
+            "account_management_enabled": False,
+            "public_routes_fail_closed": True,
+        }
         assert "tenant-secret" not in response.text
         assert "client-secret-id" not in response.text
         assert "owner@example.test" not in response.text

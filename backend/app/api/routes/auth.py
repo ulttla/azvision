@@ -45,6 +45,12 @@ def config_check() -> dict:
                 "mapped_user_count": workspace_map["mapped_user_count"],
                 "grant_count": workspace_map["grant_count"],
             },
+            "account_lifecycle": {
+                "dev_session_enabled": bool(getattr(settings, "auth_dev_session_enabled", False)),
+                "oidc_login_enabled": bool(getattr(settings, "auth_oidc_login_enabled", False)),
+                "account_management_enabled": bool(getattr(settings, "auth_account_management_enabled", False)),
+                "public_routes_fail_closed": not bool(getattr(settings, "auth_account_management_enabled", False)),
+            },
             "rate_limit": rate_limit,
         },
         "note": "server-side configured credential profile, diagnostics read only. Preferred env file is project root .env; backend/.env is also supported.",

@@ -15,6 +15,12 @@ const packageJson = readFileSync(path.join(repoRoot, 'frontend/package.json'), '
 
 assert.match(appCode, /import \{ bootstrapDemoWorkspace, getAuthConfigCheck, getBackendHealth, getBackendReadiness, getDemoWorkspaceStatus, getTopologyFreshness, getWorkspaces \} from '\.\/lib\/api'/, 'App shell should import backend liveness, readiness, auth config-check, demo status, topology freshness, and workspaces for global connectivity')
 assert.match(appCode, /getAuthConfigCheck/, 'App shell should surface auth readiness globally')
+assert.match(appCode, /AuthConfigCheckResponse/, 'App shell should retain typed auth config-check details for account lifecycle readiness')
+assert.match(appCode, /AccountLifecycleReadiness/, 'App shell should render a provider-safe account lifecycle readiness panel')
+assert.match(appCode, /data-testid="account-lifecycle-readiness"/, 'Account lifecycle readiness panel should be test-addressable')
+assert.match(appCode, /data-testid="account-lifecycle-pill-row"/, 'Account lifecycle readiness pills should be test-addressable')
+assert.match(appCode, /public_routes_fail_closed/, 'Account lifecycle readiness should expose public route fail-closed status')
+assert.match(appCode, /public_beta_shared_gate_satisfied/, 'Account lifecycle readiness should surface shared limiter evidence status')
 assert.match(appCode, /getBackendReadiness/, 'App shell should require backend readiness in the global backend signal')
 assert.match(appCode, /getTopologyFreshness/, 'App shell should surface topology freshness globally')
 assert.match(appCode, /getDemoWorkspaceStatus/, 'App shell should surface demo workspace readiness globally')
@@ -66,5 +72,8 @@ assert.match(stylesCode, /prefers-reduced-motion/, 'First-run onboarding animati
 assert.match(stylesCode, /\.public-beta-actions/, 'Public beta onboarding actions CSS should exist')
 assert.match(stylesCode, /\.public-beta-demo-badge/, 'Demo readiness badge CSS should exist')
 assert.match(stylesCode, /\.public-beta-demo-badge\.ready/, 'Demo readiness badge ready CSS should exist')
+assert.match(stylesCode, /\.account-lifecycle-readiness/, 'Account lifecycle readiness CSS should exist')
+assert.match(stylesCode, /\.account-lifecycle-pill\.ready/, 'Account lifecycle ready pill CSS should exist')
+assert.match(stylesCode, /\.account-lifecycle-pill\.pending/, 'Account lifecycle pending pill CSS should exist')
 
 console.log('✅ app_shell_semantics_smoke.mts: all assertions passed')

@@ -4,6 +4,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { PublicBetaOnboarding } from './components/PublicBetaOnboarding'
 import { useI18n } from './i18n/context'
 import { bootstrapDemoWorkspace, getAuthConfigCheck, getBackendHealth, getBackendReadiness, getDemoWorkspaceStatus, getTopologyFreshness, getWorkspaces } from './lib/api'
+import type { AuthConfigCheckResponse } from './lib/api'
 
 const TopologyPage = lazy(async () => {
   const module = await import('./pages/TopologyPage')
@@ -40,6 +41,45 @@ function LoadingShell({ loadingLabel }: { loadingLabel: string }) {
   )
 }
 
+function ReadinessPill({ label, ready }: { label: string; ready: boolean }) {
+  return (
+    <span className={`account-lifecycle-pill ${ready ? 'ready' : 'pending'}`}>
+      <span aria-hidden="true">{ready ? '✓' : '!'}</span>
+      {label}
+    </span>
+  )
+}
+
+function AccountLifecycleReadiness({ authReadiness }: { authReadiness: AuthConfigCheckResponse | null }) {
+  const oidc = authReadiness?.checks.oidc
+  const lifecycle = authReadiness?.checks.account_lifecycle
+  const rateLimit = authReadiness?.checks.rate_limit
+  const oidcProviderReady = Boolean(
+    oidc?.login_enabled && oidc.issuer_present && oidc.audience_present && oidc.jwks_url_present && oidc.workspace_map_present && oidc.workspace_map_valid,
+  )
+  const sharedLimiterReady = Boolean(rateLimit?.public_beta_shared_gate_satisfied)
+  const publicRoutesFailClosed = lifecycle?.public_routes_fail_closed !== false
+
+  return (
+    <section className="account-lifecycle-readiness" data-testid="account-lifecycle-readiness" aria-label="Account lifecycle readiness">
+      <div>
+        <p className="account-lifecycle-kicker">Account lifecycle</p>
+        <h2>Provider-safe readiness</h2>
+        <p>
+          Non-secret auth, account-management, and shared-limiter signals only. Real provider values, hosted target checks,
+          and public exposure remain approval-gated.
+        </p>
+      </div>
+      <div className="account-lifecycle-pill-row" data-testid="account-lifecycle-pill-row">
+        <ReadinessPill label="OIDC provider mapped" ready={oidcProviderReady} />
+        <ReadinessPill label="Account management gated" ready={!lifecycle?.account_management_enabled} />
+        <ReadinessPill label="Public routes fail closed" ready={publicRoutesFailClosed} />
+        <ReadinessPill label="Shared limiter evidence" ready={sharedLimiterReady} />
+      </div>
+    </section>
+  )
+}
+
 export default function App() {
   const { t, locale, setLocale } = useI18n()
   const toggleLocale = () => setLocale(locale === 'en' ? 'ko' : 'en')
@@ -73,6 +113,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('topology')
   const [backendConnectivity, setBackendConnectivity] = useState<BackendConnectivityStatus>('checking')
   const [authConnectivity, setAuthConnectivity] = useState<AuthConnectivityStatus>('checking')
+  const [authReadiness, setAuthReadiness] = useState<AuthConfigCheckResponse | null>(null)
   const [topologyFreshness, setTopologyFreshness] = useState<TopologyFreshnessStatus>('checking')
   const [topologyNodeCount, setTopologyNodeCount] = useState<number | null>(null)
   const [workspaceCount, setWorkspaceCount] = useState<number | null>(null)
@@ -126,9 +167,13 @@ export default function App() {
           ? 'online'
           : 'offline',
       )
-      setAuthConnectivity(
-        authResult.status === 'fulfilled' && authResult.value.auth_ready ? 'ready' : 'not-configured',
-      )
+      if (authResult.status === 'fulfilled') {
+        setAuthReadiness(authResult.value)
+        setAuthConnectivity(authResult.value.auth_ready ? 'ready' : 'not-configured')
+      } else {
+        setAuthReadiness(null)
+        setAuthConnectivity('not-configured')
+      }
       setDemoWorkspaceStatus(
         demoStatusResult.status === 'fulfilled' && demoStatusResult.value.is_demo && demoStatusResult.value.has_topology
           ? 'ready'
@@ -174,10 +219,12 @@ export default function App() {
       try {
         const auth = await getAuthConfigCheck()
         if (active) {
+          setAuthReadiness(auth)
           setAuthConnectivity(auth.auth_ready ? 'ready' : 'not-configured')
         }
       } catch {
         if (active) {
+          setAuthReadiness(null)
           setAuthConnectivity('not-configured')
         }
       }
@@ -329,6 +376,8 @@ export default function App() {
               onOpenDemoPath={handleOpenDemoPath}
               onRefreshConnectivity={handleRefreshConnectivity}
             />
+
+            <AccountLifecycleReadiness authReadiness={authReadiness} />
           </div>
 
           <div className="view-toggle" role="tablist" aria-label={t('aria.viewMode')}>

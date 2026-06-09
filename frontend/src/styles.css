@@ -229,6 +229,70 @@ textarea {
   justify-content: flex-end;
 }
 
+.account-lifecycle-readiness {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(280px, 1.3fr);
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(168, 85, 247, 0.24);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.72), rgba(49, 46, 129, 0.22));
+}
+
+.account-lifecycle-readiness h2 {
+  margin: 3px 0 5px;
+  font-size: 15px;
+}
+
+.account-lifecycle-readiness p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.account-lifecycle-kicker {
+  color: #c4b5fd !important;
+  font-size: 10px !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.account-lifecycle-pill-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.account-lifecycle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #dbeafe;
+  background: rgba(15, 23, 42, 0.52);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.account-lifecycle-pill.ready {
+  border-color: rgba(34, 197, 94, 0.36);
+  color: #bbf7d0;
+  background: rgba(20, 83, 45, 0.2);
+}
+
+.account-lifecycle-pill.pending {
+  border-color: rgba(251, 191, 36, 0.34);
+  color: #fde68a;
+  background: rgba(120, 53, 15, 0.2);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .public-beta-onboarding.first-run {
     animation: public-beta-first-run-glow 3.2s ease-in-out infinite;
@@ -1748,11 +1812,13 @@ select {
 }
 
 @media (max-width: 900px) {
-  .public-beta-onboarding {
+  .public-beta-onboarding,
+  .account-lifecycle-readiness {
     grid-template-columns: 1fr;
   }
 
-  .public-beta-actions {
+  .public-beta-actions,
+  .account-lifecycle-pill-row {
     justify-content: flex-start;
   }
 
