@@ -23,7 +23,7 @@ This table summarizes the public beta blocker state after the C1 public readines
 | G6 | Real cost ingestion | deferred | `docs/COST_INGESTION_PUBLIC_BETA_PLAN.md`, noop provider labels unknown cost data | Implement provider only if beta claims real billing data |
 | G7 | Copilot persistence | deferred | `docs/COPILOT_PERSISTENCE_PLAN.md`, stateless/read-only Copilot baseline | Add persistence only after auth/workspace isolation |
 | G8 | Retention write-mode | deferred | `docs/RETENTION_EXECUTION_GUARD.md`, dry-run-only retention selector | Add explicit approval-gated prune path only if needed |
-| G9 | Public API/user docs and changelog | done | `docs/PUBLIC_BETA_QUICK_START.md`, `docs/PUBLIC_BETA_CHANGELOG.md`, `docs/PUBLIC_BETA_C1_EVIDENCE.md`, `docs/PUBLIC_BETA_C2_EVIDENCE.md`, `docs/PUBLIC_BETA_APPROVAL_GATE.md`, `docs/README.md` | Keep announcement/release approval separate from docs completeness |
+| G9 | Public API/user docs and changelog | done | `docs/PUBLIC_BETA_QUICK_START.md`, `docs/PUBLIC_BETA_CHANGELOG.md`, `docs/PUBLIC_BETA_C1_EVIDENCE.md`, `docs/PUBLIC_BETA_C2_EVIDENCE.md`, `docs/PUBLIC_BETA_C3_EVIDENCE.md`, `docs/PUBLIC_BETA_APPROVAL_GATE.md`, `docs/README.md` | Keep announcement/release approval separate from docs completeness |
 
 ## Entry criteria snapshot
 

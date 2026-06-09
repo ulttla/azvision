@@ -23,6 +23,7 @@ required_docs=(
   docs/PUBLIC_BETA_CHANGELOG.md
   docs/PUBLIC_BETA_C1_EVIDENCE.md
   docs/PUBLIC_BETA_C2_EVIDENCE.md
+  docs/PUBLIC_BETA_C3_EVIDENCE.md
   docs/ACCOUNT_LIFECYCLE_DECISION_TEMPLATE.md
 )
 
@@ -75,6 +76,7 @@ grep -q 'Account Lifecycle Decision Template' docs/ACCOUNT_LIFECYCLE_DECISION_TE
 grep -q 'public_routes_exposure_gated' backend/app/api/routes/auth.py
 grep -q 'public_routes_exposure_gated' frontend/src/App.tsx
 grep -q 'C2 evidence register' docs/PUBLIC_BETA_C2_EVIDENCE.md
+grep -q 'C3 evidence register' docs/PUBLIC_BETA_C3_EVIDENCE.md
 grep -q 'auth.account.disabled' backend/app/api/routes/auth.py
 grep -q 'demo-safe topology' docs/PUBLIC_BETA_QUICK_START.md
 grep -q 'demo-status' backend/app/api/routes/workspaces.py
