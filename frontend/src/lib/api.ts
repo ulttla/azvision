@@ -980,6 +980,41 @@ export async function getAuthConfigCheck(): Promise<AuthConfigCheckResponse> {
   return fetchJson('/auth/config-check')
 }
 
+export type AuthMembership = {
+  workspace_id: string
+  role: 'owner' | 'viewer' | string
+}
+
+export type AuthMeResponse = {
+  ok: boolean
+  account_id: string
+  memberships: AuthMembership[]
+}
+
+export type AccountDisableResponse = {
+  ok: boolean
+  status: 'disabled' | string
+  account_id: string
+  revoked_session_count: number
+}
+
+function bearerInit(token: string, init: RequestInit = {}): RequestInit {
+  const headers = new Headers(init.headers)
+  headers.set('Authorization', `Bearer ${token}`)
+  return {
+    ...init,
+    headers,
+  }
+}
+
+export async function getCurrentAuthSession(token: string): Promise<AuthMeResponse> {
+  return fetchJson<AuthMeResponse>('/auth/me', bearerInit(token))
+}
+
+export async function disableOwnAccount(token: string): Promise<AccountDisableResponse> {
+  return fetchJson<AccountDisableResponse>('/auth/account/disable', bearerInit(token, { method: 'POST' }))
+}
+
 export type TopologyFreshness = {
   generated_at: string | null
   node_count: number | null
