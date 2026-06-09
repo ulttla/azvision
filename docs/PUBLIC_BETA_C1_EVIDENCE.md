@@ -34,14 +34,11 @@ This register summarizes AzVision C1 public beta readiness evidence from the 202
 
 ## Final validation snapshot
 
-Final C1 local validation on 2026-06-09 UTC, after `b492b0b` CI success:
+Final C1 local validation on 2026-06-09 UTC was recorded into this register and then re-validated at the documentation head:
 
-- Backend tests: `506 passed`.
-- Frontend semantics smoke: PASS.
-- Frontend production build: PASS.
-- Public beta contract smoke: PASS.
-- Repository state: `main...origin/main` clean.
-- Latest GitHub CI baseline: `b492b0b`, run `27175032573`, success.
+- Local validation baseline: backend tests `506 passed`, frontend semantics smoke PASS, frontend production build PASS, public beta contract smoke PASS, repository state `main...origin/main` clean.
+- Local validation source baseline: `b492b0b`, GitHub CI run `27175032573`, success.
+- Final evidence-register head: `d9d5314`, GitHub CI run `27176255081`, success.
 
 This validates the C1 evidence baseline only. It does not approve private hosted smoke execution, shared limiter provider configuration, deployment, public exposure, Azure write/remediation, release/tag, credential/secret handling, or OpenClaw runtime changes.
 
