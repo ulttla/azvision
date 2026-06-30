@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
 import { CopilotPanel } from '../components/CopilotPanel'
+import { FocusablePanel } from '../components/FocusablePanel'
 import {
   createExport,
   getAuthConfigCheck,
@@ -764,41 +765,30 @@ export function ArchitecturePage() {
 
   return (
     <main className="page-shell">
-      <section className="hero-card">
-        <div>
+      <header className="page-head">
+        <div className="page-head-main">
           <p className="eyebrow">{t('arch.hero.eyebrow')}</p>
           <h1>{t('arch.hero.title')}</h1>
-          <p className="subtext architecture-subtext">
-            {t('arch.hero.subtext')}
-          </p>
+          <p className="subtext architecture-subtext">{t('arch.hero.subtext')}</p>
         </div>
-        <div className="architecture-health-badges" data-testid="arch-health-badges">
-          <span className={`status-pill ${backendHealthStatus === 'ok' ? 'ready' : 'pending'}`} data-testid="arch-health-backend">
-            {backendHealthStatus === 'ok' ? t('arch.health.backendHealthy') : backendHealthStatus === 'checking' ? t('arch.health.backendChecking') : t('arch.health.backendUnavailable')}
-          </span>
-          <span className={`status-pill ${authReady ? 'ready' : 'pending'}`} data-testid="arch-health-auth">
-            {authReady ? t('arch.health.liveInventory') : t('arch.health.diagnosticMode')}
-          </span>
-          <span className="status-pill pending" data-testid="arch-health-topology-age">
-            {topology?.generated_at ? `${t('arch.health.topologyLabel')} ${formatDateTime(topology.generated_at)}` : t('arch.health.topologyNotLoaded')}
-          </span>
+        <div className="page-head-actions">
+          <button type="button" className="toolbar-button" onClick={() => void handleExport('png')} disabled={exportLoading || !visibleNodes.length}>
+            {exportLoading ? t('arch.controls.exporting') : t('arch.controls.exportPng')}
+          </button>
+          <button type="button" className="toolbar-button" onClick={() => void handleExport('pdf')} disabled={exportLoading || !visibleNodes.length}>
+            {exportLoading ? t('arch.controls.exporting') : t('arch.controls.exportPdf')}
+          </button>
+          <button type="button" className="toolbar-button" onClick={() => void handleCopyPngToClipboard()} disabled={exportLoading || !visibleNodes.length} data-testid="arch-copy-btn">
+            {exportLoading ? t('arch.controls.copying') : t('arch.controls.copyPng')}
+          </button>
         </div>
-      </section>
+      </header>
 
       {error ? <div className="error-banner">{t('arch.error.api')}: {error}</div> : null}
       {topology?.status === 'error' ? (
         <div className="error-banner">{t('arch.error.topology')}: {topology.message ?? t('arch.error.unknown')}</div>
       ) : null}
       {exportMessage ? <div className="info-banner">{exportMessage}</div> : null}
-
-      <CopilotPanel
-        workspaceId={selectedWorkspaceId}
-        queryOptions={architectureCopilotOptions}
-        currentView="architecture-view"
-        viewContext={architectureCopilotViewContext}
-        className="architecture-copilot-card"
-        onError={setError}
-      />
 
       <section className="panel-grid architecture-overview-grid">
         <article className="panel-card">
@@ -937,15 +927,6 @@ export function ArchitecturePage() {
                 disabled={!hiddenSourceNodeKeys.length && !Object.keys(nodeOverrides).length && !annotations.length}
               >
                 {t('arch.controls.resetAllOverrides')}{hiddenNodes.length > 0 || annotations.length > 0 ? ` (${t('arch.controls.resetCount').replace('{hidden}', String(hiddenNodes.length)).replace('{notes}', String(annotations.length))})` : ''}
-              </button>
-              <button type="button" className="toolbar-button" onClick={() => void handleExport('png')} disabled={exportLoading || !visibleNodes.length}>
-                {exportLoading ? t('arch.controls.exporting') : t('arch.controls.exportPng')}
-              </button>
-              <button type="button" className="toolbar-button" onClick={() => void handleExport('pdf')} disabled={exportLoading || !visibleNodes.length}>
-                {exportLoading ? t('arch.controls.exporting') : t('arch.controls.exportPdf')}
-              </button>
-              <button type="button" className="toolbar-button" onClick={() => void handleCopyPngToClipboard()} disabled={exportLoading || !visibleNodes.length} data-testid="arch-copy-btn">
-                {exportLoading ? t('arch.controls.copying') : t('arch.controls.copyPng')}
               </button>
             </div>
           </div>
@@ -1088,13 +1069,21 @@ export function ArchitecturePage() {
         </article>
       </section>
 
-      <section className="panel-card architecture-diagram-panel">
-        <div className="section-heading">
-          <h2>{t('arch.diagram.heading')}</h2>
-          <span className="mini-status">{t('arch.diagram.svgExportSafe')}</span>
-        </div>
-        <div className="architecture-svg-shell" dangerouslySetInnerHTML={{ __html: svgDiagram.svg }} />
-      </section>
+      <FocusablePanel
+        panelId="architecture-diagram"
+        testId="architecture-diagram-focusable"
+        title={t('arch.focusSection.title')}
+        subtitle={t('arch.focusSection.subtitle')}
+        bodyClassName="architecture-focusable-body"
+      >
+        <section className="panel-card architecture-diagram-panel">
+          <div className="section-heading">
+            <h2>{t('arch.diagram.heading')}</h2>
+            <span className="mini-status">{t('arch.diagram.svgExportSafe')}</span>
+          </div>
+          <div className="architecture-svg-shell" dangerouslySetInnerHTML={{ __html: svgDiagram.svg }} />
+        </section>
+      </FocusablePanel>
 
       <section className="panel-card architecture-annotation-board">
         <div className="section-heading">
@@ -1366,6 +1355,15 @@ export function ArchitecturePage() {
           )}
         </article>
       </section>
+
+      <CopilotPanel
+        workspaceId={selectedWorkspaceId}
+        queryOptions={architectureCopilotOptions}
+        currentView="architecture-view"
+        viewContext={architectureCopilotViewContext}
+        className="architecture-copilot-card"
+        onError={setError}
+      />
     </main>
   )
 }

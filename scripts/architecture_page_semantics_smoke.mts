@@ -126,7 +126,10 @@ assert.match(apiCode, /export type TopologyResponse/, 'api.ts should export Topo
 assert.match(archPageCode, /getAuthConfigCheck/, 'ArchitecturePage should import getAuthConfigCheck')
 assert.match(archPageCode, /getBackendHealth/, 'ArchitecturePage should import getBackendHealth')
 assert.match(apiCode, /getBackendHealth/, 'api.ts should expose backend health helper')
-assert.match(archPageCode, /arch-health-badges/, 'ArchitecturePage should render health/readiness badges')
+// P4 redesign: page-level health/readiness status-pills are removed from the page header — the slim
+// top bar's single "정상" pulse owns global status. The page now opens with a thin header instead.
+assert.doesNotMatch(archPageCode, /arch-health-badges/, 'P4: ArchitecturePage should not duplicate health badges in-page; status lives in the top bar pulse')
+assert.match(archPageCode, /className="page-head"/, 'P4: ArchitecturePage should open with the thin page header, not a hero card')
 
 // ============================================================
 // Section 13: Infra overlay presentation control
@@ -202,3 +205,6 @@ assert.match(archPageCode, /t\('arch\.workspace\.scopeSingleSubscription'\)/, 'A
 assert.match(archPageCode, /t\('arch\.common\.currentlyViewing'\)/, 'ArchitecturePage card aria current-view text should be localized')
 assert.match(archPageCode, /t\('arch\.common\.shared'\)/, 'ArchitecturePage shared fallback chip should be localized')
 console.log('architecture_page_semantics_smoke.mts: i18n section passed')
+assert.match(archPageCode, /<FocusablePanel/, 'ArchitecturePage should wrap its main diagram panel in a FocusablePanel for focus mode')
+assert.match(archPageCode, /panelId="architecture-diagram"/, 'ArchitecturePage should expose a stable architecture-diagram focus panel id')
+assert.match(archPageCode, /testId="architecture-diagram-focusable"/, 'ArchitecturePage focusable diagram panel should be test-addressable')

@@ -6,6 +6,7 @@ import { useI18n } from './i18n/context'
 import type { DictKey } from './i18n/dict'
 import { bootstrapDemoWorkspace, getAuthConfigCheck, getBackendHealth, getBackendReadiness, getDemoWorkspaceStatus, getTopologyFreshness, getWorkspaces } from './lib/api'
 import type { AuthConfigCheckResponse } from './lib/api'
+import { useTheme } from './theme'
 
 const TopologyPage = lazy(async () => {
   const module = await import('./pages/TopologyPage')
@@ -51,7 +52,17 @@ function ReadinessPill({ label, ready }: { label: string; ready: boolean }) {
   )
 }
 
-function AccountLifecycleReadiness({ authReadiness, t }: { authReadiness: AuthConfigCheckResponse | null; t: (key: DictKey) => string }) {
+function AccountLifecycleReadiness({
+  authReadiness,
+  expanded,
+  onToggle,
+  t,
+}: {
+  authReadiness: AuthConfigCheckResponse | null
+  expanded: boolean
+  onToggle: () => void
+  t: (key: DictKey) => string
+}) {
   const oidc = authReadiness?.checks.oidc
   const lifecycle = authReadiness?.checks.account_lifecycle
   const rateLimit = authReadiness?.checks.rate_limit
@@ -61,19 +72,59 @@ function AccountLifecycleReadiness({ authReadiness, t }: { authReadiness: AuthCo
   const accountManagementGated = lifecycle?.account_management_enabled === false
   const publicRoutesExposureGated = lifecycle?.public_routes_exposure_gated === true
   const sharedLimiterReady = Boolean(rateLimit?.public_beta_shared_gate_satisfied)
+  const summaryLabelKey: DictKey = accountManagementGated && publicRoutesExposureGated && sharedLimiterReady
+    ? 'shell.metaSection.summary.lifecycleReady'
+    : 'shell.metaSection.summary.lifecyclePending'
+
+  const sectionId = 'account-lifecycle-readiness-body'
+  const buttonId = 'account-lifecycle-readiness-toggle'
 
   return (
-    <section className="account-lifecycle-readiness" data-testid="account-lifecycle-readiness" aria-label={t('accountLifecycle.aria')}>
-      <div>
-        <p className="account-lifecycle-kicker">{t('accountLifecycle.kicker')}</p>
-        <h2>{t('accountLifecycle.title')}</h2>
+    <section
+      className={`account-lifecycle-readiness ${expanded ? 'expanded' : 'collapsed'}`}
+      data-testid="account-lifecycle-readiness"
+      aria-label={t('accountLifecycle.aria')}
+      data-expanded={expanded ? 'true' : 'false'}
+    >
+      <button
+        id={buttonId}
+        type="button"
+        className="account-lifecycle-readiness-summary"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={sectionId}
+        data-testid="account-lifecycle-readiness-toggle"
+      >
+        <span className="account-lifecycle-readiness-summary-text">
+          <span className="account-lifecycle-kicker">{t('accountLifecycle.kicker')}</span>
+          <span className="account-lifecycle-readiness-summary-title">{t(summaryLabelKey)}</span>
+        </span>
+        <span
+          className={`account-lifecycle-mini-pill ${oidcProviderReady ? 'ready' : 'pending'}`}
+          data-testid="account-lifecycle-mini-pill"
+          aria-label={t('accountLifecycle.pill.oidcMapped')}
+        >
+          <span aria-hidden="true">{oidcProviderReady ? '✓' : '!'}</span>
+        </span>
+        <span className="account-lifecycle-readiness-chevron" aria-hidden="true">
+          {expanded ? '▾' : '▸'}
+        </span>
+      </button>
+      <div
+        id={sectionId}
+        className="account-lifecycle-readiness-body"
+        role="region"
+        aria-labelledby={buttonId}
+        hidden={!expanded}
+        data-testid="account-lifecycle-readiness-body"
+      >
         <p>{t('accountLifecycle.subtext')}</p>
-      </div>
-      <div className="account-lifecycle-pill-row" data-testid="account-lifecycle-pill-row">
-        <ReadinessPill label={t('accountLifecycle.pill.oidcMapped')} ready={oidcProviderReady} />
-        <ReadinessPill label={t('accountLifecycle.pill.accountManagementGated')} ready={accountManagementGated} />
-        <ReadinessPill label={t('accountLifecycle.pill.publicRoutesGated')} ready={publicRoutesExposureGated} />
-        <ReadinessPill label={t('accountLifecycle.pill.sharedLimiter')} ready={sharedLimiterReady} />
+        <div className="account-lifecycle-pill-row" data-testid="account-lifecycle-pill-row">
+          <ReadinessPill label={t('accountLifecycle.pill.oidcMapped')} ready={oidcProviderReady} />
+          <ReadinessPill label={t('accountLifecycle.pill.accountManagementGated')} ready={accountManagementGated} />
+          <ReadinessPill label={t('accountLifecycle.pill.publicRoutesGated')} ready={publicRoutesExposureGated} />
+          <ReadinessPill label={t('accountLifecycle.pill.sharedLimiter')} ready={sharedLimiterReady} />
+        </div>
       </div>
     </section>
   )
@@ -81,6 +132,7 @@ function AccountLifecycleReadiness({ authReadiness, t }: { authReadiness: AuthCo
 
 export default function App() {
   const { t, locale, setLocale } = useI18n()
+  const { theme, toggleTheme } = useTheme()
   const toggleLocale = () => setLocale(locale === 'en' ? 'ko' : 'en')
 
   const backendLabels = useMemo(
@@ -119,6 +171,7 @@ export default function App() {
   const [demoWorkspaceStatus, setDemoWorkspaceStatus] = useState<'checking' | 'ready' | 'unavailable'>('checking')
   const [connectivityRefreshMessage, setConnectivityRefreshMessage] = useState('')
   const [connectivityRefreshing, setConnectivityRefreshing] = useState(false)
+  const [onboardingExpanded, setOnboardingExpanded] = useState<boolean>(true)
 
   async function handleRefreshConnectivity() {
     if (connectivityRefreshing) {
@@ -293,6 +346,13 @@ export default function App() {
   }, [])
 
   const isFirstRun = workspaceCount === 0 && topologyFreshness === 'empty'
+  const healthy =
+    backendConnectivity === 'online' &&
+    (authConnectivity === 'ready' || authConnectivity === 'not-configured') &&
+    (topologyFreshness === 'fresh' || topologyFreshness === 'empty')
+  const shellStatusLabel = healthy ? t('status.ready') : t('status.checking')
+  const topologyNodeCountLabel = topologyNodeCount !== null ? ` (${topologyNodeCount} ${t('common.nodes')})` : ''
+
 
   async function handleOpenDemoPath() {
     setConnectivityRefreshMessage(t('status.refreshing'))
@@ -311,124 +371,84 @@ export default function App() {
 
   return (
     <>
-      <header className="workspace-header-shell">
-        <div className="workspace-header-inner">
-          <div>
-            <p className="eyebrow workspace-shell-eyebrow">{t('shell.eyebrow')}</p>
-            <h1 className="workspace-shell-title">{t('shell.title')}</h1>
-            <p className="subtext workspace-shell-subtext">
-              {t('shell.subtext')}
-            </p>
-            <div className="workspace-connectivity-row" aria-live="polite" data-testid="app-connectivity-row">
-              <span className="workspace-connectivity-group">
-                <span
-                  className={`connectivity-dot ${backendConnectivity}`}
-                  aria-hidden="true"
-                />
-                <span className="workspace-connectivity-copy">
-                  {t('status.backend')} {backendLabels[backendConnectivity] ?? backendConnectivity}
-                </span>
-              </span>
-              <span className="workspace-connectivity-sep" aria-hidden="true">•</span>
-              <span className="workspace-connectivity-group">
-                <span
-                  className={`connectivity-dot ${authConnectivity === 'ready' ? 'online' : authConnectivity === 'checking' ? 'checking' : 'offline'}`}
-                  aria-hidden="true"
-                />
-                <span className="workspace-connectivity-copy">
-                  {t('status.auth')} {authLabels[authConnectivity] ?? authConnectivity}
-                </span>
-              </span>
-              <span className="workspace-connectivity-sep" aria-hidden="true">•</span>
-              <span className="workspace-connectivity-group">
-                <span
-                  className={`connectivity-dot ${topologyFreshness === 'fresh' ? 'online' : topologyFreshness === 'checking' ? 'checking' : 'offline'}`}
-                  aria-hidden="true"
-                />
-                <span className="workspace-connectivity-copy">
-                  {t('status.topology')} {freshnessLabels[topologyFreshness] ?? topologyFreshness}{topologyNodeCount !== null ? ` (${topologyNodeCount} ${t('common.nodes')})` : ''}
-                </span>
-              </span>
-              <span className={`public-beta-demo-badge ${demoWorkspaceStatus}`} data-testid="public-beta-demo-badge">
-                {demoWorkspaceStatus === 'ready' ? t('publicBeta.demoBadge.ready') : t('publicBeta.demoBadge.pending')}
-              </span>
-              <button
-                type="button"
-                className="workspace-connectivity-refresh"
-                onClick={handleRefreshConnectivity}
-                disabled={connectivityRefreshing}
-                aria-busy={connectivityRefreshing}
-                data-testid="app-connectivity-refresh"
-              >
-                {connectivityRefreshing ? t('status.refreshing') : t('status.refresh')}
-              </button>
-              {connectivityRefreshMessage ? (
-                <span className="workspace-connectivity-refresh-message" role="status">
-                  {connectivityRefreshMessage}
-                </span>
-              ) : null}
+      <header className="workspace-header-shell azv-topbar" data-testid="app-shell-header">
+        <div className="workspace-header-inner workspace-header-inner-compact azv-topbar-inner">
+          <div className="workspace-header-row workspace-header-row-primary workspace-header-identity azv-brand">
+            <span className="azv-brand-mark" aria-hidden="true">A</span>
+            <div className="azv-brand-copy">
+              <p className="eyebrow workspace-shell-eyebrow">{t('shell.eyebrow')}</p>
+              <h1 className="workspace-shell-title">{t('shell.title')}</h1>
             </div>
-
-            <PublicBetaOnboarding
-              isFirstRun={isFirstRun}
-              connectivityRefreshing={connectivityRefreshing}
-              onOpenDemoPath={handleOpenDemoPath}
-              onRefreshConnectivity={handleRefreshConnectivity}
-            />
-
-            <AccountLifecycleReadiness authReadiness={authReadiness} t={t} />
           </div>
 
-          <div className="view-toggle" role="tablist" aria-label={t('aria.viewMode')}>
-            <button
-              type="button"
-              className={`view-toggle-button ${viewMode === 'topology' ? 'active' : ''}`}
-              onClick={() => setViewMode('topology')}
-              role="tab"
-              aria-selected={viewMode === 'topology'}
-            >
+          <div className="workspace-header-row workspace-header-row-secondary view-toggle view-toggle-compact azv-view-tabs" role="tablist" aria-label={t('aria.viewMode')} data-testid="app-view-toggle">
+            <button type="button" className={`view-toggle-button ${viewMode === 'topology' ? 'active' : ''}`} onClick={() => setViewMode('topology')} role="tab" aria-selected={viewMode === 'topology'}>
               {t('view.topology')}
             </button>
-            <button
-              type="button"
-              className={`view-toggle-button ${viewMode === 'architecture' ? 'active' : ''}`}
-              onClick={() => setViewMode('architecture')}
-              role="tab"
-              aria-selected={viewMode === 'architecture'}
-            >
+            <button type="button" className={`view-toggle-button ${viewMode === 'architecture' ? 'active' : ''}`} onClick={() => setViewMode('architecture')} role="tab" aria-selected={viewMode === 'architecture'}>
               {t('view.architecture')}
             </button>
-            <button
-              type="button"
-              className={`view-toggle-button ${viewMode === 'cost' ? 'active' : ''}`}
-              onClick={() => setViewMode('cost')}
-              role="tab"
-              aria-selected={viewMode === 'cost'}
-            >
+            <button type="button" className={`view-toggle-button ${viewMode === 'cost' ? 'active' : ''}`} onClick={() => setViewMode('cost')} role="tab" aria-selected={viewMode === 'cost'}>
               {t('view.cost')}
             </button>
-            <button
-              type="button"
-              className={`view-toggle-button ${viewMode === 'simulation' ? 'active' : ''}`}
-              onClick={() => setViewMode('simulation')}
-              role="tab"
-              aria-selected={viewMode === 'simulation'}
-            >
+            <button type="button" className={`view-toggle-button ${viewMode === 'simulation' ? 'active' : ''}`} onClick={() => setViewMode('simulation')} role="tab" aria-selected={viewMode === 'simulation'}>
               {t('view.simulation')}
             </button>
           </div>
 
-          <button
-            type="button"
-            className="lang-toggle"
-            onClick={toggleLocale}
-            aria-label={t('aria.toggleLanguage')}
-            data-testid="app-lang-toggle"
-          >
-            {t('lang.toggle')}
-          </button>
+          <div className="workspace-connectivity-row azv-topbar-actions" aria-live="polite" data-testid="app-connectivity-row">
+            <span className="workspace-connectivity-group visually-hidden">
+              {t('status.backend')} {backendLabels[backendConnectivity] ?? backendConnectivity}
+            </span>
+            <span className="workspace-connectivity-sep visually-hidden" aria-hidden="true">/</span>
+            <span className="workspace-connectivity-group visually-hidden">
+              {t('status.auth')} {authLabels[authConnectivity] ?? authConnectivity}
+            </span>
+            <span className="workspace-connectivity-sep visually-hidden" aria-hidden="true">/</span>
+            <span className="workspace-connectivity-group visually-hidden">
+              {t('status.topology')} {freshnessLabels[topologyFreshness] ?? topologyFreshness}{topologyNodeCountLabel}
+            </span>
+            <span className="workspace-chip" title={t('shell.subtext')}>
+              {workspaceCount !== null ? `${workspaceCount} workspace` : 'workspace'}
+            </span>
+            <span className={`azv-health-pill ${healthy ? 'ready' : 'checking'}`} title={`${t('status.backend')} ${backendLabels[backendConnectivity]}; ${t('status.auth')} ${authLabels[authConnectivity]}; ${t('status.topology')} ${freshnessLabels[topologyFreshness]}${topologyNodeCountLabel}`}>
+              <span className={`connectivity-dot ${healthy ? 'online' : 'checking'}`} aria-hidden="true" />
+              {shellStatusLabel}
+            </span>
+            <span className={`public-beta-demo-badge ${demoWorkspaceStatus}`} data-testid="public-beta-demo-badge">
+              {demoWorkspaceStatus === 'ready' ? t('publicBeta.demoBadge.ready') : t('publicBeta.demoBadge.pending')}
+            </span>
+            <button type="button" className="workspace-connectivity-refresh icon-control" onClick={handleRefreshConnectivity} disabled={connectivityRefreshing} aria-busy={connectivityRefreshing} data-testid="app-connectivity-refresh" title={t('status.refresh')}>
+              {connectivityRefreshing ? '...' : 'Refresh'}
+            </button>
+            <button type="button" className="lang-toggle lang-toggle-compact icon-control" onClick={toggleLocale} aria-label={t('aria.toggleLanguage')} data-testid="app-lang-toggle">
+              {t('lang.toggle')}
+            </button>
+            <button type="button" className="theme-toggle icon-control" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} data-testid="app-theme-toggle">
+              {theme === 'dark' ? 'Light' : 'Dark'}
+            </button>
+            <span className="azv-avatar" aria-hidden="true">G</span>
+            {connectivityRefreshMessage ? (
+              <span className="workspace-connectivity-refresh-message" role="status">
+                {connectivityRefreshMessage}
+              </span>
+            ) : null}
+          </div>
         </div>
       </header>
+
+      {isFirstRun ? (
+        <div className="app-onboarding-banner">
+          <PublicBetaOnboarding
+            isFirstRun={isFirstRun}
+            connectivityRefreshing={connectivityRefreshing}
+            expanded={onboardingExpanded}
+            onToggle={() => setOnboardingExpanded((value) => !value)}
+            onOpenDemoPath={handleOpenDemoPath}
+            onRefreshConnectivity={handleRefreshConnectivity}
+          />
+        </div>
+      ) : null}
 
       <ErrorBoundary labels={{
         eyebrow: t('error.eyebrow'),

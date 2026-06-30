@@ -212,7 +212,12 @@ export function TopologyPage() {
   const [manualEdges, setManualEdges] = useState<ManualEdge[]>([])
   const [manualLoading, setManualLoading] = useState(false)
   const [canvasMaximized, setCanvasMaximized] = useState(false)
-  const [graphControlsOpen, setGraphControlsOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [rightOpen, setRightOpen] = useState(false)
+  const [panelTab, setPanelTab] = useState<'detail' | 'copilot' | 'snapshot'>('detail')
+  const [viewportWidth, setViewportWidth] = useState<number>(() =>
+    typeof window === 'undefined' ? 1280 : window.innerWidth,
+  )
   const [manualNodeNameInput, setManualNodeNameInput] = useState('')
   const [manualNodeTypeInput, setManualNodeTypeInput] = useState('external-system')
   const [manualNodeVendorInput, setManualNodeVendorInput] = useState('')
@@ -254,6 +259,42 @@ export function TopologyPage() {
   const cyRef = useRef<Core | null>(null)
   const presetImportInputRef = useRef<HTMLInputElement | null>(null)
   const snapshotImportInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    let frame = 0
+    const handleResize = () => {
+      window.clearTimeout(frame)
+      frame = window.setTimeout(() => setViewportWidth(window.innerWidth), 120)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.clearTimeout(frame)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
+  // Close non-desktop drawers automatically once the viewport is wide enough for the 3-panel layout.
+  useEffect(() => {
+    if (viewportWidth >= 1100) {
+      setSidebarOpen(false)
+      setRightOpen(false)
+    }
+  }, [viewportWidth])
+
+  // Selecting a node should surface the detail tab, and on non-desktop open the right drawer/sheet.
+  useEffect(() => {
+    if (!selectedNodeKey) {
+      return
+    }
+    setPanelTab('detail')
+    if (viewportWidth < 1100) {
+      setRightOpen(true)
+      setSidebarOpen(false)
+    }
+  }, [selectedNodeKey, viewportWidth])
 
   function tr(key: Parameters<typeof t>[0], replacements: Record<string, string | number> = {}) {
     return Object.entries(replacements).reduce(
@@ -2512,35 +2553,50 @@ export function TopologyPage() {
     }
   }
 
-  return (
-    <main className="page-shell">
-      <header className="hero-card">
-        <div>
-          <p className="eyebrow">{t('topology.hero.eyebrow')}</p>
-          <h1>{t('topology.hero.title')}</h1>
-          <p className="subtext">{t('topology.hero.subtext')}</p>
-        </div>
-        <div className={`status-pill ${authReady ? 'ready' : 'pending'}`}>
-          {t('topology.hero.authReadiness')}: {authReady ? t('topology.hero.authLive') : t('topology.hero.authDiag')}
-        </div>
-      </header>
+  const isDesktop = viewportWidth >= 1100
+  const isMobile = viewportWidth < 700
 
+  function openSidebarDrawer() {
+    setSidebarOpen(true)
+    setRightOpen(false)
+  }
+
+  function openRightDrawer(tab?: 'detail' | 'copilot' | 'snapshot') {
+    if (tab) {
+      setPanelTab(tab)
+    }
+    setRightOpen(true)
+    setSidebarOpen(false)
+  }
+
+  function closeDrawers() {
+    setSidebarOpen(false)
+    setRightOpen(false)
+  }
+
+  return (
+    <main className={`page-shell topo-page ${canvasMaximized ? 'topo-page--focus' : ''}`}>
       {error ? <div className="error-banner">{t('topology.error.apiPrefix')} {error}</div> : null}
       {topology?.status === 'error' ? (
         <div className="error-banner">{t('topology.error.topologyPrefix')} {topology.message ?? t('topology.error.unknown')}</div>
       ) : null}
       {exportMessage ? <div className="info-banner">{exportMessage}</div> : null}
 
-      <CopilotPanel
-        workspaceId={selectedWorkspaceId}
-        queryOptions={topologyCopilotOptions}
-        currentView="topology"
-        viewContext={topologyCopilotViewContext}
-        className="topology-copilot-card"
-        onError={setError}
-      />
+      <div className="topo-mobilebar">
+        <button type="button" className="topo-iconbtn" onClick={openSidebarDrawer} aria-label={t('topology.layout.openSidebar')}>
+          ☰ {t('topology.layout.scope')}
+        </button>
+        <button type="button" className="topo-iconbtn" onClick={() => openRightDrawer('detail')} aria-label={t('topology.layout.openDetail')}>
+          {t('topology.layout.detail')} ▸
+        </button>
+      </div>
 
-      <section className="panel-grid">
+      <div className={`topo-workspace ${canvasMaximized ? 'topo-workspace--focus' : ''}`}>
+        <aside
+          className={`topo-sidebar ${!isDesktop ? 'topo-sidebar--drawer' : ''} ${sidebarOpen ? 'open' : ''}`}
+          aria-label={t('topology.layout.scope')}
+        >
+        <section className="panel-grid">
         <article className="panel-card">
           <h2>{t('topology.workspace.heading')}</h2>
           {loading ? (
@@ -2669,56 +2725,824 @@ export function TopologyPage() {
             </>
           )}
         </article>
-
-        <article className="panel-card">
-          <h2>{t('topology.summary.heading')}</h2>
-          <div className="summary-grid summary-grid-wide">
-            <div className="metric-box">
-              <span className="metric-label">{t('topology.summary.metric.visibleNodes')}</span>
-              <strong>{visibleSummary.totalNodes}</strong>
-              <small>{t('topology.summary.loaded')} {loadedSummary.totalNodes}</small>
-            </div>
-            <div className="metric-box">
-              <span className="metric-label">{t('topology.summary.visibleEdges')}</span>
-              <strong>{visibleSummary.totalEdges}</strong>
-              <small>{t('topology.summary.loaded')} {loadedSummary.totalEdges}</small>
-            </div>
-            <div className="metric-box">
-              <span className="metric-label">{t('topology.summary.collapsedChildren')}</span>
-              <strong>{loadedSummary.hiddenResources}</strong>
-              <small>{t('topology.summary.miChildrenHidden')}</small>
-            </div>
-            <div className="metric-box">
-              <span className="metric-label">{t('topology.summary.subscriptions')}</span>
-              <strong>{visibleSummary.subscriptions}</strong>
-            </div>
-            <div className="metric-box">
-              <span className="metric-label">{t('topology.summary.resourceGroups')}</span>
-              <strong>{visibleSummary.resourceGroups}</strong>
-            </div>
-            <div className="metric-box">
-              <span className="metric-label">{t('topology.summary.resources')}</span>
-              <strong>{visibleSummary.resources}</strong>
-            </div>
-            <div className="metric-box">
-              <span className="metric-label">{t('topology.summary.expandedMI')}</span>
-              <strong>{expandedManagedInstances.length}</strong>
-              <small>{clusterManagedInstanceChildren ? t('topology.summary.compoundClusterOn') : t('topology.summary.compoundClusterOff')}</small>
-            </div>
-          </div>
-        </article>
       </section>
 
-      <section className="panel-grid controls-layout collapsible-panel-grid">
-        <details
-          className="panel-card collapsible-panel topology-control-panel"
-          open={graphControlsOpen}
-          onToggle={(event) => setGraphControlsOpen(event.currentTarget.open)}
+        <section className="panel-card topology-control-panel topo-static-panel">
+          <div className="section-heading topo-static-head">
+            <h2>{t('topology.resourceFilters.heading')}</h2>
+            <span className="mini-status">{Object.values(resourceFilters).filter(Boolean).length}/5</span>
+          </div>
+          <div className="collapsible-body">
+          <div className="filter-chip-grid">
+            {(['compute', 'data', 'network', 'web', 'other'] as ResourceCategory[]).map((category) => (
+              <button
+                key={category}
+                type="button"
+                className={`filter-chip ${resourceFilters[category] ? 'active' : ''}`}
+                onClick={() => toggleResourceFilter(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+          <p className="hint">{t('topology.controls.resourceFilterHint')}</p>
+          <p className="hint">
+            {tr('topology.controls.rgLazyLoad', { name: focusedResourceGroupName ? focusedResourceGroupName : t('topology.controls.allResourceGroups') })}
+          </p>
+          </div>
+        </section>
+        </aside>
+
+        <section className="topo-center">
+          <div className="topo-metric-strip" aria-hidden={canvasMaximized}>
+            <div className="topo-metric-card">
+              <span className="topo-metric-label">{t('topology.summary.metric.visibleNodes')}</span>
+              <span className="topo-metric-value">{visibleSummary.totalNodes}</span>
+            </div>
+            <div className="topo-metric-card">
+              <span className="topo-metric-label">{t('topology.summary.visibleEdges')}</span>
+              <span className="topo-metric-value">{visibleSummary.totalEdges}</span>
+            </div>
+            <div className="topo-metric-card">
+              <span className="topo-metric-label">{t('topology.summary.collapsedChildren')}</span>
+              <span className="topo-metric-value">{loadedSummary.hiddenResources}</span>
+            </div>
+            <div className="topo-metric-card">
+              <span className="topo-metric-label">{t('topology.summary.resources')}</span>
+              <span className="topo-metric-value">{visibleSummary.resources}</span>
+            </div>
+            <div className="topo-metric-card">
+              <span className="topo-metric-label">{t('topology.summary.subscriptions')}</span>
+              <span className="topo-metric-value">{visibleSummary.subscriptions}</span>
+            </div>
+            <div className="topo-metric-card">
+              <span className="topo-metric-label">{t('topology.summary.resourceGroups')}</span>
+              <span className="topo-metric-value">{visibleSummary.resourceGroups}</span>
+            </div>
+          </div>
+        <article
+          ref={canvasCardRef}
+          className={`panel-card canvas-card ${canvasMaximized ? 'canvas-card-maximized' : ''}`}
+          role={canvasMaximized ? 'dialog' : undefined}
+          aria-modal={canvasMaximized ? true : undefined}
+          aria-label={t('topology.canvas.heading')}
+          tabIndex={canvasMaximized ? -1 : undefined}
         >
-          <summary className="collapsible-summary">
-            <span>{t('topology.controls.heading')}</span>
+          <div className="section-heading">
+            <h2>{t('topology.canvas.heading')}</h2>
+            <span className="mini-status">
+              {topologyLoading
+                ? t('topology.canvas.syncing')
+                : `${filteredTopology.nodes.length} visible / ${topology?.nodes.length ?? 0} loaded`}
+            </span>
+          </div>
+
+          <p className="hint compare-layout-hint">{t('topology.controls.layoutLabel')} {compareLayoutStatus}</p>
+          <p className="hint compare-layout-hint compare-path-hint">{t('topology.detail.pathSelection')}: {selectedPathStatus}</p>
+          {graphRuntimeLoading ? <p className="hint compare-layout-hint">{t('topology.canvas.graphEngineLoading')}</p> : null}
+
+          <div className="graph-toolbar">
+            <div className="button-row">
+              <button type="button" className="toolbar-button" onClick={fitGraph}>
+                {t('topology.canvas.fitView')}
+              </button>
+              <button type="button" className="toolbar-button" onClick={focusSelection}>
+                {t('topology.canvas.focusSel')}
+              </button>
+              <button type="button" className="toolbar-button" onClick={rerunLayout}>
+                {t('topology.canvas.relayout')}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={() => setCanvasMaximized((current) => !current)}
+                aria-pressed={canvasMaximized}
+              >
+                {canvasMaximized ? t('topology.canvas.exitFocus') : t('topology.canvas.focusMode')}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button primary"
+                onClick={handleExportPng}
+                disabled={exportLoading || !canExportTopology}
+              >
+                {exportLoading ? t('topology.canvas.exporting') : t('topology.canvas.exportPng')}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={handleExportPdf}
+                disabled={exportLoading || !canExportTopology}
+              >
+                {exportLoading ? t('topology.canvas.exporting') : t('topology.canvas.exportPdf')}
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={handleOpenCanvasWindow}
+                disabled={!canExportTopology}
+              >
+                {t('topology.canvas.openWindow')}
+              </button>
+            </div>
+
+            <div className="search-toolbar">
+              <div className="section-heading search-heading">
+                <h3>{t('topology.canvas.searchJump')}</h3>
+                <span className="mini-status">
+                  {searchQuery
+                    ? `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} • ${
+                        searchScopeMeta.label
+                      } • ${
+                        activeSearchResult ? `active ${searchResultIndex + 1}/${searchResults.length}` : t('topology.search.visibleOnly')
+                      }`
+                    : `search ${searchScopeMeta.label.toLowerCase()}`}
+                </span>
+              </div>
+
+              <div className="filter-chip-grid search-scope-grid">
+                {(
+                  [
+                    ['visible', t('topology.search.visible')],
+                    ['child-only', t('topology.search.childOnly')],
+                    ['collapsed-preview', t('topology.search.collapsedPreview')],
+                  ] as [SearchScope, string][]
+                ).map(([scope, label]) => (
+                  <button
+                    key={scope}
+                    type="button"
+                    className={`filter-chip ${searchScope === scope ? 'active' : ''}`}
+                    onClick={() => setSearchScope(scope)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="hint search-scope-hint">{searchScopeMeta.hint}</p>
+
+              <form className="search-form" onSubmit={handleSearchSubmit}>
+                <input
+                  type="text"
+                  className="search-input"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'ArrowDown') {
+                      event.preventDefault()
+                      jumpToSearchResult(searchResultIndex + 1)
+                    }
+
+                    if (event.key === 'ArrowUp') {
+                      event.preventDefault()
+                      jumpToSearchResult(searchResultIndex - 1)
+                    }
+
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      setSearchQuery('')
+                    }
+                  }}
+                  placeholder={searchScopeMeta.placeholder}
+                />
+
+                <div className="button-row search-actions">
+                  <button
+                    type="button"
+                    className="toolbar-button"
+                    onClick={() => jumpToSearchResult(searchResultIndex - 1)}
+                    disabled={!searchResults.length}
+                  >
+                    {t('topology.canvas.prev')}
+                  </button>
+                  <button
+                    type="button"
+                    className="toolbar-button"
+                    onClick={() => jumpToSearchResult(searchResultIndex + 1)}
+                    disabled={!searchResults.length}
+                  >
+                    {t('topology.canvas.next')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="toolbar-button primary"
+                    disabled={!searchResults.length}
+                  >
+                    {t('topology.canvas.jump')}
+                  </button>
+                  <button
+                    type="button"
+                    className="toolbar-button"
+                    onClick={() => setSearchQuery('')}
+                    disabled={!searchQuery}
+                  >
+                    {t('topology.canvas.clear')}
+                  </button>
+                </div>
+              </form>
+
+              {searchQuery ? (
+                searchResults.length ? (
+                  <div className="search-group-list compact-list">
+                    {searchResultGroups.map((group) => (
+                      <section key={group.key} className="search-group-card">
+                        <div className="search-group-header">
+                          <strong>{group.label}</strong>
+                          <span className="chip-count">{group.results.length}</span>
+                        </div>
+
+                        <ul className="search-result-list">
+                          {group.results.map((result) => {
+                            const originalIndex = searchResults.findIndex(
+                              (candidate) => candidate.node.node_key === result.node.node_key,
+                            )
+                            const isActive = originalIndex === searchResultIndex
+                            const parentNode = getParentNode(result.node, topologyNodesByRef)
+                            const managedInstanceParent = isManagedInstanceNode(parentNode) ? parentNode : null
+                            const canExpandManagedInstance =
+                              isManagedInstanceNode(result.node) &&
+                              Boolean(result.node.child_summary?.total) &&
+                              !expandedManagedInstanceRefs.includes(result.node.node_ref)
+                            const canCollapseManagedInstance =
+                              isManagedInstanceNode(result.node) &&
+                              expandedManagedInstanceRefs.includes(result.node.node_ref)
+                            return (
+                              <li key={result.node.node_key}>
+                                <div className="search-result-card">
+                                  <button
+                                    type="button"
+                                    className={`search-result-button ${isActive ? 'active' : ''}`}
+                                    onClick={() => jumpToSearchResult(originalIndex)}
+                                  >
+                                    <div>
+                                      <strong>{result.node.display_name}</strong>
+                                      <p>{getNodeMetaLine(result.node)}</p>
+                                      {searchScope === 'child-only' && managedInstanceParent ? (
+                                        <div className="search-result-breadcrumb">
+                                          <span className="mini-chip">{t('topology.label.parentMI')}</span>
+                                          <span className="breadcrumb-value">{managedInstanceParent.display_name}</span>
+                                        </div>
+                                      ) : null}
+                                      {result.matchedPreviewNames?.length ? (
+                                        <p className="search-result-preview">
+                                          child preview: {result.matchedPreviewNames.join(', ')}
+                                        </p>
+                                      ) : null}
+                                      <p className="search-result-meta">
+                                        match: {result.matchedFields.join(', ') || 'name'} • score {result.score}
+                                      </p>
+                                    </div>
+                                    <span className={`tag category-${getResourceCategory(result.node)}`}>
+                                      {getResourceCategory(result.node)}
+                                    </span>
+                                  </button>
+
+                                  {canExpandManagedInstance || canCollapseManagedInstance || (searchScope === 'child-only' && managedInstanceParent) ? (
+                                    <div className="search-result-actions">
+                                      {canExpandManagedInstance ? (
+                                        <button
+                                          type="button"
+                                          className="toolbar-button search-inline-button"
+                                          onClick={() => expandManagedInstanceNode(result.node)}
+                                          disabled={topologyLoading}
+                                        >
+                                          Add to compare
+                                        </button>
+                                      ) : null}
+
+                                      {canCollapseManagedInstance ? (
+                                        <button
+                                          type="button"
+                                          className="toolbar-button search-inline-button"
+                                          onClick={() => collapseManagedInstanceNode(result.node.node_ref)}
+                                          disabled={topologyLoading}
+                                        >
+                                          Collapse compare
+                                        </button>
+                                      ) : null}
+
+                                      {searchScope === 'child-only' && managedInstanceParent ? (
+                                        <button
+                                          type="button"
+                                          className="toolbar-button search-inline-button"
+                                          onClick={() => selectNode(managedInstanceParent.node_key, { focus: true })}
+                                        >
+                                          Focus parent MI
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="hint">{searchScopeMeta.empty}</p>
+                )
+              ) : null}
+            </div>
+
+            <div className="graph-legend">
+              <span className="legend-item subscription">{t('topology.label.legendSubscription')}</span>
+              <span className="legend-item resourcegroup">{t('topology.label.legendResourceGroup')}</span>
+              <span className="legend-item resource-data">{t('topology.label.legendData')}</span>
+              <span className="legend-item resource-network">{t('topology.label.legendNetwork')}</span>
+              <span className="legend-item resource-web">{t('topology.label.legendWeb')}</span>
+              <span className="legend-item resource-compute">{t('topology.label.legendCompute')}</span>
+            </div>
+            <div className="graph-legend relation-legend">
+              {loadedRelationCounts.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`legend-item legend-button ${getRelationLegendClassName(item.key)} ${
+                    (relationTypeFilters[item.key] ?? true) ? 'active' : 'inactive'
+                  }`}
+                  onClick={() => toggleRelationTypeFilter(item.key)}
+                >
+                  {item.key} ({item.count})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="graph-canvas-shell">
+            <div ref={graphContainerRef} className={`graph-canvas ${canvasMaximized ? 'graph-canvas-maximized' : ''}`} />
+            {graphHoverCard ? (
+              <div
+                className="graph-hover-card"
+                style={{ transform: `translate(${graphHoverCard.x}px, ${graphHoverCard.y}px)` }}
+              >
+                <div className="graph-hover-card-header">
+                  <strong>{graphHoverCard.title}</strong>
+                  <span className="mini-chip graph-hover-kind-chip">{graphHoverCard.kind}</span>
+                </div>
+                <p>{graphHoverCard.subtitle}</p>
+                <div className="graph-hover-card-meta">
+                  <span className={`mini-chip detail-source-chip source-${getSourceTone(graphHoverCard.source)}`}>
+                    {formatSourceLabel(t, graphHoverCard.source)}
+                  </span>
+                  <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(graphHoverCard.confidence)}`}>
+                    {formatConfidenceLabel(graphHoverCard.confidence)}
+                  </span>
+                  {graphHoverCard.resolver ? (
+                    <span className="mini-chip graph-hover-resolver-chip">{graphHoverCard.resolver}</span>
+                  ) : null}
+                </div>
+                {graphHoverCard.evidence?.length ? (
+                  <p className="graph-hover-evidence">{t('topology.label.evidence')}: {graphHoverCard.evidence.slice(0, 2).join(' • ')}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {!canExportTopology && exportUnavailableMessage ? (
+            <p className="hint export-hint">{exportUnavailableMessage}</p>
+          ) : null}
+          <p className="hint export-hint">{t('topology.search.tip')}</p>
+          {lastExport ? (
+            <p className="hint export-hint">
+              {t('topology.export.lastExport')}: {formatDateTime(lastExport.created_at)} • {lastExport.output_path}
+            </p>
+          ) : null}
+        </article>
+        </section>
+
+        <aside
+          className={`topo-rightpanel ${!isDesktop ? (isMobile ? 'topo-rightpanel--sheet' : 'topo-rightpanel--drawer') : ''} ${rightOpen ? 'open' : ''}`}
+          aria-label={t('topology.detail.heading')}
+        >
+          <div className="topo-panel-tabs" role="tablist" aria-label={t('topology.detail.heading')}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={panelTab === 'detail'}
+              className={`topo-panel-tab ${panelTab === 'detail' ? 'active' : ''}`}
+              onClick={() => setPanelTab('detail')}
+            >
+              {t('topology.layout.tabDetail')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={panelTab === 'copilot'}
+              className={`topo-panel-tab ${panelTab === 'copilot' ? 'active' : ''}`}
+              onClick={() => setPanelTab('copilot')}
+            >
+              {t('topology.layout.tabCopilot')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={panelTab === 'snapshot'}
+              className={`topo-panel-tab ${panelTab === 'snapshot' ? 'active' : ''}`}
+              onClick={() => setPanelTab('snapshot')}
+            >
+              {t('topology.layout.tabSnapshot')}
+            </button>
+            {!isDesktop ? (
+              <button type="button" className="topo-panel-close" onClick={closeDrawers} aria-label={t('topology.layout.close')}>
+                ×
+              </button>
+            ) : null}
+          </div>
+          <div className="topo-panel-body">
+          <div className="topo-tabpane" hidden={panelTab !== 'detail'}>
+        <article className="panel-card detail-card">
+          <div className="section-heading">
+            <h2>{t('topology.detail.heading')}</h2>
+            <span className="mini-status">{detailLoading ? t('topology.detail.loading') : selectedNode?.node_type ?? '-'}</span>
+          </div>
+
+          {selectedNode ? (
+            <div className="detail-stack">
+              <div className="detail-hero">
+                <strong>{selectedNode.display_name}</strong>
+                <p>{selectedNode.node_key}</p>
+                <div className="detail-meta-chip-row">
+                  <span className={`mini-chip detail-source-chip source-${getSourceTone(selectedNode.source)}`}>
+                    Source • {formatSourceLabel(t, selectedNode.source)}
+                  </span>
+                  <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(selectedNode.confidence)}`}>
+                    Confidence • {formatConfidenceLabel(selectedNode.confidence)}
+                  </span>
+                </div>
+                {selectedParentNode ? (
+                  <div className="detail-breadcrumb-row">
+                    <span className="mini-chip">{t('topology.label.parentMI')}</span>
+                    <strong className="detail-breadcrumb-value">{selectedParentNode.display_name}</strong>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="detail-grid">
+                <div className="detail-item">
+                  <span>{t('topology.detail.source')}</span>
+                  <strong>{formatSourceLabel(t, selectedNode.source)}</strong>
+                </div>
+                <div className="detail-item">
+                  <span>{t('topology.detail.confidence')}</span>
+                  <strong>{formatConfidenceLabel(selectedNode.confidence)}</strong>
+                </div>
+                <div className="detail-item">
+                  <span>{t('topology.detail.category')}</span>
+                  <strong>{getResourceCategory(selectedNode)}</strong>
+                </div>
+                <div className="detail-item">
+                  <span>{t('topology.detail.location')}</span>
+                  <strong>{selectedNode.location ?? '-'}</strong>
+                </div>
+              </div>
+
+              {selectedNode.node_type === 'resource' ? (
+                <div className="detail-item">
+                  <span>{t('topology.detail.pathAnalysis')}</span>
+                  <strong>
+                    {pathAnalysisResult
+                      ? `${t('topology.detail.pathVerdict')}: ${pathAnalysisResult.overall_verdict} (${t('topology.detail.pathNsgRouteEvidence')})`
+                      : t('topology.detail.pathSelectSourceAndDest')}
+                  </strong>
+                  <p className="hint detail-inline-hint">
+                    {t('topology.detail.pathSource')}: {pathSourceNode?.display_name ?? '-'} • {t('topology.detail.pathDestination')}: {pathDestinationNode?.display_name ?? '-'}
+                  </p>
+                  {pathAnalysisFilterSummary.length ? (
+                    <p className="hint detail-inline-hint">
+                      {t('topology.detail.pathActiveFilters')}: {pathAnalysisFilterSummary.join(' • ')}
+                    </p>
+                  ) : null}
+                  <p className="hint detail-inline-hint">
+                    {t('topology.detail.pathMvpNote')}
+                  </p>
+                  <div className="search-form detail-inline-hint">
+                    <input
+                      className="search-input"
+                      type="text"
+                      value={pathProtocolInput}
+                      onChange={(event) => setPathProtocolInput(event.target.value)}
+                      placeholder={t('topology.placeholder.protocol')}
+                      aria-label={t('topology.detail.pathProtocol')}
+                    />
+                    <input
+                      className="search-input"
+                      type="text"
+                      value={pathSourceAddressInput}
+                      onChange={(event) => setPathSourceAddressInput(event.target.value)}
+                      placeholder={t('topology.placeholder.sourcePrefix')}
+                      aria-label={t('topology.placeholder.sourcePrefix')}
+                    />
+                    <input
+                      className="search-input"
+                      type="text"
+                      value={pathDestinationAddressInput}
+                      onChange={(event) => setPathDestinationAddressInput(event.target.value)}
+                      placeholder={t('topology.placeholder.destinationPrefix')}
+                      aria-label={t('topology.placeholder.destinationPrefix')}
+                    />
+                    <input
+                      className="search-input"
+                      type="number"
+                      min="0"
+                      max="65535"
+                      value={pathSourcePortInput}
+                      onChange={(event) => setPathSourcePortInput(event.target.value)}
+                      placeholder={t('topology.placeholder.sourcePort')}
+                      aria-label={t('topology.detail.pathSourcePort')}
+                    />
+                    <input
+                      className="search-input"
+                      type="number"
+                      min="0"
+                      max="65535"
+                      value={pathDestinationPortInput}
+                      onChange={(event) => setPathDestinationPortInput(event.target.value)}
+                      placeholder={t('topology.placeholder.destinationPort')}
+                      aria-label={t('topology.detail.pathDestinationPort')}
+                    />
+                  </div>
+                  <div className="button-row detail-button-row">
+                    <button
+                      type="button"
+                      className="toolbar-button"
+                      onClick={() => {
+                        setPathSourceNodeRef(selectedNode.node_ref)
+                        setPathAnalysisResult(null)
+                      }}
+                    >
+                      {t('topology.detail.setAsSource')}
+                    </button>
+                    <button
+                      type="button"
+                      className="toolbar-button"
+                      onClick={() => {
+                        setPathDestinationNodeRef(selectedNode.node_ref)
+                        setPathAnalysisResult(null)
+                      }}
+                    >
+                      {t('topology.detail.setAsDest')}
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => void runPathAnalysis()}
+                      disabled={pathAnalysisLoading || !pathSourceNodeRef || !pathDestinationNodeRef}
+                    >
+                      {pathAnalysisLoading ? t('topology.detail.analyzing') : t('topology.detail.analyzePath')}
+                    </button>
+                  </div>
+                  {pathAnalysisResult ? (
+                    <div className="detail-inline-hint">
+                      <p className="hint">
+                        {pathAnalysisResult.path_candidates[0]?.reason ?? pathAnalysisResult.warnings[0] ?? t('topology.detail.pathNoCandidate')}
+                      </p>
+                      {pathAnalysisResult.path_candidates[0] ? (
+                        <p className="hint detail-inline-hint">
+                          {t('topology.detail.pathPeering')}: {formatPeeringTraversalLabel(
+                            pathAnalysisResult.path_candidates[0].peering_hop_count,
+                            pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
+                          )}
+                          {' — '}
+                          {formatPeeringEvidenceHint(
+                            t,
+                            pathAnalysisResult.path_candidates[0].peering_hop_count,
+                            pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
+                          )}
+                        </p>
+                      ) : null}
+                      {pathAnalysisResult.path_candidates[0]?.hops.length ? (
+                        <div className="sample-chip-list">
+                          {pathAnalysisResult.path_candidates[0].hops.slice(0, 6).map((hop, index) => (
+                            <span key={`${hop.resource_id}-${index}`} className="sample-chip">
+                              {hop.display_name} • {hop.hop_type}
+                              {hop.is_peering_boundary ? (
+                                <span className="mini-chip" title={t('topology.detail.pathPeeringBoundaryHint')}>
+                                  {t('topology.detail.pathPeeringBoundary')}
+                                </span>
+                              ) : null}
+                              {hop.nsg_verdict ? (
+                                <span className="mini-chip" title={[hop.nsg_name, hop.nsg_rule_name].filter(Boolean).join(' / ') || undefined}>
+                                  {t('topology.detail.pathNsg')}{hop.nsg_direction ? ` ${hop.nsg_direction}` : ''}: {hop.nsg_verdict}
+                                  {hop.nsg_rule_name ? ` (${hop.nsg_rule_name})` : ''}
+                                </span>
+                              ) : null}
+                              {hop.nsg_outbound_verdict ? (
+                                <span className="mini-chip" title={[hop.nsg_outbound_name, hop.nsg_outbound_rule_name].filter(Boolean).join(' / ') || undefined}>
+                                  {t('topology.detail.pathNsgOutbound')}: {hop.nsg_outbound_verdict}
+                                  {hop.nsg_outbound_rule_name ? ` (${hop.nsg_outbound_rule_name})` : ''}
+                                </span>
+                              ) : null}
+                              {hop.route_verdict ? (
+                                <span className="mini-chip" title={[hop.route_table_name, hop.route_name, hop.route_next_hop_type, hop.route_next_hop_ip].filter(Boolean).join(' / ') || undefined}>
+                                  {t('topology.detail.pathRoute')}: {hop.route_verdict}{hop.route_name ? ` (${hop.route_name})` : ''}{hop.route_next_hop_type ? ` — ${formatRouteNextHopLabel(hop.route_next_hop_type, hop.route_next_hop_ip)}` : ''}
+                                </span>
+                              ) : null}
+                            </span>
+                          ))}
+                          {pathAnalysisResult.path_candidates[0].hops.length > 6 ? (
+                            <span className="sample-chip">
+                              {t('topology.detail.pathMoreHops').replace('{count}', String(pathAnalysisResult.path_candidates[0].hops.length - 6))}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {pathAnalysisResult.warnings.length ? (
+                        <p className="hint">{t('topology.label.warning')}: {pathAnalysisResult.warnings.join('; ')}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {pathAnalysisMessage ? <p className="hint detail-inline-hint">{pathAnalysisMessage}</p> : null}
+                </div>
+              ) : null}
+
+              {hasDetailScopeContext ? (
+                <div className="detail-item">
+                  <span>{t('topology.detail.scopedInvWin')}</span>
+                  <strong>{detailScopeSummary}</strong>
+                  <p className="hint detail-inline-hint">
+                    {nodeDetail?.status === 'not-found'
+                      ? t('topology.detail.scopedDetailNotFoundHint')
+                      : t('topology.detail.scopedDetailHint')}
+                  </p>
+                  <div className="button-row detail-button-row">
+                    {focusedResourceGroupName ? (
+                      <button
+                        type="button"
+                        className="toolbar-button"
+                        onClick={() => setFocusedResourceGroupName('')}
+                      >
+                        {t('topology.detail.loadAllRGs')}
+                      </button>
+                    ) : null}
+                    {selectedSubscriptionId ? (
+                      <button
+                        type="button"
+                        className="toolbar-button"
+                        onClick={() => {
+                          setSelectedSubscriptionId('')
+                          setFocusedResourceGroupName('')
+                        }}
+                      >
+                        {t('topology.detail.loadAllSubs')}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {isResourceGroupNode(selectedNode) ? (
+                <div className="detail-item">
+                  <span>{t('topology.detail.rgLazyLoad')}</span>
+                  <strong>{resourceGroupFocused ? t('topology.detail.focused') : t('topology.detail.allRGsLoaded')}</strong>
+                  <p className="hint detail-inline-hint">
+                    {resourceGroupFocused
+                      ? t('topology.detail.resourceGroupFocusedHint').replace('{name}', selectedNode.display_name)
+                      : t('topology.detail.resourceGroupLoadHint')}
+                  </p>
+                  <div className="button-row detail-button-row">
+                    <button type="button" className="toolbar-button" onClick={toggleResourceGroupFocus}>
+                      {resourceGroupFocused ? t('topology.detail.loadAllRGs') : t('topology.detail.loadOnlyRG')}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {selectedParentNode ? (
+                <div className="detail-item">
+                  <span>{t('topology.detail.parentMI')}</span>
+                  <strong>{selectedParentNode.display_name}</strong>
+                  <p className="hint detail-inline-hint">{t('topology.detail.parentManagedInstanceHint')}</p>
+                  <div className="button-row detail-button-row">
+                    <button
+                      type="button"
+                      className="toolbar-button"
+                      onClick={() => selectNode(selectedParentNode.node_key, { focus: true })}
+                    >
+                      {t('topology.detail.focusParentMI')}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {isManagedInstanceNode(selectedNode) && selectedNode.child_summary?.total ? (
+                <div className="detail-item">
+                  <span>{t('topology.detail.miChildren')}</span>
+                  <strong>
+                    {managedInstanceExpanded
+                      ? t('topology.detail.expandedOnCanvas').replace('{count}', String(visibleManagedInstanceChildCount))
+                      : t('topology.detail.availableChildren').replace('{count}', String(selectedNode.child_summary.total))}
+                  </strong>
+                  <p className="hint detail-inline-hint">{formatChildSummary(selectedNode.child_summary)}</p>
+                  {managedInstanceChildSampleNames.length ? (
+                    <div className="sample-chip-list">
+                      {managedInstanceChildSampleNames.map((name) => (
+                        <span key={name} className="sample-chip">
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="button-row detail-button-row">
+                    <button
+                      type="button"
+                      className="toolbar-button"
+                      onClick={toggleManagedInstanceExpansion}
+                      disabled={topologyLoading}
+                    >
+                      {managedInstanceTransition === 'expand'
+                        ? t('topology.detail.expandingChildren')
+                        : managedInstanceTransition === 'collapse'
+                          ? t('topology.detail.collapsingChildren')
+                          : managedInstanceExpanded
+                            ? t('topology.detail.collapseChildren')
+                            : t('topology.detail.expandChildren')}
+                    </button>
+                    <button type="button" className="toolbar-button" onClick={focusSelection}>
+                      {t('topology.detail.focusMI')}
+                    </button>
+                  </div>
+                  <p className="hint detail-inline-hint">
+                    {managedInstanceExpanded
+                      ? t('topology.detail.managedInstanceExpandedHint')
+                      : t('topology.detail.managedInstanceCollapsedHint')}
+                  </p>
+                </div>
+              ) : null}
+
+              {nodeDetail?.message ? <div className="hint">{nodeDetail.message}</div> : null}
+
+              <div>
+                <h3>{t('topology.detail.projectedDetails')}</h3>
+                {detailEntries.length ? (
+                  <dl className="detail-list">
+                    {detailEntries.map(([key, value]) => (
+                      <div key={key} className="detail-row">
+                        <dt>{prettifyKey(key)}</dt>
+                        <dd>
+                          {typeof value === 'object' && value !== null
+                            ? JSON.stringify(value)
+                            : String(value)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="hint">{t('topology.detail.noProjectedDetails')}</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="hint">{t('topology.detail.noSelectedNode')}</p>
+          )}
+        </article>
+          </div>
+          <div className="topo-tabpane" hidden={panelTab !== 'copilot'}>
+            <CopilotPanel
+              workspaceId={selectedWorkspaceId}
+              queryOptions={topologyCopilotOptions}
+              currentView="topology"
+              viewContext={topologyCopilotViewContext}
+              className="topology-copilot-card"
+              onError={setError}
+            />
+          </div>
+          <div className="topo-tabpane" hidden={panelTab !== 'snapshot'}>
+            <div className="topo-snapshot-pane panel-card">
+              <div className="section-heading">
+                <h2>{t('topology.layout.tabSnapshot')}</h2>
+                <span className="mini-status">{displayedSavedSnapshots.length}</span>
+              </div>
+              {displayedSavedSnapshots.length ? (
+                <ul className="edge-list compact-list">
+                  {displayedSavedSnapshots.map((snapshot) => (
+                    <li key={snapshot.id}>
+                      <strong>{snapshot.name}</strong>
+                      <p>{formatDateTime(snapshot.capturedAt)}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="hint">{t('topology.layout.snapshotEmpty')}</p>
+              )}
+              <p className="hint">{t('topology.layout.snapshotManageHint')}</p>
+            </div>
+          </div>
+          </div>
+        </aside>
+        <div
+          className={`topo-backdrop ${!isDesktop && (sidebarOpen || rightOpen) ? 'show' : ''}`}
+          onClick={closeDrawers}
+          aria-hidden="true"
+        />
+      </div>
+
+      <section className="panel-grid controls-layout topo-static-grid">
+        <section className="panel-card topology-control-panel topo-static-panel">
+          <div className="section-heading topo-static-head">
+            <h2>{t('topology.controls.heading')}</h2>
             <span className="mini-status">{compareLayoutStatus}</span>
-          </summary>
+          </div>
           <div className="collapsible-body">
             <div className="section-heading section-heading-inline-action">
               <span className="mini-status">{t('topology.controls.heading')}</span>
@@ -3286,40 +4110,15 @@ export function TopologyPage() {
             ))}
           </div>
           </div>
-        </details>
+        </section>
 
-        <details className="panel-card collapsible-panel topology-control-panel">
-          <summary className="collapsible-summary">
-            <span>{t('topology.resourceFilters.heading')}</span>
-            <span className="mini-status">{Object.values(resourceFilters).filter(Boolean).length}/5</span>
-          </summary>
-          <div className="collapsible-body">
-          <div className="filter-chip-grid">
-            {(['compute', 'data', 'network', 'web', 'other'] as ResourceCategory[]).map((category) => (
-              <button
-                key={category}
-                type="button"
-                className={`filter-chip ${resourceFilters[category] ? 'active' : ''}`}
-                onClick={() => toggleResourceFilter(category)}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-          <p className="hint">{t('topology.controls.resourceFilterHint')}</p>
-          <p className="hint">
-            {tr('topology.controls.rgLazyLoad', { name: focusedResourceGroupName ? focusedResourceGroupName : t('topology.controls.allResourceGroups') })}
-          </p>
-          </div>
-        </details>
-
-        <details className="panel-card collapsible-panel topology-control-panel">
-          <summary className="collapsible-summary">
-            <span>{t('topology.manual.heading')}</span>
+        <section className="panel-card topology-control-panel topo-static-panel">
+          <div className="section-heading topo-static-head">
+            <h2>{t('topology.manual.heading')}</h2>
             <span className="mini-status">
               {manualLoading ? t('topology.canvas.syncing') : tr('topology.manual.countSummary', { nodes: manualNodes.length, edges: manualEdges.length })}
             </span>
-          </summary>
+          </div>
           <div className="collapsible-body">
 
           <div className="storage-guide-card preset-guide-card">
@@ -3526,695 +4325,17 @@ export function TopologyPage() {
             <p className="hint">{t('topology.manual.noEdges')}</p>
           )}
           </div>
-        </details>
+        </section>
       </section>
 
-      <section className="panel-grid canvas-layout">
-        <article
-          ref={canvasCardRef}
-          className={`panel-card canvas-card ${canvasMaximized ? 'canvas-card-maximized' : ''}`}
-          role={canvasMaximized ? 'dialog' : undefined}
-          aria-modal={canvasMaximized ? true : undefined}
-          aria-label={t('topology.canvas.heading')}
-          tabIndex={canvasMaximized ? -1 : undefined}
-        >
-          <div className="section-heading">
-            <h2>{t('topology.canvas.heading')}</h2>
-            <span className="mini-status">
-              {topologyLoading
-                ? t('topology.canvas.syncing')
-                : `${filteredTopology.nodes.length} visible / ${topology?.nodes.length ?? 0} loaded`}
-            </span>
-          </div>
-
-          <p className="hint compare-layout-hint">{t('topology.controls.layoutLabel')} {compareLayoutStatus}</p>
-          <p className="hint compare-layout-hint compare-path-hint">{t('topology.detail.pathSelection')}: {selectedPathStatus}</p>
-          {graphRuntimeLoading ? <p className="hint compare-layout-hint">{t('topology.canvas.graphEngineLoading')}</p> : null}
-
-          <div className="graph-toolbar">
-            <div className="button-row">
-              <button type="button" className="toolbar-button" onClick={fitGraph}>
-                {t('topology.canvas.fitView')}
-              </button>
-              <button type="button" className="toolbar-button" onClick={focusSelection}>
-                {t('topology.canvas.focusSel')}
-              </button>
-              <button type="button" className="toolbar-button" onClick={rerunLayout}>
-                {t('topology.canvas.relayout')}
-              </button>
-              <button
-                type="button"
-                className="toolbar-button"
-                onClick={() => setCanvasMaximized((current) => !current)}
-                aria-pressed={canvasMaximized}
-              >
-                {canvasMaximized ? t('topology.canvas.exitFocus') : t('topology.canvas.focusMode')}
-              </button>
-              <button
-                type="button"
-                className="toolbar-button primary"
-                onClick={handleExportPng}
-                disabled={exportLoading || !canExportTopology}
-              >
-                {exportLoading ? t('topology.canvas.exporting') : t('topology.canvas.exportPng')}
-              </button>
-              <button
-                type="button"
-                className="toolbar-button"
-                onClick={handleExportPdf}
-                disabled={exportLoading || !canExportTopology}
-              >
-                {exportLoading ? t('topology.canvas.exporting') : t('topology.canvas.exportPdf')}
-              </button>
-              <button
-                type="button"
-                className="toolbar-button"
-                onClick={handleOpenCanvasWindow}
-                disabled={!canExportTopology}
-              >
-                {t('topology.canvas.openWindow')}
-              </button>
-            </div>
-
-            <div className="search-toolbar">
-              <div className="section-heading search-heading">
-                <h3>{t('topology.canvas.searchJump')}</h3>
-                <span className="mini-status">
-                  {searchQuery
-                    ? `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} • ${
-                        searchScopeMeta.label
-                      } • ${
-                        activeSearchResult ? `active ${searchResultIndex + 1}/${searchResults.length}` : t('topology.search.visibleOnly')
-                      }`
-                    : `search ${searchScopeMeta.label.toLowerCase()}`}
-                </span>
-              </div>
-
-              <div className="filter-chip-grid search-scope-grid">
-                {(
-                  [
-                    ['visible', t('topology.search.visible')],
-                    ['child-only', t('topology.search.childOnly')],
-                    ['collapsed-preview', t('topology.search.collapsedPreview')],
-                  ] as [SearchScope, string][]
-                ).map(([scope, label]) => (
-                  <button
-                    key={scope}
-                    type="button"
-                    className={`filter-chip ${searchScope === scope ? 'active' : ''}`}
-                    onClick={() => setSearchScope(scope)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <p className="hint search-scope-hint">{searchScopeMeta.hint}</p>
-
-              <form className="search-form" onSubmit={handleSearchSubmit}>
-                <input
-                  type="text"
-                  className="search-input"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'ArrowDown') {
-                      event.preventDefault()
-                      jumpToSearchResult(searchResultIndex + 1)
-                    }
-
-                    if (event.key === 'ArrowUp') {
-                      event.preventDefault()
-                      jumpToSearchResult(searchResultIndex - 1)
-                    }
-
-                    if (event.key === 'Escape') {
-                      event.preventDefault()
-                      setSearchQuery('')
-                    }
-                  }}
-                  placeholder={searchScopeMeta.placeholder}
-                />
-
-                <div className="button-row search-actions">
-                  <button
-                    type="button"
-                    className="toolbar-button"
-                    onClick={() => jumpToSearchResult(searchResultIndex - 1)}
-                    disabled={!searchResults.length}
-                  >
-                    {t('topology.canvas.prev')}
-                  </button>
-                  <button
-                    type="button"
-                    className="toolbar-button"
-                    onClick={() => jumpToSearchResult(searchResultIndex + 1)}
-                    disabled={!searchResults.length}
-                  >
-                    {t('topology.canvas.next')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="toolbar-button primary"
-                    disabled={!searchResults.length}
-                  >
-                    {t('topology.canvas.jump')}
-                  </button>
-                  <button
-                    type="button"
-                    className="toolbar-button"
-                    onClick={() => setSearchQuery('')}
-                    disabled={!searchQuery}
-                  >
-                    {t('topology.canvas.clear')}
-                  </button>
-                </div>
-              </form>
-
-              {searchQuery ? (
-                searchResults.length ? (
-                  <div className="search-group-list compact-list">
-                    {searchResultGroups.map((group) => (
-                      <section key={group.key} className="search-group-card">
-                        <div className="search-group-header">
-                          <strong>{group.label}</strong>
-                          <span className="chip-count">{group.results.length}</span>
-                        </div>
-
-                        <ul className="search-result-list">
-                          {group.results.map((result) => {
-                            const originalIndex = searchResults.findIndex(
-                              (candidate) => candidate.node.node_key === result.node.node_key,
-                            )
-                            const isActive = originalIndex === searchResultIndex
-                            const parentNode = getParentNode(result.node, topologyNodesByRef)
-                            const managedInstanceParent = isManagedInstanceNode(parentNode) ? parentNode : null
-                            const canExpandManagedInstance =
-                              isManagedInstanceNode(result.node) &&
-                              Boolean(result.node.child_summary?.total) &&
-                              !expandedManagedInstanceRefs.includes(result.node.node_ref)
-                            const canCollapseManagedInstance =
-                              isManagedInstanceNode(result.node) &&
-                              expandedManagedInstanceRefs.includes(result.node.node_ref)
-                            return (
-                              <li key={result.node.node_key}>
-                                <div className="search-result-card">
-                                  <button
-                                    type="button"
-                                    className={`search-result-button ${isActive ? 'active' : ''}`}
-                                    onClick={() => jumpToSearchResult(originalIndex)}
-                                  >
-                                    <div>
-                                      <strong>{result.node.display_name}</strong>
-                                      <p>{getNodeMetaLine(result.node)}</p>
-                                      {searchScope === 'child-only' && managedInstanceParent ? (
-                                        <div className="search-result-breadcrumb">
-                                          <span className="mini-chip">{t('topology.label.parentMI')}</span>
-                                          <span className="breadcrumb-value">{managedInstanceParent.display_name}</span>
-                                        </div>
-                                      ) : null}
-                                      {result.matchedPreviewNames?.length ? (
-                                        <p className="search-result-preview">
-                                          child preview: {result.matchedPreviewNames.join(', ')}
-                                        </p>
-                                      ) : null}
-                                      <p className="search-result-meta">
-                                        match: {result.matchedFields.join(', ') || 'name'} • score {result.score}
-                                      </p>
-                                    </div>
-                                    <span className={`tag category-${getResourceCategory(result.node)}`}>
-                                      {getResourceCategory(result.node)}
-                                    </span>
-                                  </button>
-
-                                  {canExpandManagedInstance || canCollapseManagedInstance || (searchScope === 'child-only' && managedInstanceParent) ? (
-                                    <div className="search-result-actions">
-                                      {canExpandManagedInstance ? (
-                                        <button
-                                          type="button"
-                                          className="toolbar-button search-inline-button"
-                                          onClick={() => expandManagedInstanceNode(result.node)}
-                                          disabled={topologyLoading}
-                                        >
-                                          Add to compare
-                                        </button>
-                                      ) : null}
-
-                                      {canCollapseManagedInstance ? (
-                                        <button
-                                          type="button"
-                                          className="toolbar-button search-inline-button"
-                                          onClick={() => collapseManagedInstanceNode(result.node.node_ref)}
-                                          disabled={topologyLoading}
-                                        >
-                                          Collapse compare
-                                        </button>
-                                      ) : null}
-
-                                      {searchScope === 'child-only' && managedInstanceParent ? (
-                                        <button
-                                          type="button"
-                                          className="toolbar-button search-inline-button"
-                                          onClick={() => selectNode(managedInstanceParent.node_key, { focus: true })}
-                                        >
-                                          Focus parent MI
-                                        </button>
-                                      ) : null}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      </section>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="hint">{searchScopeMeta.empty}</p>
-                )
-              ) : null}
-            </div>
-
-            <div className="graph-legend">
-              <span className="legend-item subscription">{t('topology.label.legendSubscription')}</span>
-              <span className="legend-item resourcegroup">{t('topology.label.legendResourceGroup')}</span>
-              <span className="legend-item resource-data">{t('topology.label.legendData')}</span>
-              <span className="legend-item resource-network">{t('topology.label.legendNetwork')}</span>
-              <span className="legend-item resource-web">{t('topology.label.legendWeb')}</span>
-              <span className="legend-item resource-compute">{t('topology.label.legendCompute')}</span>
-            </div>
-            <div className="graph-legend relation-legend">
-              {loadedRelationCounts.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={`legend-item legend-button ${getRelationLegendClassName(item.key)} ${
-                    (relationTypeFilters[item.key] ?? true) ? 'active' : 'inactive'
-                  }`}
-                  onClick={() => toggleRelationTypeFilter(item.key)}
-                >
-                  {item.key} ({item.count})
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="graph-canvas-shell">
-            <div ref={graphContainerRef} className={`graph-canvas ${canvasMaximized ? 'graph-canvas-maximized' : ''}`} />
-            {graphHoverCard ? (
-              <div
-                className="graph-hover-card"
-                style={{ transform: `translate(${graphHoverCard.x}px, ${graphHoverCard.y}px)` }}
-              >
-                <div className="graph-hover-card-header">
-                  <strong>{graphHoverCard.title}</strong>
-                  <span className="mini-chip graph-hover-kind-chip">{graphHoverCard.kind}</span>
-                </div>
-                <p>{graphHoverCard.subtitle}</p>
-                <div className="graph-hover-card-meta">
-                  <span className={`mini-chip detail-source-chip source-${getSourceTone(graphHoverCard.source)}`}>
-                    {formatSourceLabel(t, graphHoverCard.source)}
-                  </span>
-                  <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(graphHoverCard.confidence)}`}>
-                    {formatConfidenceLabel(graphHoverCard.confidence)}
-                  </span>
-                  {graphHoverCard.resolver ? (
-                    <span className="mini-chip graph-hover-resolver-chip">{graphHoverCard.resolver}</span>
-                  ) : null}
-                </div>
-                {graphHoverCard.evidence?.length ? (
-                  <p className="graph-hover-evidence">{t('topology.label.evidence')}: {graphHoverCard.evidence.slice(0, 2).join(' • ')}</p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          {!canExportTopology && exportUnavailableMessage ? (
-            <p className="hint export-hint">{exportUnavailableMessage}</p>
-          ) : null}
-          <p className="hint export-hint">{t('topology.search.tip')}</p>
-          {lastExport ? (
-            <p className="hint export-hint">
-              {t('topology.export.lastExport')}: {formatDateTime(lastExport.created_at)} • {lastExport.output_path}
-            </p>
-          ) : null}
-        </article>
-
-        <article className="panel-card detail-card">
-          <div className="section-heading">
-            <h2>{t('topology.detail.heading')}</h2>
-            <span className="mini-status">{detailLoading ? t('topology.detail.loading') : selectedNode?.node_type ?? '-'}</span>
-          </div>
-
-          {selectedNode ? (
-            <div className="detail-stack">
-              <div className="detail-hero">
-                <strong>{selectedNode.display_name}</strong>
-                <p>{selectedNode.node_key}</p>
-                <div className="detail-meta-chip-row">
-                  <span className={`mini-chip detail-source-chip source-${getSourceTone(selectedNode.source)}`}>
-                    Source • {formatSourceLabel(t, selectedNode.source)}
-                  </span>
-                  <span className={`mini-chip detail-confidence-chip confidence-${getConfidenceTone(selectedNode.confidence)}`}>
-                    Confidence • {formatConfidenceLabel(selectedNode.confidence)}
-                  </span>
-                </div>
-                {selectedParentNode ? (
-                  <div className="detail-breadcrumb-row">
-                    <span className="mini-chip">{t('topology.label.parentMI')}</span>
-                    <strong className="detail-breadcrumb-value">{selectedParentNode.display_name}</strong>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <span>{t('topology.detail.source')}</span>
-                  <strong>{formatSourceLabel(t, selectedNode.source)}</strong>
-                </div>
-                <div className="detail-item">
-                  <span>{t('topology.detail.confidence')}</span>
-                  <strong>{formatConfidenceLabel(selectedNode.confidence)}</strong>
-                </div>
-                <div className="detail-item">
-                  <span>{t('topology.detail.category')}</span>
-                  <strong>{getResourceCategory(selectedNode)}</strong>
-                </div>
-                <div className="detail-item">
-                  <span>{t('topology.detail.location')}</span>
-                  <strong>{selectedNode.location ?? '-'}</strong>
-                </div>
-              </div>
-
-              {selectedNode.node_type === 'resource' ? (
-                <div className="detail-item">
-                  <span>{t('topology.detail.pathAnalysis')}</span>
-                  <strong>
-                    {pathAnalysisResult
-                      ? `${t('topology.detail.pathVerdict')}: ${pathAnalysisResult.overall_verdict} (${t('topology.detail.pathNsgRouteEvidence')})`
-                      : t('topology.detail.pathSelectSourceAndDest')}
-                  </strong>
-                  <p className="hint detail-inline-hint">
-                    {t('topology.detail.pathSource')}: {pathSourceNode?.display_name ?? '-'} • {t('topology.detail.pathDestination')}: {pathDestinationNode?.display_name ?? '-'}
-                  </p>
-                  {pathAnalysisFilterSummary.length ? (
-                    <p className="hint detail-inline-hint">
-                      {t('topology.detail.pathActiveFilters')}: {pathAnalysisFilterSummary.join(' • ')}
-                    </p>
-                  ) : null}
-                  <p className="hint detail-inline-hint">
-                    {t('topology.detail.pathMvpNote')}
-                  </p>
-                  <div className="search-form detail-inline-hint">
-                    <input
-                      className="search-input"
-                      type="text"
-                      value={pathProtocolInput}
-                      onChange={(event) => setPathProtocolInput(event.target.value)}
-                      placeholder={t('topology.placeholder.protocol')}
-                      aria-label={t('topology.detail.pathProtocol')}
-                    />
-                    <input
-                      className="search-input"
-                      type="text"
-                      value={pathSourceAddressInput}
-                      onChange={(event) => setPathSourceAddressInput(event.target.value)}
-                      placeholder={t('topology.placeholder.sourcePrefix')}
-                      aria-label={t('topology.placeholder.sourcePrefix')}
-                    />
-                    <input
-                      className="search-input"
-                      type="text"
-                      value={pathDestinationAddressInput}
-                      onChange={(event) => setPathDestinationAddressInput(event.target.value)}
-                      placeholder={t('topology.placeholder.destinationPrefix')}
-                      aria-label={t('topology.placeholder.destinationPrefix')}
-                    />
-                    <input
-                      className="search-input"
-                      type="number"
-                      min="0"
-                      max="65535"
-                      value={pathSourcePortInput}
-                      onChange={(event) => setPathSourcePortInput(event.target.value)}
-                      placeholder={t('topology.placeholder.sourcePort')}
-                      aria-label={t('topology.detail.pathSourcePort')}
-                    />
-                    <input
-                      className="search-input"
-                      type="number"
-                      min="0"
-                      max="65535"
-                      value={pathDestinationPortInput}
-                      onChange={(event) => setPathDestinationPortInput(event.target.value)}
-                      placeholder={t('topology.placeholder.destinationPort')}
-                      aria-label={t('topology.detail.pathDestinationPort')}
-                    />
-                  </div>
-                  <div className="button-row detail-button-row">
-                    <button
-                      type="button"
-                      className="toolbar-button"
-                      onClick={() => {
-                        setPathSourceNodeRef(selectedNode.node_ref)
-                        setPathAnalysisResult(null)
-                      }}
-                    >
-                      {t('topology.detail.setAsSource')}
-                    </button>
-                    <button
-                      type="button"
-                      className="toolbar-button"
-                      onClick={() => {
-                        setPathDestinationNodeRef(selectedNode.node_ref)
-                        setPathAnalysisResult(null)
-                      }}
-                    >
-                      {t('topology.detail.setAsDest')}
-                    </button>
-                    <button
-                      type="button"
-                      className="primary-button"
-                      onClick={() => void runPathAnalysis()}
-                      disabled={pathAnalysisLoading || !pathSourceNodeRef || !pathDestinationNodeRef}
-                    >
-                      {pathAnalysisLoading ? t('topology.detail.analyzing') : t('topology.detail.analyzePath')}
-                    </button>
-                  </div>
-                  {pathAnalysisResult ? (
-                    <div className="detail-inline-hint">
-                      <p className="hint">
-                        {pathAnalysisResult.path_candidates[0]?.reason ?? pathAnalysisResult.warnings[0] ?? t('topology.detail.pathNoCandidate')}
-                      </p>
-                      {pathAnalysisResult.path_candidates[0] ? (
-                        <p className="hint detail-inline-hint">
-                          {t('topology.detail.pathPeering')}: {formatPeeringTraversalLabel(
-                            pathAnalysisResult.path_candidates[0].peering_hop_count,
-                            pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
-                          )}
-                          {' — '}
-                          {formatPeeringEvidenceHint(
-                            t,
-                            pathAnalysisResult.path_candidates[0].peering_hop_count,
-                            pathAnalysisResult.path_candidates[0].is_forwarded_traffic,
-                          )}
-                        </p>
-                      ) : null}
-                      {pathAnalysisResult.path_candidates[0]?.hops.length ? (
-                        <div className="sample-chip-list">
-                          {pathAnalysisResult.path_candidates[0].hops.slice(0, 6).map((hop, index) => (
-                            <span key={`${hop.resource_id}-${index}`} className="sample-chip">
-                              {hop.display_name} • {hop.hop_type}
-                              {hop.is_peering_boundary ? (
-                                <span className="mini-chip" title={t('topology.detail.pathPeeringBoundaryHint')}>
-                                  {t('topology.detail.pathPeeringBoundary')}
-                                </span>
-                              ) : null}
-                              {hop.nsg_verdict ? (
-                                <span className="mini-chip" title={[hop.nsg_name, hop.nsg_rule_name].filter(Boolean).join(' / ') || undefined}>
-                                  {t('topology.detail.pathNsg')}{hop.nsg_direction ? ` ${hop.nsg_direction}` : ''}: {hop.nsg_verdict}
-                                  {hop.nsg_rule_name ? ` (${hop.nsg_rule_name})` : ''}
-                                </span>
-                              ) : null}
-                              {hop.nsg_outbound_verdict ? (
-                                <span className="mini-chip" title={[hop.nsg_outbound_name, hop.nsg_outbound_rule_name].filter(Boolean).join(' / ') || undefined}>
-                                  {t('topology.detail.pathNsgOutbound')}: {hop.nsg_outbound_verdict}
-                                  {hop.nsg_outbound_rule_name ? ` (${hop.nsg_outbound_rule_name})` : ''}
-                                </span>
-                              ) : null}
-                              {hop.route_verdict ? (
-                                <span className="mini-chip" title={[hop.route_table_name, hop.route_name, hop.route_next_hop_type, hop.route_next_hop_ip].filter(Boolean).join(' / ') || undefined}>
-                                  {t('topology.detail.pathRoute')}: {hop.route_verdict}{hop.route_name ? ` (${hop.route_name})` : ''}{hop.route_next_hop_type ? ` — ${formatRouteNextHopLabel(hop.route_next_hop_type, hop.route_next_hop_ip)}` : ''}
-                                </span>
-                              ) : null}
-                            </span>
-                          ))}
-                          {pathAnalysisResult.path_candidates[0].hops.length > 6 ? (
-                            <span className="sample-chip">
-                              {t('topology.detail.pathMoreHops').replace('{count}', String(pathAnalysisResult.path_candidates[0].hops.length - 6))}
-                            </span>
-                          ) : null}
-                        </div>
-                      ) : null}
-                      {pathAnalysisResult.warnings.length ? (
-                        <p className="hint">{t('topology.label.warning')}: {pathAnalysisResult.warnings.join('; ')}</p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {pathAnalysisMessage ? <p className="hint detail-inline-hint">{pathAnalysisMessage}</p> : null}
-                </div>
-              ) : null}
-
-              {hasDetailScopeContext ? (
-                <div className="detail-item">
-                  <span>{t('topology.detail.scopedInvWin')}</span>
-                  <strong>{detailScopeSummary}</strong>
-                  <p className="hint detail-inline-hint">
-                    {nodeDetail?.status === 'not-found'
-                      ? t('topology.detail.scopedDetailNotFoundHint')
-                      : t('topology.detail.scopedDetailHint')}
-                  </p>
-                  <div className="button-row detail-button-row">
-                    {focusedResourceGroupName ? (
-                      <button
-                        type="button"
-                        className="toolbar-button"
-                        onClick={() => setFocusedResourceGroupName('')}
-                      >
-                        {t('topology.detail.loadAllRGs')}
-                      </button>
-                    ) : null}
-                    {selectedSubscriptionId ? (
-                      <button
-                        type="button"
-                        className="toolbar-button"
-                        onClick={() => {
-                          setSelectedSubscriptionId('')
-                          setFocusedResourceGroupName('')
-                        }}
-                      >
-                        {t('topology.detail.loadAllSubs')}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-
-              {isResourceGroupNode(selectedNode) ? (
-                <div className="detail-item">
-                  <span>{t('topology.detail.rgLazyLoad')}</span>
-                  <strong>{resourceGroupFocused ? t('topology.detail.focused') : t('topology.detail.allRGsLoaded')}</strong>
-                  <p className="hint detail-inline-hint">
-                    {resourceGroupFocused
-                      ? t('topology.detail.resourceGroupFocusedHint').replace('{name}', selectedNode.display_name)
-                      : t('topology.detail.resourceGroupLoadHint')}
-                  </p>
-                  <div className="button-row detail-button-row">
-                    <button type="button" className="toolbar-button" onClick={toggleResourceGroupFocus}>
-                      {resourceGroupFocused ? t('topology.detail.loadAllRGs') : t('topology.detail.loadOnlyRG')}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {selectedParentNode ? (
-                <div className="detail-item">
-                  <span>{t('topology.detail.parentMI')}</span>
-                  <strong>{selectedParentNode.display_name}</strong>
-                  <p className="hint detail-inline-hint">{t('topology.detail.parentManagedInstanceHint')}</p>
-                  <div className="button-row detail-button-row">
-                    <button
-                      type="button"
-                      className="toolbar-button"
-                      onClick={() => selectNode(selectedParentNode.node_key, { focus: true })}
-                    >
-                      {t('topology.detail.focusParentMI')}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {isManagedInstanceNode(selectedNode) && selectedNode.child_summary?.total ? (
-                <div className="detail-item">
-                  <span>{t('topology.detail.miChildren')}</span>
-                  <strong>
-                    {managedInstanceExpanded
-                      ? t('topology.detail.expandedOnCanvas').replace('{count}', String(visibleManagedInstanceChildCount))
-                      : t('topology.detail.availableChildren').replace('{count}', String(selectedNode.child_summary.total))}
-                  </strong>
-                  <p className="hint detail-inline-hint">{formatChildSummary(selectedNode.child_summary)}</p>
-                  {managedInstanceChildSampleNames.length ? (
-                    <div className="sample-chip-list">
-                      {managedInstanceChildSampleNames.map((name) => (
-                        <span key={name} className="sample-chip">
-                          {name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="button-row detail-button-row">
-                    <button
-                      type="button"
-                      className="toolbar-button"
-                      onClick={toggleManagedInstanceExpansion}
-                      disabled={topologyLoading}
-                    >
-                      {managedInstanceTransition === 'expand'
-                        ? t('topology.detail.expandingChildren')
-                        : managedInstanceTransition === 'collapse'
-                          ? t('topology.detail.collapsingChildren')
-                          : managedInstanceExpanded
-                            ? t('topology.detail.collapseChildren')
-                            : t('topology.detail.expandChildren')}
-                    </button>
-                    <button type="button" className="toolbar-button" onClick={focusSelection}>
-                      {t('topology.detail.focusMI')}
-                    </button>
-                  </div>
-                  <p className="hint detail-inline-hint">
-                    {managedInstanceExpanded
-                      ? t('topology.detail.managedInstanceExpandedHint')
-                      : t('topology.detail.managedInstanceCollapsedHint')}
-                  </p>
-                </div>
-              ) : null}
-
-              {nodeDetail?.message ? <div className="hint">{nodeDetail.message}</div> : null}
-
-              <div>
-                <h3>{t('topology.detail.projectedDetails')}</h3>
-                {detailEntries.length ? (
-                  <dl className="detail-list">
-                    {detailEntries.map(([key, value]) => (
-                      <div key={key} className="detail-row">
-                        <dt>{prettifyKey(key)}</dt>
-                        <dd>
-                          {typeof value === 'object' && value !== null
-                            ? JSON.stringify(value)
-                            : String(value)}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                ) : (
-                  <p className="hint">{t('topology.detail.noProjectedDetails')}</p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="hint">{t('topology.detail.noSelectedNode')}</p>
-          )}
-        </article>
-      </section>
-
-      <section className="panel-grid three-panels collapsible-panel-grid">
-        <details className="panel-card collapsible-panel">
-          <summary className="collapsible-summary">
-            <span>{t('topology.bottom.heading.visibleNodes')}</span>
+      <section className="panel-grid three-panels topo-static-grid">
+        <section className="panel-card topo-static-panel">
+          <div className="section-heading topo-static-head">
+            <h2>{t('topology.bottom.heading.visibleNodes')}</h2>
             <span className="mini-status">
               {selectedNode ? `selected: ${selectedNode.display_name}` : t('topology.bottom.noSelection')}
             </span>
-          </summary>
+          </div>
           <div className="collapsible-body">
             <ul className="node-list interactive-list compact-list">
               {filteredTopology.nodes.map((node) => {
@@ -4245,13 +4366,13 @@ export function TopologyPage() {
               })}
             </ul>
           </div>
-        </details>
+        </section>
 
-        <details className="panel-card collapsible-panel">
-          <summary className="collapsible-summary">
-            <span>{t('topology.bottom.composition')}</span>
+        <section className="panel-card topo-static-panel">
+          <div className="section-heading topo-static-head">
+            <h2>{t('topology.bottom.composition')}</h2>
             <span className="mini-status">{nodeTypeCounts.length} / {relationCounts.length}</span>
-          </summary>
+          </div>
           <div className="collapsible-body">
             <div className="composition-list">
               {nodeTypeCounts.map((item) => (
@@ -4272,13 +4393,13 @@ export function TopologyPage() {
               ))}
             </div>
           </div>
-        </details>
+        </section>
 
-        <details className="panel-card collapsible-panel">
-          <summary className="collapsible-summary">
-            <span>{t('topology.bottom.edgePreview')}</span>
+        <section className="panel-card topo-static-panel">
+          <div className="section-heading topo-static-head">
+            <h2>{t('topology.bottom.edgePreview')}</h2>
             <span className="mini-status">{edgePreview.length} edges</span>
-          </summary>
+          </div>
           <div className="collapsible-body">
             <ul className="edge-list compact-list edge-preview-list">
               {edgePreview.map((edge) => (
@@ -4290,7 +4411,7 @@ export function TopologyPage() {
               ))}
             </ul>
           </div>
-        </details>
+        </section>
       </section>
     </main>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { CopilotPanel } from '../components/CopilotPanel'
+import { FocusablePanel } from '../components/FocusablePanel'
 import { useI18n } from '../i18n/context'
 import {
   ApiError,
@@ -192,13 +193,23 @@ export function CostPage() {
 
   return (
     <main className="page-shell cost-page-shell">
-      <section className="panel-card hero-card">
-        <p className="eyebrow">{t('cost.eyebrow')}</p>
-        <h2>{t('cost.title')}</h2>
-        <p className="subtext">
-          {t('cost.subtext')}
-        </p>
-        <div className="control-row cost-control-row">
+      <header className="page-head">
+        <div className="page-head-main">
+          <p className="eyebrow">{t('cost.eyebrow')}</p>
+          <h2>{t('cost.title')}</h2>
+          <p className="subtext">{t('cost.subtext')}</p>
+        </div>
+        <div className="page-head-actions">
+          <button type="button" className="toolbar-button" onClick={() => setRefreshKey((value) => value + 1)}>
+            {loading ? t('cost.refreshingInsights') : t('cost.refreshInsights')}
+          </button>
+          <button type="button" className="toolbar-button primary" onClick={downloadCostReport} disabled={reportLoading}>
+            {reportLoading ? t('cost.preparingReport') : t('cost.downloadReport')}
+          </button>
+        </div>
+      </header>
+
+      <div className="control-row cost-scope-bar">
           <label className="field-label">
             {t('cost.workspace')}
             <input
@@ -248,18 +259,12 @@ export function CostPage() {
               onChange={(event) => setResourceLimit(Math.min(5000, Math.max(1, Number(event.target.value) || 1)))}
             />
           </label>
-          <button type="button" className="toolbar-button primary" onClick={() => setRefreshKey((value) => value + 1)}>
-            {loading ? t('cost.refreshingInsights') : t('cost.refreshInsights')}
-          </button>
-          <button type="button" className="toolbar-button" onClick={downloadCostReport} disabled={reportLoading}>
-            {reportLoading ? t('cost.preparingReport') : t('cost.downloadReport')}
-          </button>
         </div>
-        {mode ? <p className="hint">{t('cost.inventoryMode')}: {mode}</p> : null}
-        {summary ? <p className="hint">{t('cost.costIngestion')}: {summary.cost_ingestion_provider} • {t('cost.configured')}: {summary.cost_ingestion_configured ? t('common.yes') : t('common.no')}</p> : null}
-        {warning ? <p className="warning-text">{warning}</p> : null}
-        {error ? <p className="error-text">{error}</p> : null}
-      </section>
+
+      {warning ? <div className="cost-warning-banner">⚠ {warning}</div> : null}
+      {mode ? <p className="hint">{t('cost.inventoryMode')}: {mode}</p> : null}
+      {summary ? <p className="hint">{t('cost.costIngestion')}: {summary.cost_ingestion_provider} • {t('cost.configured')}: {summary.cost_ingestion_configured ? t('common.yes') : t('common.no')}</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
 
       <section className="summary-grid">
         <article className="metric-card">
@@ -288,17 +293,16 @@ export function CostPage() {
         </article>
       </section>
 
-      <CopilotPanel
-        workspaceId={workspaceId}
-        queryOptions={costQueryOptions}
-        currentView="cost-insights"
-        viewContext={costCopilotViewContext}
-        onError={setError}
-      />
-
-      <section className="panel-grid cost-panel-grid">
-        <article className="panel-card">
-          <h3>{t('cost.topRecommendations')}</h3>
+      <FocusablePanel
+        panelId="cost-insights"
+        testId="cost-insights-focusable"
+        title={t('cost.focusSection.title')}
+        subtitle={t('cost.focusSection.subtitle')}
+        bodyClassName="cost-focusable-body"
+      >
+        <section className="panel-grid cost-panel-grid">
+          <article className="panel-card">
+            <h3>{t('cost.topRecommendations')}</h3>
           <div className="cost-recommendation-list">
             {sortedRecommendations.slice(0, 12).map((item) => (
               <div key={`${item.rule_id}-${item.resource_id}`} className="cost-recommendation-card">
@@ -339,7 +343,16 @@ export function CostPage() {
             </div>
           ) : null}
         </article>
-      </section>
+        </section>
+      </FocusablePanel>
+
+      <CopilotPanel
+        workspaceId={workspaceId}
+        queryOptions={costQueryOptions}
+        currentView="cost-insights"
+        viewContext={costCopilotViewContext}
+        onError={setError}
+      />
     </main>
   )
 }

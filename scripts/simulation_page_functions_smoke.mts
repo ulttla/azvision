@@ -152,3 +152,6 @@ assert.match(simPageCode, /t\('sim\.iac\.heading'\)/, 'SimulationPage IaC headin
 assert.match(simPageCode, /t\('sim\.iac\.unavailable'\)/, 'SimulationPage IaC unavailable should be localized')
 assert.match(simPageCode, /t\('sim\.iac\.loading'\)/, 'SimulationPage IaC loading should be localized')
 console.log('simulation_page_functions_smoke.mts: i18n section passed')
+assert.match(simPageCode, /<FocusablePanel/, 'SimulationPage should wrap its results panel in a FocusablePanel for focus mode')
+assert.match(simPageCode, /panelId="simulation-results"/, 'SimulationPage should expose a stable simulation-results focus panel id')
+assert.match(simPageCode, /testId="simulation-results-focusable"/, 'SimulationPage focusable results panel should be test-addressable')

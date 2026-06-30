@@ -151,3 +151,6 @@ for (const token of requiredSimMentions) {
 }
 
 console.log('✅ cost_page_semantics_smoke.mts: all assertions passed')
+assert.match(costPageCode, /<FocusablePanel/, 'CostPage should wrap its main insights panel in a FocusablePanel for focus mode')
+assert.match(costPageCode, /panelId="cost-insights"/, 'CostPage should expose a stable cost-insights focus panel id')
+assert.match(costPageCode, /testId="cost-insights-focusable"/, 'CostPage focusable insights panel should be test-addressable')

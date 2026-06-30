@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { CopilotPanel } from '../components/CopilotPanel'
+import { FocusablePanel } from '../components/FocusablePanel'
 import {
   ApiError,
   createSimulation,
@@ -201,12 +202,17 @@ export function SimulationPage() {
 
   return (
     <main className="page-shell simulation-page-shell">
-      <section className="panel-card hero-card">
-        <p className="eyebrow">{t('sim.hero.eyebrow')}</p>
-        <h2>{t('sim.hero.title')}</h2>
-        <p className="subtext">
-          {t('sim.hero.subtext')}
-        </p>
+      <header className="page-head">
+        <div className="page-head-main">
+          <p className="eyebrow">{t('sim.hero.eyebrow')}</p>
+          <h2>{t('sim.hero.title')}</h2>
+          <p className="subtext">{t('sim.hero.subtext')}</p>
+        </div>
+      </header>
+
+      <div className="simulation-layout">
+        <section className="panel-card simulation-form-card">
+        <h3 className="simulation-form-title">{t('sim.form.heading')}</h3>
         <div className="simulation-form-grid">
           <label className="field-label">
             {t('sim.form.workspace')}
@@ -249,18 +255,16 @@ export function SimulationPage() {
         </div>
       </section>
 
-      <CopilotPanel
-        workspaceId={workspaceId}
-        queryOptions={simulationCopilotOptions}
-        currentView="simulation"
-        viewContext={simulationCopilotViewContext}
-        className="simulation-copilot-card"
-        onError={setError}
-      />
-
-      <section className="panel-grid simulation-panel-grid">
-        <article className="panel-card">
-          <h3>{t('sim.list.heading')}</h3>
+      <FocusablePanel
+        panelId="simulation-results"
+        testId="simulation-results-focusable"
+        title={t('sim.focusSection.title')}
+        subtitle={t('sim.focusSection.subtitle')}
+        bodyClassName="simulation-focusable-body"
+      >
+        <section className="panel-grid simulation-panel-grid">
+          <article className="panel-card">
+            <h3>{t('sim.list.heading')}</h3>
           <div className="simulation-list">
             {simulations.map((item) => (
               <button
@@ -394,7 +398,18 @@ export function SimulationPage() {
             <p className="hint">{t('sim.detail.empty')}</p>
           )}
         </article>
-      </section>
+        </section>
+      </FocusablePanel>
+      </div>
+
+      <CopilotPanel
+        workspaceId={workspaceId}
+        queryOptions={simulationCopilotOptions}
+        currentView="simulation"
+        viewContext={simulationCopilotViewContext}
+        className="simulation-copilot-card"
+        onError={setError}
+      />
     </main>
   )
 }
