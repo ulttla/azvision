@@ -256,7 +256,7 @@ assert.match(appStyleCode, /\.canvas-card-maximized \.relation-legend\s*\{[\s\S]
 assert.match(appStyleCode, /\.canvas-card-maximized \.search-toolbar\s*\{[\s\S]*padding:\s*10px/, 'focused canvas mode should compact the search toolbar')
 assert.match(appStyleCode, /\.canvas-card-maximized \.search-form\s*\{[\s\S]*grid-template-columns:\s*minmax\(280px, 1fr\) auto/, 'focused canvas search form should use a horizontal layout on wide screens')
 assert.match(appStyleCode, /overflow-wrap:\s*anywhere/, 'long resource and edge labels should wrap safely')
-assert.match(appStyleCode, /\.collapsible-summary/, 'styles should include modern collapsible section affordances')
+assert.match(appStyleCode, /\.topo-static-panel/, 'styles should include the always-open static topology panels that replaced the collapsible accordions')
 assert.match(appStyleCode, /\.preset-list-grid\s*\{[\s\S]*max-height:\s*620px[\s\S]*overflow-y:\s*auto/, 'snapshot and preset lists should scroll within the controls panel instead of lengthening the full page')
 for (const key of ['topology.canvas.focusMode', 'topology.canvas.exitFocus', 'topology.canvas.openWindow', 'topology.canvas.popoutTitle', 'topology.canvas.openedWindow', 'topology.canvas.openWindowFailed']) {
   assert.ok(dictCode.includes(`'${key}':`), `i18n dict should define ${key}`)

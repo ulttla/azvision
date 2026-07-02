@@ -84,7 +84,7 @@ export const dict = {
     'view.simulation': 'Simulation',
 
     // ── Cost Page hero ────────────────────────────────────
-    'cost.eyebrow': 'AzVision • Cost Intelligence',
+    'cost.eyebrow': 'Cost Intelligence',
     'cost.title': 'Rule-based cost analyst first pass',
     'cost.subtext':
       'This view turns the current Azure inventory into cost triage prompts. It does not claim actual spend yet; dollar mapping comes after Azure Cost Management ingestion.',
@@ -606,7 +606,7 @@ export const dict = {
     'error.devDetails': 'Developer details',
 
     // ── Architecture Page hero / badges ───────────────────
-    'arch.hero.eyebrow': 'AzVision • Architecture View',
+    'arch.hero.eyebrow': 'Architecture',
     'arch.hero.title': 'Compact architecture pipeline mode',
     'arch.hero.subtext':
       'Auto-map live topology resources into Source → Ingest → Process → Store → Serve zones, keep infra separated, and persist lightweight hide, label, and stage overrides for presentation-ready views.',
@@ -777,7 +777,7 @@ export const dict = {
     'arch.hidden.noHiddenCards': 'No hidden cards yet.',
 
     // ── Simulation Page ───────────────────────────────────
-    'sim.hero.eyebrow': 'AzVision • Simulation',
+    'sim.hero.eyebrow': 'Simulation',
     'sim.hero.title': 'Rule-based resource planning first pass',
     'sim.hero.subtext':
       'Describe a project and get a first-pass Azure resource plan. This is not a deployment template or price estimate yet; it is a structured starting point for architecture review.',
@@ -894,7 +894,7 @@ export const dict = {
     'view.simulation': '시뮬레이션',
 
     // ── Cost Page hero ────────────────────────────────────
-    'cost.eyebrow': 'AzVision • 비용 인텔리전스',
+    'cost.eyebrow': 'Cost Intelligence',
     'cost.title': '규칙 기반 비용 분석 1차 패스',
     'cost.subtext':
       '현재 Azure 인벤토리를 비용 분석 프롬프트로 변환합니다. 아직 실제 지출을 표시하지 않으며, 비용 매핑은 Azure Cost Management 수집 후 제공됩니다.',
@@ -1416,7 +1416,7 @@ export const dict = {
     'error.devDetails': '개발자 세부 정보',
 
     // ── Architecture Page hero / badges ───────────────────
-    'arch.hero.eyebrow': 'AzVision • 아키텍처 뷰',
+    'arch.hero.eyebrow': 'Architecture',
     'arch.hero.title': '컴팩트 아키텍처 파이프라인 모드',
     'arch.hero.subtext':
       '실시간 토폴로지 리소스를 Source → Ingest → Process → Store → Serve 영역으로 자동 매핑하고, 인프라를 분리하며, 프레젠테이션용 경량 하이드/라벨/스테이지 오버라이드를 유지합니다.',
@@ -1587,7 +1587,7 @@ export const dict = {
     'arch.hidden.noHiddenCards': '아직 숨겨진 카드가 없습니다.',
 
     // ── Simulation Page ───────────────────────────────────
-    'sim.hero.eyebrow': 'AzVision • 시뮬레이션',
+    'sim.hero.eyebrow': 'Simulation',
     'sim.hero.title': '규칙 기반 리소스 계획 1차 패스',
     'sim.hero.subtext':
       '프로젝트를 설명하고 1차 Azure 리소스 계획을 받아보세요. 아직 배포 템플릿이나 비용 추정치가 아니며, 아키텍처 검토를 위한 구조화된 출발점입니다.',
