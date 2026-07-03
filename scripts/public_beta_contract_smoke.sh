@@ -74,7 +74,7 @@ grep -q 'disable_account_sessions' backend/app/auth/session_issuer.py
 grep -q 'auth_account_management_enabled' backend/app/core/config.py
 grep -q 'Account Lifecycle Decision Template' docs/ACCOUNT_LIFECYCLE_DECISION_TEMPLATE.md
 grep -q 'public_routes_exposure_gated' backend/app/api/routes/auth.py
-grep -q 'public_routes_exposure_gated' frontend/src/App.tsx
+grep -q 'public_routes_exposure_gated' frontend/src/lib/api.ts
 grep -q 'C2 evidence register' docs/PUBLIC_BETA_C2_EVIDENCE.md
 grep -q 'C3 evidence register' docs/PUBLIC_BETA_C3_EVIDENCE.md
 grep -q 'auth.account.disabled' backend/app/api/routes/auth.py

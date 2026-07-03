@@ -3,7 +3,6 @@ import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { PublicBetaOnboarding } from './components/PublicBetaOnboarding'
 import { useI18n } from './i18n/context'
-import type { DictKey } from './i18n/dict'
 import { bootstrapDemoWorkspace, getAuthConfigCheck, getBackendHealth, getBackendReadiness, getDemoWorkspaceStatus, getTopologyFreshness, getWorkspaces } from './lib/api'
 import type { AuthConfigCheckResponse } from './lib/api'
 import { useTheme } from './theme'
@@ -43,93 +42,6 @@ function LoadingShell({ loadingLabel }: { loadingLabel: string }) {
   )
 }
 
-function ReadinessPill({ label, ready }: { label: string; ready: boolean }) {
-  return (
-    <span className={`account-lifecycle-pill ${ready ? 'ready' : 'pending'}`}>
-      <span aria-hidden="true">{ready ? '✓' : '!'}</span>
-      {label}
-    </span>
-  )
-}
-
-function AccountLifecycleReadiness({
-  authReadiness,
-  expanded,
-  onToggle,
-  t,
-}: {
-  authReadiness: AuthConfigCheckResponse | null
-  expanded: boolean
-  onToggle: () => void
-  t: (key: DictKey) => string
-}) {
-  const oidc = authReadiness?.checks.oidc
-  const lifecycle = authReadiness?.checks.account_lifecycle
-  const rateLimit = authReadiness?.checks.rate_limit
-  const oidcProviderReady = Boolean(
-    oidc?.login_enabled && oidc.issuer_present && oidc.audience_present && oidc.jwks_url_present && oidc.workspace_map_present && oidc.workspace_map_valid,
-  )
-  const accountManagementGated = lifecycle?.account_management_enabled === false
-  const publicRoutesExposureGated = lifecycle?.public_routes_exposure_gated === true
-  const sharedLimiterReady = Boolean(rateLimit?.public_beta_shared_gate_satisfied)
-  const summaryLabelKey: DictKey = accountManagementGated && publicRoutesExposureGated && sharedLimiterReady
-    ? 'shell.metaSection.summary.lifecycleReady'
-    : 'shell.metaSection.summary.lifecyclePending'
-
-  const sectionId = 'account-lifecycle-readiness-body'
-  const buttonId = 'account-lifecycle-readiness-toggle'
-
-  return (
-    <section
-      className={`account-lifecycle-readiness ${expanded ? 'expanded' : 'collapsed'}`}
-      data-testid="account-lifecycle-readiness"
-      aria-label={t('accountLifecycle.aria')}
-      data-expanded={expanded ? 'true' : 'false'}
-    >
-      <button
-        id={buttonId}
-        type="button"
-        className="account-lifecycle-readiness-summary"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        aria-controls={sectionId}
-        data-testid="account-lifecycle-readiness-toggle"
-      >
-        <span className="account-lifecycle-readiness-summary-text">
-          <span className="account-lifecycle-kicker">{t('accountLifecycle.kicker')}</span>
-          <span className="account-lifecycle-readiness-summary-title">{t(summaryLabelKey)}</span>
-        </span>
-        <span
-          className={`account-lifecycle-mini-pill ${oidcProviderReady ? 'ready' : 'pending'}`}
-          data-testid="account-lifecycle-mini-pill"
-          aria-label={t('accountLifecycle.pill.oidcMapped')}
-        >
-          <span aria-hidden="true">{oidcProviderReady ? '✓' : '!'}</span>
-        </span>
-        <span className="account-lifecycle-readiness-chevron" aria-hidden="true">
-          {expanded ? '▾' : '▸'}
-        </span>
-      </button>
-      <div
-        id={sectionId}
-        className="account-lifecycle-readiness-body"
-        role="region"
-        aria-labelledby={buttonId}
-        hidden={!expanded}
-        data-testid="account-lifecycle-readiness-body"
-      >
-        <p>{t('accountLifecycle.subtext')}</p>
-        <div className="account-lifecycle-pill-row" data-testid="account-lifecycle-pill-row">
-          <ReadinessPill label={t('accountLifecycle.pill.oidcMapped')} ready={oidcProviderReady} />
-          <ReadinessPill label={t('accountLifecycle.pill.accountManagementGated')} ready={accountManagementGated} />
-          <ReadinessPill label={t('accountLifecycle.pill.publicRoutesGated')} ready={publicRoutesExposureGated} />
-          <ReadinessPill label={t('accountLifecycle.pill.sharedLimiter')} ready={sharedLimiterReady} />
-        </div>
-      </div>
-    </section>
-  )
-}
-
 export default function App() {
   const { t, locale, setLocale } = useI18n()
   const { theme, toggleTheme } = useTheme()
@@ -164,7 +76,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('topology')
   const [backendConnectivity, setBackendConnectivity] = useState<BackendConnectivityStatus>('checking')
   const [authConnectivity, setAuthConnectivity] = useState<AuthConnectivityStatus>('checking')
-  const [authReadiness, setAuthReadiness] = useState<AuthConfigCheckResponse | null>(null)
+  const [, setAuthReadiness] = useState<AuthConfigCheckResponse | null>(null)
   const [topologyFreshness, setTopologyFreshness] = useState<TopologyFreshnessStatus>('checking')
   const [topologyNodeCount, setTopologyNodeCount] = useState<number | null>(null)
   const [workspaceCount, setWorkspaceCount] = useState<number | null>(null)
